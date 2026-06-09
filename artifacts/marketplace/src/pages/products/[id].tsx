@@ -786,6 +786,11 @@ export default function ProductDetail() {
               )}
             </div>
 
+            {/* Mobile purchase card — shown before specs so CTA is visible without scrolling */}
+            <div className="md:hidden mb-5">
+              {purchaseCardJsx}
+            </div>
+
             {/* ── Specifications ── */}
             {specs.length > 0 && (
               <div className="mb-5 bg-card border border-border/70 rounded-2xl overflow-hidden shadow-sm">
@@ -860,11 +865,6 @@ export default function ProductDetail() {
             {isCustomer && (product as any).storeSlug && (
               <ContactSellerButton sellerId={(product as any).sellerId} className="mb-5" />
             )}
-
-            {/* Mobile purchase card */}
-            <div className="md:hidden mb-6">
-              {purchaseCardJsx}
-            </div>
 
             {/* Desktop trust badges */}
             <div className="hidden md:grid grid-cols-2 gap-2 sm:gap-3 border-t pt-5">

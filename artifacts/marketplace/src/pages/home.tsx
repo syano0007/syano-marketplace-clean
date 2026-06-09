@@ -148,7 +148,7 @@ const HotDealsSection = React.memo(function HotDealsSection({
           </Link>
         </div>
 
-        <div className="product-grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+        <div className="product-grid">
           {isLoadingProducts
             ? Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)
             : hotDeals.map((p) => <ProductCard key={p.id} product={p} flashSaleEndsIn={flashSaleFormatted} />)
@@ -187,7 +187,7 @@ function SectionHeader({
 function ProductSkeleton() {
   return (
     <div className="flex flex-col space-y-3 animate-pulse">
-      <div className="aspect-[3/4] sm:aspect-[4/5] md:aspect-square bg-muted rounded-xl" />
+      <div className="aspect-square bg-muted rounded-xl" />
       <div className="h-3 bg-muted rounded w-3/4" />
       <div className="h-3 bg-muted rounded w-1/2" />
       <div className="h-3 bg-muted rounded w-1/3" />
@@ -397,7 +397,7 @@ export default function Home() {
                 viewAllHref="/products?sort=highest_rated"
                 viewAllLabel={t("home.view_all")}
               />
-              <div className="product-grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+              <div className="product-grid">
                 {isLoadingProducts
                   ? Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)
                   : featuredProducts.map((p) => <ProductCard key={p.id} product={p} />)
@@ -417,7 +417,7 @@ export default function Home() {
               viewAllHref="/products"
               viewAllLabel={t("home.view_all")}
             />
-            <div className="product-grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+            <div className="product-grid">
               {isLoadingProducts
                 ? Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)
                 : newArrivals.length === 0
@@ -450,7 +450,7 @@ export default function Home() {
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
-              <div className="product-grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+              <div className="product-grid">
                 {isLoadingBestSellers
                   ? Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)
                   : bestSellers.map((p) => <ProductCard key={p.id} product={p} />)
@@ -471,8 +471,8 @@ export default function Home() {
               viewAllLabel={t("home.view_all")}
             />
 
-            {/* 2 cols → 3 → 4 → 5, with generous gap */}
-            <div className="product-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+            {/* 2 cols → 3 → 5 → 6, with generous gap */}
+            <div className="category-grid">
               {CATEGORIES.map((cat) => {
                 const Icon = ICON_MAP[cat.icon] ?? Store;
                 const img  = CATEGORY_IMAGES[cat.slug];

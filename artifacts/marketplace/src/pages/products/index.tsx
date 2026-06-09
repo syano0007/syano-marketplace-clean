@@ -613,10 +613,10 @@ export default function Products() {
 
         {/* ── Product Grid ──────────────────────────────── */}
         {isLoading ? (
-          <div className="product-grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+          <div className="product-grid">
             {Array(8).fill(0).map((_, i) => (
               <div key={i} className="flex flex-col rounded-xl bg-muted/30 overflow-hidden animate-pulse">
-                <div className="aspect-[3/4] sm:aspect-[4/5] md:aspect-square bg-muted" />
+                <div className="aspect-square bg-muted" />
                 <div className="p-3 space-y-2">
                   <div className="h-2.5 bg-muted rounded w-1/3" />
                   <div className="h-4 bg-muted rounded w-3/4" />

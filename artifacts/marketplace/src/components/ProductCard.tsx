@@ -146,7 +146,7 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
           <OptimizedImage
             src={product.imageUrl}
             alt={product.name}
-            aspect="aspect-[3/4] sm:aspect-[4/5] md:aspect-square"
+            aspect="aspect-square"
             className="group-hover:scale-105 transition-transform duration-200"
             fallback={
               <div className="absolute inset-0 flex items-center justify-center bg-secondary/50 text-muted-foreground">
@@ -155,7 +155,7 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
             }
           />
         ) : (
-          <div className="aspect-[3/4] sm:aspect-[4/5] md:aspect-square w-full flex items-center justify-center bg-secondary/50 text-muted-foreground">
+          <div className="aspect-square w-full flex items-center justify-center bg-secondary/50 text-muted-foreground">
             <span className="text-xs font-medium px-2 text-center">{t("product_detail.no_image")}</span>
           </div>
         )}
