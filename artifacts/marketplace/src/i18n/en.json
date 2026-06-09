@@ -122,7 +122,17 @@
     "sort_lowest": "Lowest",
     "select_options": "Select Options",
     "all_variants_unavailable": "All variants are out of stock",
-    "choose_option": "Choose one"
+    "choose_option": "Choose one",
+    "specifications": "Specifications",
+    "about_product": "About This Product",
+    "show_more": "Show More",
+    "show_less": "Show Less",
+    "condition": "Condition",
+    "in_stock_short": "In Stock",
+    "warranty": "Warranty",
+    "warranty_desc": "12 Month Warranty",
+    "delivery_to": "Delivery to",
+    "delivery_desc": "Aleppo, Syria"
   },
   "variants": {
     "section_title": "Product Variants",

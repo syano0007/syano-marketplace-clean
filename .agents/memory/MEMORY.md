@@ -42,3 +42,4 @@
 - [shell-quote firewall shim](shell-quote-shim.md) — shell-quote@1.8.3 blocked by Replit firewall; fixed via local shim at lib/shell-quote-shim/ overridden in pnpm-workspace.yaml overrides.
 - [pnpm hoisting required](pnpm-hoisting.md) — After migration/fresh env, pnpm node_modules are empty without shamefully-hoist=true in .npmrc; always verify node_modules root has packages, not just .pnpm store.
 - [Courier application management system](courier-app-management.md) — Admin courier-applications pages, GET /admin/couriers/:id endpoint, suspension/reactivation notifications, expanded Aleppo zones (40 total).
+- [Vite React Fast Refresh import order](vite-rfr-import-order.md) — Imports interleaved with executable code breaks React Fast Refresh → "Invalid hook call" + Radix Presence infinite loop; ALL imports must precede every non-import statement.

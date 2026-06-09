@@ -122,7 +122,17 @@
     "sort_lowest": "الأقل تقييماً",
     "select_options": "اختر الخيارات",
     "all_variants_unavailable": "جميع الخيارات غير متوفرة",
-    "choose_option": "اختر واحداً"
+    "choose_option": "اختر واحداً",
+    "specifications": "المواصفات",
+    "about_product": "عن هذا المنتج",
+    "show_more": "عرض المزيد",
+    "show_less": "عرض أقل",
+    "condition": "الحالة",
+    "in_stock_short": "متوفر",
+    "warranty": "الضمان",
+    "warranty_desc": "ضمان 12 شهراً",
+    "delivery_to": "توصيل إلى",
+    "delivery_desc": "حلب، سوريا"
   },
   "variants": {
     "section_title": "خيارات المنتج",

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useLocation, useParams } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
+import { useTranslation } from "react-i18next";
 import { useGetProduct, useAddToCart, getGetCartQueryKey, useStartConversation } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -9,12 +10,19 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { StarRating } from "@/components/StarRating";
+import { ReviewSection } from "@/components/ReviewSection";
+import { RelatedProducts } from "@/components/RelatedProducts";
+import { useSEO } from "@/hooks/useSEO";
+import { FEATURES } from "@/lib/features";
 import {
-  ChevronLeft, Minus, Plus, ShoppingCart, Truck, ShieldCheck, RefreshCw, // RefreshCw kept for future re-enable
-  ZoomIn, X, AlertTriangle, ChevronRight, Package, Star, MessageCircle, Check
+  ChevronLeft, Minus, Plus, ShoppingCart, Truck, ShieldCheck, RefreshCw,
+  ZoomIn, X, AlertTriangle, ChevronRight, Package, MessageCircle, Check,
+  Package2
 } from "lucide-react";
 
-// ── Color swatch utilities ────────────────────────────────────────────────────
+// ── Module-level helpers ──────────────────────────────────────────────────────
+
 const COLOR_VALUE_MAP: Record<string, string> = {
   red: "#EF4444", blue: "#3B82F6", green: "#10B981", black: "#111111",
   white: "#F9FAFB", yellow: "#F59E0B", purple: "#8B5CF6", pink: "#EC4899",
@@ -23,7 +31,6 @@ const COLOR_VALUE_MAP: Record<string, string> = {
   silver: "#C0C0C0", gold: "#D4AF37", beige: "#F5F5DC", cream: "#FFFDD0",
   maroon: "#800000", olive: "#808000", lime: "#84CC16", violet: "#7C3AED",
   rose: "#F43F5E", sky: "#0EA5E9", emerald: "#10B981", amber: "#F59E0B",
-  // Arabic
   أحمر: "#EF4444", أزرق: "#3B82F6", أخضر: "#10B981", أسود: "#111111",
   أبيض: "#F9FAFB", أصفر: "#F59E0B", بنفسجي: "#8B5CF6", وردي: "#EC4899",
   برتقالي: "#F97316", رمادي: "#6B7280", بني: "#92400E", كحلي: "#1E3A8A",
@@ -43,22 +50,33 @@ const COLOR_GROUP_NAMES = new Set(["color", "colour", "colors", "colours", "ال
 function isColorGroup(name: string): boolean {
   return COLOR_GROUP_NAMES.has(name.toLowerCase().trim());
 }
-import { Link } from "wouter";
-import { useTranslation } from "react-i18next";
-import { FEATURES } from "@/lib/features";
-import { StarRating } from "@/components/StarRating";
-import { ReviewSection } from "@/components/ReviewSection";
-import { RelatedProducts } from "@/components/RelatedProducts";
-import { useSEO } from "@/hooks/useSEO";
-import { OptimizedImage } from "@/components/OptimizedImage";
 
-/* ── Contact Seller Button ───────────────────────────────────── */
+function parseSpecsFromDescription(description: string): { specs: { label: string; value: string }[]; remainder: string } {
+  if (!description) return { specs: [], remainder: "" };
+  const lines = description.split("\n");
+  const specs: { label: string; value: string }[] = [];
+  const remainderLines: string[] = [];
+  for (const line of lines) {
+    const match = line.match(/^([^:\n]{1,40}):\s*(.{1,120})$/);
+    if (match && match[1].trim() && match[2].trim()) {
+      specs.push({ label: match[1].trim(), value: match[2].trim() });
+    } else {
+      remainderLines.push(line);
+    }
+  }
+  if (specs.length < 2) {
+    return { specs: [], remainder: description };
+  }
+  return { specs, remainder: remainderLines.join("\n").trim() };
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
 function ContactSellerButton({ sellerId, className }: { sellerId: number; className?: string }) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const startConv = useStartConversation();
-
   const handleContact = () => {
     startConv.mutate(
       { sellerId },
@@ -69,7 +87,6 @@ function ContactSellerButton({ sellerId, className }: { sellerId: number; classN
       }
     );
   };
-
   return (
     <button
       onClick={handleContact}
@@ -77,7 +94,7 @@ function ContactSellerButton({ sellerId, className }: { sellerId: number; classN
       className={`w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 text-sm font-semibold text-foreground transition-colors disabled:opacity-60 ${className ?? ""}`}
     >
       <MessageCircle className="h-4 w-4 text-primary" />
-      Contact Seller
+      {t("messages.contact_seller", "Contact Seller")}
     </button>
   );
 }
@@ -91,10 +108,11 @@ function ProductSkeleton() {
           <div className="space-y-3">
             <div className="aspect-square bg-muted rounded-2xl animate-pulse" />
             <div className="flex gap-2">
-              {[0,1,2,3].map(i => (
+              {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="h-16 w-16 bg-muted rounded-xl animate-pulse" />
               ))}
             </div>
+            <div className="h-52 bg-muted rounded-2xl animate-pulse" />
           </div>
           <div className="space-y-4 pt-2">
             <div className="h-3 w-24 bg-muted rounded animate-pulse" />
@@ -102,15 +120,8 @@ function ProductSkeleton() {
             <div className="h-9 bg-muted rounded w-3/5 animate-pulse" />
             <div className="h-5 w-28 bg-muted rounded animate-pulse" />
             <div className="h-14 w-40 bg-muted rounded animate-pulse" />
-            <div className="h-4 w-24 bg-muted rounded animate-pulse" />
             <div className="h-32 bg-muted rounded-xl animate-pulse" />
             <div className="h-28 bg-muted rounded-xl animate-pulse" />
-            <div className="h-20 bg-muted rounded-xl animate-pulse" />
-            <div className="grid grid-cols-3 gap-3">
-              {[0,1,2].map(i => (
-                <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />
-              ))}
-            </div>
           </div>
         </div>
       </div>
@@ -118,35 +129,77 @@ function ProductSkeleton() {
   );
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function ProductDetail() {
   const params = useParams();
   const id = parseInt(params.id || "0", 10);
   const { isCustomer, isAuthenticated } = useAuth();
   const { addGuestItem } = useGuestCart();
   const { format } = useCurrency();
-  const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() === "rtl";
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+
   const [quantity, setQuantity] = useState(1);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [activeImageOverride, setActiveImage] = useState<string | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<number, number>>({});
+  const [aboutExpanded, setAboutExpanded] = useState(false);
 
   useEffect(() => {
-    if (lightboxOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = lightboxOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [lightboxOpen]);
 
   const { data: product, isLoading, error } = useGetProduct(id, {
-    query: { enabled: !!id, queryKey: ["getProduct", id] }
+    query: { enabled: !!id },
   });
+
+  const hasVariants = (product?.variantGroups?.length ?? 0) > 0;
+
+  function isOptionAvailableWith(test: Record<number, number>, optionId: number): boolean {
+    if (!product?.variants?.length) return true;
+    const testIds = new Set(Object.values(test));
+    return product.variants.some(
+      (v) =>
+        v.active &&
+        v.stock > 0 &&
+        v.options.some((o) => o.optionId === optionId) &&
+        (Object.keys(test).length < (product.variantGroups?.length ?? 0) ||
+          (v.options.length === (product.variantGroups?.length ?? 0) &&
+            v.options.every((o) => testIds.has(o.optionId))))
+    );
+  }
+
+  function isOptionAvailable(groupId: number, optionId: number): boolean {
+    return isOptionAvailableWith({ ...selectedOptions, [groupId]: optionId }, optionId);
+  }
+
+  useEffect(() => {
+    if (!product?.variantGroups?.length || !product.variants?.length) return;
+    if (Object.keys(selectedOptions).length > 0) return;
+    const auto: Record<number, number> = {};
+    for (const group of product.variantGroups as any[]) {
+      for (const option of group.options as any[]) {
+        const test = { ...auto, [group.id]: option.id };
+        const testIds = new Set(Object.values(test));
+        const valid = (product.variants as any[]).some((v) =>
+          v.active && v.stock > 0 &&
+          v.options.some((o: any) => o.optionId === option.id) &&
+          (Object.keys(test).length < product.variantGroups!.length ||
+            (v.options.length === product.variantGroups!.length &&
+              v.options.every((o: any) => testIds.has(o.optionId))))
+        );
+        if (valid) { auto[group.id] = option.id; break; }
+      }
+    }
+    if (Object.keys(auto).length === (product.variantGroups?.length ?? 0)) {
+      setSelectedOptions(auto);
+    }
+  }, [product?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addToCart = useAddToCart({
     mutation: {
@@ -158,16 +211,10 @@ export default function ProductDetail() {
         queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() });
       },
       onError: () => {
-        toast({
-          title: t("common.error"),
-          description: t("product_detail.error_add"),
-          variant: "destructive",
-        });
-      }
-    }
+        toast({ title: t("common.error"), description: t("product_detail.error_add"), variant: "destructive" });
+      },
+    },
   });
-
-  const hasVariants = (product?.variantGroups?.length ?? 0) > 0;
 
   const resolvedVariant = useMemo(() => {
     if (!product || !hasVariants || !product.variants?.length) return null;
@@ -181,30 +228,6 @@ export default function ProductDetail() {
     );
   }, [selectedOptions, product, hasVariants]);
 
-  function isOptionAvailable(groupId: number, optionId: number): boolean {
-    if (!product?.variants?.length) return true;
-    const test = { ...selectedOptions, [groupId]: optionId };
-    const testIds = new Set(Object.values(test));
-    return product.variants.some(
-      (v) =>
-        v.active &&
-        v.stock > 0 &&
-        v.options.some((o) => o.optionId === optionId) &&
-        (Object.keys(test).length < (product.variantGroups?.length ?? 0) ||
-          (v.options.length === (product.variantGroups?.length ?? 0) &&
-            v.options.every((o) => testIds.has(o.optionId))))
-    );
-  }
-
-  const handleAddToCart = () => {
-    if (!product) return;
-    if (hasVariants && !resolvedVariant) return;
-    addToCart.mutate({
-      data: { productId: product.id, quantity, ...(resolvedVariant ? { variantId: resolvedVariant.id } : {}) } as any,
-    });
-  };
-
-  // First group (e.g. Color) drives automatic gallery switching
   const firstGroup = product?.variantGroups?.[0];
   const selectedFirstOptionId = firstGroup ? (selectedOptions[firstGroup.id] ?? null) : null;
 
@@ -214,7 +237,6 @@ export default function ProductDetail() {
       [product.imageUrl, ...(product.imageUrls ?? [])].filter(Boolean) as string[]
     )];
     if (!hasVariants || !product.variants?.length) return productImgs;
-
     if (selectedFirstOptionId != null) {
       const seen = new Set<string>();
       const imgs: string[] = [];
@@ -228,7 +250,6 @@ export default function ProductDetail() {
       }
       if (imgs.length > 0) return imgs;
     }
-
     if (resolvedVariant) {
       const vImgs = ((resolvedVariant as any).images ?? [])
         .map((i: any) => (typeof i === "string" ? i : i?.url))
@@ -236,38 +257,57 @@ export default function ProductDetail() {
       if (vImgs.length > 0) return vImgs;
       if ((resolvedVariant as any).imageUrl) return [(resolvedVariant as any).imageUrl, ...productImgs];
     }
-
     return productImgs;
   }, [product, hasVariants, selectedFirstOptionId, resolvedVariant]);
 
-  const allImages = galleryImages;
-  const activeImage = activeImageOverride ?? allImages[0] ?? null;
+  const activeImage = activeImageOverride ?? galleryImages[0] ?? null;
 
-  // Reset active image when first-group selection changes (gallery switch)
   useEffect(() => {
     setActiveImage(null);
     setImgLoaded(false);
   }, [selectedFirstOptionId]);
 
-  // Sync selected options to URL query params (?Color=Red&Size=M)
-  useEffect(() => {
-    if (!product?.variantGroups) return;
-    const params = new URLSearchParams();
-    for (const group of product.variantGroups as any[]) {
-      const optionId = selectedOptions[group.id];
-      if (optionId) {
-        const option = (group.options as any[]).find((o: any) => o.id === optionId);
-        if (option) params.set(group.name, option.value);
-      }
-    }
-    const qs = params.toString();
-    const newUrl = `/products/${id}${qs ? `?${qs}` : ""}`;
-    window.history.replaceState({}, "", newUrl);
-  }, [selectedOptions, id]);
+  useSEO(
+    product
+      ? {
+          title: product.name,
+          description: (product.description || "").slice(0, 160) ||
+            `Buy ${product.name} on Syano — ${product.category}. Trusted Syrian sellers, fast delivery, secure checkout.`,
+          canonical: `/products/${product.id}`,
+          image: product.imageUrl || undefined,
+          jsonLd: {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: product.name,
+            description: product.description || undefined,
+            image: product.imageUrl || undefined,
+            category: product.category,
+            brand: product.sellerName ? { "@type": "Brand", name: product.sellerName } : undefined,
+            aggregateRating:
+              product.reviewCount && product.reviewCount > 0
+                ? { "@type": "AggregateRating", ratingValue: product.averageRating ?? 0, reviewCount: product.reviewCount }
+                : undefined,
+            offers: {
+              "@type": "Offer",
+              url: `https://syano.online/products/${product.id}`,
+              price: product.finalPrice ?? product.price,
+              priceCurrency: "USD",
+              availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            },
+          },
+        }
+      : { title: "Loading product", canonical: `/products/${id}` }
+  );
+
+  const handleAddToCart = () => {
+    if (!product || (hasVariants && !resolvedVariant)) return;
+    addToCart.mutate({
+      data: { productId: product.id, quantity, ...(resolvedVariant ? { variantId: resolvedVariant.id } : {}) } as any,
+    });
+  };
 
   const handleBuyNow = () => {
-    if (!product) return;
-    if (hasVariants && !resolvedVariant) return;
+    if (!product || (hasVariants && !resolvedVariant)) return;
     addToCart.mutate(
       { data: { productId: product.id, quantity, ...(resolvedVariant ? { variantId: resolvedVariant.id } : {}) } as any },
       { onSuccess: () => { queryClient.invalidateQueries({ queryKey: getGetCartQueryKey() }); navigate("/cart"); } }
@@ -295,48 +335,6 @@ export default function ProductDetail() {
     if (product && quantity < maxStock) setQuantity(quantity + 1);
   };
 
-  useSEO(
-    product
-      ? {
-          title: product.name,
-          description:
-            (product.description || "").slice(0, 160) ||
-            `Buy ${product.name} on Syano — ${product.category}. Trusted Syrian sellers, fast delivery, secure checkout.`,
-          canonical: `/products/${product.id}`,
-          image: product.imageUrl || undefined,
-          jsonLd: {
-            "@context": "https://schema.org",
-            "@type": "Product",
-            name: product.name,
-            description: product.description || undefined,
-            image: product.imageUrl || undefined,
-            category: product.category,
-            brand: product.sellerName
-              ? { "@type": "Brand", name: product.sellerName }
-              : undefined,
-            aggregateRating:
-              product.reviewCount && product.reviewCount > 0
-                ? {
-                    "@type": "AggregateRating",
-                    ratingValue: product.averageRating ?? 0,
-                    reviewCount: product.reviewCount,
-                  }
-                : undefined,
-            offers: {
-              "@type": "Offer",
-              url: `https://syano.online/products/${product.id}`,
-              price: product.finalPrice ?? product.price,
-              priceCurrency: "USD",
-              availability:
-                product.stock > 0
-                  ? "https://schema.org/InStock"
-                  : "https://schema.org/OutOfStock",
-            },
-          },
-        }
-      : { title: "Loading product", canonical: `/products/${id}` },
-  );
-
   if (isLoading) return <ProductSkeleton />;
 
   if (error || !product) {
@@ -348,21 +346,18 @@ export default function ProductDetail() {
           </div>
           <h2 className="text-2xl font-bold mb-3">{t("product_detail.not_found")}</h2>
           <p className="text-muted-foreground mb-8 max-w-sm">{t("product_detail.not_found_desc")}</p>
-          <Link href="/products">
-            <Button size="lg">{t("product_detail.back_to_products")}</Button>
-          </Link>
+          <Link href="/products"><Button size="lg">{t("product_detail.back_to_products")}</Button></Link>
         </div>
       </Layout>
     );
   }
 
-  // ── Absolute price model (Shopify/Amazon style) ──
-  // variant.price = absolute sell price; variant.compareAtPrice = crossed-out original price
+  // ── Derived values (after early returns) ────────────────────────────────────
+
   const effectiveSellPrice: number = (() => {
     if (hasVariants && resolvedVariant) {
       const v = resolvedVariant as any;
       if (v.price != null) return parseFloat(v.price);
-      // Legacy: priceAdjustment + product-level discount
       return parseFloat(((product.price + (v.priceAdjustment ?? 0)) * (1 - (product.discountPercent ?? 0) / 100)).toFixed(2));
     }
     return product.finalPrice ?? product.price;
@@ -372,8 +367,7 @@ export default function ProductDetail() {
     if (hasVariants && resolvedVariant) {
       const v = resolvedVariant as any;
       if (v.compareAtPrice != null) return parseFloat(v.compareAtPrice);
-      if (v.price != null) return null; // absolute price, no compare = no strikethrough
-      // Legacy: show base before discount
+      if (v.price != null) return null;
       if ((product.discountPercent ?? 0) > 0) return product.price + (v.priceAdjustment ?? 0);
       return null;
     }
@@ -381,80 +375,133 @@ export default function ProductDetail() {
     return null;
   })();
 
-  const effectiveFinalPrice = effectiveSellPrice;
-  const effectiveBasePrice  = effectiveCompareAt ?? effectiveSellPrice;
-  const hasDiscount         = effectiveCompareAt != null && effectiveCompareAt > effectiveSellPrice;
-  const savings             = hasDiscount ? effectiveCompareAt - effectiveSellPrice : 0;
-  const displayDiscountPct  = hasDiscount && effectiveCompareAt
-    ? Math.round((1 - effectiveSellPrice / effectiveCompareAt) * 100)
+  const hasDiscount = effectiveCompareAt != null && effectiveCompareAt > effectiveSellPrice;
+  const savings = hasDiscount ? effectiveCompareAt! - effectiveSellPrice : 0;
+  const displayDiscountPct = hasDiscount && effectiveCompareAt
+    ? Math.round((1 - effectiveSellPrice / effectiveCompareAt!) * 100)
     : (product.discountPercent ?? 0);
   const effectiveStock = hasVariants ? (resolvedVariant?.stock ?? 0) : product.stock;
   const isLowStock = hasVariants
-    ? (resolvedVariant !== null && resolvedVariant.stock > 0 && resolvedVariant.stock <= 5)
-    : (product.stock > 0 && product.stock <= 5);
+    ? resolvedVariant !== null && resolvedVariant.stock > 0 && resolvedVariant.stock <= 5
+    : product.stock > 0 && product.stock <= 5;
   const isOutOfStock = hasVariants
-    ? (!resolvedVariant || resolvedVariant.stock === 0 || !resolvedVariant.active)
+    ? !resolvedVariant || resolvedVariant.stock === 0 || !resolvedVariant.active
     : product.stock === 0;
   const needsVariantSelection = hasVariants && Object.keys(selectedOptions).length < (product.variantGroups?.length ?? 0);
-  const sellerInitial = (product.storeName || product.sellerName || "S").charAt(0).toUpperCase();
+  const sellerInitial = ((product as any).storeName || product.sellerName || "S").charAt(0).toUpperCase();
 
-  const ActionButtons = ({ className = "" }: { className?: string }) => (
-    <div className={`flex flex-col gap-2.5 ${className}`}>
-      {isCustomer ? (
-        <>
-          <Button
-            className="w-full h-12 text-base font-semibold shadow-sm"
-            onClick={handleAddToCart}
-            disabled={addToCart.isPending || isOutOfStock || needsVariantSelection}
-          >
-            <ShoppingCart className="me-2 h-5 w-5" />
-            {addToCart.isPending
-              ? t("product_detail.adding")
-              : needsVariantSelection
-                ? t("product_detail.select_options", "Select Options")
-                : t("product_detail.add_to_cart")}
+  const { specs, remainder: descRemainder } = parseSpecsFromDescription(product.description ?? "");
+  const aboutText = descRemainder || product.description || "";
+  const ABOUT_TRUNCATE = 280;
+  const aboutNeedsTruncation = aboutText.length > ABOUT_TRUNCATE;
+  const aboutDisplayText = aboutNeedsTruncation && !aboutExpanded
+    ? aboutText.slice(0, ABOUT_TRUNCATE).trimEnd() + "…"
+    : aboutText;
+
+  // ── Purchase card JSX (shared by desktop + mobile renders) ──────────────────
+
+  const purchaseCardJsx = (
+    <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+      <div className="grid grid-cols-3 divide-x divide-border border-b rtl:divide-x-reverse">
+        {[
+          { icon: Package2, title: t("product_detail.condition"), desc: t("product_detail.in_stock_short") },
+          { icon: ShieldCheck, title: t("product_detail.warranty"), desc: t("product_detail.warranty_desc") },
+          { icon: Truck, title: t("product_detail.delivery_to"), desc: t("product_detail.delivery_desc") },
+        ].map(({ icon: Icon, title, desc }) => (
+          <div key={title} className="flex flex-col items-center text-center p-3 gap-1">
+            <Icon className="h-4 w-4 text-primary shrink-0" />
+            <p className="text-[10px] sm:text-[11px] font-semibold leading-tight text-muted-foreground">{title}</p>
+            <p className="text-[10px] sm:text-xs font-bold leading-tight">{desc}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-4 sm:p-5 space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-sm font-medium text-muted-foreground shrink-0">{t("product_detail.quantity")}</span>
+          <div className="flex items-center border rounded-xl h-11 overflow-hidden">
+            <button
+              className="px-4 flex items-center justify-center hover:bg-muted/50 transition-colors h-full text-muted-foreground hover:text-foreground disabled:opacity-40"
+              onClick={decreaseQuantity}
+              disabled={quantity <= 1}
+              aria-label="Decrease"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <span className="px-4 font-bold text-base min-w-[3rem] text-center tabular-nums">{quantity}</span>
+            <button
+              className="px-4 flex items-center justify-center hover:bg-muted/50 transition-colors h-full text-muted-foreground hover:text-foreground disabled:opacity-40"
+              onClick={increaseQuantity}
+              disabled={quantity >= effectiveStock || needsVariantSelection}
+              aria-label="Increase"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {isCustomer ? (
+          <>
+            <Button
+              className="w-full h-12 text-base font-semibold shadow-sm"
+              onClick={handleAddToCart}
+              disabled={addToCart.isPending || isOutOfStock || needsVariantSelection}
+            >
+              <ShoppingCart className="me-2 h-5 w-5" />
+              {addToCart.isPending
+                ? t("product_detail.adding")
+                : needsVariantSelection
+                  ? t("product_detail.select_options")
+                  : t("product_detail.add_to_cart")}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full h-12 text-base font-semibold"
+              onClick={handleBuyNow}
+              disabled={addToCart.isPending || isOutOfStock || needsVariantSelection}
+            >
+              {t("product_detail.buy_now")}
+            </Button>
+          </>
+        ) : !isAuthenticated ? (
+          <>
+            <Button
+              className="w-full h-12 text-base font-semibold shadow-sm"
+              onClick={handleGuestAddToCart}
+              disabled={isOutOfStock || needsVariantSelection}
+            >
+              <ShoppingCart className="me-2 h-5 w-5" />
+              {needsVariantSelection ? t("product_detail.select_options") : t("product_detail.add_to_cart")}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full h-12 text-base font-semibold"
+              onClick={handleGuestBuyNow}
+              disabled={isOutOfStock || needsVariantSelection}
+            >
+              {t("product_detail.buy_now")}
+            </Button>
+          </>
+        ) : (
+          <Button className="w-full h-12 text-base font-semibold" disabled>
+            {t("product_detail.sellers_cannot_buy")}
           </Button>
-          <Button
-            variant="outline"
-            className="w-full h-12 text-base font-semibold"
-            onClick={handleBuyNow}
-            disabled={addToCart.isPending || isOutOfStock || needsVariantSelection}
-          >
-            {t("product_detail.buy_now")}
-          </Button>
-        </>
-      ) : !isAuthenticated ? (
-        <>
-          <Button
-            className="w-full h-12 text-base font-semibold shadow-sm"
-            onClick={handleGuestAddToCart}
-            disabled={isOutOfStock || needsVariantSelection}
-          >
-            <ShoppingCart className="me-2 h-5 w-5" />
-            {needsVariantSelection
-              ? t("product_detail.select_options", "Select Options")
-              : t("product_detail.add_to_cart")}
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full h-12 text-base font-semibold"
-            onClick={handleGuestBuyNow}
-            disabled={isOutOfStock || needsVariantSelection}
-          >
-            {t("product_detail.buy_now")}
-          </Button>
-        </>
-      ) : (
-        <Button className="w-full h-12 text-base font-semibold" disabled>
-          {t("product_detail.sellers_cannot_buy")}
-        </Button>
-      )}
+        )}
+
+        {isOutOfStock && !needsVariantSelection && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-xl border border-red-200 dark:border-red-900/40">
+            <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+            <span className="text-sm font-semibold text-red-600 dark:text-red-400">{t("product_detail.out_of_stock")}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 
+  // ── Render ──────────────────────────────────────────────────────────────────
+
   return (
     <Layout>
-      {/* Lightbox */}
       {lightboxOpen && activeImage && (
         <div
           className="fixed inset-0 z-[300] bg-black/90 flex items-center justify-center cursor-zoom-out"
@@ -491,8 +538,9 @@ export default function ProductDetail() {
           <span className="text-foreground font-medium truncate max-w-[200px]">{product.name}</span>
         </nav>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16">
-          {/* ── Image Column ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-14">
+
+          {/* ── COLUMN 1: Image Gallery + Desktop Purchase Card ── */}
           <div className="flex flex-col space-y-3">
             {/* Main image */}
             <div
@@ -501,15 +549,12 @@ export default function ProductDetail() {
             >
               {hasDiscount && (
                 <Badge className="absolute top-3 end-3 z-10 bg-red-500 hover:bg-red-500 text-white text-xs font-bold shadow-md px-2.5 py-1">
-                  -{product.discountPercent}%
+                  -{displayDiscountPct}%
                 </Badge>
               )}
-
               {activeImage ? (
                 <>
-                  {!imgLoaded && (
-                    <div className="absolute inset-0 bg-muted animate-pulse" />
-                  )}
+                  {!imgLoaded && <div className="absolute inset-0 bg-muted animate-pulse" />}
                   <img
                     src={activeImage}
                     alt={product.name}
@@ -523,8 +568,6 @@ export default function ProductDetail() {
                   <span className="text-sm text-muted-foreground">{t("product_detail.no_image")}</span>
                 </div>
               )}
-
-              {/* Zoom hint */}
               {activeImage && (
                 <div className="absolute bottom-3 end-3 bg-black/40 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <ZoomIn className="h-3.5 w-3.5 text-white" />
@@ -532,10 +575,10 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Thumbnail strip — real gallery images */}
-            {allImages.length > 1 && (
+            {/* Thumbnail strip */}
+            {galleryImages.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {allImages.map((img, idx) => (
+                {galleryImages.map((img, idx) => (
                   <button
                     key={idx}
                     type="button"
@@ -551,26 +594,28 @@ export default function ProductDetail() {
                 ))}
               </div>
             )}
+
+            {/* Desktop purchase card */}
+            <div className="hidden md:block pt-1">
+              {purchaseCardJsx}
+            </div>
           </div>
 
-          {/* ── Info Column ── */}
+          {/* ── COLUMN 2: Product Info ── */}
           <div className="flex flex-col">
             {/* Category tag */}
-            <Link
-              href={`/products?category=${encodeURIComponent(product.category)}`}
-              className="self-start mb-2"
-            >
+            <Link href={`/products?category=${encodeURIComponent(product.category)}`} className="self-start mb-2">
               <span className="text-xs font-bold uppercase tracking-widest text-primary hover:text-primary/80 transition-colors">
                 {product.category}
               </span>
             </Link>
 
             {/* Title */}
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-foreground mb-3 leading-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mb-3 leading-tight">
               {product.name}
             </h1>
 
-            {/* Rating row */}
+            {/* Rating */}
             <div className="flex items-center gap-2 sm:gap-3 mb-4 flex-wrap">
               <StarRating rating={product.averageRating ?? 0} size="md" />
               {product.reviewCount > 0 ? (
@@ -592,10 +637,10 @@ export default function ProductDetail() {
             </div>
 
             {/* Price */}
-            <div className="mb-4">
+            <div className="mb-5">
               <div className="flex items-baseline gap-3 flex-wrap">
                 <span className="text-product-price text-foreground leading-none" translate="no">
-                  {format(effectiveFinalPrice)}
+                  {format(effectiveSellPrice)}
                 </span>
                 {hasDiscount && effectiveCompareAt != null && (
                   <span className="text-xl text-muted-foreground line-through pb-0.5 font-medium" translate="no">
@@ -615,29 +660,26 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* SKU display (when variant selected) */}
-            {resolvedVariant && (resolvedVariant as any).sku && (
-              <p className="text-xs text-muted-foreground -mt-1 mb-4">
-                SKU: <span className="font-mono text-foreground" translate="no">{(resolvedVariant as any).sku}</span>
-              </p>
-            )}
-
-            {/* Variant Selector */}
+            {/* ── Variant Selector ── */}
             {hasVariants && product.variantGroups && product.variantGroups.length > 0 && (
-              <div className="mb-5 space-y-4">
+              <div className="mb-5 space-y-4 bg-muted/20 border border-border/60 rounded-2xl p-4">
                 {product.variantGroups.map((group) => {
                   const selectedOptionId = selectedOptions[group.id];
                   const selectedOption = group.options.find((o) => o.id === selectedOptionId);
                   const colorGroup = isColorGroup(group.name);
                   return (
                     <div key={group.id}>
-                      <div className="text-sm font-medium mb-2.5 flex items-center gap-1.5">
-                        <span className="text-muted-foreground">{group.name}:</span>
-                        {selectedOption ? (
-                          <span className="font-semibold text-foreground">{selectedOption.value}</span>
-                        ) : (
-                          <span className="text-muted-foreground/60 text-xs italic">
-                            {t("product_detail.choose_option", "Choose one")}
+                      <div className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+                        <span className="text-foreground">{group.name}</span>
+                        {selectedOption && (
+                          <>
+                            <span className="text-muted-foreground">:</span>
+                            <span className="text-primary font-bold">{selectedOption.value}</span>
+                          </>
+                        )}
+                        {!selectedOption && (
+                          <span className="text-muted-foreground/70 text-xs font-normal italic">
+                            — {t("product_detail.choose_option")}
                           </span>
                         )}
                       </div>
@@ -656,11 +698,11 @@ export default function ProductDetail() {
                                 title={option.value}
                                 disabled={!available}
                                 onClick={() => setSelectedOptions((prev) => ({ ...prev, [group.id]: option.id }))}
-                                className={`relative w-9 h-9 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                                className={`relative w-10 h-10 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                                   isSelected
-                                    ? "ring-2 ring-primary ring-offset-2 scale-110 shadow-md"
+                                    ? "ring-[3px] ring-primary ring-offset-2 scale-110 shadow-lg"
                                     : available
-                                      ? "hover:scale-110 hover:shadow-sm"
+                                      ? "hover:scale-110 hover:shadow-sm ring-1 ring-border"
                                       : "opacity-30 cursor-not-allowed"
                                 }`}
                               >
@@ -670,10 +712,7 @@ export default function ProductDetail() {
                                 />
                                 {isSelected && (
                                   <span className="absolute inset-0 flex items-center justify-center z-10">
-                                    <Check
-                                      className="h-3.5 w-3.5 drop-shadow-sm"
-                                      style={{ color: isWhite ? "#374151" : "white" }}
-                                    />
+                                    <Check className="h-4 w-4 drop-shadow-sm" style={{ color: isWhite ? "#374151" : "white" }} />
                                   </span>
                                 )}
                                 {!available && (
@@ -694,12 +733,12 @@ export default function ProductDetail() {
                                 if (!available) return;
                                 setSelectedOptions((prev) => ({ ...prev, [group.id]: option.id }));
                               }}
-                              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                              className={`relative inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                                 isSelected
-                                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                  ? "bg-primary/10 text-primary border-primary shadow-sm"
                                   : available
-                                    ? "border-border hover:border-primary/60 hover:bg-primary/5 text-foreground"
-                                    : "border-border opacity-35 cursor-not-allowed text-muted-foreground line-through"
+                                    ? "border-border hover:border-primary/50 hover:bg-primary/5 text-foreground"
+                                    : "border-border/50 opacity-35 cursor-not-allowed text-muted-foreground line-through"
                               }`}
                             >
                               {isSelected && <Check className="h-3 w-3 shrink-0" />}
@@ -714,6 +753,13 @@ export default function ProductDetail() {
               </div>
             )}
 
+            {/* SKU */}
+            {resolvedVariant && (resolvedVariant as any).sku && (
+              <p className="text-xs text-muted-foreground mb-3">
+                SKU: <span className="font-mono text-foreground" translate="no">{(resolvedVariant as any).sku}</span>
+              </p>
+            )}
+
             {/* Stock status */}
             <div className="mb-5">
               {isOutOfStock && !needsVariantSelection ? (
@@ -724,7 +770,7 @@ export default function ProductDetail() {
               ) : needsVariantSelection ? (
                 <span className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-muted-foreground/40 shrink-0" />
-                  {t("product_detail.select_options", "Select all options to continue")}
+                  {t("product_detail.select_options")}
                 </span>
               ) : isLowStock ? (
                 <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-600 dark:text-amber-400">
@@ -740,7 +786,44 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Seller trust card */}
+            {/* ── Specifications ── */}
+            {specs.length > 0 && (
+              <div className="mb-5 bg-card border border-border/70 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-4 py-3 border-b bg-muted/30">
+                  <h3 className="font-bold text-sm text-foreground">{t("product_detail.specifications")}</h3>
+                </div>
+                <div className="divide-y divide-border/50">
+                  {specs.map(({ label, value }, idx) => (
+                    <div key={idx} className="flex items-start gap-3 px-4 py-2.5">
+                      <span className="text-xs font-medium text-muted-foreground min-w-[100px] shrink-0 pt-0.5">{label}</span>
+                      <span className="text-xs font-semibold text-foreground text-start">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── About This Product ── */}
+            {aboutText && (
+              <div className="mb-5 bg-card border border-border/70 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-4 py-3 border-b bg-muted/30">
+                  <h3 className="font-bold text-sm text-foreground">{t("product_detail.about_product")}</h3>
+                </div>
+                <div className="px-4 py-3">
+                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{aboutDisplayText}</p>
+                  {aboutNeedsTruncation && (
+                    <button
+                      onClick={() => setAboutExpanded((v) => !v)}
+                      className="mt-2 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+                    >
+                      {aboutExpanded ? t("product_detail.show_less") : t("product_detail.show_more")}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Seller card */}
             {(product as any).storeSlug ? (
               <Link href={`/store/${(product as any).storeSlug}`}>
                 <div className="flex items-center gap-3 mb-3 p-4 bg-muted/30 rounded-2xl border border-border/60 hover:border-primary/30 transition-colors group cursor-pointer">
@@ -751,17 +834,13 @@ export default function ProductDetail() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-bold text-sm text-foreground">
-                        {product.storeName || product.sellerName}
-                      </span>
+                      <span className="font-bold text-sm text-foreground">{(product as any).storeName || product.sellerName}</span>
                       <span className="inline-flex items-center gap-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
                         <ShieldCheck className="h-2.5 w-2.5" />
                         {t("seller.verified")}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {t("product_detail.sold_by")} {product.sellerName}
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t("product_detail.sold_by")} {product.sellerName}</p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 rtl:rotate-180" />
                 </div>
@@ -772,65 +851,26 @@ export default function ProductDetail() {
                   <span className="text-base font-black text-primary">{sellerInitial}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="font-bold text-sm text-foreground">{product.storeName || product.sellerName}</span>
+                  <span className="font-bold text-sm text-foreground">{(product as any).storeName || product.sellerName}</span>
                   <p className="text-xs text-muted-foreground mt-0.5">{t("product_detail.sold_by")} {product.sellerName}</p>
                 </div>
               </div>
             )}
-            {/* Contact seller button — customers only */}
+
             {isCustomer && (product as any).storeSlug && (
               <ContactSellerButton sellerId={(product as any).sellerId} className="mb-5" />
             )}
 
-            {/* Action box */}
-            {(!isOutOfStock || needsVariantSelection) ? (
-              <div className="bg-card border rounded-2xl p-5 shadow-sm mb-6 space-y-4">
-                {/* Quantity */}
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-muted-foreground shrink-0">{t("product_detail.quantity", "Qty")}</span>
-                  <div className="flex items-center border rounded-xl h-11 overflow-hidden">
-                    <button
-                      className="px-4 flex items-center justify-center hover:bg-muted/50 transition-colors h-full text-muted-foreground hover:text-foreground disabled:opacity-40"
-                      onClick={decreaseQuantity}
-                      disabled={quantity <= 1}
-                      aria-label="Decrease"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <span className="px-4 font-bold text-base min-w-[3rem] text-center tabular-nums">{quantity}</span>
-                    <button
-                      className="px-4 flex items-center justify-center hover:bg-muted/50 transition-colors h-full text-muted-foreground hover:text-foreground disabled:opacity-40"
-                      onClick={increaseQuantity}
-                      disabled={quantity >= effectiveStock || needsVariantSelection}
-                      aria-label="Increase"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-                <ActionButtons />
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 mb-6 p-4 bg-red-50 dark:bg-red-950/20 rounded-2xl border border-red-200 dark:border-red-900/40">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-500 shrink-0" />
-                <span className="text-sm font-semibold text-red-600 dark:text-red-400">{t("product_detail.out_of_stock")}</span>
-              </div>
-            )}
+            {/* Mobile purchase card */}
+            <div className="md:hidden mb-6">
+              {purchaseCardJsx}
+            </div>
 
-            {/* Description */}
-            {product.description && (
-              <div className="mb-6 text-muted-foreground text-sm sm:text-base leading-relaxed">
-                <p className="font-medium text-foreground mb-1.5 text-sm">{t("product_detail.description", "About this item")}</p>
-                <p className="leading-relaxed">{product.description}</p>
-              </div>
-            )}
-
-            {/* Delivery & trust guarantees */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-3 border-t pt-5">
+            {/* Desktop trust badges */}
+            <div className="hidden md:grid grid-cols-2 gap-2 sm:gap-3 border-t pt-5">
               {[
                 { icon: Truck, title: t("product_detail.fast_shipping"), desc: t("product_detail.fast_shipping_desc") },
                 { icon: ShieldCheck, title: t("product_detail.secure_payment"), desc: t("product_detail.secure_payment_desc") },
-                // RETURNS_ENABLED: hidden until feature launches — do not delete
                 ...(FEATURES.RETURNS_ENABLED ? [{ icon: RefreshCw, title: t("product_detail.easy_returns"), desc: t("product_detail.easy_returns_desc") }] : []),
               ].map(({ icon: Icon, title, desc }) => (
                 <div key={title} className="flex flex-col items-center text-center p-3 sm:p-4 bg-muted/30 rounded-2xl gap-2 hover:bg-muted/50 transition-colors">
@@ -847,7 +887,7 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Customer Reviews — before You May Also Like */}
+        {/* Customer Reviews */}
         <div id="reviews-section">
           <ReviewSection
             productId={product.id}
@@ -859,8 +899,6 @@ export default function ProductDetail() {
         {/* You May Also Like */}
         <RelatedProducts currentId={product.id} category={product.category} />
       </div>
-
     </Layout>
   );
 }
-
