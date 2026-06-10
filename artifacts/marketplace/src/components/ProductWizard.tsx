@@ -648,22 +648,6 @@ export function ProductWizard({
           />
         )}
 
-        {selectedCategory && selectedCategory.attributes.length > 0 && (
-          <div className="p-3.5 bg-primary/5 border border-primary/10 rounded-xl">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Info className="h-3.5 w-3.5 text-primary shrink-0" />
-              <p className="text-xs font-semibold text-primary">{t("seller_products.suggested_attributes")}</p>
-            </div>
-            <p className="text-xs text-muted-foreground mb-2">{t("seller_products.suggested_attributes_desc")}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {selectedCategory.attributes.map(attr => (
-                <Badge key={attr.key} variant="secondary" className="text-xs font-medium">
-                  {lang === "ar" ? attr.ar : attr.en}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
       </Sec>
     </div>
   );
@@ -867,6 +851,44 @@ export function ProductWizard({
         iconBg="bg-teal-500/10"
         iconColor="text-teal-600"
       >
+        {selectedCategory && selectedCategory.attributes.length > 0 && (
+          <div className="p-3.5 bg-primary/5 border border-primary/10 rounded-xl mb-3">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Info className="h-3.5 w-3.5 text-primary shrink-0" />
+              <p className="text-xs font-semibold text-primary">{t("seller_products.suggested_attributes")}</p>
+            </div>
+            <p className="text-xs text-muted-foreground mb-2">{t("seller_products.suggested_attributes_desc")}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedCategory.attributes.map(attr => {
+                const label = lang === "ar" ? attr.ar : attr.en;
+                const alreadyAdded = specs.some(
+                  s => s.key.trim().toLowerCase() === label.trim().toLowerCase()
+                );
+                return (
+                  <button
+                    key={attr.key}
+                    type="button"
+                    disabled={alreadyAdded}
+                    onClick={() => {
+                      if (!alreadyAdded) {
+                        setSpecs(p => [...p, { id: `sp-${Date.now()}`, key: label, value: "" }]);
+                      }
+                    }}
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors touch-manipulation",
+                      alreadyAdded
+                        ? "border-primary/15 bg-primary/5 text-primary/40 cursor-default"
+                        : "border-primary/25 bg-background text-primary hover:bg-primary/10 hover:border-primary/40 cursor-pointer"
+                    )}
+                  >
+                    {alreadyAdded && <Check className="h-3 w-3 shrink-0" />}
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {specs.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">
             <div className="h-12 w-12 rounded-2xl bg-teal-500/10 flex items-center justify-center">
