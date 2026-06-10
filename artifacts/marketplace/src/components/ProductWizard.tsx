@@ -779,6 +779,7 @@ export function ProductWizard({
 
   const renderStep3 = () => (
     <div className="space-y-3">
+      {/* Toggle card — always visible */}
       <Sec
         icon={Layers}
         title={t("variants.section_title")}
@@ -786,9 +787,8 @@ export function ProductWizard({
         iconBg="bg-indigo-500/10"
         iconColor="text-indigo-600"
       >
-        {/* Toggle */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold">{t("variants.has_variants_label", "This product has multiple options")}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {variantsEnabled ? t("variants.toggle_on") : t("variants.toggle_off")}
@@ -799,40 +799,43 @@ export function ProductWizard({
             aria-pressed={variantsEnabled}
             onClick={() => setVariantsEnabled(p => !p)}
             className={cn(
-              "relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 touch-manipulation",
+              "relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 touch-manipulation",
               variantsEnabled ? "bg-primary" : "bg-muted-foreground/30",
             )}
           >
             <span
-              className="absolute top-[3px] h-[22px] w-[22px] rounded-full bg-white shadow transition-[left] duration-200"
-              style={{ left: variantsEnabled ? 22 : 3 }}
+              className="absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-[left] duration-200"
+              style={{ left: variantsEnabled ? 26 : 2 }}
             />
           </button>
         </div>
 
-        {variantsEnabled && (
-          <div className="space-y-3 pt-2 border-t">
-            <VariantBuilder
-              groups={variantGroups}
-              onGroupsChange={setVariantGroups}
-              variants={variantRows}
-              onVariantsChange={setVariantRows}
-            />
-            {variantRows.length > 0 && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                {t("variants.stock_note")}
-              </p>
-            )}
-          </div>
-        )}
-
         {!variantsEnabled && (
-          <div className="rounded-xl border-2 border-dashed border-muted-foreground/15 bg-muted/20 p-6 flex flex-col items-center gap-2 text-center">
+          <div className="rounded-xl border-2 border-dashed border-muted-foreground/15 bg-muted/20 p-6 flex flex-col items-center gap-2 text-center mt-1">
             <Layers className="h-8 w-8 text-muted-foreground/30" />
-            <p className="text-sm font-medium text-muted-foreground">{t("seller_products.wizard_no_variants_hint", "Enable variants to offer sizes, colors, or other options")}</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              {t("seller_products.wizard_no_variants_hint", "Enable variants to offer sizes, colors, or other options")}
+            </p>
           </div>
         )}
       </Sec>
+
+      {/* VariantBuilder renders full-width outside the Sec card to avoid double-boxing */}
+      {variantsEnabled && (
+        <>
+          <VariantBuilder
+            groups={variantGroups}
+            onGroupsChange={setVariantGroups}
+            variants={variantRows}
+            onVariantsChange={setVariantRows}
+          />
+          {variantRows.length > 0 && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 font-medium px-1">
+              {t("variants.stock_note")}
+            </p>
+          )}
+        </>
+      )}
     </div>
   );
 

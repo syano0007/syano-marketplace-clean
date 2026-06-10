@@ -229,7 +229,13 @@
     "status_inactive": "Inactive",
     "add_value_prefix": "Add",
     "toggle_on": "Enabled",
-    "toggle_off": "Disabled"
+    "toggle_off": "Disabled",
+    "images_count": "{{count}} image(s)",
+    "add_images": "Add images",
+    "sku_optional": "Optional",
+    "bulk_title": "Apply to All",
+    "apply_to_all": "Apply to All ({{count}})",
+    "add_group_subtitle": "Choose the attributes that describe your product variants"
   },
   "cart": {
     "title": "Shopping Cart",

@@ -39,24 +39,47 @@ Plus: `cart_items.variantId`, `order_items.variantId` + `order_items.variantDeta
 - `PATCH /products/:id/variants/:variantId` — Partial update; replaces entire images array if provided.
 - Cart: PATCH/DELETE `/api/cart/items/:cartItemId` (NOT `:productId`).
 
-## VariantBuilder.tsx (seller UI) — Shopify/Amazon-grade rewrite June 2026
+## VariantBuilder.tsx (seller UI) — Card-based rebuild June 2026
 
-Exports: `AttributeGroup`, `VariantRow`, `cartesianVariants()`, `buildVariantPayload()`, `VariantBuilder`
+Exports (unchanged public API): `AttributeGroup`, `VariantRow`, `cartesianVariants()`, `buildVariantPayload()`, `VariantBuilder`
 
-**AttributeGroup added `enabled?: boolean`** (optional, defaults true). `cartesianVariants` and `buildVariantPayload` both filter `enabled !== false`. Backward compatible.
+**AttributeGroup:** `{ id, name, values, enabled?: boolean }` — `cartesianVariants` and `buildVariantPayload` filter `enabled !== false`. Backward compatible.
 
-VariantRow fields: `id, combination, label, sku, price: number|null, compareAtPrice: number|null, barcode, weightGrams: number|null, stock, images: string[], active`
+**VariantRow fields:** `id, combination, label, sku, price: number|null, compareAtPrice: number|null, barcode, weightGrams: number|null, stock, images: string[], active`
 
-UI features (new):
-- **Section 1**: Preset picker chips — 🎨 Color 📏 Size 💾 Storage 🧠 RAM 🧵 Material ✨ Style 📦 Model 🏷️ Edition ✏️ Custom. Chips grey out (with checkmark) when that group already added. "Custom" opens inline text input.
-- **Section 2**: Added group cards with drag-and-drop (HTML5 draggable), collapse/expand, enable/disable toggle, delete, smart suggestion chips, color swatches for color-type groups.
-- **Color swatch mode**: isColorGroup() detects Color/Colour/اللون/الألوان; getColorHex() maps 30+ EN+AR names to CSS hex. Shows colored circles instead of text chips for known colors; suggestion chips also show color dot.
-- **Right sidebar**: Live preview — combo count, formula (3 × 4 × 3 = 12), variant list with color dots/status badges, stats (total/active/inactive), tips panel. Sticky on XL screens.
-- **Section 4**: Generate button + variant table. Bulk action bar: set price/compare/stock (with Set button each), Enable/Disable all, Delete selected. Per-row: checkbox, color dot/image count, price, compare, stock, SKU, toggle. Expandable images per variant (up to 8 URLs).
-- Two-column layout: `grid-cols-1 xl:grid-cols-[1fr_280px]` (builder left, preview right).
-- `buildVariantPayload(groups, rows)` converts VariantBuilder state to API format — unchanged contract.
+### New UI architecture (June 2026 card rebuild):
 
-**Why:** Matched the provided mockup showing Arabic RTL seller UX. No backend changes.
+**Layout:** Single-column, no sidebar. VariantBuilder renders full-width outside the `<Sec>` card in `renderStep3` of ProductWizard (to avoid double-boxing with nested borders). The toggle card stays as a Sec, VariantBuilder renders below it as a peer element.
+
+**Section 1 (SectionCard #1): Option Groups**
+- Preset chips: 🎨 Color 📏 Size 💾 Storage 🧠 RAM 🧵 Material ✨ Style 📦 Model 🏷️ Edition ✏️ Custom.
+- Chips grey out + show checkmark when that group already added.
+- Custom → inline Input + Add button + Escape-to-cancel.
+- Group cards: name badge + value count + collapse/expand + enable/disable toggle + drag handle (desktop) + delete.
+- Value chips with × remove. Color groups show color swatch dots.
+- Quick-add suggestion chips (up to 8 shown).
+- InlineTagInput for manual entry (comma/Enter multi-add, paste).
+- "Add Another Group" dashed button below group cards.
+
+**Generate Banner** (between Section 1 and Section 2, shown when enabledGroups > 0):
+- Formula: `2 Color × 3 Size = 6` with chip pills per group.
+- Prominent `⚡ Generate N` button (full-width on mobile, auto on sm+).
+- Primary/amber color scheme depending on whether combinationCount > 0.
+
+**Section 2 (SectionCard #2): Combinations — CARD GRID not table**
+- Stats row: Total / Active / Off (3-column grid at top).
+- Bulk actions bar: Price + Compare At + Stock + SKU Prefix inputs (2-col on mobile, 4-col on sm+). Apply button disabled when all fields empty. Enable All / Disable All buttons.
+- Combination cards: `grid-cols-1 sm:grid-cols-2 gap-3` → 2-column on tablet/desktop.
+- Each `CombinationCard`:
+  - Header: 40×40 swatch/thumbnail (color hex or first image) + label + active Toggle.
+  - Body: 2×2 grid of Price / Compare At / Stock / SKU inputs (h-10 each, touch-friendly).
+  - Image toggle: Shows thumbnail of first image, count badge; click to expand/collapse image URL list (up to 8).
+  - Inactive cards shown at 60% opacity.
+- CombinationCard uses `useTranslation()` directly (NOT a `t` prop — avoids TS generics mismatch with i18n types).
+
+**i18n:** New keys added to both en.json and ar.json in `variants` namespace: `images_count`, `add_images`, `sku_optional`, `bulk_title`, `apply_to_all`, `add_group_subtitle`.
+
+**Why removed sidebar:** PreviewSidebar was 380px wide on xl, cramping the builder. Stats are now inline above the combination grid. The old table with `lg:contents` tricks and `hidden lg:grid` headers was fragile on 768-1024px. Cards scale cleanly from 390px mobile → 2-column on sm+ → stays 2-column on desktop.
 
 ## Toggle RTL Fix — FINAL (June 2026, Session 2)
 

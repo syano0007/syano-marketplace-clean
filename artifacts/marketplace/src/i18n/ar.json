@@ -229,7 +229,13 @@
     "status_inactive": "معطّل",
     "add_value_prefix": "إضافة",
     "toggle_on": "مفعّل",
-    "toggle_off": "معطّل"
+    "toggle_off": "معطّل",
+    "images_count": "{{count}} صورة",
+    "add_images": "إضافة صور",
+    "sku_optional": "اختياري",
+    "bulk_title": "تطبيق على الكل",
+    "apply_to_all": "تطبيق على الكل ({{count}})",
+    "add_group_subtitle": "اختر الخصائص التي تصف خيارات منتجك"
   },
   "cart": {
     "title": "سلة التسوق",
