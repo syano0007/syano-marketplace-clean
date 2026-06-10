@@ -136,11 +136,13 @@ function WizardProgressBar({
   stepLabels,
   completedSteps,
   onStepClick,
+  mode,
 }: {
   currentStep: number;
   stepLabels: string[];
   completedSteps: Set<number>;
   onStepClick: (idx: number) => void;
+  mode: "new" | "edit";
 }) {
   return (
     <div className="sticky top-0 z-30 bg-background border-b shadow-sm">
@@ -155,7 +157,7 @@ function WizardProgressBar({
         {stepLabels.map((label, i) => {
           const isDone = completedSteps.has(i);
           const isCurrent = i === currentStep;
-          const isClickable = isDone || isCurrent;
+          const isClickable = mode === "edit" ? true : (isDone || isCurrent);
           return (
             <button
               key={i}
@@ -166,7 +168,7 @@ function WizardProgressBar({
                 "flex flex-col items-center gap-1 px-3 py-2.5 shrink-0 min-w-[64px] transition-colors touch-manipulation",
                 isCurrent
                   ? "text-primary border-b-2 border-primary"
-                  : isDone
+                  : isClickable
                     ? "text-primary/70 hover:bg-muted/40"
                     : "text-muted-foreground/40 cursor-default",
               )}
@@ -309,7 +311,9 @@ export function ProductWizard({
 
   // ── Step state ───────────────────────────────────────────────────────────────
   const [currentStep, setCurrentStep] = useState(0);
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(
+    mode === "edit" ? new Set([0, 1, 2, 3, 4]) : new Set()
+  );
 
   const stepLabels = [
     t("seller_products.step_basic"),
@@ -1089,10 +1093,14 @@ export function ProductWizard({
           stepLabels={stepLabels}
           completedSteps={completedSteps}
           onStepClick={goToStep}
+          mode={mode}
         />
 
         {/* Step content */}
-        <div className="px-3 pt-4 pb-36 max-w-3xl mx-auto w-full">
+        <div className={cn(
+          "px-3 pt-4 pb-36 mx-auto w-full",
+          currentStep === 2 ? "max-w-5xl lg:max-w-6xl" : "max-w-3xl lg:max-w-4xl xl:max-w-5xl"
+        )}>
           {currentStep === 0 && renderStep1()}
           {currentStep === 1 && renderStep2()}
           {currentStep === 2 && renderStep3()}
@@ -1102,7 +1110,7 @@ export function ProductWizard({
 
         {/* Sticky bottom action bar */}
         <div className="fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur-md border-t shadow-xl">
-          <div className="px-3 py-3 flex gap-2.5 items-center max-w-3xl mx-auto">
+          <div className="px-3 py-3 flex gap-2.5 items-center max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto">
             {/* Step counter */}
             <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
               {currentStep + 1} / {stepLabels.length}
