@@ -94,10 +94,10 @@ function StepBar({ labels }: { labels: string[] }) {
 // ─── Description toolbar ─────────────────────────────────────────────────────
 function DescToolbar({ onFormat }: { onFormat: (b: string, a?: string, block?: boolean) => void }) {
   const actions = [
-    { icon: Bold,    label: "Bold",   b: "**", a: "**" },
-    { icon: Italic,  label: "Italic", b: "_",  a: "_"  },
-    { icon: List,    label: "List",   b: "• ", a: "",  block: true },
-    { icon: Link2,   label: "Link",   b: "[",  a: "](url)" },
+    { icon: Bold,    label: "Bold",   b: "**", a: "**",      block: false },
+    { icon: Italic,  label: "Italic", b: "_",  a: "_",       block: false },
+    { icon: List,    label: "List",   b: "• ", a: "",        block: true  },
+    { icon: Link2,   label: "Link",   b: "[",  a: "](url)", block: false },
   ] as const;
   return (
     <div className="flex items-center gap-0.5 px-3 py-2 border-b flex-wrap bg-muted/20">

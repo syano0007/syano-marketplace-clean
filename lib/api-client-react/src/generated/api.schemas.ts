@@ -41,6 +41,7 @@ export const UserRole = {
   customer: 'customer',
   seller: 'seller',
   admin: 'admin',
+  courier: 'courier',
 } as const;
 
 export interface User {

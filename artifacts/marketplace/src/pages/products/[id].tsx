@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { calculateDiscountPercent } from "@/lib/pricing";
 import { Link, useLocation, useParams } from "wouter";
 import { useTranslation } from "react-i18next";
-import { useGetProduct, useAddToCart, getGetCartQueryKey, useStartConversation } from "@workspace/api-client-react";
+import { useGetProduct, useAddToCart, getGetCartQueryKey, useStartConversation, getGetProductQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useGuestCart } from "@/contexts/GuestCartContext";
@@ -158,7 +158,7 @@ export default function ProductDetail() {
   }, [lightboxOpen]);
 
   const { data: product, isLoading, error } = useGetProduct(id, {
-    query: { enabled: !!id },
+    query: { enabled: !!id, queryKey: getGetProductQueryKey(id) },
   });
 
   const hasVariants = (product?.variantGroups?.length ?? 0) > 0;
@@ -859,7 +859,7 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {isCustomer && (product as any).storeSlug && (
+            {isCustomer && (product as any).sellerId && (
               <ContactSellerButton sellerId={(product as any).sellerId} className="mb-5" />
             )}
 
