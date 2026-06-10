@@ -5,6 +5,7 @@ import {
   Bell, BellRing, CheckCheck,
   ShoppingBag, ShoppingCart, Zap, Truck, CheckCircle2, XCircle,
   AlertTriangle, Store, UserCheck, UserX, Package, PackageCheck, PackageX,
+  UserPlus, Bike,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,8 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   product_submitted: Package,
   product_approved:  PackageCheck,
   product_rejected:  PackageX,
+  new_user:          UserPlus,
+  courier_applied:   Bike,
 };
 
 const TYPE_COLOR: Record<string, string> = {
@@ -71,6 +74,8 @@ const TYPE_COLOR: Record<string, string> = {
   product_submitted: "text-sky-500",
   product_approved:  "text-emerald-500",
   product_rejected:  "text-red-500",
+  new_user:          "text-teal-500",
+  courier_applied:   "text-orange-500",
 };
 
 const TYPE_BG: Record<string, string> = {
@@ -87,6 +92,8 @@ const TYPE_BG: Record<string, string> = {
   product_submitted: "bg-sky-50 dark:bg-sky-950/30",
   product_approved:  "bg-emerald-50 dark:bg-emerald-950/30",
   product_rejected:  "bg-red-50 dark:bg-red-950/30",
+  new_user:          "bg-teal-50 dark:bg-teal-950/30",
+  courier_applied:   "bg-orange-50 dark:bg-orange-950/30",
 };
 
 const PRIORITY_RING: Record<string, string> = {

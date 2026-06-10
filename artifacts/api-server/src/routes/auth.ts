@@ -5,6 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import { db, usersTable, verificationAuditLogTable } from "@workspace/db";
 import { RegisterBody, LoginBody } from "@workspace/api-zod";
 import { signToken, requireAuth } from "../middlewares/auth";
+import { createNotification, bi } from "../lib/notif";
 import {
   generateOTP,
   hashOTP,
@@ -180,6 +181,25 @@ router.post("/auth/register", async (req, res): Promise<void> => {
                 otpRequestCount: 0, otpRequestWindowStart: new Date() })
       .returning();
     const token = signToken({ userId: user.id, role: user.role, email: user.email, isVerified: true });
+
+    // Notify admins of new registration — fire-and-forget
+    db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"))
+      .then((admins) =>
+        Promise.allSettled(admins.map((admin) =>
+          createNotification({
+            userId: admin.id,
+            type: "new_user",
+            title: bi("New User Registered", "مستخدم جديد"),
+            body: bi(
+              `${safeName} just created an account on the platform.`,
+              `قام ${safeName} بإنشاء حساب جديد على المنصة.`
+            ),
+            priority: "normal",
+            link: `/admin/users`,
+          })
+        ))
+      ).catch(() => {});
+
     res.status(201).json({ user: formatUser(user), token });
     return;
   }
@@ -188,6 +208,24 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     .values({ email, phone, passwordHash, name: safeName, role: "customer", isVerified: false,
               otpRequestCount: 1, otpRequestWindowStart: new Date() })
     .returning();
+
+  // Notify admins of new registration — fire-and-forget
+  db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"))
+    .then((admins) =>
+      Promise.allSettled(admins.map((admin) =>
+        createNotification({
+          userId: admin.id,
+          type: "new_user",
+          title: bi("New User Registered", "مستخدم جديد"),
+          body: bi(
+            `${safeName} just created an account on the platform.`,
+            `قام ${safeName} بإنشاء حساب جديد على المنصة.`
+          ),
+          priority: "normal",
+          link: `/admin/users`,
+        })
+      ))
+    ).catch(() => {});
 
   const identifier = email ?? phone!;
   let method: "email" | "phone" = identifier.includes("@") ? "email" : "phone";

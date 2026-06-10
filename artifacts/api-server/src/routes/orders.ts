@@ -455,6 +455,22 @@ router.post("/orders", requireAuth, requireActiveAccount, async (req, res): Prom
     });
   }
 
+  // Notify admins of every new order — fire-and-forget
+  db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"))
+    .then((admins) =>
+      Promise.allSettled(admins.map((admin) =>
+        createNotification({
+          userId: admin.id, type: "new_order",
+          title: bi("New Order Placed", "طلب جديد"),
+          body: bi(
+            `Order #${order.id} from ${customerName} — ${orderItemsData.length} item(s). Total: $${parseFloat(order.total).toFixed(2)}`,
+            `طلب رقم #${order.id} من ${customerName} — ${orderItemsData.length} منتج. الإجمالي: $${parseFloat(order.total).toFixed(2)}`
+          ),
+          orderId: order.id, priority: "important", link: `/admin/orders`,
+        })
+      ))
+    ).catch(() => {});
+
   res.status(201).json(await buildOrderResponse(order));
 });
 
@@ -695,6 +711,22 @@ router.patch("/orders/:id/status", requireAuth, requireActiveAccount, async (req
         });
       }
     }
+
+    // Notify admins of cancellation — fire-and-forget
+    db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"))
+      .then((admins) =>
+        Promise.allSettled(admins.map((admin) =>
+          createNotification({
+            userId: admin.id, type: "order_cancelled",
+            title: bi("Order Cancelled", "إلغاء طلب"),
+            body: bi(
+              `Order #${order.id} has been cancelled (by ${role}).`,
+              `تم إلغاء الطلب رقم #${order.id} (من قِبل ${role === "customer" ? "العميل" : "البائع"}).`
+            ),
+            orderId: order.id, priority: "normal", link: `/admin/orders`,
+          })
+        ))
+      ).catch(() => {});
   } else if (newStatus === "refunded") {
     await createNotification({ userId: order.customerId, type: "order_cancelled",
       title: bi("Order Refunded", "تم استرداد المبلغ"),

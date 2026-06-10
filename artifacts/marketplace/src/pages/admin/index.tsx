@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "wouter";
 import { AdminLayout } from "@/components/AdminLayout";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -404,7 +405,7 @@ export default function AdminDashboard() {
                     <span className="font-semibold tabular-nums">{alert.count}</span>{" "}
                     <span className="text-muted-foreground">{t(`admin.alert_${alert.type}`, { defaultValue: alert.message })}</span>
                   </p>
-                  <a href={alert.link} className="text-xs text-primary hover:underline shrink-0">{t("admin.alert_view")}</a>
+                  <Link href={alert.link} className="text-xs text-primary hover:underline shrink-0">{t("admin.alert_view")}</Link>
                 </div>
               ))}
             </div>

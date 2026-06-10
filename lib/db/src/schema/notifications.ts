@@ -20,6 +20,8 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "store_new_product",
   "new_seller_review",
   "new_message",
+  "new_user",
+  "courier_applied",
 ]);
 
 export const notificationsTable = pgTable("notifications", {

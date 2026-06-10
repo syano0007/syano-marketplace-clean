@@ -32,6 +32,25 @@ router.post("/couriers/apply", requireAuth, requireActiveAccount, async (req, re
     district: district ?? null,
     status: "pending",
   }).returning();
+
+  // Notify all admins — fire-and-forget
+  db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"))
+    .then((admins) =>
+      Promise.allSettled(admins.map((admin) =>
+        createNotification({
+          userId: admin.id,
+          type: "courier_applied",
+          title: bi("New Courier Application", "طلب مندوب جديد"),
+          body: bi(
+            `A new courier application has been submitted and is awaiting your review.`,
+            `تم تقديم طلب مندوب توصيل جديد وينتظر مراجعتك.`
+          ),
+          priority: "important",
+          link: `/admin/courier-applications`,
+        })
+      ))
+    ).catch(() => {});
+
   res.status(201).json({ id: courier.id, status: courier.status, message: "Application submitted. Pending admin approval." });
 });
 
