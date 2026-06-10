@@ -2,7 +2,8 @@
 - [Product card uniform heights](product-card-heights.md) — Use pc-category/pc-title/pc-seller CSS utility classes for consistent card heights across Arabic/English.
 - [DB schema push without TTY](db-schema-push.md) — drizzle-kit push/push-force both require TTY; use executeSql for additive schema changes (ADD COLUMN IF NOT EXISTS, CREATE INDEX IF NOT EXISTS).
 - [Vite manualChunks circular dep crash](vite-manual-chunks-circular.md) — vendor-react ↔ vendor-radix circular import caused `Cannot read properties of undefined (reading 'useLayoutEffect')` in production.
-- [No position:fixed on mobile action bars](no-fixed-mobile-bars.md) — position:fixed sticky bars don't render correctly on mobile in this app; use inline flow elements instead.
+- [Mobile product detail sticky bar](mobile-sticky-purchase-bar.md) — Always-visible fixed bar (price+CTA); opens Radix Sheet bottom sheet with full purchase UX; position:fixed works correctly here.
+- [Discount percent utility](pricing-utility.md) — calculateDiscountPercent(original, sale) in src/lib/pricing.ts; all consumer-facing % badges must use this; seller/admin pages may still use raw discountPercent.
 - [Cart API rating fields](cart-api-rating.md) — Products table has no averageRating column; cart route must query reviewsTable with avg()+count() to expose rating in cart items.
 - [i18n locale file path](i18n-locale-path.md) — Translation files live at artifacts/marketplace/src/i18n/{en,ar}.json (NOT src/locales/).
 - [i18n inline pattern rules](i18n-inline-rules.md) — Module-level constants with display labels must move inside the component or use labelKey+t() at render; lang==="ar" ternaries in JSX are always a bug to fix.

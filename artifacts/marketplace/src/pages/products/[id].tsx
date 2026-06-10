@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { calculateDiscountPercent } from "@/lib/pricing";
 import { Link, useLocation, useParams } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useGetProduct, useAddToCart, getGetCartQueryKey, useStartConversation } from "@workspace/api-client-react";
@@ -148,8 +150,7 @@ export default function ProductDetail() {
   const [activeImageOverride, setActiveImage] = useState<string | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<number, number>>({});
   const [aboutExpanded, setAboutExpanded] = useState(false);
-  const mobilePurchaseCardRef = React.useRef<HTMLDivElement>(null);
-  const [showStickyBar, setShowStickyBar] = useState(false);
+  const [purchaseSheetOpen, setPurchaseSheetOpen] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = lightboxOpen ? "hidden" : "";
@@ -206,6 +207,7 @@ export default function ProductDetail() {
   const addToCart = useAddToCart({
     mutation: {
       onSuccess: () => {
+        setPurchaseSheetOpen(false);
         toast({
           title: t("product_detail.added_to_cart"),
           description: t("product_detail.added_desc", { qty: quantity, name: product?.name }),
@@ -268,19 +270,6 @@ export default function ProductDetail() {
     setActiveImage(null);
     setImgLoaded(false);
   }, [selectedFirstOptionId]);
-
-  // Sticky bar — appears when mobile purchase card scrolls out of viewport
-  useEffect(() => {
-    setShowStickyBar(false);
-    const el = mobilePurchaseCardRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const obs = new IntersectionObserver(
-      ([entry]) => setShowStickyBar(!entry.isIntersecting),
-      { threshold: 0 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [product?.id]); // re-attach when product loads
 
   useSEO(
     product
@@ -392,9 +381,7 @@ export default function ProductDetail() {
 
   const hasDiscount = effectiveCompareAt != null && effectiveCompareAt > effectiveSellPrice;
   const savings = hasDiscount ? effectiveCompareAt! - effectiveSellPrice : 0;
-  const displayDiscountPct = hasDiscount && effectiveCompareAt
-    ? Math.round((1 - effectiveSellPrice / effectiveCompareAt!) * 100)
-    : (product.discountPercent ?? 0);
+  const displayDiscountPct = calculateDiscountPercent(effectiveCompareAt ?? product.price, effectiveSellPrice);
   const effectiveStock = hasVariants ? (resolvedVariant?.stock ?? 0) : product.stock;
   const isLowStock = hasVariants
     ? resolvedVariant !== null && resolvedVariant.stock > 0 && resolvedVariant.stock <= 5
@@ -538,7 +525,7 @@ export default function ProductDetail() {
         </div>
       )}
 
-      <div className="container py-5 md:py-10 pb-12">
+      <div className="container py-5 md:py-10 pb-24 md:pb-12">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-sm text-muted-foreground mb-6 md:mb-8 flex-wrap">
           <Link href="/products" className="hover:text-foreground transition-colors flex items-center gap-0.5">
@@ -677,7 +664,7 @@ export default function ProductDetail() {
 
             {/* ── Variant Selector ── */}
             {hasVariants && product.variantGroups && product.variantGroups.length > 0 && (
-              <div className="mb-5 space-y-4 bg-muted/20 border border-border/60 rounded-2xl p-4">
+              <div id="variant-selector" className="mb-5 space-y-4 bg-muted/20 border border-border/60 rounded-2xl p-4">
                 {product.variantGroups.map((group) => {
                   const selectedOptionId = selectedOptions[group.id];
                   const selectedOption = group.options.find((o) => o.id === selectedOptionId);
@@ -801,11 +788,6 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Mobile purchase card — shown before specs so CTA is visible without scrolling */}
-            <div ref={mobilePurchaseCardRef} className="md:hidden mb-5">
-              {purchaseCardJsx}
-            </div>
-
             {/* ── Specifications ── */}
             {specs.length > 0 && (
               <div className="mb-5 bg-card border border-border/70 rounded-2xl overflow-hidden shadow-sm">
@@ -915,21 +897,13 @@ export default function ProductDetail() {
         <RelatedProducts currentId={product.id} category={product.category} />
       </div>
 
-      {/* ── Mobile Sticky Purchase Bar ─────────────────────────────────────────
-          Appears only on mobile (<md) when the inline purchase card scrolls
-          out of view. Uses IntersectionObserver — no scroll event spam.      */}
+      {/* ── Mobile Sticky Purchase Bar ── always visible on mobile ────────── */}
       <div
-        aria-hidden={!showStickyBar}
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-        className={`fixed bottom-0 inset-x-0 z-50 md:hidden transition-[transform,opacity] duration-[180ms] ease-out${
-          showStickyBar
-            ? " translate-y-0 opacity-100"
-            : " translate-y-full opacity-0 pointer-events-none"
-        }`}
+        className="fixed bottom-0 inset-x-0 z-50 md:hidden"
       >
-        <div className="mx-3 mb-3 flex items-center gap-3 bg-card/95 backdrop-blur-md border border-border/70 shadow-2xl rounded-2xl px-4 py-3">
-
-          {/* ── Price ── */}
+        <div className="mx-3 mb-3 flex items-center gap-3 bg-card border border-border/70 shadow-2xl rounded-2xl px-4 py-3">
+          {/* Price */}
           <div className="flex flex-col min-w-0 flex-1 gap-0.5">
             {hasDiscount && effectiveCompareAt != null ? (
               <>
@@ -939,9 +913,9 @@ export default function ProductDetail() {
                 <span className="font-bold text-base leading-tight text-foreground" translate="no">
                   {format(effectiveSellPrice)}
                 </span>
-                <span className="text-[10px] font-bold text-primary leading-none">
-                  -{displayDiscountPct}% {t("products.off")}
-                </span>
+                {displayDiscountPct > 0 && (
+                  <span className="text-[10px] font-bold text-primary leading-none">-{displayDiscountPct}%</span>
+                )}
               </>
             ) : (
               <span className="font-bold text-base leading-tight text-foreground" translate="no">
@@ -949,60 +923,191 @@ export default function ProductDetail() {
               </span>
             )}
           </div>
-
-          {/* ── CTA button (authenticated customer) ── */}
-          {isCustomer && (
+          {/* CTA */}
+          {isOutOfStock && !needsVariantSelection ? (
+            <Button className="h-11 px-5 shrink-0 font-semibold text-sm" disabled>
+              {t("products.out_of_stock")}
+            </Button>
+          ) : (isCustomer || !isAuthenticated) ? (
             <Button
               className="h-11 px-5 shrink-0 font-semibold text-sm"
-              onClick={handleAddToCart}
-              disabled={addToCart.isPending || isOutOfStock || needsVariantSelection}
-              aria-label={
-                isOutOfStock
-                  ? t("products.out_of_stock")
-                  : needsVariantSelection
-                    ? t("product_detail.select_options")
-                    : t("product_detail.add_to_cart")
-              }
+              onClick={() => {
+                if (needsVariantSelection) {
+                  document.getElementById("variant-selector")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  return;
+                }
+                setPurchaseSheetOpen(true);
+              }}
             >
-              {!isOutOfStock && !needsVariantSelection && (
-                <ShoppingCart className="me-1.5 h-4 w-4 shrink-0" />
-              )}
-              {isOutOfStock
-                ? t("products.out_of_stock")
-                : needsVariantSelection
-                  ? t("product_detail.select_options")
-                  : addToCart.isPending
-                    ? t("product_detail.adding")
-                    : t("product_detail.add_to_cart")}
+              <ShoppingCart className="me-1.5 h-4 w-4 shrink-0" />
+              {needsVariantSelection ? t("product_detail.select_options") : t("product_detail.add_to_cart")}
             </Button>
-          )}
-
-          {/* ── CTA button (guest) ── */}
-          {!isAuthenticated && (
-            <Button
-              className="h-11 px-5 shrink-0 font-semibold text-sm"
-              onClick={handleGuestAddToCart}
-              disabled={isOutOfStock || needsVariantSelection}
-              aria-label={
-                isOutOfStock
-                  ? t("products.out_of_stock")
-                  : needsVariantSelection
-                    ? t("product_detail.select_options")
-                    : t("product_detail.add_to_cart")
-              }
-            >
-              {!isOutOfStock && !needsVariantSelection && (
-                <ShoppingCart className="me-1.5 h-4 w-4 shrink-0" />
-              )}
-              {isOutOfStock
-                ? t("products.out_of_stock")
-                : needsVariantSelection
-                  ? t("product_detail.select_options")
-                  : t("product_detail.add_to_cart")}
-            </Button>
-          )}
+          ) : null}
         </div>
       </div>
+
+      {/* ── Mobile Purchase Bottom Sheet ────────────────────────────────────── */}
+      <Sheet open={purchaseSheetOpen} onOpenChange={setPurchaseSheetOpen}>
+        <SheetContent
+          side="bottom"
+          aria-describedby={undefined}
+          className="rounded-t-3xl p-0 max-h-[88dvh] overflow-y-auto"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>{product.name}</SheetTitle>
+          </SheetHeader>
+
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-10 h-1 rounded-full bg-border" />
+          </div>
+
+          {/* Product summary */}
+          <div className="flex items-center gap-3 px-5 py-3 border-b">
+            {activeImage ? (
+              <img src={activeImage} alt="" className="h-16 w-16 rounded-xl object-contain border bg-card shrink-0" />
+            ) : (
+              <div className="h-16 w-16 rounded-xl border bg-muted shrink-0 flex items-center justify-center">
+                <Package className="h-6 w-6 text-muted-foreground/40" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm leading-snug line-clamp-2 text-foreground">{product.name}</p>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <span className="font-extrabold text-lg leading-tight text-foreground" translate="no">
+                  {format(effectiveSellPrice)}
+                </span>
+                {hasDiscount && effectiveCompareAt && (
+                  <span className="text-sm text-muted-foreground line-through font-medium" translate="no">
+                    {format(effectiveCompareAt)}
+                  </span>
+                )}
+                {hasDiscount && displayDiscountPct > 0 && (
+                  <span className="inline-flex items-center text-[11px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded-full">
+                    -{displayDiscountPct}%
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Condition / Warranty / Delivery */}
+          <div className="grid grid-cols-3 divide-x divide-border border-b rtl:divide-x-reverse">
+            {[
+              { icon: Package2, title: t("product_detail.condition"), desc: t("product_detail.in_stock_short") },
+              { icon: ShieldCheck, title: t("product_detail.warranty"), desc: t("product_detail.warranty_desc") },
+              { icon: Truck, title: t("product_detail.delivery_to"), desc: t("product_detail.delivery_desc") },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="flex flex-col items-center text-center p-3 gap-1">
+                <Icon className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-[10px] font-semibold leading-tight text-muted-foreground">{title}</p>
+                <p className="text-[10px] font-bold leading-tight text-foreground">{desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Stock status */}
+          <div className="px-5 pt-4 pb-2">
+            {isOutOfStock && !needsVariantSelection ? (
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-red-500">
+                <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                {t("product_detail.out_of_stock")}
+              </span>
+            ) : needsVariantSelection ? (
+              <span className="inline-flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {t("product_detail.select_options")}
+              </span>
+            ) : isLowStock ? (
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-600 dark:text-amber-400">
+                <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0 animate-pulse" />
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                {t("product_detail.only_left", { count: effectiveStock })}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                {t("product_detail.in_stock", { count: effectiveStock })}
+              </span>
+            )}
+          </div>
+
+          {/* Quantity selector */}
+          <div className="px-5 py-4 flex items-center justify-between border-t border-border/40 mt-3">
+            <span className="text-sm font-medium text-muted-foreground">{t("product_detail.quantity")}</span>
+            <div className="flex items-center border rounded-xl h-11 overflow-hidden">
+              <button
+                className="px-4 flex items-center justify-center hover:bg-muted/50 transition-colors h-full text-muted-foreground hover:text-foreground disabled:opacity-40"
+                onClick={decreaseQuantity}
+                disabled={quantity <= 1}
+                aria-label="Decrease"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="px-4 font-bold text-base min-w-[3rem] text-center tabular-nums">{quantity}</span>
+              <button
+                className="px-4 flex items-center justify-center hover:bg-muted/50 transition-colors h-full text-muted-foreground hover:text-foreground disabled:opacity-40"
+                onClick={increaseQuantity}
+                disabled={quantity >= effectiveStock || needsVariantSelection}
+                aria-label="Increase"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* CTA buttons */}
+          <div className="px-5 pb-7 space-y-3">
+            {isCustomer ? (
+              <>
+                <Button
+                  className="w-full h-12 text-base font-semibold shadow-sm"
+                  onClick={handleAddToCart}
+                  disabled={addToCart.isPending || isOutOfStock || needsVariantSelection}
+                >
+                  <ShoppingCart className="me-2 h-5 w-5" />
+                  {addToCart.isPending
+                    ? t("product_detail.adding")
+                    : needsVariantSelection
+                      ? t("product_detail.select_options")
+                      : t("product_detail.add_to_cart")}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-12 text-base font-semibold"
+                  onClick={handleBuyNow}
+                  disabled={addToCart.isPending || isOutOfStock || needsVariantSelection}
+                >
+                  {t("product_detail.buy_now")}
+                </Button>
+              </>
+            ) : !isAuthenticated ? (
+              <>
+                <Button
+                  className="w-full h-12 text-base font-semibold shadow-sm"
+                  onClick={() => { handleGuestAddToCart(); setPurchaseSheetOpen(false); }}
+                  disabled={isOutOfStock || needsVariantSelection}
+                >
+                  <ShoppingCart className="me-2 h-5 w-5" />
+                  {needsVariantSelection ? t("product_detail.select_options") : t("product_detail.add_to_cart")}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-12 text-base font-semibold"
+                  onClick={handleGuestBuyNow}
+                  disabled={isOutOfStock || needsVariantSelection}
+                >
+                  {t("product_detail.buy_now")}
+                </Button>
+              </>
+            ) : (
+              <Button className="w-full h-12 text-base font-semibold" disabled>
+                {t("product_detail.sellers_cannot_buy")}
+              </Button>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </Layout>
   );
 }

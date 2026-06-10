@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { calculateDiscountPercent } from "@/lib/pricing";
 import { useParams, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
@@ -228,7 +229,7 @@ function StoreProducts({ sellerId }: { sellerId: number }) {
               <p className="text-sm font-semibold line-clamp-2 leading-snug">{p.name}</p>
               <div className="flex items-end justify-between mt-2 gap-2">
                 <div className="flex flex-col gap-0.5 min-w-0">
-                  {p.discountPercent && p.discountPercent > 0 ? (
+                  {(() => { const dp = calculateDiscountPercent(p.price, p.finalPrice ?? p.price); return dp > 0 ? (
                     <>
                       <span className="text-[10px] text-muted-foreground line-through leading-none">
                         {fmtCurrency(p.price)}
@@ -241,13 +242,13 @@ function StoreProducts({ sellerId }: { sellerId: number }) {
                     <span className="text-primary font-bold text-sm truncate">
                       {fmtCurrency(p.price)}
                     </span>
-                  )}
+                  ); })()}
                 </div>
-                {p.discountPercent && p.discountPercent > 0 && (
+                {(() => { const dp = calculateDiscountPercent(p.price, p.finalPrice ?? p.price); return dp > 0 && (
                   <span className="text-[10px] bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400 font-bold px-1.5 py-0.5 rounded-full shrink-0">
-                    -{p.discountPercent}%
+                    -{dp}%
                   </span>
-                )}
+                ); })()}
               </div>
             </div>
           </div>

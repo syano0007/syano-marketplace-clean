@@ -14,6 +14,7 @@ import { OptimizedImage } from "@/components/OptimizedImage";
 import { StarRating } from "@/components/StarRating";
 import { cn } from "@/lib/utils";
 import { useGuestCart } from "@/contexts/GuestCartContext";
+import { calculateDiscountPercent } from "@/lib/pricing";
 
 interface ProductCardProps {
   product: Product;
@@ -85,7 +86,8 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
     });
   };
 
-  const hasDiscount = product.discountPercent && product.discountPercent > 0;
+  const discPct = calculateDiscountPercent(product.price, product.finalPrice ?? product.price);
+  const hasDiscount = discPct > 0;
   const avgRating = product.averageRating ?? 0;
   const reviewCount = product.reviewCount ?? 0;
   const isRated = avgRating > 0;
@@ -136,7 +138,7 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
       {/* ── Discount badge ─────────────────────────────────── */}
       {hasDiscount && (
         <Badge className="absolute top-2 end-2 z-10 bg-primary hover:bg-primary text-primary-foreground font-bold px-1.5 py-0.5 text-[10px] sm:text-xs">
-          -{product.discountPercent}%
+          -{discPct}%
         </Badge>
       )}
 
