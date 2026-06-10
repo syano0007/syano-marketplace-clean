@@ -1155,6 +1155,7 @@ export function VariantBuilder({
                             key={v.id}
                             className={cn(
                               "px-4 py-3 space-y-2.5 transition-colors duration-100",
+                              "lg:px-4 lg:py-3",
                               selectedIds.has(v.id) && "bg-primary/5",
                             )}
                           >
@@ -1203,41 +1204,53 @@ export function VariantBuilder({
                                 {/* Variant label + below-lg fields */}
                                 <div className="flex-1 min-w-0 lg:flex-none">
                                   <p className="text-sm font-semibold leading-snug">{v.label}</p>
-                                  {/* Below-lg fields (shown when table grid is not active) */}
-                                  <div className="lg:hidden grid grid-cols-2 gap-2 mt-3">
-                                    <div className="space-y-0.5">
-                                      <p className="text-[10px] text-muted-foreground">{t("variants.price_col", "السعر")}</p>
-                                      <Input
-                                        type="number" step="0.01" min="0"
-                                        value={v.price ?? ""}
-                                        onChange={e => updateVariant(v.id, "price", e.target.value === "" ? null : parseFloat(e.target.value) || null)}
-                                        placeholder={t("variants.price_inherit", "الأساسي")}
-                                        className="h-9 text-xs"
-                                      />
-                                    </div>
-                                    <div className="space-y-0.5">
-                                      <p className="text-[10px] text-muted-foreground">{t("variants.stock_col", "المخزون")}</p>
-                                      <Input
-                                        type="number" min="0" step="1"
-                                        value={v.stock}
-                                        onChange={e => updateVariant(v.id, "stock", parseInt(e.target.value) || 0)}
-                                        className="h-9 text-xs"
-                                      />
-                                    </div>
-                                    <div className="space-y-0.5">
-                                      <p className="text-[10px] text-muted-foreground">{t("variants.sku_col", "SKU")}</p>
-                                      <Input
-                                        value={v.sku}
-                                        onChange={e => updateVariant(v.id, "sku", e.target.value)}
-                                        placeholder="SKU"
-                                        className="h-9 text-xs"
-                                      />
-                                    </div>
-                                    <div className="space-y-0.5">
-                                      <p className="text-[10px] text-muted-foreground">{t("variants.active_col", "نشط")}</p>
-                                      <div className="flex items-center h-9">
-                                        <Toggle on={v.active} onToggle={() => updateVariant(v.id, "active", !v.active)} />
+                                  {/* Below-lg: card-style fields grid */}
+                                  <div className="lg:hidden mt-3 rounded-xl border bg-muted/20 p-3 space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{t("variants.price_col", "السعر")}</p>
+                                        <Input
+                                          type="number" step="0.01" min="0"
+                                          value={v.price ?? ""}
+                                          onChange={e => updateVariant(v.id, "price", e.target.value === "" ? null : parseFloat(e.target.value) || null)}
+                                          placeholder={t("variants.price_inherit", "الأساسي")}
+                                          className="h-10 text-xs"
+                                        />
                                       </div>
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{t("variants.compare_col", "قبل الخصم")}</p>
+                                        <Input
+                                          type="number" step="0.01" min="0"
+                                          value={v.compareAtPrice ?? ""}
+                                          onChange={e => updateVariant(v.id, "compareAtPrice", e.target.value === "" ? null : parseFloat(e.target.value) || null)}
+                                          placeholder="—"
+                                          className="h-10 text-xs"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{t("variants.stock_col", "المخزون")}</p>
+                                        <Input
+                                          type="number" min="0" step="1"
+                                          value={v.stock}
+                                          onChange={e => updateVariant(v.id, "stock", parseInt(e.target.value) || 0)}
+                                          className="h-10 text-xs"
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{t("variants.sku_col", "SKU")}</p>
+                                        <Input
+                                          value={v.sku}
+                                          onChange={e => updateVariant(v.id, "sku", e.target.value)}
+                                          placeholder="SKU"
+                                          className="h-10 text-xs"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-0.5">
+                                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{t("variants.active_col", "نشط")}</p>
+                                      <Toggle on={v.active} onToggle={() => updateVariant(v.id, "active", !v.active)} />
                                     </div>
                                   </div>
                                 </div>
