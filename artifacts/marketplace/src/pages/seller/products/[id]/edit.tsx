@@ -53,6 +53,8 @@ export default function EditProduct() {
         id,
         data: {
           ...formData,
+          price: Number(formData.price),
+          stock: Number(formData.stock),
           description: fullDesc,
           subcategory: formData.subcategory || null,
           imageUrl: formData.imageUrl || null,

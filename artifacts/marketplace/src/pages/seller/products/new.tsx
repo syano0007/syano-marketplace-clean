@@ -36,6 +36,8 @@ export default function NewProduct() {
 
     const apiPayload = {
       ...formData,
+      price: Number(formData.price),
+      stock: Number(formData.stock),
       description: fullDesc,
       subcategory: formData.subcategory || null,
       imageUrl: formData.imageUrl || null,
