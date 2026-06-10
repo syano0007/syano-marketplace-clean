@@ -328,14 +328,16 @@ export function ProductWizard({
     resolver: zodResolver(wizardSchema),
     defaultValues: {
       name: "", description: "", price: 0,
-      category: "", subcategory: "", stock: 0, imageUrl: "",
+      category: initialData?.category ?? "",
+      subcategory: initialData?.subcategory ?? "",
+      stock: 0, imageUrl: "",
     },
   });
 
   // ── Derived form state ────────────────────────────────────────────────────────
   const coverUrl = form.watch("imageUrl") || "";
   const watchedCategory = form.watch("category");
-  const [selectedCategorySlug, setSelectedCategorySlug] = useState("");
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState(initialData?.category ?? "");
   const selectedCategory = CATEGORIES.find(c => c.slug === selectedCategorySlug);
 
   // ── Images ───────────────────────────────────────────────────────────────────
@@ -595,9 +597,10 @@ export function ProductWizard({
                 </FormControl>
                 <SelectContent
                   position="popper"
+                  side="bottom"
                   sideOffset={4}
-                  avoidCollisions
-                  className="max-h-[320px] overflow-y-auto overscroll-contain"
+                  avoidCollisions={false}
+                  className="max-h-[min(320px,50vh)] overflow-y-auto overscroll-contain"
                 >
                   {CATEGORIES.map(cat => (
                     <SelectItem key={cat.slug} value={cat.slug} className="min-h-[44px] cursor-pointer">
@@ -626,9 +629,10 @@ export function ProductWizard({
                   </FormControl>
                   <SelectContent
                     position="popper"
+                    side="bottom"
                     sideOffset={4}
-                    avoidCollisions
-                    className="max-h-[320px] overflow-y-auto overscroll-contain"
+                    avoidCollisions={false}
+                    className="max-h-[min(320px,50vh)] overflow-y-auto overscroll-contain"
                   >
                     {selectedCategory.subcategories.map(sub => (
                       <SelectItem key={sub.slug} value={sub.slug} className="min-h-[44px] cursor-pointer">
