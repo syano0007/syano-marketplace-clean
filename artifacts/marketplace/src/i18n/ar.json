@@ -666,7 +666,14 @@
     "show_variants_detail": "عرض الخيارات ({{count}})",
     "hide_variants_detail": "إخفاء الخيارات",
     "no_images_yet": "لا توجد صور بعد",
-    "image_added": "تمت إضافة الصورة"
+    "image_added": "تمت إضافة الصورة",
+    "wizard_next": "التالي",
+    "wizard_back": "السابق",
+    "wizard_publish": "نشر المنتج",
+    "wizard_save": "حفظ التغييرات",
+    "wizard_review_desc": "راجع تفاصيل منتجك قبل النشر.",
+    "wizard_edit_step": "تعديل",
+    "wizard_no_variants_hint": "فعّل الخيارات لإضافة أحجام أو ألوان أو خيارات أخرى"
   },
   "inventory": {
     "title": "المخزون والأسعار",

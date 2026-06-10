@@ -44,6 +44,7 @@
 - [pnpm hoisting required](pnpm-hoisting.md) — After migration/fresh env, pnpm node_modules are empty without shamefully-hoist=true in .npmrc; always verify node_modules root has packages, not just .pnpm store.
 - [Courier application management system](courier-app-management.md) — Admin courier-applications pages, GET /admin/couriers/:id endpoint, suspension/reactivation notifications, expanded Aleppo zones (40 total).
 - [Vite React Fast Refresh import order](vite-rfr-import-order.md) — Imports interleaved with executable code breaks React Fast Refresh → "Invalid hook call" + Radix Presence infinite loop; ALL imports must precede every non-import statement.
+- [ProductWizard architecture](product-wizard.md) — Seller product create/edit is a 5-step shared wizard; plain util functions must live in lib/productUtils.ts (not exported from component files) to satisfy Vite Fast Refresh.
 - [Seller contact button gate](seller-contact-button.md) — ContactSellerButton must be gated on `sellerId` (always returned), NOT `storeSlug` (null when seller lacks approved application).
 - [Lib packages need tsc build](lib-tsc-build.md) — After fresh env: `npx tsc --build lib/db lib/api-zod lib/api-client-react` required; libs have composite:true + emitDeclarationOnly; no package-level build script.
 - [Fresh env restore steps](fresh-env-restore.md) — pnpm install → drizzle-kit push --force → npx tsc --build libs → restart workflows; run-migrations.ts is additive-only (requires base schema to exist first).

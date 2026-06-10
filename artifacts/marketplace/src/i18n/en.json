@@ -666,7 +666,14 @@
     "show_variants_detail": "Show variants ({{count}})",
     "hide_variants_detail": "Hide variants",
     "no_images_yet": "No images yet",
-    "image_added": "Image added"
+    "image_added": "Image added",
+    "wizard_next": "Next",
+    "wizard_back": "Back",
+    "wizard_publish": "Publish Product",
+    "wizard_save": "Save Changes",
+    "wizard_review_desc": "Review your product details before publishing.",
+    "wizard_edit_step": "Edit",
+    "wizard_no_variants_hint": "Enable variants to offer sizes, colors, or other options"
   },
   "inventory": {
     "title": "Inventory & Pricing",
