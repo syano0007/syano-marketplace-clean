@@ -339,7 +339,7 @@ export default function SellerApply() {
                                     : [...current, cat.slug]
                                 );
                               }}
-                              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium text-start transition-colors ${
+                              className={`flex items-start gap-2 px-3 py-2 rounded-lg border text-xs font-medium text-start transition-colors ${
                                 checked
                                   ? "border-primary bg-primary/10 text-primary"
                                   : "border-border bg-background text-foreground hover:bg-muted"
@@ -347,7 +347,7 @@ export default function SellerApply() {
                             >
                               <div
                                 aria-hidden="true"
-                                className={`shrink-0 h-3.5 w-3.5 rounded-sm border flex items-center justify-center transition-colors ${
+                                className={`shrink-0 mt-0.5 h-3.5 w-3.5 rounded-sm border flex items-center justify-center transition-colors ${
                                   checked ? "bg-primary border-primary" : "border-border bg-background"
                                 }`}
                               >
@@ -357,7 +357,7 @@ export default function SellerApply() {
                                   </svg>
                                 )}
                               </div>
-                              <span className="truncate">{lang === "ar" ? cat.ar : cat.en}</span>
+                              <span className="leading-snug">{lang === "ar" ? cat.ar : cat.en}</span>
                             </button>
                           );
                         })}
