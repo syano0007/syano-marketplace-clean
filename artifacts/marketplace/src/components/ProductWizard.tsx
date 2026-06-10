@@ -593,9 +593,14 @@ export function ProductWizard({
                     <SelectValue placeholder={t("seller_products.select_category")} />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent className="max-h-[300px]">
+                <SelectContent
+                  position="popper"
+                  sideOffset={4}
+                  avoidCollisions
+                  className="max-h-[320px] overflow-y-auto overscroll-contain"
+                >
                   {CATEGORIES.map(cat => (
-                    <SelectItem key={cat.slug} value={cat.slug}>
+                    <SelectItem key={cat.slug} value={cat.slug} className="min-h-[44px] cursor-pointer">
                       {lang === "ar" ? cat.ar : cat.en}
                     </SelectItem>
                   ))}
@@ -619,9 +624,14 @@ export function ProductWizard({
                       <SelectValue placeholder={t("seller_products.select_subcategory")} />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="max-h-[260px]">
+                  <SelectContent
+                    position="popper"
+                    sideOffset={4}
+                    avoidCollisions
+                    className="max-h-[320px] overflow-y-auto overscroll-contain"
+                  >
                     {selectedCategory.subcategories.map(sub => (
-                      <SelectItem key={sub.slug} value={sub.slug}>
+                      <SelectItem key={sub.slug} value={sub.slug} className="min-h-[44px] cursor-pointer">
                         {lang === "ar" ? sub.ar : sub.en}
                       </SelectItem>
                     ))}
@@ -853,49 +863,86 @@ export function ProductWizard({
         iconBg="bg-teal-500/10"
         iconColor="text-teal-600"
       >
-        {specs.map((spec, si) => (
-          <div key={spec.id} className="flex gap-2 items-start">
-            <div className="flex-1 grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                {si === 0 && <p className="text-xs font-medium text-muted-foreground">{lang === "ar" ? "الخاصية" : "Attribute"}</p>}
-                <Input
-                  value={spec.key}
-                  onChange={e => updateSpec(spec.id, "key", e.target.value)}
-                  placeholder={t("seller_products.spec_key_placeholder")}
-                  className="h-11 text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                {si === 0 && <p className="text-xs font-medium text-muted-foreground">{lang === "ar" ? "القيمة" : "Value"}</p>}
-                <Input
-                  value={spec.value}
-                  onChange={e => updateSpec(spec.id, "value", e.target.value)}
-                  placeholder={t("seller_products.spec_value_placeholder")}
-                  className="h-11 text-sm"
-                />
-              </div>
+        {specs.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <div className="h-12 w-12 rounded-2xl bg-teal-500/10 flex items-center justify-center">
+              <FileText className="h-6 w-6 text-teal-500/60" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-foreground">{t("seller_products.specs_empty_title")}</p>
+              <p className="text-xs text-muted-foreground max-w-[260px]">{t("seller_products.specs_empty_desc")}</p>
             </div>
             <button
               type="button"
-              onClick={() => removeSpec(spec.id)}
-              className={cn(
-                "h-11 w-11 flex items-center justify-center rounded-xl border text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors touch-manipulation",
-                si === 0 && "mt-5",
-              )}
+              onClick={addSpec}
+              className="mt-1 h-11 px-5 rounded-xl bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/15 transition-colors touch-manipulation flex items-center gap-2"
             >
-              <Trash2 className="h-4 w-4" />
+              <Plus className="h-4 w-4" />
+              {t("seller_products.add_spec")}
             </button>
           </div>
-        ))}
+        ) : (
+          <div className="space-y-3">
+            {specs.map((spec, si) => (
+              <div
+                key={spec.id}
+                className="rounded-xl border bg-card shadow-sm overflow-hidden"
+              >
+                {/* Card header */}
+                <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    {t("seller_products.spec_number", { num: si + 1 })}
+                  </span>
+                </div>
+                {/* Card body */}
+                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground block">
+                      {t("seller_products.spec_attr_label")}
+                    </label>
+                    <Input
+                      value={spec.key}
+                      onChange={e => updateSpec(spec.id, "key", e.target.value)}
+                      placeholder={t("seller_products.spec_key_placeholder")}
+                      className="h-11 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground block">
+                      {t("seller_products.spec_value_label")}
+                    </label>
+                    <Input
+                      value={spec.value}
+                      onChange={e => updateSpec(spec.id, "value", e.target.value)}
+                      placeholder={t("seller_products.spec_value_placeholder")}
+                      className="h-11 text-sm"
+                    />
+                  </div>
+                </div>
+                {/* Card footer — remove action */}
+                <div className="px-4 pb-3">
+                  <button
+                    type="button"
+                    onClick={() => removeSpec(spec.id)}
+                    className="w-full h-9 rounded-lg border border-destructive/20 text-destructive/70 text-xs font-medium hover:bg-destructive/5 hover:border-destructive/40 hover:text-destructive transition-colors touch-manipulation flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {t("seller_products.remove_spec")}
+                  </button>
+                </div>
+              </div>
+            ))}
 
-        <button
-          type="button"
-          onClick={addSpec}
-          className="w-full h-11 border-2 border-dashed border-primary/25 rounded-xl text-sm font-medium text-primary/70 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors touch-manipulation flex items-center justify-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          {t("seller_products.add_spec")}
-        </button>
+            <button
+              type="button"
+              onClick={addSpec}
+              className="w-full h-12 border-2 border-dashed border-primary/25 rounded-xl text-sm font-semibold text-primary/70 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors touch-manipulation flex items-center justify-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              {t("seller_products.add_spec")}
+            </button>
+          </div>
+        )}
       </Sec>
 
       {/* Description */}
