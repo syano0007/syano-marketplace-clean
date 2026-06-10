@@ -1,15 +1,22 @@
-import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { formatDistanceToNow } from "date-fns";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { AdminLayout } from "@/components/AdminLayout";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { CATEGORIES } from "@/lib/categories";
-import { useAdminGetStats } from "@workspace/api-client-react";
+import {
+  useAdminGetStats,
+  useListNotifications,
+  useMarkNotificationRead,
+  getGetNotificationCountQueryKey,
+  getListNotificationsQueryKey,
+} from "@workspace/api-client-react";
+import type { AppNotification } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, localizeNotif } from "@/lib/utils";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -24,7 +31,47 @@ import {
   Users, Package, ShoppingCart, TrendingUp, Clock, Store,
   Download, Activity, AlertTriangle, CheckCircle2,
   RefreshCw, BarChart3, Layers, Trophy, Medal, Bell, XCircle,
+  ShoppingBag, Zap, Truck, UserCheck, UserX, PackageCheck, PackageX,
+  UserPlus, Bike,
 } from "lucide-react";
+
+// ─── Notification icon/color maps (mirrors NotificationCenter) ─────────────────
+
+const NOTIF_ICON: Record<string, React.ElementType> = {
+  new_order:         ShoppingBag,
+  order_placed:      ShoppingCart,
+  order_processing:  Zap,
+  order_shipped:     Truck,
+  order_delivered:   CheckCircle2,
+  order_cancelled:   XCircle,
+  low_stock:         AlertTriangle,
+  seller_applied:    Store,
+  seller_approved:   UserCheck,
+  seller_rejected:   UserX,
+  product_submitted: Package,
+  product_approved:  PackageCheck,
+  product_rejected:  PackageX,
+  new_user:          UserPlus,
+  courier_applied:   Bike,
+};
+
+const NOTIF_COLOR: Record<string, string> = {
+  new_order:         "bg-blue-500",
+  order_placed:      "bg-green-500",
+  order_processing:  "bg-amber-500",
+  order_shipped:     "bg-indigo-500",
+  order_delivered:   "bg-emerald-500",
+  order_cancelled:   "bg-red-500",
+  low_stock:         "bg-orange-500",
+  seller_applied:    "bg-violet-500",
+  seller_approved:   "bg-emerald-500",
+  seller_rejected:   "bg-red-500",
+  product_submitted: "bg-sky-500",
+  product_approved:  "bg-emerald-500",
+  product_rejected:  "bg-red-500",
+  new_user:          "bg-teal-500",
+  courier_applied:   "bg-orange-500",
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,14 +93,6 @@ interface ExtendedStats {
   totalCustomers: number;
 }
 
-interface HealthAlert {
-  severity: "critical" | "warning" | "info";
-  type: string;
-  message: string;
-  count: number;
-  link: string;
-}
-interface AlertsData { alerts: HealthAlert[]; timestamp: string; }
 
 interface OperationCenterData {
   recentRegistrations: { id: number; name: string; email: string; role: string; createdAt: string }[];
@@ -269,17 +308,32 @@ export default function AdminDashboard() {
     staleTime: 5 * 60_000,
   });
 
-  const { data: alertsData } = useQuery<AlertsData>({
-    queryKey: ["admin-health-alerts"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/health/alerts", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
-    refetchInterval: 5 * 60_000,
+  const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
+  const { data: notifications } = useListNotifications({
+    query: { refetchInterval: 30_000, queryKey: getListNotificationsQueryKey() },
   });
+  const { mutate: markReadMutate } = useMarkNotificationRead();
+
+  const unreadNotifications = useMemo(
+    () => (notifications ?? []).filter((n) => !n.isRead).slice(0, 10),
+    [notifications]
+  );
+
+  const handleNotifClick = useCallback(
+    (n: AppNotification) => {
+      if (!n.isRead) {
+        markReadMutate({ id: n.id }, {
+          onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: getGetNotificationCountQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() });
+          },
+        });
+      }
+      if (n.link) navigate(n.link);
+    },
+    [markReadMutate, navigate, queryClient]
+  );
 
   const { data: opCenter } = useQuery<OperationCenterData>({
     queryKey: ["admin-operation-center"],
@@ -380,34 +434,45 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        {/* ── Alert Banner ── */}
-        {alertsData && alertsData.alerts.length === 0 && (
+        {/* ── Notifications Banner ── */}
+        {notifications !== undefined && unreadNotifications.length === 0 && (
           <div className="mb-5 flex items-center gap-2 px-4 py-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-xl text-sm text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             {t("admin.alerts_all_clear")}
           </div>
         )}
-        {alertsData && alertsData.alerts.length > 0 && (
+        {unreadNotifications.length > 0 && (
           <div className="mb-5 bg-card border border-border rounded-xl overflow-hidden">
             <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center gap-2">
               <Bell className="h-4 w-4 text-amber-500" />
               <h2 className="text-sm font-semibold">{t("admin.alerts_title")}</h2>
-              <span className="ms-auto text-xs text-muted-foreground">{alertsData.alerts.length} {t("admin.total_count")}</span>
+              <span className="ms-auto text-xs text-muted-foreground">{unreadNotifications.length} {t("admin.total_count")}</span>
             </div>
             <div className="divide-y divide-border">
-              {alertsData.alerts.map((alert) => (
-                <div key={alert.type} className="flex items-center gap-3 px-4 py-2.5">
-                  <div className={cn("w-2 h-2 rounded-full shrink-0 flex-none",
-                    alert.severity === "critical" ? "bg-red-500" :
-                    alert.severity === "warning"  ? "bg-amber-500" : "bg-blue-400"
-                  )} />
-                  <p className="text-sm flex-1">
-                    <span className="font-semibold tabular-nums">{alert.count}</span>{" "}
-                    <span className="text-muted-foreground">{t(`admin.alert_${alert.type}`, { defaultValue: alert.message })}</span>
-                  </p>
-                  <Link href={alert.link} className="text-xs text-primary hover:underline shrink-0">{t("admin.alert_view")}</Link>
-                </div>
-              ))}
+              {unreadNotifications.map((notif) => {
+                const Icon = NOTIF_ICON[notif.type] ?? Bell;
+                const dotColor = NOTIF_COLOR[notif.type] ?? "bg-blue-400";
+                return (
+                  <div key={notif.id} className="flex items-center gap-3 px-4 py-2.5">
+                    <div className={cn("w-2 h-2 rounded-full shrink-0 flex-none", dotColor)} />
+                    <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <p className="text-sm flex-1 min-w-0">
+                      <span className="font-semibold">{localizeNotif(notif.title, i18n.language)}</span>
+                      <span className="text-muted-foreground ms-1.5 text-xs truncate">
+                        {localizeNotif(notif.body, i18n.language)}
+                      </span>
+                    </p>
+                    {notif.link && (
+                      <button
+                        onClick={() => handleNotifClick(notif)}
+                        className="text-xs text-primary hover:underline shrink-0"
+                      >
+                        {t("admin.alert_view")}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
