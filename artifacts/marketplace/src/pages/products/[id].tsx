@@ -148,6 +148,8 @@ export default function ProductDetail() {
   const [activeImageOverride, setActiveImage] = useState<string | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<number, number>>({});
   const [aboutExpanded, setAboutExpanded] = useState(false);
+  const mobilePurchaseCardRef = React.useRef<HTMLDivElement>(null);
+  const [showStickyBar, setShowStickyBar] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = lightboxOpen ? "hidden" : "";
@@ -266,6 +268,19 @@ export default function ProductDetail() {
     setActiveImage(null);
     setImgLoaded(false);
   }, [selectedFirstOptionId]);
+
+  // Sticky bar — appears when mobile purchase card scrolls out of viewport
+  useEffect(() => {
+    setShowStickyBar(false);
+    const el = mobilePurchaseCardRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const obs = new IntersectionObserver(
+      ([entry]) => setShowStickyBar(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [product?.id]); // re-attach when product loads
 
   useSEO(
     product
@@ -787,7 +802,7 @@ export default function ProductDetail() {
             </div>
 
             {/* Mobile purchase card — shown before specs so CTA is visible without scrolling */}
-            <div className="md:hidden mb-5">
+            <div ref={mobilePurchaseCardRef} className="md:hidden mb-5">
               {purchaseCardJsx}
             </div>
 
@@ -898,6 +913,95 @@ export default function ProductDetail() {
 
         {/* You May Also Like */}
         <RelatedProducts currentId={product.id} category={product.category} />
+      </div>
+
+      {/* ── Mobile Sticky Purchase Bar ─────────────────────────────────────────
+          Appears only on mobile (<md) when the inline purchase card scrolls
+          out of view. Uses IntersectionObserver — no scroll event spam.      */}
+      <div
+        aria-hidden={!showStickyBar}
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        className={`fixed bottom-0 inset-x-0 z-50 md:hidden transition-[transform,opacity] duration-[180ms] ease-out${
+          showStickyBar
+            ? " translate-y-0 opacity-100"
+            : " translate-y-full opacity-0 pointer-events-none"
+        }`}
+      >
+        <div className="mx-3 mb-3 flex items-center gap-3 bg-card/95 backdrop-blur-md border border-border/70 shadow-2xl rounded-2xl px-4 py-3">
+
+          {/* ── Price ── */}
+          <div className="flex flex-col min-w-0 flex-1 gap-0.5">
+            {hasDiscount && effectiveCompareAt != null ? (
+              <>
+                <span className="text-[11px] text-muted-foreground line-through leading-none" translate="no">
+                  {format(effectiveCompareAt)}
+                </span>
+                <span className="font-bold text-base leading-tight text-foreground" translate="no">
+                  {format(effectiveSellPrice)}
+                </span>
+                <span className="text-[10px] font-bold text-primary leading-none">
+                  -{displayDiscountPct}% {t("products.off")}
+                </span>
+              </>
+            ) : (
+              <span className="font-bold text-base leading-tight text-foreground" translate="no">
+                {format(effectiveSellPrice)}
+              </span>
+            )}
+          </div>
+
+          {/* ── CTA button (authenticated customer) ── */}
+          {isCustomer && (
+            <Button
+              className="h-11 px-5 shrink-0 font-semibold text-sm"
+              onClick={handleAddToCart}
+              disabled={addToCart.isPending || isOutOfStock || needsVariantSelection}
+              aria-label={
+                isOutOfStock
+                  ? t("products.out_of_stock")
+                  : needsVariantSelection
+                    ? t("product_detail.select_options")
+                    : t("product_detail.add_to_cart")
+              }
+            >
+              {!isOutOfStock && !needsVariantSelection && (
+                <ShoppingCart className="me-1.5 h-4 w-4 shrink-0" />
+              )}
+              {isOutOfStock
+                ? t("products.out_of_stock")
+                : needsVariantSelection
+                  ? t("product_detail.select_options")
+                  : addToCart.isPending
+                    ? t("product_detail.adding")
+                    : t("product_detail.add_to_cart")}
+            </Button>
+          )}
+
+          {/* ── CTA button (guest) ── */}
+          {!isAuthenticated && (
+            <Button
+              className="h-11 px-5 shrink-0 font-semibold text-sm"
+              onClick={handleGuestAddToCart}
+              disabled={isOutOfStock || needsVariantSelection}
+              aria-label={
+                isOutOfStock
+                  ? t("products.out_of_stock")
+                  : needsVariantSelection
+                    ? t("product_detail.select_options")
+                    : t("product_detail.add_to_cart")
+              }
+            >
+              {!isOutOfStock && !needsVariantSelection && (
+                <ShoppingCart className="me-1.5 h-4 w-4 shrink-0" />
+              )}
+              {isOutOfStock
+                ? t("products.out_of_stock")
+                : needsVariantSelection
+                  ? t("product_detail.select_options")
+                  : t("product_detail.add_to_cart")}
+            </Button>
+          )}
+        </div>
       </div>
     </Layout>
   );
