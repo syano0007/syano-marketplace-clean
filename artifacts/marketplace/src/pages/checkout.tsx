@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useGetCart, usePlaceOrder, useClearCart, getGetCartQueryKey } from "@workspace/api-client-react";
+import { useGetCart, usePlaceOrder, useClearCart, getGetCartQueryKey, useGetDeliveryZones } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   Truck, CheckCircle2, Phone, ShieldCheck, Star, MapPin, FileText,
-  ChevronLeft, ChevronRight, Package, ArrowRight, Building2, User
+  ChevronLeft, ChevronRight, Package, ArrowRight, User, Navigation,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -28,16 +31,20 @@ export default function Checkout() {
   const [_, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const { format } = useCurrency();
 
   const [step, setStep] = useState<Step>(1);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
+  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [successOrder, setSuccessOrder] = useState<{ id: number; total: number } | null>(null);
+
+  const { data: zones = [] } = useGetDeliveryZones();
+  const selectedZone = zones.find(z => z.id === selectedZoneId) ?? null;
 
   const { data: cart, isLoading } = useGetCart({ query: { queryKey: getGetCartQueryKey() } });
 
@@ -67,8 +74,8 @@ export default function Checkout() {
         toast({ title: t("checkout.phone_required"), description: t("checkout.phone_required_desc"), variant: "destructive" });
         return;
       }
-      if (!city.trim()) {
-        toast({ title: t("checkout.city_required"), description: t("checkout.city_required_desc"), variant: "destructive" });
+      if (!selectedZoneId) {
+        toast({ title: t("checkout.zone_required"), description: t("checkout.zone_required_desc"), variant: "destructive" });
         return;
       }
       if (!address.trim()) {
@@ -80,12 +87,16 @@ export default function Checkout() {
   };
 
   const handleSubmit = () => {
+    const cityFromZone = selectedZone
+      ? (lang === "ar" ? selectedZone.nameAr : selectedZone.nameEn)
+      : "";
     placeOrder.mutate({
       data: {
         shippingAddress: address,
         customerPhone: phone.trim(),
-        city: city.trim(),
+        city: cityFromZone,
         deliveryNotes: notes.trim() || undefined,
+        zoneId: selectedZoneId,
       }
     });
   };
@@ -256,6 +267,7 @@ export default function Checkout() {
                   {t("checkout.shipping_info")}
                 </h2>
                 <div className="space-y-4">
+                  {/* Full Name */}
                   <div className="space-y-2">
                     <Label htmlFor="fullName" className="text-sm font-medium">
                       {t("checkout.full_name")} <span className="text-destructive">*</span>
@@ -273,6 +285,7 @@ export default function Checkout() {
                     </div>
                   </div>
 
+                  {/* Phone */}
                   <div className="space-y-2">
                     <Label htmlFor="phone" className="text-sm font-medium">
                       {t("checkout.phone_label")} <span className="text-destructive">*</span>
@@ -292,23 +305,51 @@ export default function Checkout() {
                     <p className="text-xs text-muted-foreground">{t("checkout.phone_hint")}</p>
                   </div>
 
+                  {/* Delivery Zone */}
                   <div className="space-y-2">
-                    <Label htmlFor="city" className="text-sm font-medium">
-                      {t("checkout.city_label")} <span className="text-destructive">*</span>
+                    <Label className="text-sm font-medium">
+                      <Navigation className="inline h-4 w-4 me-1.5 text-muted-foreground" />
+                      {t("checkout.zone_label")} <span className="text-destructive">*</span>
                     </Label>
-                    <div className="relative">
-                      <Building2 className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                      <Input
-                        id="city"
-                        placeholder={t("checkout.city_placeholder")}
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        className="ps-9 h-11"
-                        autoComplete="address-level2"
-                      />
-                    </div>
+                    <Select
+                      value={selectedZoneId ? String(selectedZoneId) : ""}
+                      onValueChange={(v) => setSelectedZoneId(parseInt(v, 10))}
+                    >
+                      <SelectTrigger className="h-11 w-full">
+                        <SelectValue placeholder={t("checkout.zone_placeholder")} />
+                      </SelectTrigger>
+                      <SelectContent
+                        position="popper"
+                        side="bottom"
+                        sideOffset={4}
+                        avoidCollisions={false}
+                        className="max-h-[min(280px,50vh)] overflow-y-auto overscroll-contain"
+                      >
+                        {zones.map((zone) => (
+                          <SelectItem key={zone.id} value={String(zone.id)} className="min-h-[40px] cursor-pointer">
+                            {lang === "ar" ? zone.nameAr : zone.nameEn}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedZone && (
+                      <div className={cn(
+                        "flex items-center gap-2 text-sm rounded-lg px-3 py-2 border",
+                        selectedZone.fee > 0
+                          ? "bg-primary/5 border-primary/20 text-foreground"
+                          : "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
+                      )}>
+                        <Truck className="h-3.5 w-3.5 shrink-0" />
+                        {selectedZone.fee > 0 ? (
+                          <span>{t("checkout.delivery_fee_label")}: <span className="font-semibold" translate="no">{format(selectedZone.fee)}</span></span>
+                        ) : (
+                          <span className="font-medium">{t("checkout.free_delivery")}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
+                  {/* Detailed Address */}
                   <div className="space-y-2">
                     <Label htmlFor="address" className="text-sm font-medium">
                       {t("checkout.full_address")} <span className="text-destructive">*</span>
@@ -323,6 +364,7 @@ export default function Checkout() {
                     />
                   </div>
 
+                  {/* Notes */}
                   <div className="space-y-2">
                     <Label htmlFor="notes" className="text-sm font-medium">
                       {t("checkout.notes_label")} <span className="text-xs text-muted-foreground font-normal">({t("checkout.notes_optional")})</span>
@@ -379,7 +421,16 @@ export default function Checkout() {
                   <div className="text-sm text-muted-foreground space-y-1">
                     <p><span className="font-medium text-foreground">{fullName}</span></p>
                     <p translate="no">{phone}</p>
-                    <p>{city} — {address}</p>
+                    {selectedZone && (
+                      <p className="flex items-center gap-1.5">
+                        <Navigation className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        <span className="font-medium text-foreground">{lang === "ar" ? selectedZone.nameAr : selectedZone.nameEn}</span>
+                        {selectedZone.fee > 0 && (
+                          <span className="text-xs" translate="no">· {format(selectedZone.fee)}</span>
+                        )}
+                      </p>
+                    )}
+                    <p>{address}</p>
                     {notes && <p className="italic">"{notes}"</p>}
                   </div>
                 </div>
@@ -463,11 +514,14 @@ export default function Checkout() {
                 )}
                 <div className="flex justify-between text-muted-foreground">
                   <span>{t("checkout.shipping")}</span>
-                  <span>{t("checkout.free")}</span>
+                  {selectedZone && selectedZone.fee > 0
+                    ? <span className="font-medium text-foreground" translate="no">{format(selectedZone.fee)}</span>
+                    : <span>{t("checkout.free")}</span>
+                  }
                 </div>
                 <div className="flex justify-between font-bold text-base pt-2 border-t text-foreground">
                   <span>{t("checkout.total")}</span>
-                  <span translate="no">{format(cart.total)}</span>
+                  <span translate="no">{format(cart.total + (selectedZone?.fee ?? 0))}</span>
                 </div>
               </div>
             </div>

@@ -4,7 +4,9 @@ import { router, type Href } from "expo-router";
 import React, { type ComponentProps, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -14,10 +16,10 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useGetCart, usePlaceOrder } from "@workspace/api-client-react";
+import { useGetCart, usePlaceOrder, useGetDeliveryZones } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { useScreenLayout } from "@/hooks/useScreenLayout";
-import { t } from "../src/i18n";
+import { t, getLocale } from "../src/i18n";
 
 type Step = 1 | 2;
 
@@ -29,26 +31,36 @@ export default function CheckoutScreen() {
   const { data: cart, isLoading } = useGetCart();
   const placeOrder = usePlaceOrder();
 
+  const { data: zones = [] } = useGetDeliveryZones();
+
   const [step, setStep] = useState<Step>(1);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
+  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
+  const [showZonePicker, setShowZonePicker] = useState(false);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const phoneRef = useRef<TextInput>(null);
-  const cityRef = useRef<TextInput>(null);
   const addressRef = useRef<TextInput>(null);
   const notesRef = useRef<TextInput>(null);
 
+  const locale = getLocale();
+  const selectedZone = zones.find((z) => z.id === selectedZoneId) ?? null;
+  const zoneName = selectedZone
+    ? (locale === "ar" ? selectedZone.nameAr : selectedZone.nameEn)
+    : null;
+
   const total = cart?.total ?? 0;
+  const deliveryFee = selectedZone?.fee ?? 0;
+  const grandTotal = total + deliveryFee;
 
   function validate() {
     const errs: Record<string, string> = {};
     if (!fullName.trim()) errs.fullName = t("checkout.error_name");
     if (!phone.trim() || phone.trim().length < 6) errs.phone = t("checkout.error_phone");
-    if (!city.trim()) errs.city = t("checkout.error_city");
+    if (!selectedZoneId) errs.zone = t("checkout.error_zone");
     if (!address.trim()) errs.address = t("checkout.error_address");
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -66,8 +78,9 @@ export default function CheckoutScreen() {
         data: {
           shippingAddress: address.trim(),
           customerPhone: phone.trim(),
-          city: city.trim(),
+          city: zoneName ?? "",
           deliveryNotes: notes.trim() || undefined,
+          zoneId: selectedZoneId,
         },
       },
       {
@@ -192,26 +205,56 @@ export default function CheckoutScreen() {
                   onChangeText={(v) => { setPhone(v); setErrors(e => ({ ...e, phone: "" })); }}
                   keyboardType="phone-pad"
                   returnKeyType="next"
-                  onSubmitEditing={() => cityRef.current?.focus()}
+                  onSubmitEditing={() => addressRef.current?.focus()}
                   autoComplete="tel"
                 />
               </View>
             </Field>
 
-            <Field label={t("checkout.city") + " *"} error={errors.city}>
-              <View style={[styles.inputWrap, { borderColor: errors.city ? "#EF4444" : colors.border, backgroundColor: colors.background }]}>
-                <Ionicons name="location-outline" size={18} color={colors.mutedForeground} />
-                <TextInput
-                  ref={cityRef}
-                  style={[styles.input, { color: colors.foreground }]}
-                  placeholder={t("checkout.city_placeholder")}
-                  placeholderTextColor={colors.mutedForeground}
-                  value={city}
-                  onChangeText={(v) => { setCity(v); setErrors(e => ({ ...e, city: "" })); }}
-                  returnKeyType="next"
-                  onSubmitEditing={() => addressRef.current?.focus()}
-                />
-              </View>
+            {/* Delivery Zone picker */}
+            <Field label={t("checkout.zone_label") + " *"} error={errors.zone}>
+              <Pressable
+                style={[
+                  styles.inputWrap,
+                  {
+                    borderColor: errors.zone ? "#EF4444" : colors.border,
+                    backgroundColor: colors.background,
+                    justifyContent: "space-between",
+                  },
+                ]}
+                onPress={() => setShowZonePicker(true)}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                  <Ionicons name="navigate-outline" size={18} color={colors.mutedForeground} />
+                  <Text
+                    style={[styles.input, { color: zoneName ? colors.foreground : colors.mutedForeground }]}
+                    numberOfLines={1}
+                  >
+                    {zoneName ?? t("checkout.zone_placeholder")}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-down" size={18} color={colors.mutedForeground} />
+              </Pressable>
+              {selectedZone && (
+                <View style={[
+                  styles.feeChip,
+                  {
+                    backgroundColor: selectedZone.fee > 0 ? colors.primary + "15" : "#10B98115",
+                    borderColor: selectedZone.fee > 0 ? colors.primary + "40" : "#10B98140",
+                  },
+                ]}>
+                  <Ionicons
+                    name="bicycle-outline"
+                    size={13}
+                    color={selectedZone.fee > 0 ? colors.primary : "#10B981"}
+                  />
+                  <Text style={[styles.feeChipText, { color: selectedZone.fee > 0 ? colors.primary : "#10B981" }]}>
+                    {selectedZone.fee > 0
+                      ? `${t("checkout.delivery_fee_label")}: $${selectedZone.fee.toFixed(2)}`
+                      : t("checkout.free_delivery")}
+                  </Text>
+                </View>
+              )}
             </Field>
 
             <Field label={t("checkout.address") + " *"} error={errors.address}>
@@ -273,11 +316,14 @@ export default function CheckoutScreen() {
               )}
               <View style={styles.totalLine}>
                 <Text style={[styles.totalLineLabel, { color: colors.mutedForeground }]}>{t("checkout.delivery")}</Text>
-                <Text style={[styles.totalLineValue, { color: colors.mutedForeground }]}>{t("cart.free")}</Text>
+                {deliveryFee > 0
+                  ? <Text style={[styles.totalLineValue, { color: colors.foreground }]}>${deliveryFee.toFixed(2)}</Text>
+                  : <Text style={[styles.totalLineValue, { color: "#10B981" }]}>{t("cart.free")}</Text>
+                }
               </View>
               <View style={[styles.totalLine, { marginTop: 4 }]}>
                 <Text style={[styles.grandTotalLabel, { color: colors.foreground }]}>{t("cart.total")}</Text>
-                <Text style={[styles.grandTotalValue, { color: colors.foreground }]}>${total.toFixed(2)}</Text>
+                <Text style={[styles.grandTotalValue, { color: colors.foreground }]}>${grandTotal.toFixed(2)}</Text>
               </View>
             </View>
 
@@ -286,7 +332,15 @@ export default function CheckoutScreen() {
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, gap: 4 }]}>
               <Text style={[styles.addressLine, { color: colors.foreground }]}>{fullName}</Text>
               <Text style={[styles.addressLine, { color: colors.mutedForeground }]}>{phone}</Text>
-              <Text style={[styles.addressLine, { color: colors.mutedForeground }]}>{city}</Text>
+              {zoneName && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                  <Ionicons name="navigate-outline" size={12} color={colors.primary} />
+                  <Text style={[styles.addressLine, { color: colors.primary, fontWeight: "600" as const }]}>{zoneName}</Text>
+                  {deliveryFee > 0 && (
+                    <Text style={[styles.addressLine, { color: colors.mutedForeground, fontSize: 11 }]}> · ${deliveryFee.toFixed(2)}</Text>
+                  )}
+                </View>
+              )}
               <Text style={[styles.addressLine, { color: colors.mutedForeground }]}>{address}</Text>
               {notes ? <Text style={[styles.addressLine, { color: colors.mutedForeground, fontStyle: "italic" }]}>"{notes}"</Text> : null}
             </View>
@@ -329,6 +383,73 @@ export default function CheckoutScreen() {
         )}
       </ScrollView>
 
+      {/* Zone picker modal */}
+      <Modal
+        visible={showZonePicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowZonePicker(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+              {t("checkout.zone_label")}
+            </Text>
+            <Pressable
+              onPress={() => setShowZonePicker(false)}
+              style={[styles.modalClose, { backgroundColor: colors.muted }]}
+            >
+              <Ionicons name="close" size={20} color={colors.foreground} />
+            </Pressable>
+          </View>
+          <FlatList
+            data={zones}
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+            renderItem={({ item }) => {
+              const name = locale === "ar" ? item.nameAr : item.nameEn;
+              const isSelected = item.id === selectedZoneId;
+              return (
+                <Pressable
+                  style={[
+                    styles.zoneItem,
+                    {
+                      borderBottomColor: colors.border,
+                      backgroundColor: isSelected ? colors.primary + "12" : "transparent",
+                    },
+                  ]}
+                  onPress={() => {
+                    setSelectedZoneId(item.id);
+                    setErrors((e) => ({ ...e, zone: "" }));
+                    setShowZonePicker(false);
+                    void Haptics.selectionAsync();
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.zoneName, { color: isSelected ? colors.primary : colors.foreground }]}>
+                      {name}
+                    </Text>
+                    {item.fee > 0 && (
+                      <Text style={[styles.zoneFee, { color: colors.mutedForeground }]}>
+                        {t("checkout.delivery_fee_label")}: ${item.fee.toFixed(2)}
+                      </Text>
+                    )}
+                    {item.fee === 0 && (
+                      <Text style={[styles.zoneFee, { color: "#10B981" }]}>
+                        {t("checkout.free_delivery")}
+                      </Text>
+                    )}
+                  </View>
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+                  )}
+                </Pressable>
+              );
+            }}
+          />
+        </View>
+      </Modal>
+
       {/* Sticky bottom bar */}
       <View style={[
         styles.bottomBar,
@@ -336,7 +457,7 @@ export default function CheckoutScreen() {
       ]}>
         <View style={styles.bottomSummary}>
           <Text style={[styles.bottomLabel, { color: colors.mutedForeground }]}>{t("cart.total")}</Text>
-          <Text style={[styles.bottomTotal, { color: colors.foreground }]}>${total.toFixed(2)}</Text>
+          <Text style={[styles.bottomTotal, { color: colors.foreground }]}>${grandTotal.toFixed(2)}</Text>
         </View>
         <Pressable
           style={({ pressed }) => [
@@ -465,6 +586,43 @@ const styles = StyleSheet.create({
   },
   trustItem: { alignItems: "center", gap: 4 },
   trustText: { fontSize: 10, fontWeight: "500" as const },
+  feeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  feeChipText: { fontSize: 12, fontWeight: "500" as const },
+  modalContainer: { flex: 1 },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: { fontSize: 17, fontWeight: "700" as const },
+  modalClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  zoneItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  zoneName: { fontSize: 14, fontWeight: "500" as const },
+  zoneFee: { fontSize: 12, marginTop: 2 },
   errorBox: {
     flexDirection: "row",
     alignItems: "center",

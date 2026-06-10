@@ -320,7 +320,13 @@
     "step_review": "Review",
     "step_delivery": "Delivery",
     "step_payment": "Payment",
-    "order_confirmed": "Order #{{id}} confirmed"
+    "order_confirmed": "Order #{{id}} confirmed",
+    "zone_label": "Delivery Zone",
+    "zone_placeholder": "Select your delivery zone",
+    "zone_required": "Delivery zone required",
+    "zone_required_desc": "Please select your delivery zone to continue.",
+    "delivery_fee_label": "Delivery fee",
+    "free_delivery": "Free delivery for this zone"
   },
   "orders": {
     "title": "Order History",

@@ -320,7 +320,13 @@
     "step_review": "مراجعة",
     "step_delivery": "التوصيل",
     "step_payment": "الدفع",
-    "order_confirmed": "تم تأكيد الطلب رقم #{{id}}"
+    "order_confirmed": "تم تأكيد الطلب رقم #{{id}}",
+    "zone_label": "منطقة التوصيل",
+    "zone_placeholder": "اختر منطقة التوصيل",
+    "zone_required": "منطقة التوصيل مطلوبة",
+    "zone_required_desc": "الرجاء اختيار منطقة التوصيل للمتابعة.",
+    "delivery_fee_label": "رسوم التوصيل",
+    "free_delivery": "توصيل مجاني لهذه المنطقة"
   },
   "orders": {
     "title": "سجل الطلبات",

@@ -4,6 +4,7 @@ export * from "./notifications";
 export * from "./best-sellers";
 export * from "./sellers";
 export * from "./messaging";
+export * from "./delivery-zones";
 export { setBaseUrl, setAuthTokenGetter } from "./custom-fetch";
 export type { AuthTokenGetter } from "./custom-fetch";
 export type { SellerApplication } from "./generated/api.schemas";

@@ -3,6 +3,7 @@ import { eq, and, inArray, sql } from "drizzle-orm";
 import {
   db, ordersTable, orderItemsTable, cartItemsTable,
   productsTable, usersTable, productVariantsTable, orderStatusHistoryTable,
+  deliveryZonesTable,
 } from "@workspace/db";
 import { createNotification, bi } from "../lib/notif";
 import {
@@ -40,12 +41,17 @@ function computeFinalPrice(price: string, discountPercent: string | null, priceA
 }
 
 async function buildOrderResponse(order: typeof ordersTable.$inferSelect) {
-  // Fetch customer and items in parallel (was 2 serial round-trips).
-  const [[customer], items] = await Promise.all([
+  // Fetch customer, items, and zone in parallel.
+  const [[customer], items, zoneRows] = await Promise.all([
     db.select({ name: usersTable.name, email: usersTable.email })
       .from(usersTable).where(eq(usersTable.id, order.customerId)),
     db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id)),
+    order.zoneId
+      ? db.select({ nameEn: deliveryZonesTable.nameEn, nameAr: deliveryZonesTable.nameAr })
+          .from(deliveryZonesTable).where(eq(deliveryZonesTable.id, order.zoneId))
+      : Promise.resolve([] as { nameEn: string; nameAr: string }[]),
   ]);
+  const zone = zoneRows[0] ?? null;
 
   // Batch-fetch product images and seller names — 2 queries instead of 2×N.
   const productIds = [...new Set(items.map((i) => i.productId))];
@@ -101,6 +107,8 @@ async function buildOrderResponse(order: typeof ordersTable.$inferSelect) {
     trackingNumber:   order.trackingNumber ?? null,
     deliveryFee:      order.deliveryFee ? parseFloat(String(order.deliveryFee)) : null,
     zoneId:           order.zoneId ?? null,
+    zoneNameEn:       zone?.nameEn ?? null,
+    zoneNameAr:       zone?.nameAr ?? null,
     createdAt:        order.createdAt.toISOString(),
     updatedAt:        order.updatedAt.toISOString(),
   };
@@ -234,6 +242,19 @@ router.post("/orders", requireAuth, requireActiveAccount, async (req, res): Prom
   const parsed = PlaceOrderBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
+  // ── Resolve delivery zone (outside transaction — read-only) ─────────────────
+  const requestedZoneId = parsed.data.zoneId ?? null;
+  let resolvedZoneFee = 0;
+  if (requestedZoneId) {
+    const [zoneRow] = await db.select({ fee: deliveryZonesTable.fee, active: deliveryZonesTable.active })
+      .from(deliveryZonesTable).where(eq(deliveryZonesTable.id, requestedZoneId));
+    if (!zoneRow || !zoneRow.active) {
+      res.status(400).json({ error: "Invalid or inactive delivery zone" });
+      return;
+    }
+    resolvedZoneFee = parseFloat(String(zoneRow.fee ?? "0"));
+  }
+
   const cartItems = await db.select().from(cartItemsTable)
     .where(eq(cartItemsTable.userId, req.user!.userId));
   if (cartItems.length === 0) { res.status(400).json({ error: "Cart is empty" }); return; }
@@ -341,15 +362,18 @@ router.post("/orders", requireAuth, requireActiveAccount, async (req, res): Prom
         });
 
       // ── Insert order ─────────────────────────────────────────────────────────
+      const totalWithFee = parseFloat((total + resolvedZoneFee).toFixed(2));
       const [newOrder] = await tx.insert(ordersTable).values({
         customerId:       req.user!.userId,
-        total:            String(parseFloat(total.toFixed(2))),
+        total:            String(totalWithFee),
         status:           "pending",
         shippingAddress:  parsed.data.shippingAddress,
         customerPhone:    parsed.data.customerPhone ?? null,
         city:             parsed.data.city ?? null,
         deliveryNotes:    parsed.data.deliveryNotes ?? null,
         estimatedDelivery: null,
+        zoneId:           requestedZoneId,
+        deliveryFee:      resolvedZoneFee > 0 ? String(resolvedZoneFee) : null,
       }).returning();
 
       // ── Insert order items ───────────────────────────────────────────────────

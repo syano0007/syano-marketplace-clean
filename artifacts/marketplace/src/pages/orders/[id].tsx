@@ -20,7 +20,7 @@ import {
 export default function OrderDetail() {
   const params = useParams();
   const id = parseInt(params.id || "0", 10);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { format: formatCurrency } = useCurrency();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -216,7 +216,20 @@ export default function OrderDetail() {
                 </h3>
               </div>
               <div className="p-4 sm:p-5 space-y-2">
-                {order.city && (
+                {((order as any).zoneNameEn || (order as any).zoneNameAr) && (
+                  <p className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                    <Truck className="h-3.5 w-3.5 shrink-0" />
+                    {i18n.language === "ar"
+                      ? ((order as any).zoneNameAr || (order as any).zoneNameEn)
+                      : ((order as any).zoneNameEn || (order as any).zoneNameAr)}
+                    {(order as any).deliveryFee > 0 && (
+                      <span className="text-xs font-normal text-muted-foreground ms-1" translate="no">
+                        · {formatCurrency((order as any).deliveryFee)}
+                      </span>
+                    )}
+                  </p>
+                )}
+                {order.city && !(order as any).zoneNameEn && (
                   <p className="text-sm font-medium text-foreground">{order.city}</p>
                 )}
                 <p className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">

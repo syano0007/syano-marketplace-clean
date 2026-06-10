@@ -327,6 +327,14 @@ export interface Order {
   trackingNumber?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** @nullable */
+  zoneId?: number | null;
+  /** @nullable */
+  zoneNameEn?: string | null;
+  /** @nullable */
+  zoneNameAr?: string | null;
+  /** @nullable */
+  deliveryFee?: number | null;
 }
 
 export interface OrderHistoryEntry {
@@ -348,6 +356,8 @@ export interface OrderInput {
   city?: string | null;
   /** @nullable */
   deliveryNotes?: string | null;
+  /** @nullable */
+  zoneId?: number | null;
 }
 
 export type OrderStatusUpdateStatus = typeof OrderStatusUpdateStatus[keyof typeof OrderStatusUpdateStatus];

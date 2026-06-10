@@ -547,7 +547,8 @@ export const PlaceOrderBody = zod.object({
   "shippingAddress": zod.string(),
   "customerPhone": zod.string().nullish(),
   "city": zod.string().nullish(),
-  "deliveryNotes": zod.string().nullish()
+  "deliveryNotes": zod.string().nullish(),
+  "zoneId": zod.number().int().positive().nullish(),
 })
 
 
