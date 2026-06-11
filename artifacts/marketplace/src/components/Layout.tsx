@@ -3,7 +3,12 @@ import { useTranslation } from "react-i18next";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
 
-export function Layout({ children }: { children: React.ReactNode }) {
+interface LayoutProps {
+  children: React.ReactNode;
+  hideFooter?: boolean;
+}
+
+export function Layout({ children, hideFooter = false }: LayoutProps) {
   const { t } = useTranslation();
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -18,7 +23,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main id="main-content" className="grow w-full min-w-0">
         {children}
       </main>
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 # SYANO — Current Project State
 **Last Updated:** June 11, 2026  
-**Updated By:** Seller Orders V2 audit + metrics bug fix session
+**Updated By:** Seller Analytics Dashboard V2 finalization session
 
 ---
 
@@ -28,7 +28,7 @@ All services running. All features validated end-to-end with real API calls.
 | notification_type enum | ✅ 31/31 values |
 | delivery_zones | ✅ 40 zones |
 | Order statuses | ✅ 15 statuses |
-| Test data | ✅ 4 users, 10 products, 10+ orders |
+| Test data | ✅ 4 users, 10 products, 18 orders, 21 order_items, 2 store follows, 1 seller review |
 
 ---
 
@@ -46,39 +46,62 @@ All services running. All features validated end-to-end with real API calls.
 | Recently viewed products | ✅ Complete |
 | Guest cart | ✅ Complete |
 | Mobile order tracking (courier info, timeline, polling) | ✅ Complete |
-| **Seller Orders V2** | ✅ Complete + Validated |
+| Seller Orders V2 (stats cards, metrics, bulk ops, detail) | ✅ Complete + Validated |
+| **Seller Analytics Dashboard V2** | ✅ Complete + Validated |
 
 ---
 
-## Seller Orders V2 — Validated Feature Set
+## Seller Analytics Dashboard V2 — Validated Feature Set
 
 | Feature | Status |
 |---|---|
-| 6 stat cards (new/preparing/ready/delivering/completed/cancelled) | ✅ Correct |
-| 8 KPI operational metrics panel (today/week/month/avg/cancel%/success%/preparing/awaiting) | ✅ Correct |
-| Filter chips with live counts (9 groups) | ✅ Correct |
-| Search by customer name, order ID, or phone | ✅ Correct |
-| Bulk actions bar (confirm / preparing / ready) with multi-select | ✅ Correct |
-| Desktop table view (checkbox, ID, customer, items, subtotal, delivery fee, total, zone, courier, status, actions) | ✅ Correct |
-| Mobile card view with same fields | ✅ Correct |
-| Order detail: Customer section (name, phone, address, zone, notes) | ✅ Correct |
-| Order detail: Products section (image, name, variant, unit price, qty, line total) | ✅ Correct |
-| Order detail: Financial section (subtotal, delivery fee, total, seller revenue) | ✅ Correct |
-| Order detail: OrderStatusTimeline component | ✅ Correct |
-| Order detail: Courier section (name, phone, status, timestamps) | ✅ Correct |
-| Order detail: Action center (role-appropriate CTAs per status) | ✅ Correct |
-| i18n (122 keys, English + Arabic) | ✅ All present |
-| `GET /dashboard/seller/metrics` bug | ✅ Fixed |
+| 8 color-coded KPI cards (revenue, orders, AOV, completed, cancelled, followers, customers, rating) | ✅ |
+| Trend badges on every KPI (% change vs prev period) | ✅ |
+| Date range picker: 8 presets + custom from/to | ✅ |
+| Granularity toggle: Day / Week / Month | ✅ |
+| Revenue + Orders area chart with legend, custom tooltip | ✅ |
+| Order status pie chart with inline legend | ✅ |
+| Top products list (progress bars, rank, units, revenue) | ✅ |
+| Customer analytics (unique/returning/new/repeat rate) | ✅ |
+| Delivery analytics (success rate, avg hours, cancel rate) | ✅ |
+| Store growth (followers, reviews, avg rating + mini cards) | ✅ |
+| Financial summary (5 colored tiles) | ✅ |
+| Auto-generated insights panel (7 insight rules) | ✅ |
+| CSV export for revenue + products | ✅ |
+| Per-section empty states with icons | ✅ |
+| No-data banner for empty periods | ✅ |
+| Skeleton loaders for every section | ✅ |
+| i18n: 86 keys, English + Arabic | ✅ |
+| `hideFooter` prop on Layout (footer hidden on analytics) | ✅ |
+| TypeScript: 0 errors | ✅ |
+
+### API Validation (June 11, 2026)
+
+```
+GET /dashboard/seller/analytics/summary?from=2026-05-12&to=2026-06-11
+→ grossRevenue: $1,819.88 (+188.9%)
+→ totalOrders: 15 (+400%)
+→ completedOrders: 8, cancelledOrders: 2
+→ statusBreakdown: 7 distinct statuses
+→ topProducts: iPad Air ($529.99), Samsung ($399.99), Sony ($249.99)
+→ customers: 1 unique, 100% repeat rate
+→ growth: 2 followers, 1 review, 5★ avg rating
+
+GET /dashboard/seller/analytics/revenue-chart?granularity=day
+→ 12 data points with activity over 30-day period
+```
 
 ---
 
 ## E2E Flow Validated (June 11, 2026)
 
 ```
-Order 9: pending → confirmed → preparing → ready_for_pickup → courier_assigned
-- All 5 seller-role transitions succeeded
-- All 5 notifications fired (order_processing, order_confirmed, order_preparing, order_ready, order_courier_assigned)
-- Courier assignment atomically created record in courier_assignments table
+Order pipeline test:
+- 18 seeded orders across 6 statuses (delivered, pending, confirmed, preparing, ready_for_pickup, out_for_delivery, cancelled)
+- 21 order_items across 10 products
+- Analytics API returning correct aggregated data
+- Chart returning daily revenue points
+- Seller review + store follow data in growth metrics
 ```
 
 ---
@@ -90,6 +113,9 @@ Order 9: pending → confirmed → preparing → ready_for_pickup → courier_as
 ✅ Courier Operations Dashboard V2 — COMPLETE + VALIDATED
 ✅ Seller Application Redirect Fix — COMPLETE
 ✅ Seller Orders V2 — COMPLETE + VALIDATED
+✅ Seller Analytics Dashboard V2 — COMPLETE + VALIDATED
+
+⏳ Next: Trust System V1 (NOT STARTED — do not begin yet)
 ```
 
 ---
@@ -101,7 +127,7 @@ Order 9: pending → confirmed → preparing → ready_for_pickup → courier_as
 | Admin / Root Owner | delewatiamer7@gmail.com | 00Amer00 | Auto-bootstrapped |
 | Seller | seller@syano.test | Seller@2026 | Approved, store: Ahmad's Electronics |
 | Customer | customer@syano.test | Customer@2026 | Standard buyer |
-| Courier | courier@syano.test | Courier@2026 | Approved courier, record id=2 |
+| Courier | courier@syano.test | Courier@2026 | Approved courier |
 
 ---
 

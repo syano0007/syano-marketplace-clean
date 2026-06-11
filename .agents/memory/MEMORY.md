@@ -62,3 +62,5 @@
 - [db.execute QueryResult destructuring](db-execute-unwrap.md) — db.execute() returns QueryResult not an array; always use rawResult.rows?.[0] ?? rawResult[0] ?? {} never const [row] = await db.execute(...).
 - [Courier status update routes](courier-status-routes.md) — Couriers use /couriers/assignments/:id/{pickup,start-delivery,deliver,fail-delivery}; PATCH /orders/:id/status correctly excludes courier role (line 605 orders.ts); this is intentional.
 - [Rate limiter dev pattern](rate-limiter-dev.md) — In-memory rate limiter resets on API restart; running many curl logins in test scripts triggers 429; restart API to clear.
+- [seller_reviews column name](seller-reviews-schema.md) — Column is `customer_id` NOT `reviewer_id`; unique constraint on (seller_id, customer_id); delivery analytics uses courier_assignments table, not order status.
+- [Layout hideFooter prop](layout-hidefooter.md) — Layout accepts `hideFooter?: boolean`; use `<Layout hideFooter>` on full-screen pages (analytics, dashboards) to maximize chart space.
