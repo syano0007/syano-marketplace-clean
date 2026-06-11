@@ -15,8 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { useScreenLayout } from "@/hooks/useScreenLayout";
-import { t } from "../../../src/i18n";
-import { API_BASE_URL } from "@workspace/api-client-react";
+import { t } from "../../src/i18n";
+import { getBaseUrl } from "@workspace/api-client-react";
 
 interface StoreData {
   sellerId: number;
@@ -30,6 +30,7 @@ interface StoreData {
   trustScore: number | null;
   verificationLevel: "none" | "basic" | "verified" | "business";
   isVerified?: boolean;
+  verifiedAt?: string | null;
   memberSince: string;
   totalProducts: number;
   totalOrders: number;
@@ -125,7 +126,7 @@ export default function StoreScreen() {
   const { data: storeData, isLoading: storeLoading } = useQuery<StoreData>({
     queryKey: ["store-by-slug", slug],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/sellers/store/${slug}`);
+      const res = await fetch(`${getBaseUrl()}/sellers/store/${slug}`);
       if (!res.ok) throw new Error("Store not found");
       return res.json();
     },
@@ -135,7 +136,7 @@ export default function StoreScreen() {
   const { data: productsData } = useQuery<{ data: Product[] }>({
     queryKey: ["store-products", storeData?.sellerId],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/products?sellerId=${storeData!.sellerId}&limit=40`);
+      const res = await fetch(`${getBaseUrl()}/products?sellerId=${storeData!.sellerId}&limit=40`);
       if (!res.ok) throw new Error("Failed to load products");
       return res.json();
     },

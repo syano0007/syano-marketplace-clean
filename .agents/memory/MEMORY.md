@@ -1,4 +1,5 @@
-- [Trust System V1 architecture](trust-system.md) — Verified tiers, 0-100 score engine, audit table=seller_verification_log; store endpoints need isVerified in SELECT; seller apply needs categories[]; restart API after sellers.ts edits.
+- [Trust System V1 architecture](trust-system.md) — Verified tiers, 0-100 score engine, audit table=seller_verification_log; unverify accepts {"level":"none"} OR {"action":"unverify"}; seller apply needs categories[]+city+description; test seller must be role=customer before applying.
+- [Mobile store page fixes](mobile-store-page-fixes.md) — i18n import is `../../src/i18n` (2 levels up from app/store/); API base URL must use getBaseUrl() not API_BASE_URL; t() accepts string|Record as 2nd arg (fallback or params).
 - [Design system tokens](design-system.md) — All responsive design tokens live in index.css (not tailwind.config.js), using CSS custom props and @layer utilities.
 - [Product card uniform heights](product-card-heights.md) — Use pc-category/pc-title/pc-seller CSS utility classes for consistent card heights across Arabic/English.
 - [DB schema push without TTY](db-schema-push.md) — drizzle-kit push/push-force both require TTY; use executeSql for additive schema changes (ADD COLUMN IF NOT EXISTS, CREATE INDEX IF NOT EXISTS).

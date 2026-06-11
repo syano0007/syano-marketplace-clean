@@ -2,6 +2,61 @@
 
 ---
 
+## [2026-06-11] Full Recovery, Verification & Bug Fixes
+
+### Summary
+Full environment recovery from empty state. All services restored, Trust System V1 re-validated end-to-end (13/13 tests), TypeScript brought to 0 errors across all 6 artifacts. Three bugs fixed discovered during verification.
+
+### Recovery Steps Executed
+- `pnpm install --force` — 1,131 packages installed
+- `psql -f schema.sql` — base 21-table schema restored
+- `notification_type` enum fixed to 31/31 values (ALTER TYPE block)
+- `lib/db lib/api-zod lib/api-client-react` built with `npx tsc --build`
+- API, Marketplace, and Mobile workflows restarted
+- Test accounts recreated: customer@syano.test, seller@syano.test, courier@syano.test
+- Root owner auto-bootstrapped on API start ✅
+
+### Bug Fix 1: Unverify route rejected `{"level":"none"}`
+**File:** `artifacts/api-server/src/routes/admin.ts`  
+**Root cause:** `POST /admin/sellers/:id/verification` only branched to unverify logic when `action === "unverify"` or `action === "remove"`. Sending `{"level":"none"}` (the documented way to unverify) fell through to the `validLevels` check which rejects "none".  
+**Fix:** Added `|| level === "none"` to the branch condition so `{"level":"none"}` correctly triggers the unverify path.
+
+### Bug Fix 2: Mobile `store/[id].tsx` + `store/[slug].tsx` — 4 TypeScript errors each
+**Files:** `artifacts/mobile/app/store/[id].tsx`, `artifacts/mobile/app/store/[slug].tsx`  
+**Issues:**
+1. Wrong i18n import: `../../../src/i18n` → `../../src/i18n` (3 levels up hits `artifacts/`, not `artifacts/mobile/`)
+2. `API_BASE_URL` imported from `@workspace/api-client-react` — was never exported; replaced with `getBaseUrl()`
+3. `verifiedAt` property used but not in `StoreData` interface — added `verifiedAt?: string | null`
+
+### Bug Fix 3: Mobile `t()` function rejected string fallbacks
+**File:** `artifacts/mobile/src/i18n/index.ts`  
+**Root cause:** `t(key, params?)` accepted only `Record<string, string|number>` as second arg. Many call sites pass a string fallback (`t("store.followers", "Followers")`), which TypeScript rejected.  
+**Fix:** Changed signature to `t(key, paramsOrFallback?: Record<string, string|number> | string)`. When second arg is a string, it's used as fallback if the key isn't found.
+
+### New Export: `getBaseUrl()` in api-client-react
+**File:** `lib/api-client-react/src/custom-fetch.ts` + `index.ts`  
+Added `export function getBaseUrl(): string` that returns the currently configured base URL (used by mobile store pages for raw `fetch()` calls).
+
+### TypeScript Status After Fixes
+All 6 artifacts: **0 errors**
+
+### Trust System E2E — 13/13 Tests Passed
+1. Seller application submitted (status=pending)
+2. Admin approved application (storeSlug=ahmad-electronics)
+3. Trust score before verify (isVerified=False)
+4. Admin verified seller (level=verified)
+5. Trust score after verify (isVerified=True, verificationLevel=verified)
+6. Leaderboard (count=1)
+7. Recompute trust (score=10)
+8. Audit log (1 entry after verify)
+9. Store page (isVerified=True, verificationLevel=verified)
+10. Unverify via `{"level":"none"}` → "Verification removed" ✅
+11. Audit log (2 entries after unverify)
+12. Store page after unverify (isVerified=False)
+13. Verification list (count=1, isVerified=False)
+
+---
+
 ## [2026-06-11] Seller Analytics Dashboard V2 — Production Finalization
 
 ### Summary

@@ -1,6 +1,6 @@
 # SYANO — Current Project State
 **Last Updated:** June 11, 2026  
-**Updated By:** Trust System V1 completion session
+**Updated By:** Full Recovery & Verification Session
 
 ---
 
@@ -24,11 +24,12 @@ All services running. All features validated end-to-end with real API calls.
 
 | Check | Result |
 |---|---|
-| Tables | ✅ 26/26 base + seller_verification_log (run-migrations) |
+| Tables | ✅ 27/27 (base 21 + 6 from run-migrations) |
 | notification_type enum | ✅ 31/31 values |
 | delivery_zones | ✅ 40 zones |
 | Order statuses | ✅ 15 statuses |
 | verified_by column | ✅ users.verified_by (INTEGER, added via run-migrations) |
+| seller_verification_log | ✅ Present with correct schema |
 
 ---
 
@@ -69,24 +70,48 @@ All services running. All features validated end-to-end with real API calls.
 | Store page (GET /sellers/store/:slug) — includes isVerified field | ✅ |
 | Store preview (GET /sellers/:id/store-preview) — includes isVerified | ✅ |
 | Mobile store/[slug].tsx — reads `slug` param correctly | ✅ |
+| Unverify via `{"level":"none"}` in verification route | ✅ (fixed this session) |
 
-### API Validation (June 11, 2026)
+### API Validation (June 11, 2026 — Recovery Session)
 
 ```
-Full E2E test suite passed — 11/11 tests:
+Full E2E test suite passed — 13/13 steps:
 
-1.  POST /api/seller-applications              → App ID created, status=pending
-2.  PATCH /api/seller-applications/:id/status  → status=approved, storeSlug=ahmad-electronics
-3.  GET  /api/sellers/2/trust (unverified)     → score=10, level=none, isVerified=false
-4.  POST /api/admin/sellers/2/verification     → level=verified, trustScore=10
-5.  GET  /api/sellers/2/trust (verified)       → level=verified, isVerified=true
-6.  GET  /api/admin/trust/leaderboard          → 1 seller, score=10, level=verified
-7.  POST /api/admin/sellers/2/recompute-trust  → score=10, "Trust score recomputed"
-8.  seller_verification_log entries            → 5 audit records (verify/unverify cycles)
-9.  GET  /api/sellers/store/ahmad-electronics  → storeName, isVerified=true, verificationLevel=verified
-10. POST /api/admin/sellers/2/verification (unverify) → level=none
-11. GET  /api/admin/sellers/verification       → list with isVerified, verificationLevel, trustScore
+1.  POST /api/seller-applications              → App ID=1 created, status=pending
+2.  PATCH /api/seller-applications/1/status    → status=approved, storeSlug=ahmad-electronics
+3.  GET  /api/sellers/3/trust (pre-verify)     → isVerified=False
+4.  POST /api/admin/sellers/3/verification     → level=verified, "Seller verified"
+5.  GET  /api/sellers/3/trust (post-verify)    → isVerified=True, verificationLevel=verified
+6.  GET  /api/admin/trust/leaderboard          → count=1
+7.  POST /api/admin/sellers/3/recompute-trust  → score=10, "Trust score recomputed"
+8.  seller_verification_log                    → 1 audit record (verify)
+9.  GET  /api/sellers/store/ahmad-electronics  → storeName=Ahmad Electronics, isVerified=True
+10. POST /api/admin/sellers/3/verification {level:"none"} → "Verification removed" ✅ (FIXED)
+11. seller_verification_log                    → 2 audit records (verify+unverify)
+12. GET  /api/sellers/store/ahmad-electronics  → isVerified=False, verificationLevel=none
+13. GET  /api/admin/sellers/verification       → count=1, first_isVerified=False
 ```
+
+---
+
+## TypeScript Status
+
+| Artifact | Errors |
+|---|---|
+| lib/db | ✅ 0 |
+| lib/api-zod | ✅ 0 |
+| lib/api-client-react | ✅ 0 |
+| artifacts/api-server | ✅ 0 |
+| artifacts/marketplace | ✅ 0 |
+| artifacts/mobile | ✅ 0 (fixed this session) |
+
+### Fixes applied this session (mobile TS):
+- `store/[id].tsx` and `store/[slug].tsx`: Wrong i18n import path (`../../../src/i18n` → `../../src/i18n`)
+- `store/[id].tsx` and `store/[slug].tsx`: `API_BASE_URL` (not exported) → `getBaseUrl()` (exported from lib)
+- `store/[id].tsx` and `store/[slug].tsx`: Added `verifiedAt?: string | null` to `StoreData` interface
+- `lib/api-client-react`: Added `getBaseUrl()` export from `custom-fetch.ts`
+- `src/i18n/index.ts`: Updated `t()` signature to accept `string | Record` as second arg (enables fallback strings)
+- `artifacts/api-server/src/routes/admin.ts`: Unverify route now accepts `level:"none"` (in addition to `action:"unverify"`)
 
 ---
 
@@ -108,6 +133,7 @@ Full E2E test suite passed — 11/11 tests:
 - `users.verification_level` — enum: none | basic | verified | business
 - `users.trust_score` — INTEGER, 0-100, updated by trustScore.ts engine
 - Trust score components: completedOrders(30) + storeRating(25) + deliverySuccess(20) + reviewCount(10) + accountAge(5) + followers(5) - cancellationPenalty - violationsPenalty
+- Unverify route: accepts `{"level":"none"}` OR `{"action":"unverify"}` — both work
 
 ---
 

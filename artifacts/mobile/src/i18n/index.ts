@@ -485,7 +485,8 @@ export function getLocale(): Locale {
 
 const TRANSLATIONS: Record<Locale, DeepLeaf<typeof en>> = { en, ar };
 
-export function t(key: string, params?: Record<string, string | number>): string {
+export function t(key: string, paramsOrFallback?: Record<string, string | number> | string): string {
+  const params = typeof paramsOrFallback === "object" ? paramsOrFallback : undefined;
   const parts = key.split(".");
   let value: unknown = TRANSLATIONS[currentLocale] ?? en;
   for (const part of parts) {
@@ -494,12 +495,14 @@ export function t(key: string, params?: Record<string, string | number>): string
       value = TRANSLATIONS["en"];
       for (const p of parts) {
         value = (value as Record<string, unknown>)?.[p];
-        if (value === undefined) return key;
+        if (value === undefined) {
+          return typeof paramsOrFallback === "string" ? paramsOrFallback : key;
+        }
       }
       break;
     }
   }
-  if (typeof value !== "string") return key;
+  if (typeof value !== "string") return typeof paramsOrFallback === "string" ? paramsOrFallback : key;
   if (params) {
     return value.replace(/\{\{(\w+)\}\}/g, (_, k) => String(params[k] ?? ""));
   }

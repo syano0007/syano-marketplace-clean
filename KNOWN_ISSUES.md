@@ -14,7 +14,7 @@
 ### KNOWN-2 — Rate limiter is in-memory (resets on restart)
 **Severity:** Low  
 **Status:** By design  
-**Description:** Login rate limiting uses in-memory state. Restarting the API server resets all rate limit counters. In production this should use Redis or a DB-backed store.
+**Description:** Login rate limiting uses in-memory state. Restarting the API server resets all rate limit counters. In production this should use Redis or a DB-backed store. When running many test logins, restart API server if 429 errors appear.
 
 ### KNOWN-3 — OTP delivery disabled
 **Severity:** Low (dev environment only)  
@@ -46,12 +46,21 @@
 **Status:** By design  
 **Description:** `totalDelivered` and `totalFailed` come from `courier_assignments` table, not order status. If orders were marked "delivered" without going through courier workflow, delivery analytics shows 0. The empty state in the UI handles this gracefully.
 
+### KNOWN-9 — Seller application requires role:"customer" to apply
+**Severity:** Low  
+**Status:** By design  
+**Description:** `POST /seller-applications` route rejects users already in role="seller". For testing, ensure the test seller account has role="customer" before submitting an application. After approval, role is promoted to "seller" automatically.
+
 ---
 
 ## Resolved Issues
 
 | Issue | Resolution Date | Fix |
 |---|---|---|
+| Unverify via `{"level":"none"}` returned 400 | 2026-06-11 | Added `level === "none"` branch to verification route |
+| Mobile `store/[id].tsx` TS: wrong i18n path | 2026-06-11 | Fixed `../../../src/i18n` → `../../src/i18n` |
+| Mobile `store/[slug].tsx` TS: API_BASE_URL not exported | 2026-06-11 | Added `getBaseUrl()` export to api-client-react lib |
+| Mobile `t()` signature: string fallback not accepted | 2026-06-11 | Updated t() to accept `string \| Record` as second arg |
 | `GET /dashboard/seller/metrics` crash (is not iterable) | 2026-06-11 | Fixed QueryResult destructuring |
 | notification_type enum crash during courier workflow | 2026-06-11 | ALTER TYPE ADD VALUE for 14 missing values |
 | Courier profile missing successRate/activeAssignments/walletBalance | 2026-06-11 | Extended /couriers/profile handler |

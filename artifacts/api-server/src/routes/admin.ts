@@ -1429,7 +1429,7 @@ router.post("/admin/sellers/:id/verification", async (req, res): Promise<void> =
     .where(eq(usersTable.id, id));
   const fromLevel = currentUser?.verificationLevel ?? "none";
 
-  if (action === "unverify" || action === "remove") {
+  if (action === "unverify" || action === "remove" || level === "none") {
     await db.update(usersTable)
       .set({ isVerified: false, verifiedAt: null, verificationMethod: null, verificationLevel: null, verifiedBy: null })
       .where(eq(usersTable.id, id));
