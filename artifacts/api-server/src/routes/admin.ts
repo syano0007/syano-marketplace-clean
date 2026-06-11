@@ -1423,12 +1423,22 @@ router.post("/admin/sellers/:id/verification", async (req, res): Promise<void> =
 
   const { refreshTrustScore } = await import("../lib/trustScore");
 
+  const [currentUser] = await db
+    .select({ verificationLevel: usersTable.verificationLevel })
+    .from(usersTable)
+    .where(eq(usersTable.id, id));
+  const fromLevel = currentUser?.verificationLevel ?? "none";
+
   if (action === "unverify" || action === "remove") {
     await db.update(usersTable)
       .set({ isVerified: false, verifiedAt: null, verificationMethod: null, verificationLevel: null, verifiedBy: null })
       .where(eq(usersTable.id, id));
     const score = await refreshTrustScore(id);
     await logAudit(req.user!.userId, "UNVERIFY_SELLER", "user", String(id), { name: user.name });
+    await db.execute(sql`
+      INSERT INTO verification_audit_log (seller_id, admin_id, action, from_level, to_level, method, notes)
+      VALUES (${id}, ${req.user!.userId}, 'rejected', ${fromLevel}, 'none', ${method}, ${req.body?.notes ?? null})
+    `);
     res.json({ message: "Verification removed", userId: id, verificationLevel: "none", trustScore: score });
     return;
   }
@@ -1443,6 +1453,15 @@ router.post("/admin/sellers/:id/verification", async (req, res): Promise<void> =
     .where(eq(usersTable.id, id));
   const score = await refreshTrustScore(id);
   await logAudit(req.user!.userId, "VERIFY_SELLER", "user", String(id), { name: user.name, level, method });
+
+  const auditAction = fromLevel === "none" ? "verified"
+    : (["basic","verified","business"].indexOf(level) > ["basic","verified","business"].indexOf(fromLevel ?? ""))
+      ? "level_promoted"
+      : "level_demoted";
+  await db.execute(sql`
+    INSERT INTO verification_audit_log (seller_id, admin_id, action, from_level, to_level, method, notes)
+    VALUES (${id}, ${req.user!.userId}, ${auditAction}, ${fromLevel}, ${level}, ${method}, ${req.body?.notes ?? null})
+  `);
   res.json({ message: "Seller verified", userId: id, verificationLevel: level, trustScore: score });
 });
 

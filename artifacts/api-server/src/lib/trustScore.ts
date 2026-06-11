@@ -1,15 +1,15 @@
 /**
  * Trust Score Engine — computes a real 0-100 score from live DB data.
  *
- * Score breakdown (100 pts total):
- *   Verification tier   → 0 / 10 / 20 / 30  (none / basic / verified / business)
- *   Profile completeness→ 0-15
- *   Account age         → 0-10
- *   Order completion    → 0-15
- *   Product reviews     → 0-15
- *   Seller service score→ 0-15  (communication + shipping + professionalism)
- *   Store followers     → 0-10  (social proof)
- *   Activity volume     → 0-5   (products listed + total orders)
+ * Factor breakdown (max 100 pts, with penalty deductions):
+ *   completed_orders  → 0-30  (log scale on delivered order count)
+ *   store_rating      → 0-25  (avg product rating 0-5 × 5)
+ *   delivery_success  → 0-20  (delivery success rate %)
+ *   review_count      → 0-10  (log scale)
+ *   account_age       → 0-5   (months active)
+ *   followers         → 0-5   (log scale social proof)
+ *   cancellation_penalty → 0 to -10  (high cancellation rate)
+ *   violations_penalty   → 0         (reserved for future)
  */
 import { eq, and, avg, count, sql } from "drizzle-orm";
 import {
@@ -21,7 +21,6 @@ import {
   ordersTable,
   orderItemsTable,
   storeFollowsTable,
-  sellerReviewsTable,
 } from "@workspace/db";
 
 export type VerificationLevel = "none" | "basic" | "verified" | "business";
@@ -30,41 +29,32 @@ export interface TrustScoreBreakdown {
   total: number;
   verificationLevel: VerificationLevel;
   components: {
-    verification: number;
-    profileCompleteness: number;
-    accountAge: number;
-    orderCompletion: number;
-    productReviews: number;
-    sellerService: number;
-    followers: number;
-    activity: number;
+    completedOrders:     number;
+    storeRating:         number;
+    deliverySuccess:     number;
+    reviewCount:         number;
+    accountAge:          number;
+    followers:           number;
+    cancellationPenalty: number;
+    violationsPenalty:   number;
   };
   details: {
-    isVerified: boolean;
-    completenessFields: { field: string; filled: boolean }[];
-    accountAgeMonths: number;
-    completionRate: number;
-    totalOrders: number;
-    avgProductRating: number | null;
-    reviewCount: number;
-    sellerScore: number | null;
-    sellerReviewCount: number;
-    followerCount: number;
-    totalProducts: number;
+    isVerified:          boolean;
+    verificationLevel:   VerificationLevel;
+    accountAgeMonths:    number;
+    deliveredOrders:     number;
+    totalOrders:         number;
+    cancellationRate:    number;
+    deliverySuccessRate: number;
+    avgProductRating:    number | null;
+    reviewCount:         number;
+    followerCount:       number;
+    totalProducts:       number;
   };
 }
 
 function clamp(val: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, val));
-}
-
-function verificationPoints(level: VerificationLevel): number {
-  switch (level) {
-    case "business": return 30;
-    case "verified": return 20;
-    case "basic":    return 10;
-    default:         return 0;
-  }
 }
 
 export async function computeTrustScore(sellerId: number): Promise<TrustScoreBreakdown> {
@@ -79,14 +69,7 @@ export async function computeTrustScore(sellerId: number): Promise<TrustScoreBre
 
   const [appRow] = await db
     .select({
-      storeName:        sellerApplicationsTable.storeName,
-      storeDescription: sellerApplicationsTable.description,
-      storeLogo:        sellerApplicationsTable.storeLogo,
-      storeBanner:      sellerApplicationsTable.storeBanner,
-      categories:       sellerApplicationsTable.categories,
-      city:             sellerApplicationsTable.city,
-      website:          sellerApplicationsTable.website,
-      phone:            sellerApplicationsTable.phone,
+      storeName: sellerApplicationsTable.storeName,
     })
     .from(sellerApplicationsTable)
     .where(
@@ -96,7 +79,7 @@ export async function computeTrustScore(sellerId: number): Promise<TrustScoreBre
       )
     );
 
-  const [productStats, orderStats, followerRow, sellerReviewStat] = await Promise.all([
+  const [productStats, orderStats, followerRow] = await Promise.all([
     db
       .select({
         totalProducts: count(productsTable.id),
@@ -105,13 +88,13 @@ export async function computeTrustScore(sellerId: number): Promise<TrustScoreBre
       })
       .from(productsTable)
       .leftJoin(reviewsTable, eq(reviewsTable.productId, productsTable.id))
-      .where(eq(productsTable.sellerId, sellerId))
-      .groupBy(),
+      .where(eq(productsTable.sellerId, sellerId)),
 
     db
       .select({
-        total:     count(ordersTable.id),
-        delivered: sql<number>`cast(count(case when ${ordersTable.status} = 'delivered' then 1 end) as int)`,
+        total:      count(ordersTable.id),
+        delivered:  sql<number>`cast(count(case when ${ordersTable.status} = 'delivered' then 1 end) as int)`,
+        cancelled:  sql<number>`cast(count(case when ${ordersTable.status} IN ('cancelled','returned') then 1 end) as int)`,
       })
       .from(orderItemsTable)
       .innerJoin(ordersTable, eq(ordersTable.id, orderItemsTable.orderId))
@@ -121,117 +104,103 @@ export async function computeTrustScore(sellerId: number): Promise<TrustScoreBre
       .select({ count: count() })
       .from(storeFollowsTable)
       .where(eq(storeFollowsTable.sellerId, sellerId)),
-
-    db
-      .select({
-        avgComm:  avg(sellerReviewsTable.communicationRating),
-        avgShip:  avg(sellerReviewsTable.shippingRating),
-        avgProf:  avg(sellerReviewsTable.professionalismRating),
-        total:    count(),
-      })
-      .from(sellerReviewsTable)
-      .where(eq(sellerReviewsTable.sellerId, sellerId)),
   ]);
 
   const level = ((userRow?.verificationLevel as VerificationLevel | null) ?? "none") as VerificationLevel;
   const isVerified = userRow?.isVerified ?? false;
 
-  // ── 1. Verification (0-30) ───────────────────────────────────────────────
-  const verificationPts = verificationPoints(level);
-
-  // ── 2. Profile Completeness (0-15) ──────────────────────────────────────
-  const completenessFields = [
-    { field: "storeName",    filled: !!appRow?.storeName },
-    { field: "description",  filled: (appRow?.storeDescription?.length ?? 0) > 20 },
-    { field: "logo",         filled: !!appRow?.storeLogo },
-    { field: "banner",       filled: !!appRow?.storeBanner },
-    { field: "categories",   filled: (appRow?.categories?.length ?? 0) > 0 },
-    { field: "city",         filled: !!appRow?.city },
-    { field: "website",      filled: !!appRow?.website },
-    { field: "phone",        filled: !!appRow?.phone },
-  ];
-  const filledCount = completenessFields.filter((f) => f.filled).length;
-  const profilePts = clamp(Math.round((filledCount / completenessFields.length) * 15), 0, 15);
-
-  // ── 3. Account Age (0-10) ────────────────────────────────────────────────
+  // ── Account age ──────────────────────────────────────────────────────────────
   const accountAgeMonths = userRow
     ? Math.floor((Date.now() - new Date(userRow.createdAt).getTime()) / (1000 * 60 * 60 * 24 * 30))
     : 0;
-  const agePts = clamp(Math.floor(accountAgeMonths / 2), 0, 10); // 1pt per 2 months, max 10
 
-  // ── 4. Order Completion (0-15) ───────────────────────────────────────────
-  const totalOrders = Number(orderStats[0]?.total ?? 0);
+  // ── Order stats ──────────────────────────────────────────────────────────────
+  const totalOrders     = Number(orderStats[0]?.total     ?? 0);
   const deliveredOrders = Number(orderStats[0]?.delivered ?? 0);
-  const completionRate = totalOrders > 0 ? (deliveredOrders / totalOrders) * 100 : 0;
-  // Scale: 80%+ = full 15pts, linear below
-  const completionPts = totalOrders === 0
-    ? 7  // new sellers get 7/15 (benefit of doubt)
-    : clamp(Math.round((completionRate / 80) * 15), 0, 15);
+  const cancelledOrders = Number(orderStats[0]?.cancelled ?? 0);
+  const deliverySuccessRate = totalOrders > 0 ? (deliveredOrders / totalOrders) * 100 : 100;
+  const cancellationRate    = totalOrders > 0 ? (cancelledOrders / totalOrders) * 100 : 0;
 
-  // ── 5. Product Reviews (0-15) ────────────────────────────────────────────
+  // ── Product/review stats ─────────────────────────────────────────────────────
   const totalProducts = Number(productStats[0]?.totalProducts ?? 0);
-  const avgRating = productStats[0]?.avgRating != null ? parseFloat(productStats[0].avgRating) : null;
-  const reviewCount = Number(productStats[0]?.reviewCount ?? 0);
-  // 5pts for rating (rating/5 * 10), 5pts for review volume (log scale)
-  const ratingPts = avgRating != null ? clamp(Math.round((avgRating / 5) * 10), 0, 10) : 0;
-  const volumePts = reviewCount === 0 ? 0 : clamp(Math.round(Math.log10(reviewCount + 1) * 5), 0, 5);
-  const reviewPts = ratingPts + volumePts;
+  const avgRating     = productStats[0]?.avgRating != null ? parseFloat(productStats[0].avgRating) : null;
+  const reviewCount   = Number(productStats[0]?.reviewCount ?? 0);
 
-  // ── 6. Seller Service Score (0-15) ──────────────────────────────────────
-  const sr = sellerReviewStat[0];
-  const sellerReviewCount = Number(sr?.total ?? 0);
-  let sellerScore: number | null = null;
-  let servicePts = 0;
-  if (sellerReviewCount > 0) {
-    sellerScore = parseFloat(
-      (
-        parseFloat(sr.avgComm ?? "0") * 0.4 +
-        parseFloat(sr.avgShip ?? "0") * 0.3 +
-        parseFloat(sr.avgProf ?? "0") * 0.3
-      ).toFixed(2)
-    );
-    servicePts = clamp(Math.round((sellerScore / 5) * 15), 0, 15);
-  } else {
-    servicePts = 8; // new sellers get 8/15
-  }
-
-  // ── 7. Followers (0-10) ──────────────────────────────────────────────────
+  // ── Followers ────────────────────────────────────────────────────────────────
   const followerCount = Number(followerRow[0]?.count ?? 0);
-  const followerPts = followerCount === 0 ? 0 : clamp(Math.round(Math.log10(followerCount + 1) * 4), 0, 10);
 
-  // ── 8. Activity Volume (0-5) ─────────────────────────────────────────────
-  const activityScore = (totalProducts > 0 ? 2 : 0) + (totalOrders > 0 ? 2 : 0) + (totalProducts >= 5 ? 1 : 0);
-  const activityPts = clamp(activityScore, 0, 5);
+  // ── Factor 1: Completed orders (0-30) — log scale ────────────────────────────
+  // 0 orders = 0, 10 orders ≈ 15, 100 orders ≈ 30
+  const completedOrdersPts = deliveredOrders === 0
+    ? 0
+    : clamp(Math.floor(Math.log10(deliveredOrders + 1) * 15), 0, 30);
 
-  const total = clamp(
-    verificationPts + profilePts + agePts + completionPts + reviewPts + servicePts + followerPts + activityPts,
-    0,
-    100
-  );
+  // ── Factor 2: Store rating (0-25) ────────────────────────────────────────────
+  // avgRating 0-5 mapped linearly to 0-25
+  const storeRatingPts = avgRating != null
+    ? clamp(Math.round((avgRating / 5) * 25), 0, 25)
+    : 0;
+
+  // ── Factor 3: Delivery success rate (0-20) ────────────────────────────────────
+  // 100% success = 20pts, 80%+ full credit (scale proportionally)
+  const deliverySuccessPts = totalOrders === 0
+    ? 10  // new sellers: neutral credit
+    : clamp(Math.round((deliverySuccessRate / 100) * 20), 0, 20);
+
+  // ── Factor 4: Review count (0-10) — log scale ────────────────────────────────
+  // 0 reviews = 0, 10 reviews ≈ 5, 1000 reviews ≈ 10
+  const reviewCountPts = reviewCount === 0
+    ? 0
+    : clamp(Math.floor(Math.log10(reviewCount + 1) * 3.3), 0, 10);
+
+  // ── Factor 5: Account age (0-5) ──────────────────────────────────────────────
+  // 1pt per 3 months, max 5 (= 15 months)
+  const accountAgePts = clamp(Math.floor(accountAgeMonths / 3), 0, 5);
+
+  // ── Factor 6: Followers (0-5) — log scale ────────────────────────────────────
+  // 0 followers = 0, 10 followers ≈ 2.5, 1000 followers ≈ 5
+  const followersPts = followerCount === 0
+    ? 0
+    : clamp(Math.floor(Math.log10(followerCount + 1) * 1.66), 0, 5);
+
+  // ── Penalty: Cancellation rate (0 to -10) ────────────────────────────────────
+  // >40% cancellation = max -10 penalty, scales linearly
+  const cancellationPenalty = totalOrders < 3
+    ? 0  // insufficient data — no penalty
+    : clamp(-Math.round((cancellationRate / 40) * 10), -10, 0);
+
+  // ── Penalty: Violations (reserved) ──────────────────────────────────────────
+  const violationsPenalty = 0;
+
+  const raw = completedOrdersPts + storeRatingPts + deliverySuccessPts +
+              reviewCountPts + accountAgePts + followersPts +
+              cancellationPenalty + violationsPenalty;
+
+  const total = clamp(Math.round(raw), 0, 100);
 
   return {
     total,
     verificationLevel: level,
     components: {
-      verification:       verificationPts,
-      profileCompleteness: profilePts,
-      accountAge:         agePts,
-      orderCompletion:    completionPts,
-      productReviews:     reviewPts,
-      sellerService:      servicePts,
-      followers:          followerPts,
-      activity:           activityPts,
+      completedOrders:     completedOrdersPts,
+      storeRating:         storeRatingPts,
+      deliverySuccess:     deliverySuccessPts,
+      reviewCount:         reviewCountPts,
+      accountAge:          accountAgePts,
+      followers:           followersPts,
+      cancellationPenalty,
+      violationsPenalty,
     },
     details: {
       isVerified,
-      completenessFields,
+      verificationLevel:   level,
       accountAgeMonths,
-      completionRate: Math.round(completionRate),
+      deliveredOrders,
       totalOrders,
-      avgProductRating: avgRating,
+      cancellationRate:    Math.round(cancellationRate),
+      deliverySuccessRate: Math.round(deliverySuccessRate),
+      avgProductRating:    avgRating,
       reviewCount,
-      sellerScore,
-      sellerReviewCount,
       followerCount,
       totalProducts,
     },
@@ -243,9 +212,9 @@ export async function refreshTrustScore(sellerId: number): Promise<number> {
   await db
     .update(usersTable)
     .set({
-      trustScore:           result.total,
-      trustScoreUpdatedAt:  new Date(),
-      trustLevel:           scoreToBand(result.total),
+      trustScore:          result.total,
+      trustScoreUpdatedAt: new Date(),
+      trustLevel:          scoreToBand(result.total),
     })
     .where(eq(usersTable.id, sellerId));
   return result.total;
@@ -260,9 +229,9 @@ export function scoreToBand(score: number): "new" | "basic" | "established" | "t
 
 export function verificationLevelLabel(level: VerificationLevel): { en: string; ar: string } {
   switch (level) {
-    case "business": return { en: "Business Verified",  ar: "موثّق تجاري" };
-    case "verified":  return { en: "ID Verified",        ar: "موثّق بالهوية" };
-    case "basic":     return { en: "Basic Verified",     ar: "موثّق أساسي" };
-    default:          return { en: "Unverified",         ar: "غير موثّق" };
+    case "business": return { en: "Business Verified", ar: "موثّق تجاري" };
+    case "verified":  return { en: "ID Verified",       ar: "موثّق بالهوية" };
+    case "basic":     return { en: "Basic Verified",    ar: "موثّق أساسي" };
+    default:          return { en: "Unverified",        ar: "غير موثّق" };
   }
 }

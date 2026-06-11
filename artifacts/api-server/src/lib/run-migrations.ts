@@ -261,6 +261,36 @@ export async function runMigrations(): Promise<void> {
         created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_courier_wallet_courier_id ON courier_wallet_transactions(courier_id);
+
+      -- ── Trust & verification columns on users ──────────────────────────────────
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.tables WHERE table_name = 'users'
+        ) THEN
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_level TEXT DEFAULT 'none';
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS trust_score        INTEGER;
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS trust_level        TEXT DEFAULT 'new';
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS trust_score_updated_at TIMESTAMPTZ;
+        END IF;
+      END $$;
+
+      CREATE INDEX IF NOT EXISTS idx_users_verification_level ON users(verification_level);
+      CREATE INDEX IF NOT EXISTS idx_users_trust_score        ON users(trust_score);
+
+      -- ── Verification audit log ────────────────────────────────────────────────
+      CREATE TABLE IF NOT EXISTS verification_audit_log (
+        id          SERIAL PRIMARY KEY,
+        seller_id   INTEGER NOT NULL,
+        admin_id    INTEGER NOT NULL,
+        action      TEXT NOT NULL,
+        from_level  TEXT,
+        to_level    TEXT,
+        method      TEXT,
+        notes       TEXT,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_verification_audit_seller_id ON verification_audit_log(seller_id);
+      CREATE INDEX IF NOT EXISTS idx_verification_audit_admin_id  ON verification_audit_log(admin_id);
     `);
 
     logger.info("Migrations complete: delivery system tables, courier enums, order delivery columns ready");

@@ -552,7 +552,7 @@ export default function ProductDetailScreen() {
                     styles.storeBtn,
                     { backgroundColor: colors.accent, opacity: pressed ? 0.8 : 1 },
                   ]}
-                  onPress={() => router.push("/(tabs)" as any)}
+                  onPress={() => router.push(`/store/${storePreview!.storeSlug}` as any)}
                 >
                   <Ionicons name="storefront-outline" size={16} color={colors.primary} />
                   <Text style={[styles.storeBtnText, { color: colors.primary }]}>View Store</Text>
