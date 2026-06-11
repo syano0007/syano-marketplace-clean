@@ -6,10 +6,10 @@
 ## Active Issues (Non-Critical)
 
 ### KNOWN-1 — notification_type enum mismatch in schema.sql
-**Severity:** High (if restoring from schema.sql without running fix)  
-**Status:** Fixed at runtime — see RECOVERY_GUIDE.md Step 3  
-**Description:** `schema.sql` only contains the original 17 enum values. The 14 newer delivery/courier notification types are missing. Running the ALTER TYPE block in RECOVERY_GUIDE.md Step 3 fixes it permanently.  
-**Workaround:** Always run the enum fix SQL after any schema.sql restore.
+**Severity:** Low (auto-patched on startup)  
+**Status:** Self-healing — `run-migrations.ts` adds all 14 missing values every startup via `ADD VALUE IF NOT EXISTS`  
+**Description:** `schema.sql` only contains the original 17 enum values. The 14 newer delivery/courier notification types are missing from the base schema file. However, `run-migrations.ts` auto-patches all 14 values on every API startup — no manual intervention needed.  
+**Verified by:** `GET /api/admin/recovery-check` → `notifications.notificationTypeEnumCount: 31` ✅
 
 ### KNOWN-2 — Rate limiter is in-memory (resets on restart)
 **Severity:** Low  

@@ -1,6 +1,6 @@
 # SYANO — Current Project State
 **Last Updated:** June 11, 2026  
-**Updated By:** Recovery Integrity Audit & Migration Hardening (9 Phases)
+**Updated By:** Recovery Check V2 — 13-Section Platform Integrity System
 
 ---
 
@@ -52,7 +52,8 @@ All services running. All features validated end-to-end with real API calls.
 | **Trust System V1** | ✅ Complete + Validated |
 | **Platform QA & UI Stabilization Audit** | ✅ Complete |
 | **Recovery Integrity Audit & Migration Hardening** | ✅ Complete — Recovery Confidence: 97/100 |
-| **Admin Recovery Endpoint (GET /api/admin/recovery-check)** | ✅ Complete — Confidence Score: 100/100 |
+| **Admin Recovery Endpoint V1** | ✅ Complete — Confidence Score: 100/100 |
+| **Admin Recovery Endpoint V2 (13-section platform integrity)** | ✅ Complete — Confidence Score: 100/100 — 14/14 modules passing |
 
 ---
 
@@ -186,10 +187,32 @@ Without these, the seller and courier dashboards are non-functional after a reco
 ✅ Seller Analytics Dashboard V2 — COMPLETE + VALIDATED
 ✅ Trust System V1 — COMPLETE + VALIDATED
 ✅ Platform QA & UI Stabilization Audit — COMPLETE
-✅ Admin Recovery Endpoint (GET /api/admin/recovery-check) — COMPLETE — Confidence Score: 100/100
+✅ Admin Recovery Endpoint V1 — COMPLETE
+✅ Admin Recovery Endpoint V2 (13-section) — COMPLETE — Score 100/100 — 14/14 modules passing
 
 ⏳ Next: TBD
 ```
+
+---
+
+## Recovery Check V2 — Module Coverage
+
+| Module | Weight | Status | What is Verified |
+|---|---|---|---|
+| corePlatform | 15 | ✅ | API health, 27 tables, enum counts, delivery zones, migration columns, root owner |
+| bootstrapAccounts | 12 | ✅ | Admin/seller/courier existence, roles, approved seller app, active courier profile |
+| security | 12 | ✅ | 6 admin routes × 3 scenarios (no token=401, wrong role=403, admin=200), courier + seller auth |
+| marketplace | 10 | ✅ | categories, products, store page, search, best-sellers, recently viewed hook, review/follow tables |
+| orderSystem | 10 | ✅ | orders table, status history, 15 order status enum values, delivery zones, assign-courier route |
+| trustSystem | 8 | ✅ | Trust endpoint shape, leaderboard, verification list, seller_verification_log, columns, badge component |
+| notifications | 8 | ✅ | 31 enum values by name, notifications table, /notifications route, SSE stream route in code |
+| translations | 7 | ✅ | EN=2344, AR=2344, 0 missing in either direction |
+| sellerSystem | 7 | ✅ | dashboard/analytics/metrics/orders endpoints, variant tables, messaging tables, branding route, seller pages |
+| courierSystem | 5 | ✅ | profile/assignments/earnings/history endpoints, courier/assignment/wallet tables, courier pages |
+| analytics | 3 | ✅ | 4 seller analytics endpoints + 3 admin analytics + /admin/stats shape |
+| recovery | 2 | ✅ | bootstrap files exist, enum repair in migrations, self-healing logic present, all 3 accounts live |
+| mobile | 1 | ✅ | 13/13 required screens exist, mobile i18n, expo config |
+| responsive | 0 | ✅ | RTL pattern scan — 0 issues across admin/seller/courier pages |
 
 ---
 

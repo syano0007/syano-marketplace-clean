@@ -163,7 +163,44 @@ Files: `artifacts/api-server/src/lib/bootstrap-admin.ts`, `bootstrap-test-accoun
 [ ] delewatiamer9 has approved couriers profile (active=true)
 [ ] Marketplace loads
 [ ] Mobile builds
+[ ] GET /api/admin/recovery-check → confidenceScore >= 97
 ```
+
+---
+
+## Step 8: Run Automated Recovery Verification
+
+After all services are running, run the full platform integrity check:
+
+```bash
+# Login as admin to get token
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"delewatiamer7@gmail.com","password":"00Amer00","role":"admin"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+
+# Run comprehensive 13-section recovery check
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/admin/recovery-check \
+  | python3 -m json.tool
+```
+
+**Expected:** `"confidenceScore": 100, "confidenceOk": true, "failures": []`
+
+The endpoint runs 13 parallel checks covering:
+- Core platform (DB tables, enums, zones, root owner)
+- Bootstrap accounts (roles, seller application, courier profile)
+- Security (6 routes × no-token/wrong-role/admin-token tests)
+- Marketplace (categories, products, store, search, best-sellers)
+- Seller system (dashboard, analytics, orders, variants, messaging)
+- Courier system (profile, assignments, earnings, history)
+- Order system (tables, status enum, delivery zones)
+- Trust system (endpoint shape, leaderboard, verification log, columns, badge)
+- Notifications (31 enum values by name, SSE route, notifications route)
+- Translations (EN/AR parity — 2344 = 2344)
+- Responsive audit (RTL pattern scan across admin/seller/courier pages)
+- Mobile (13/13 required screens, i18n, expo config)
+- Analytics (4 seller + 3 admin endpoints + stats shape)
+- Recovery (bootstrap files, enum repair in migrations, self-healing)
 
 ---
 
