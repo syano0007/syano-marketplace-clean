@@ -65,6 +65,25 @@ async function internalGet(
   }
 }
 
+async function internalPatch(
+  path: string,
+  token: string,
+  body: Record<string, unknown>,
+): Promise<{ status: number; body: unknown }> {
+  try {
+    const res = await fetch(`http://localhost:${PORT}/api${path}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    let responseBody: unknown;
+    try { responseBody = await res.json(); } catch { responseBody = null; }
+    return { status: res.status, body: responseBody };
+  } catch {
+    return { status: 0, body: null };
+  }
+}
+
 // ─── SECTION 1 — Core Platform ───────────────────────────────────────────────
 
 async function checkCorePlatform(): Promise<CheckResult> {
@@ -1206,6 +1225,78 @@ async function checkStorePages(sellerToken: string, sellerId: number): Promise<C
   return { ok: failures.length === 0, data, failures, warnings };
 }
 
+// ─── SECTION 15 — Store Settings ─────────────────────────────────────────────
+
+async function checkStoreSettings(sellerToken: string, sellerId: number, adminToken: string): Promise<CheckResult> {
+  const failures: string[] = [];
+  const warnings: string[] = [];
+  const data: Record<string, unknown> = {};
+
+  // GET /seller-applications/my
+  const myApp = await internalGet("/seller-applications/my", sellerToken);
+  data["myAppStatus"] = myApp.status;
+  if (myApp.status !== 200) {
+    failures.push(`GET /seller-applications/my returned ${myApp.status}`);
+    return { ok: false, data, failures, warnings };
+  }
+
+  const appBody = myApp.body as Record<string, unknown>;
+  data["hasStoreName"]   = !!appBody?.storeName;
+  data["hasStoreSlug"]   = !!appBody?.storeSlug;
+  data["hasDescription"] = !!appBody?.description;
+  if (!appBody?.storeName)  failures.push("seller-applications/my missing storeName");
+  if (!appBody?.storeSlug)  warnings.push("seller-applications/my missing storeSlug");
+  if (!appBody?.description) warnings.push("seller-applications/my missing description");
+
+  // PATCH /sellers/store/branding — test policies + seo + social fields
+  const patchRes = await internalPatch("/sellers/store/branding", sellerToken, {
+    shippingPolicy: "Ships within 2-3 business days via standard delivery.",
+    metaTitle:      "Test Store — Quality Electronics",
+    metaDescription: "Shop top-quality products at unbeatable prices.",
+    whatsapp:       "+963900000000",
+  });
+  data["patchStatus"] = patchRes.status;
+  if (patchRes.status !== 200) {
+    failures.push(`PATCH /sellers/store/branding returned ${patchRes.status}`);
+  } else {
+    const patched = patchRes.body as Record<string, unknown> | null;
+    data["patchedMetaTitle"]      = patched?.metaTitle ?? null;
+    data["patchedShippingPolicy"] = patched?.shippingPolicy ? String(patched.shippingPolicy).length > 0 : false;
+    if (!patched?.metaTitle)      warnings.push("PATCH response missing metaTitle");
+    if (!patched?.shippingPolicy) warnings.push("PATCH response missing shippingPolicy");
+  }
+
+  // GET /admin/store-settings-health/:sellerId
+  const health = await internalGet(`/admin/store-settings-health/${sellerId}`, adminToken);
+  data["healthStatus"] = health.status;
+  if (health.status !== 200) {
+    failures.push(`GET /admin/store-settings-health/${sellerId} returned ${health.status}`);
+  } else {
+    const h = health.body as Record<string, unknown> | null;
+    data["healthScore"]   = h?.score;
+    data["settingsLoaded"] = h?.settingsLoaded;
+    if (!h?.settingsLoaded) failures.push("store-settings-health: settingsLoaded=false");
+    if (typeof h?.score === "number" && h.score < 20) warnings.push(`store-settings-health: score=${h.score} very low`);
+  }
+
+  // Check new DB columns exist in response
+  const reloadApp = await internalGet("/seller-applications/my", sellerToken);
+  if (reloadApp.status === 200) {
+    const rb = reloadApp.body as Record<string, unknown>;
+    const hasNewCols = ["shippingPolicy", "metaTitle", "whatsapp"].every((k) => k in rb);
+    data["newColumnsPresent"] = hasNewCols;
+    if (!hasNewCols) failures.push("New DB columns not returned by seller-applications/my");
+  }
+
+  // Check frontend settings file exists
+  const settingsPagePath = path.join(process.cwd(), "..", "marketplace", "src", "pages", "seller", "store-settings.tsx");
+  const fileExists = fs.existsSync(settingsPagePath);
+  data["settingsPageFileExists"] = fileExists;
+  if (!fileExists) failures.push("store-settings.tsx not found");
+
+  return { ok: failures.length === 0, data, failures, warnings };
+}
+
 // ─── Confidence scoring ───────────────────────────────────────────────────────
 
 interface SectionWeight {
@@ -1226,6 +1317,7 @@ const WEIGHTS = {
   sellerSystem: 7,
   courierSystem: 5,
   storePages: 5,
+  storeSettings: 5,
   analytics: 3,
   recovery: 2,
   mobile: 1,
@@ -1325,6 +1417,7 @@ router.get(
       analytics,
       recovery,
       storePages,
+      storeSettings,
     ] = await Promise.all([
       checkCorePlatform(),
       checkBootstrapAccounts(),
@@ -1341,6 +1434,7 @@ router.get(
       checkAnalytics(sellerToken, adminToken),
       checkRecoverySafety(),
       checkStorePages(sellerToken, sellerId),
+      checkStoreSettings(sellerToken, sellerId, adminToken),
     ]);
 
     const checkResults: Record<string, CheckResult> = {
@@ -1359,6 +1453,7 @@ router.get(
       analytics,
       recovery,
       storePages,
+      storeSettings,
     };
 
     const { score, modules, allFailures, allWarnings, deductions, recommendations } =
@@ -1481,6 +1576,13 @@ router.get(
           warnings: storePages.warnings,
           weight: WEIGHTS.storePages,
         },
+        storeSettings: {
+          ok: storeSettings.ok,
+          data: storeSettings.data,
+          failures: storeSettings.failures,
+          warnings: storeSettings.warnings,
+          weight: WEIGHTS.storeSettings,
+        },
       },
 
       failures: allFailures,
@@ -1499,6 +1601,7 @@ router.get(
         "Admin Recovery Endpoint V2 (15-section)":
           score >= 97 ? "✅ COMPLETE" : "⚠️ DEGRADED — see deductions",
         "Seller Store Pages V2": storePages.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ INCOMPLETE — see storePages section",
+        "Store Settings V2": storeSettings.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ INCOMPLETE — see storeSettings section",
         next: "⏳ TBD",
       },
 

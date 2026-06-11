@@ -486,6 +486,12 @@ router.patch("/sellers/store/branding", requireAuth, requireRole("seller"), requ
     storeSlug, storeCity,
     website, socialLinks,
     accentColor, contactPhone, contactEmail,
+    // new: structured social
+    whatsapp, telegram, facebook, instagram,
+    // new: policies
+    shippingPolicy, returnPolicy, warrantyPolicy, privacyPolicy,
+    // new: seo
+    metaTitle, metaDescription, seoImageUrl,
   } = req.body;
 
   const [app] = await db
@@ -509,6 +515,17 @@ router.patch("/sellers/store/branding", requireAuth, requireRole("seller"), requ
   if (contactPhone !== undefined) patch.contactPhone  = contactPhone;
   if (contactEmail !== undefined) patch.contactEmail  = contactEmail;
   if (storeCity !== undefined)    patch.city          = storeCity;
+  if (whatsapp !== undefined)     patch.whatsapp      = whatsapp;
+  if (telegram !== undefined)     patch.telegram      = telegram;
+  if (facebook !== undefined)     patch.facebook      = facebook;
+  if (instagram !== undefined)    patch.instagram     = instagram;
+  if (shippingPolicy !== undefined) patch.shippingPolicy = shippingPolicy;
+  if (returnPolicy !== undefined)   patch.returnPolicy   = returnPolicy;
+  if (warrantyPolicy !== undefined) patch.warrantyPolicy = warrantyPolicy;
+  if (privacyPolicy !== undefined)  patch.privacyPolicy  = privacyPolicy;
+  if (metaTitle !== undefined)      patch.metaTitle      = metaTitle;
+  if (metaDescription !== undefined) patch.metaDescription = metaDescription;
+  if (seoImageUrl !== undefined)    patch.seoImageUrl    = seoImageUrl;
   if (storeSlug !== undefined) {
     const [slugConflict] = await db
       .select({ id: sellerApplicationsTable.id })

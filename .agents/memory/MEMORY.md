@@ -68,3 +68,4 @@
 - [Rate limiter dev pattern](rate-limiter-dev.md) — In-memory rate limiter resets on API restart; running many curl logins in test scripts triggers 429; restart API to clear.
 - [seller_reviews column name](seller-reviews-schema.md) — Column is `customer_id` NOT `reviewer_id`; unique constraint on (seller_id, customer_id); delivery analytics uses courier_assignments table, not order status.
 - [Layout hideFooter prop](layout-hidefooter.md) — Layout accepts `hideFooter?: boolean`; use `<Layout hideFooter>` on full-screen pages (analytics, dashboards) to maximize chart space.
+- [Store Settings V2 architecture](store-settings-v2.md) — 8-tab settings page; 11 new DB columns on seller_applications; internalPatch helper required in recovery-check.ts; storeSettings is module 16 (weight=5); 100/100 validated.

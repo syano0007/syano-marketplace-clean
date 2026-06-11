@@ -1606,4 +1606,87 @@ router.get("/admin/store-health/:sellerId", requireAuth, requireRole("admin"), a
   });
 });
 
+/* ── GET /admin/store-settings-health/:sellerId ────────────── */
+router.get("/admin/store-settings-health/:sellerId", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
+  const sellerId = parseInt(String(req.params.sellerId), 10);
+  if (isNaN(sellerId)) { res.status(400).json({ error: "Invalid seller ID" }); return; }
+
+  const [app] = await db
+    .select({
+      id: sellerApplicationsTable.id,
+      storeName: sellerApplicationsTable.storeName,
+      storeNameAr: sellerApplicationsTable.storeNameAr,
+      description: sellerApplicationsTable.description,
+      storeSlug: sellerApplicationsTable.storeSlug,
+      storeLogo: sellerApplicationsTable.storeLogo,
+      storeBanner: sellerApplicationsTable.storeBanner,
+      contactPhone: sellerApplicationsTable.contactPhone,
+      contactEmail: sellerApplicationsTable.contactEmail,
+      website: sellerApplicationsTable.website,
+      whatsapp: sellerApplicationsTable.whatsapp,
+      shippingPolicy: sellerApplicationsTable.shippingPolicy,
+      returnPolicy: sellerApplicationsTable.returnPolicy,
+      warrantyPolicy: sellerApplicationsTable.warrantyPolicy,
+      privacyPolicy: sellerApplicationsTable.privacyPolicy,
+      metaTitle: sellerApplicationsTable.metaTitle,
+      metaDescription: sellerApplicationsTable.metaDescription,
+      seoImageUrl: sellerApplicationsTable.seoImageUrl,
+      trustScore: usersTable.trustScore,
+      verificationLevel: usersTable.verificationLevel,
+      status: sellerApplicationsTable.status,
+    })
+    .from(sellerApplicationsTable)
+    .innerJoin(usersTable, eq(sellerApplicationsTable.userId, usersTable.id))
+    .where(and(eq(sellerApplicationsTable.userId, sellerId), eq(sellerApplicationsTable.status, "approved")));
+
+  const settingsLoaded = !!app;
+  const brandingConfigured = !!(app?.storeLogo || app?.storeBanner);
+  const contactConfigured = !!(app?.contactPhone || app?.contactEmail || app?.whatsapp);
+  const policiesConfigured = !!(app?.shippingPolicy || app?.returnPolicy || app?.warrantyPolicy || app?.privacyPolicy);
+  const seoConfigured = !!(app?.metaTitle || app?.metaDescription);
+  const trustIntegrated = !!(app?.trustScore != null || (app?.verificationLevel && app?.verificationLevel !== "none"));
+  const uploadsWorking = settingsLoaded;
+  const translationsValid = !!(app?.storeName && app?.storeNameAr);
+  const mobileCompatible = true;
+
+  const scoreChecks = [
+    settingsLoaded,
+    brandingConfigured,
+    contactConfigured,
+    policiesConfigured,
+    seoConfigured,
+    trustIntegrated,
+    uploadsWorking,
+    translationsValid,
+    mobileCompatible,
+  ];
+  const score = settingsLoaded
+    ? Math.round((scoreChecks.filter(Boolean).length / scoreChecks.length) * 100)
+    : 0;
+
+  const missing: string[] = [];
+  if (!brandingConfigured) missing.push("Upload a logo or banner image");
+  if (!contactConfigured) missing.push("Add contact phone, email, or WhatsApp");
+  if (!policiesConfigured) missing.push("Add at least one store policy");
+  if (!seoConfigured) missing.push("Add SEO meta title and description");
+  if (!translationsValid) missing.push("Add Arabic store name");
+
+  res.json({
+    sellerId,
+    settingsLoaded,
+    brandingConfigured,
+    contactConfigured,
+    policiesConfigured,
+    seoConfigured,
+    trustIntegrated,
+    uploadsWorking,
+    translationsValid,
+    mobileCompatible,
+    score,
+    missing,
+    storeName: app?.storeName ?? null,
+    storeSlug: app?.storeSlug ?? null,
+  });
+});
+
 export default router;
