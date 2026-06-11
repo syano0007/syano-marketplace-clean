@@ -290,6 +290,25 @@ export async function runMigrations(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS idx_courier_wallet_courier_id ON courier_wallet_transactions(courier_id);
 
+      -- ── Store Settings V2 columns on seller_applications ─────────────────────
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.tables WHERE table_name = 'seller_applications'
+        ) THEN
+          ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS shipping_policy   TEXT;
+          ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS return_policy     TEXT;
+          ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS warranty_policy   TEXT;
+          ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS privacy_policy    TEXT;
+          ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS meta_title        TEXT;
+          ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS meta_description  TEXT;
+          ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS seo_image_url     TEXT;
+          ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS whatsapp          TEXT;
+          ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS telegram          TEXT;
+          ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS facebook          TEXT;
+          ALTER TABLE seller_applications ADD COLUMN IF NOT EXISTS instagram         TEXT;
+        END IF;
+      END $$;
+
       -- ── Trust & verification columns on users ──────────────────────────────────
       DO $$ BEGIN
         IF EXISTS (
