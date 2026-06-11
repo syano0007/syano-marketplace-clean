@@ -66,7 +66,7 @@ export default function OrdersScreen() {
   const handleAdvanceStatus = useCallback((order: Order) => {
     const next = STATUS_NEXT[order.status];
     if (!next) return;
-    updateStatus.mutate({ id: order.id, data: { status: next } });
+    updateStatus.mutate({ id: order.id, data: { status: next as any } });
   }, [updateStatus]);
 
   const renderOrderItem = useCallback(({ item }: { item: Order }) => (

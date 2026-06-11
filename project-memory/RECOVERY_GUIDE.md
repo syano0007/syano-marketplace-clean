@@ -21,10 +21,11 @@ This account is self-healing: it is created/repaired automatically on every API 
 ---
 
 ## LATEST VERIFIED CHECKPOINT
-- **Date:** 2026-06-09
-- **Recovery version:** Post-Migration Stable Build (v2)
+- **Date:** 2026-06-11
+- **Recovery version:** Post-Migration Stable Build (v5) — Phase 1+2 Stability Audit
 - **TypeScript:** 0 structural errors across api-server, marketplace, mobile
-- **Database:** 22 tables, all additive migrations applied
+- **Database:** 26 tables (includes delivery system: couriers, delivery_zones, courier_assignments, courier_applications)
+- **notification_type enum:** 31 values — all delivery statuses added
 - **Root Owner:** delewatiamer7@gmail.com (role=admin, active, verified) — self-healing
 - **All services:** API Server + Marketplace + Mobile running
 - **Official logo:** Installed and verified (silver/green S, see Branding section)
@@ -105,7 +106,7 @@ All must be present:
 
 Check: `printenv | grep -E "DATABASE_URL|SESSION_SECRET|SITE_URL|CORS_ORIGIN|VAPID|REPLIT"`
 
-### Step 3 — Verify database (expect 22 tables)
+### Step 3 — Verify database (expect 26 tables)
 ```bash
 psql "$DATABASE_URL" -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';"
 ```

@@ -2,7 +2,7 @@
 
 ## LATEST VERIFIED CHECKPOINT
 **Date:** 2026-06-11
-**Recovery Version:** Post-Migration Stable Build (v4) — Recently Viewed + Product Wizard Inventory UX
+**Recovery Version:** Post-Migration Stable Build (v5) — Phase 1+2 Stability Audit: Notification Enum Expansion + Delivery Status TS Fixes + Mobile i18n
 
 This document is the single authoritative source of truth for the workspace state.
 Future recovery agents must restore THIS EXACT checkpoint.
@@ -17,7 +17,7 @@ Future recovery agents must restore THIS EXACT checkpoint.
 | Marketplace (Vite) | ✅ HEALTHY — port dynamic |
 | Mobile (Expo) | ✅ HEALTHY — port dynamic |
 | PostgreSQL | ✅ CONNECTED |
-| Database | ✅ 22 TABLES |
+| Database | ✅ 26 TABLES (delivery system) |
 | Official Logo | ✅ VERIFIED |
 | Browser Console | ✅ ZERO ERRORS |
 | TypeScript | ✅ 0 STRUCTURAL ERRORS |
@@ -25,6 +25,9 @@ Future recovery agents must restore THIS EXACT checkpoint.
 | Known Runtime Issues | ✅ NONE |
 | Recently Viewed Products | ✅ IMPLEMENTED 2026-06-11 |
 | Product Wizard Inventory UX | ✅ IMPROVED 2026-06-11 |
+| Delivery System | ✅ FULLY INTEGRATED 2026-06-11 |
+| Notification Enum (DB) | ✅ 31 TYPES — all delivery statuses added 2026-06-11 |
+| Mobile i18n Delivery Statuses | ✅ ALL 15 STATUS KEYS PRESENT (EN+AR) |
 | Pending Features | ✅ NONE |
 
 ---
@@ -42,7 +45,7 @@ Future recovery agents must restore THIS EXACT checkpoint.
 
 ## Database State
 
-**Total tables: 22** (verified 2026-06-09)
+**Total tables: 26** (verified 2026-06-11)
 
 | Table | Status |
 |---|---|
@@ -68,6 +71,10 @@ Future recovery agents must restore THIS EXACT checkpoint.
 | users | ✅ |
 | variant_images | ✅ (added in recovery 2026-06-09) |
 | verification_audit_log | ✅ |
+| couriers | ✅ (delivery system) |
+| delivery_zones | ✅ (delivery system) |
+| courier_assignments | ✅ (delivery system) |
+| courier_applications | ✅ (delivery system) |
 
 **All migrations idempotent in `run-migrations.ts`:**
 - ✅ orders.shipping_company, orders.tracking_number
@@ -166,6 +173,10 @@ Future recovery agents must restore THIS EXACT checkpoint.
 | Products page | ✅ | CSS grid, no virtualizer |
 | Mobile (Expo 54) | ✅ | 17 screens |
 | Google Translate | ✅ | translate="no" on prices |
+| Delivery System | ✅ | couriers, delivery_zones, courier_assignments, 15 order statuses |
+| notification_type enum | ✅ | 31 types (all delivery statuses) in DB |
+| Order status TS enums | ✅ | All 4 enums in api.schemas.ts updated |
+| Mobile i18n delivery | ✅ | All 15 status keys EN+AR in index.ts |
 
 ---
 

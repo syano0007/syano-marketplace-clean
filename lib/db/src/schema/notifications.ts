@@ -9,6 +9,16 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "order_shipped",
   "order_delivered",
   "order_cancelled",
+  "order_confirmed",
+  "order_preparing",
+  "order_ready",
+  "order_courier_assigned",
+  "order_picked_up",
+  "order_out_for_delivery",
+  "order_delivery_failed",
+  "order_returned",
+  "order_cancelled_by_customer",
+  "order_refunded",
   "low_stock",
   "seller_applied",
   "seller_approved",
@@ -22,6 +32,8 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "new_message",
   "new_user",
   "courier_applied",
+  "courier_approved",
+  "courier_rejected",
 ]);
 
 export const notificationsTable = pgTable("notifications", {

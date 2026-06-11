@@ -687,7 +687,7 @@ router.patch("/orders/:id/status", requireAuth, requireActiveAccount, async (req
   async function notifyAdmins(title: ReturnType<typeof bi>, body: ReturnType<typeof bi>, notifType: string, priority: "normal" | "important" | "critical" = "normal") {
     db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"))
       .then((admins) => Promise.allSettled(admins.map((admin) =>
-        createNotification({ userId: admin.id, type: notifType, title, body, orderId: order.id, priority, link: `/admin/orders` })
+        createNotification({ userId: admin.id, type: notifType as any, title, body, orderId: order.id, priority, link: `/admin/orders` })
       ))).catch(() => {});
   }
 

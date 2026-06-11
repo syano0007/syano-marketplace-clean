@@ -297,10 +297,19 @@ export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
 
 export const OrderStatus = {
   pending: 'pending',
+  confirmed: 'confirmed',
   processing: 'processing',
+  preparing: 'preparing',
+  ready_for_pickup: 'ready_for_pickup',
+  courier_assigned: 'courier_assigned',
   shipped: 'shipped',
+  picked_up: 'picked_up',
+  in_transit: 'in_transit',
+  out_for_delivery: 'out_for_delivery',
   delivered: 'delivered',
   cancelled: 'cancelled',
+  delivery_failed: 'delivery_failed',
+  returned: 'returned',
   refunded: 'refunded',
 } as const;
 
@@ -365,10 +374,19 @@ export type OrderStatusUpdateStatus = typeof OrderStatusUpdateStatus[keyof typeo
 
 export const OrderStatusUpdateStatus = {
   pending: 'pending',
+  confirmed: 'confirmed',
   processing: 'processing',
+  preparing: 'preparing',
+  ready_for_pickup: 'ready_for_pickup',
+  courier_assigned: 'courier_assigned',
   shipped: 'shipped',
+  picked_up: 'picked_up',
+  in_transit: 'in_transit',
+  out_for_delivery: 'out_for_delivery',
   delivered: 'delivered',
   cancelled: 'cancelled',
+  delivery_failed: 'delivery_failed',
+  returned: 'returned',
   refunded: 'refunded',
 } as const;
 
@@ -509,10 +527,20 @@ export type AdminOrderStatus = typeof AdminOrderStatus[keyof typeof AdminOrderSt
 
 export const AdminOrderStatus = {
   pending: 'pending',
+  confirmed: 'confirmed',
   processing: 'processing',
+  preparing: 'preparing',
+  ready_for_pickup: 'ready_for_pickup',
+  courier_assigned: 'courier_assigned',
   shipped: 'shipped',
+  picked_up: 'picked_up',
+  in_transit: 'in_transit',
+  out_for_delivery: 'out_for_delivery',
   delivered: 'delivered',
   cancelled: 'cancelled',
+  delivery_failed: 'delivery_failed',
+  returned: 'returned',
+  refunded: 'refunded',
 } as const;
 
 export interface AdminOrder {
@@ -533,10 +561,20 @@ export type AdminOrderSummaryStatus = typeof AdminOrderSummaryStatus[keyof typeo
 
 export const AdminOrderSummaryStatus = {
   pending: 'pending',
+  confirmed: 'confirmed',
   processing: 'processing',
+  preparing: 'preparing',
+  ready_for_pickup: 'ready_for_pickup',
+  courier_assigned: 'courier_assigned',
   shipped: 'shipped',
+  picked_up: 'picked_up',
+  in_transit: 'in_transit',
+  out_for_delivery: 'out_for_delivery',
   delivered: 'delivered',
   cancelled: 'cancelled',
+  delivery_failed: 'delivery_failed',
+  returned: 'returned',
+  refunded: 'refunded',
 } as const;
 
 export interface AdminOrderSummary {
