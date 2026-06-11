@@ -628,7 +628,10 @@
     "advanced_info": "These settings affect your store's technical configuration.",
     "advanced_slug_warning": "Changing your Store URL will break all existing bookmarks and shared links.",
     "advanced_business_type_label": "Business Type",
-    "advanced_business_type_placeholder": "e.g. Individual, Sole Proprietor, LLC"
+    "advanced_business_type_placeholder": "e.g. Individual, Sole Proprietor, LLC",
+    "completion_title": "Store Completion",
+    "completion_subtitle": "Complete your store profile to attract more buyers",
+    "health_pts": " pts"
   },
   "seller_orders": {
     "title": "Manage Orders",
@@ -2135,7 +2138,23 @@
     "kpi_rating": "Avg. Rating",
     "kpi_followers": "Followers",
     "kpi_products": "Products",
-    "kpi_orders": "Completed Orders"
+    "kpi_orders": "Completed Orders",
+    "tab_contact": "Contact",
+    "tab_policies": "Policies",
+    "contact_section_title": "Contact & Social Media",
+    "no_contact_info": "This seller has not provided contact information yet.",
+    "contact_whatsapp": "WhatsApp",
+    "contact_telegram": "Telegram",
+    "contact_facebook": "Facebook",
+    "contact_instagram": "Instagram",
+    "contact_email": "Email",
+    "contact_phone": "Phone",
+    "contact_website": "Website",
+    "policy_label_shipping": "Shipping Policy",
+    "policy_label_return": "Return & Exchange Policy",
+    "policy_label_warranty": "Warranty Policy",
+    "policy_label_privacy": "Privacy Policy",
+    "no_policies": "This seller has not added any policies yet."
   },
   "messages": {
     "title": "Messages",

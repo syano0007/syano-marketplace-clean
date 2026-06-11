@@ -1222,6 +1222,18 @@ async function checkStorePages(sellerToken: string, sellerId: number): Promise<C
   data["trustIntegrated"] = trustData !== undefined;
   if (trustData === undefined) warnings.push("Store page trust data not integrated");
 
+  // Check contact + policy fields present in store profile
+  if (mainBody) {
+    const contactFields = ["contactPhone", "contactEmail", "whatsapp", "telegram", "facebook", "instagram"];
+    const policyFields  = ["shippingPolicy", "returnPolicy", "warrantyPolicy", "privacyPolicy"];
+    const hasContactShape = contactFields.every((k) => k in mainBody);
+    const hasPolicyShape  = policyFields.every((k)  => k in mainBody);
+    data["storeProfileContactFieldsPresent"] = hasContactShape;
+    data["storeProfilePolicyFieldsPresent"]  = hasPolicyShape;
+    if (!hasContactShape) failures.push("Store profile missing contact fields (contactPhone/whatsapp/etc)");
+    if (!hasPolicyShape)  failures.push("Store profile missing policy fields (shippingPolicy/returnPolicy/etc)");
+  }
+
   return { ok: failures.length === 0, data, failures, warnings };
 }
 
@@ -1293,6 +1305,31 @@ async function checkStoreSettings(sellerToken: string, sellerId: number, adminTo
   const fileExists = fs.existsSync(settingsPagePath);
   data["settingsPageFileExists"] = fileExists;
   if (!fileExists) failures.push("store-settings.tsx not found");
+
+  // Verify trust tab uses liveBreakdown (consistency check)
+  if (fileExists) {
+    const settingsContent = fs.readFileSync(settingsPagePath, "utf-8");
+    const usesLiveBreakdown = settingsContent.includes("liveBreakdown");
+    const hasCompletionEngine = settingsContent.includes("completion_title");
+    const hasWeightedHealth = settingsContent.includes("passedPts");
+    data["trustTabUsesLiveBreakdown"] = usesLiveBreakdown;
+    data["completionEnginePresent"] = hasCompletionEngine;
+    data["weightedHealthEngine"] = hasWeightedHealth;
+    if (!usesLiveBreakdown)  warnings.push("store-settings trust tab should use liveBreakdown (not cached breakdown)");
+    if (!hasCompletionEngine) warnings.push("store-settings completion engine not found");
+  }
+
+  // Verify store page has contact/policies tabs
+  const storePagePath = path.join(process.cwd(), "..", "marketplace", "src", "pages", "store", "[slug].tsx");
+  if (fs.existsSync(storePagePath)) {
+    const storeContent = fs.readFileSync(storePagePath, "utf-8");
+    const hasContactTab  = storeContent.includes("ContactTab");
+    const hasPoliciesTab = storeContent.includes("PoliciesTab");
+    data["publicStoreContactTabPresent"]  = hasContactTab;
+    data["publicStorePoliciesTabPresent"] = hasPoliciesTab;
+    if (!hasContactTab)  warnings.push("Public store page missing ContactTab component");
+    if (!hasPoliciesTab) warnings.push("Public store page missing PoliciesTab component");
+  }
 
   return { ok: failures.length === 0, data, failures, warnings };
 }
@@ -1602,6 +1639,7 @@ router.get(
           score >= 97 ? "✅ COMPLETE" : "⚠️ DEGRADED — see deductions",
         "Seller Store Pages V2": storePages.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ INCOMPLETE — see storePages section",
         "Store Settings V2": storeSettings.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ INCOMPLETE — see storeSettings section",
+        "Store Settings V3 + Trust Consistency Audit": (storeSettings.ok && storePages.ok) ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
         next: "⏳ TBD",
       },
 

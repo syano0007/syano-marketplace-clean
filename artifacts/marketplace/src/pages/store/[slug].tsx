@@ -10,7 +10,7 @@ import {
   MapPin, Globe, CheckCircle2, MessageCircle, ArrowLeft,
   TrendingUp, Search, ChevronDown, Shield, Award,
   Clock, RotateCcw, Truck, Sparkles, BadgeCheck,
-  Filter,
+  Filter, Phone, Mail, Instagram, ExternalLink,
 } from "lucide-react";
 import { SellerTrustBadge, TrustScoreBar, type VerificationLevel } from "@/components/SellerTrustBadge";
 import { Layout } from "@/components/Layout";
@@ -41,7 +41,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 /* ── Types ───────────────────────────────────────────────────── */
-type Tab = "products" | "featured" | "reviews" | "about";
+type Tab = "products" | "featured" | "reviews" | "about" | "contact" | "policies";
 type SortKey = "newest" | "price_asc" | "price_desc" | "name";
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -634,12 +634,6 @@ function AboutTab({ store }: { store: StoreProfile & Record<string, any> }) {
             {new Date(store.memberSince).toLocaleDateString(undefined, { month: "long", year: "numeric" })}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Clock className="h-4 w-4 shrink-0" />
-          <span>
-            {t("store.response_time")}: {t("store.response_time_value")}
-          </span>
-        </div>
       </div>
 
       {/* Trust & Verification */}
@@ -685,23 +679,114 @@ function AboutTab({ store }: { store: StoreProfile & Record<string, any> }) {
           </p>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* Policies */}
-      <div>
-        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wide mb-3">
-          {t("store.policies_title")}
-        </h3>
-        <div className="space-y-2">
-          <div className="flex items-start gap-2.5 text-sm">
-            <RotateCcw className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-            <span className="text-foreground/80">{t("store.return_policy")}</span>
+/* ── Contact Tab ─────────────────────────────────────────────── */
+function ContactTab({ store }: { store: StoreProfile & Record<string, any> }) {
+  const { t } = useTranslation();
+
+  const contactItems = [
+    { key: "contactPhone", label: t("store.contact_phone"), icon: Phone,
+      href: store.contactPhone ? `tel:${store.contactPhone}` : null },
+    { key: "contactEmail", label: t("store.contact_email"), icon: Mail,
+      href: store.contactEmail ? `mailto:${store.contactEmail}` : null },
+    { key: "website", label: t("store.contact_website"), icon: Globe,
+      href: store.website },
+    { key: "whatsapp", label: t("store.contact_whatsapp"), icon: Phone,
+      href: store.whatsapp ? `https://wa.me/${(store.whatsapp as string).replace(/\D/g, "")}` : null },
+    { key: "telegram", label: t("store.contact_telegram"), icon: ExternalLink,
+      href: store.telegram
+        ? (store.telegram as string).startsWith("@")
+          ? `https://t.me/${(store.telegram as string).slice(1)}`
+          : store.telegram
+        : null },
+    { key: "facebook", label: t("store.contact_facebook"), icon: ExternalLink,
+      href: store.facebook
+        ? (store.facebook as string).startsWith("http")
+          ? store.facebook
+          : `https://facebook.com/${store.facebook}`
+        : null },
+    { key: "instagram", label: t("store.contact_instagram"), icon: Instagram,
+      href: store.instagram
+        ? (store.instagram as string).startsWith("@")
+          ? `https://instagram.com/${(store.instagram as string).slice(1)}`
+          : `https://instagram.com/${store.instagram}`
+        : null },
+  ].filter((item) => !!(store as Record<string, unknown>)[item.key]);
+
+  if (contactItems.length === 0) {
+    return (
+      <div className="text-center py-16 text-muted-foreground">
+        <Phone className="h-12 w-12 mx-auto mb-3 opacity-30" />
+        <p className="font-medium">{t("store.no_contact_info")}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 max-w-lg">
+      <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wide mb-4">
+        {t("store.contact_section_title")}
+      </h3>
+      {contactItems.map(({ key, label, icon: Icon, href }) => (
+        <a
+          key={key}
+          href={href ?? "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 p-3.5 rounded-xl border bg-card hover:border-primary/40 hover:shadow-sm transition-all group"
+        >
+          <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </div>
-          <div className="flex items-start gap-2.5 text-sm">
-            <Truck className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-            <span className="text-foreground/80">{t("store.shipping_policy")}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] text-muted-foreground uppercase font-medium tracking-wide">{label}</p>
+            <p className="text-sm font-medium truncate">{String((store as Record<string, unknown>)[key] ?? "")}</p>
+          </div>
+          <ExternalLink className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors shrink-0" />
+        </a>
+      ))}
+    </div>
+  );
+}
+
+/* ── Policies Tab ────────────────────────────────────────────── */
+function PoliciesTab({ store }: { store: StoreProfile & Record<string, any> }) {
+  const { t } = useTranslation();
+
+  const policies = [
+    { key: "shippingPolicy", label: t("store.policy_label_shipping"), icon: Truck },
+    { key: "returnPolicy",   label: t("store.policy_label_return"),   icon: RotateCcw },
+    { key: "warrantyPolicy", label: t("store.policy_label_warranty"), icon: Shield },
+    { key: "privacyPolicy",  label: t("store.policy_label_privacy"),  icon: Award },
+  ].filter((p) => !!(store as Record<string, unknown>)[p.key]);
+
+  if (policies.length === 0) {
+    return (
+      <div className="text-center py-16 text-muted-foreground">
+        <Shield className="h-12 w-12 mx-auto mb-3 opacity-30" />
+        <p className="font-medium">{t("store.no_policies")}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 max-w-2xl">
+      {policies.map(({ key, label, icon: Icon }) => (
+        <div key={key} className="border rounded-2xl bg-card overflow-hidden">
+          <div className="flex items-center gap-2.5 px-5 py-3.5 border-b bg-muted/30">
+            <Icon className="h-4 w-4 text-primary shrink-0" />
+            <h3 className="text-sm font-semibold">{label}</h3>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
+              {String((store as Record<string, unknown>)[key] ?? "")}
+            </p>
           </div>
         </div>
-      </div>
+      ))}
     </div>
   );
 }
@@ -810,6 +895,15 @@ export default function StorePage() {
 
   const storeExt = store as typeof store & Record<string, any>;
 
+  const hasContact = !!(
+    storeExt.contactPhone || storeExt.contactEmail || storeExt.website ||
+    storeExt.whatsapp || storeExt.telegram || storeExt.facebook || storeExt.instagram
+  );
+  const hasPolicies = !!(
+    storeExt.shippingPolicy || storeExt.returnPolicy ||
+    storeExt.warrantyPolicy || storeExt.privacyPolicy
+  );
+
   const tabs: { key: Tab; label: string }[] = [
     { key: "products", label: t("store.tab_products") },
     { key: "featured", label: t("store.tab_featured") },
@@ -821,6 +915,8 @@ export default function StorePage() {
           : t("store.tab_reviews"),
     },
     { key: "about", label: t("store.tab_about") },
+    ...(hasContact  ? [{ key: "contact"  as Tab, label: t("store.tab_contact")  }] : []),
+    ...(hasPolicies ? [{ key: "policies" as Tab, label: t("store.tab_policies") }] : []),
   ];
 
   const storeCategories: string[] = (store.categories as string[]) ?? [];
@@ -965,7 +1061,9 @@ export default function StorePage() {
               reviewsLoading={reviewsLoading}
             />
           )}
-          {activeTab === "about" && <AboutTab store={storeExt} />}
+          {activeTab === "about"    && <AboutTab    store={storeExt} />}
+          {activeTab === "contact"  && <ContactTab  store={storeExt} />}
+          {activeTab === "policies" && <PoliciesTab store={storeExt} />}
         </div>
       </div>
     </Layout>

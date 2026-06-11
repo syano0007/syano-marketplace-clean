@@ -69,31 +69,42 @@ const EMPTY: StoreData = {
 
 type TabId = "general" | "branding" | "contact" | "policies" | "trust" | "seo" | "health" | "advanced";
 
-interface HealthItem { label: string; ok: boolean; tab: TabId; }
+interface HealthItem { label: string; ok: boolean; tab: TabId; pts: number; }
 interface TrustData {
   trustScore: number | null;
   trustLevel: string;
   isVerified: boolean;
   verificationLevel: string;
-  breakdown?: Record<string, number>;
+  verifiedAt?: string | null;
+  components?: {
+    completedOrders: number; storeRating: number; deliverySuccess: number;
+    reviewCount: number; accountAge: number; followers: number;
+    cancellationPenalty: number; violationsPenalty: number;
+  };
+  details?: {
+    totalOrders: number; deliveredOrders: number; deliverySuccessRate: number;
+    avgProductRating: number | null; reviewCount: number; followerCount: number;
+    totalProducts: number; accountAgeMonths: number; cancellationRate: number;
+  };
 }
 type SaveStatus = "idle" | "saving" | "saved" | "failed";
 
 function computeHealth(form: StoreData, trust: TrustData | null): { score: number; items: HealthItem[] } {
   const items: HealthItem[] = [
-    { label: "health_item_name",    ok: form.storeName.trim().length >= 2,           tab: "general"  },
-    { label: "health_item_ar_name", ok: form.storeNameAr.trim().length >= 2,         tab: "general"  },
-    { label: "health_item_description", ok: form.description.trim().length >= 20,    tab: "general"  },
-    { label: "health_item_slug",    ok: form.storeSlug.trim().length >= 3,            tab: "advanced" },
-    { label: "health_item_logo",    ok: form.storeLogo.trim().length > 0,             tab: "branding" },
-    { label: "health_item_banner",  ok: form.storeBanner.trim().length > 0,           tab: "branding" },
-    { label: "health_item_contact", ok: !!(form.contactPhone || form.contactEmail || form.whatsapp), tab: "contact" },
-    { label: "health_item_policies", ok: !!(form.shippingPolicy || form.returnPolicy), tab: "policies" },
-    { label: "health_item_seo",     ok: !!(form.metaTitle || form.metaDescription),   tab: "seo"      },
-    { label: "health_item_trust",   ok: !!(trust?.isVerified || (trust?.trustScore != null && trust.trustScore > 30)), tab: "trust" },
+    { label: "health_item_name",        ok: form.storeName.trim().length >= 2,                    tab: "general",   pts: 8  },
+    { label: "health_item_ar_name",     ok: form.storeNameAr.trim().length >= 2,                  tab: "general",   pts: 5  },
+    { label: "health_item_description", ok: form.description.trim().length >= 20,                 tab: "general",   pts: 10 },
+    { label: "health_item_slug",        ok: form.storeSlug.trim().length >= 3,                    tab: "advanced",  pts: 7  },
+    { label: "health_item_logo",        ok: form.storeLogo.trim().length > 0,                     tab: "branding",  pts: 15 },
+    { label: "health_item_banner",      ok: form.storeBanner.trim().length > 0,                   tab: "branding",  pts: 12 },
+    { label: "health_item_contact",     ok: !!(form.contactPhone || form.contactEmail || form.whatsapp), tab: "contact",  pts: 15 },
+    { label: "health_item_policies",    ok: !!(form.shippingPolicy || form.returnPolicy),         tab: "policies",  pts: 15 },
+    { label: "health_item_seo",         ok: !!(form.metaTitle || form.metaDescription),           tab: "seo",       pts: 8  },
+    { label: "health_item_trust",       ok: !!(trust?.isVerified || (trust?.trustScore != null && trust.trustScore > 30)), tab: "trust", pts: 5 },
   ];
-  const passed = items.filter((i) => i.ok).length;
-  return { score: Math.round((passed / items.length) * 100), items };
+  const totalPts  = items.reduce((a, i) => a + i.pts, 0);
+  const passedPts = items.filter((i) => i.ok).reduce((a, i) => a + i.pts, 0);
+  return { score: Math.round((passedPts / totalPts) * 100), items };
 }
 
 function ScoreRing({ score }: { score: number }) {
@@ -226,11 +237,13 @@ export default function SellerStoreSettingsPage() {
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data) setTrustData({
-          trustScore:        data.trustScore ?? null,
+          trustScore:        data.liveBreakdown?.total ?? null,
           trustLevel:        data.trustLevel ?? "new",
           isVerified:        data.isVerified ?? false,
           verificationLevel: data.verificationLevel ?? "none",
-          breakdown:         data.breakdown ?? {},
+          verifiedAt:        data.verifiedAt ?? null,
+          components:        data.liveBreakdown?.components ?? undefined,
+          details:           data.liveBreakdown?.details ?? undefined,
         });
       })
       .catch(() => {})
@@ -420,33 +433,96 @@ export default function SellerStoreSettingsPage() {
           </div>
         </div>
 
-        {/* ── Sticky Tab Navigation ────────────────────────────── */}
-        <div className="sticky top-14 z-20 bg-background/95 backdrop-blur-sm border-b -mx-4 px-4">
-          <div className="flex overflow-x-auto scrollbar-none gap-0 max-w-full">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
+        {/* ── Store Completion Banner ───────────────────────────── */}
+        {healthScore < 100 && (
+          <div className="bg-card border rounded-2xl p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">{t("store_settings.completion_title")}</p>
+                <p className="text-xs text-muted-foreground">{t("store_settings.completion_subtitle")}</p>
+              </div>
+              <span className="text-2xl font-black tabular-nums text-primary shrink-0">{healthScore}%</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${healthScore}%`,
+                  backgroundColor: healthScore >= 80 ? "#10b981" : healthScore >= 50 ? "#f59e0b" : "#ef4444",
+                }}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {healthItems.filter((i) => !i.ok).map((item) => (
                 <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`relative flex items-center gap-1.5 px-3 py-3 text-xs font-medium whitespace-nowrap border-b-2 transition-colors shrink-0 ${
-                    isActive
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
+                  key={item.label}
+                  onClick={() => handleTabChange(item.tab)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/60 hover:bg-muted border border-border text-xs font-medium transition-colors"
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  {t(`store_settings.${tab.labelKey}`)}
-                  {tab.badge != null && tab.badge > 0 && (
-                    <span className="ms-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                      {tab.badge}
-                    </span>
-                  )}
+                  <span className="text-muted-foreground">{t(`store_settings.${item.label}`)}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+{item.pts}{t("store_settings.health_pts")}</span>
                 </button>
-              );
-            })}
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* ── Tab Navigation: Chips (mobile) + Icon cards (desktop) ── */}
+        <div className="sm:hidden -mx-4 px-4 flex overflow-x-auto scrollbar-none gap-2 pb-1">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`relative flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm font-medium whitespace-nowrap shrink-0 min-h-[44px] transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card border-border text-muted-foreground hover:border-primary/40"
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {t(`store_settings.${tab.labelKey}`)}
+                {tab.badge != null && tab.badge > 0 && (
+                  <span className="bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <div className="hidden sm:grid grid-cols-4 gap-3">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`relative flex flex-col items-start gap-2 p-4 rounded-xl border transition-all text-start ${
+                  isActive
+                    ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-sm"
+                    : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
+                }`}
+              >
+                <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
+                  isActive ? "bg-primary" : "bg-muted"
+                }`}>
+                  <Icon className={`h-[18px] w-[18px] ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
+                </div>
+                <p className={`text-xs font-semibold leading-tight ${isActive ? "text-primary" : "text-foreground"}`}>
+                  {t(`store_settings.${tab.labelKey}`)}
+                </p>
+                {tab.badge != null && tab.badge > 0 && (
+                  <span className="absolute top-2 end-2 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* ── Tab Content ──────────────────────────────────────── */}
@@ -723,21 +799,43 @@ export default function SellerStoreSettingsPage() {
                   </div>
                 </SectionCard>
 
-                {trustData.breakdown && Object.keys(trustData.breakdown).length > 0 && (
+                {trustData.components && (
                   <SectionCard title={t("store_settings.trust_breakdown_label")} icon={Activity}>
                     <div className="space-y-3">
-                      {Object.entries(trustData.breakdown).map(([key, val]) => (
-                        <div key={key} className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground capitalize">{key.replace(/_/g, " ")}</span>
-                            <span className="font-medium">{val}</span>
+                      {(
+                        [
+                          { key: "completedOrders",     label: "Completed Orders",    max: 30 },
+                          { key: "storeRating",         label: "Store Rating",        max: 25 },
+                          { key: "deliverySuccess",     label: "Delivery Success",    max: 20 },
+                          { key: "reviewCount",         label: "Review Count",        max: 10 },
+                          { key: "accountAge",          label: "Account Age",         max: 5  },
+                          { key: "followers",           label: "Followers",           max: 5  },
+                          { key: "cancellationPenalty", label: "Cancellation Penalty",max: 0  },
+                          { key: "violationsPenalty",   label: "Violations Penalty",  max: 0  },
+                        ] as const
+                      ).map(({ key, label, max }) => {
+                        const val = (trustData.components as Record<string, number>)[key] ?? 0;
+                        const isNeg = val < 0;
+                        const barPct = max > 0 ? Math.min(100, (Math.abs(val) / max) * 100) : 0;
+                        return (
+                          <div key={key} className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">{label}</span>
+                              <span className={`font-semibold tabular-nums ${isNeg ? "text-destructive" : val > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                                {isNeg ? "" : (max > 0 ? "+" : "")}{val}{max > 0 ? ` / ${max}` : ""}
+                              </span>
+                            </div>
+                            {max > 0 && (
+                              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all duration-500"
+                                  style={{ width: `${barPct}%`, backgroundColor: isNeg ? "#ef4444" : "#10b981" }}
+                                />
+                              </div>
+                            )}
                           </div>
-                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div className="h-full bg-primary rounded-full transition-all"
-                              style={{ width: `${Math.min(100, Math.max(0, val))}%` }} />
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </SectionCard>
                 )}
@@ -862,13 +960,18 @@ export default function SellerStoreSettingsPage() {
                     </span>
                   </div>
                   {!item.ok && (
-                    <button
-                      onClick={() => setActiveTab(item.tab)}
-                      className="text-xs text-primary hover:underline shrink-0 flex items-center gap-1"
-                    >
-                      {t("store_settings.health_fix_in", { tab: t(`store_settings.tab_${item.tab}`) })}
-                      <ChevronRight className={`h-3 w-3 ${isRTL ? "rotate-180" : ""}`} />
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                        +{item.pts}{t("store_settings.health_pts")}
+                      </span>
+                      <button
+                        onClick={() => setActiveTab(item.tab)}
+                        className="text-xs text-primary hover:underline flex items-center gap-0.5"
+                      >
+                        {t("store_settings.health_fix_in", { tab: t(`store_settings.tab_${item.tab}`) })}
+                        <ChevronRight className={`h-3 w-3 ${isRTL ? "rotate-180" : ""}`} />
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}

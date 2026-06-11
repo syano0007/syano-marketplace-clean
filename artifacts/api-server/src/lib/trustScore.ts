@@ -144,7 +144,7 @@ export async function computeTrustScore(sellerId: number): Promise<TrustScoreBre
   // ── Factor 3: Delivery success rate (0-20) ────────────────────────────────────
   // 100% success = 20pts, 80%+ full credit (scale proportionally)
   const deliverySuccessPts = totalOrders === 0
-    ? 10  // new sellers: neutral credit
+    ? 0  // no orders yet → no delivery data to reward
     : clamp(Math.round((deliverySuccessRate / 100) * 20), 0, 20);
 
   // ── Factor 4: Review count (0-10) — log scale ────────────────────────────────

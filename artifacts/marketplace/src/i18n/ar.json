@@ -628,7 +628,10 @@
     "advanced_info": "تؤثر هذه الإعدادات على التكوين التقني لمتجرك.",
     "advanced_slug_warning": "تغيير رابط المتجر سيكسر جميع الإشارات المرجعية والروابط المشاركة.",
     "advanced_business_type_label": "نوع العمل التجاري",
-    "advanced_business_type_placeholder": "مثال: فرد، مؤسسة فردية، شركة"
+    "advanced_business_type_placeholder": "مثال: فرد، مؤسسة فردية، شركة",
+    "completion_title": "اكتمال المتجر",
+    "completion_subtitle": "أكمل ملف متجرك لجذب المزيد من المشترين",
+    "health_pts": " نقطة"
   },
   "seller_orders": {
     "title": "إدارة الطلبات",
@@ -2135,7 +2138,23 @@
     "kpi_rating": "متوسط التقييم",
     "kpi_followers": "المتابعون",
     "kpi_products": "المنتجات",
-    "kpi_orders": "الطلبات المكتملة"
+    "kpi_orders": "الطلبات المكتملة",
+    "tab_contact": "التواصل",
+    "tab_policies": "السياسات",
+    "contact_section_title": "التواصل ووسائل التواصل الاجتماعي",
+    "no_contact_info": "لم يقدّم البائع معلومات تواصل بعد.",
+    "contact_whatsapp": "واتساب",
+    "contact_telegram": "تليجرام",
+    "contact_facebook": "فيسبوك",
+    "contact_instagram": "إنستغرام",
+    "contact_email": "البريد الإلكتروني",
+    "contact_phone": "رقم الهاتف",
+    "contact_website": "الموقع الإلكتروني",
+    "policy_label_shipping": "سياسة الشحن",
+    "policy_label_return": "سياسة الاسترجاع والاستبدال",
+    "policy_label_warranty": "سياسة الضمان",
+    "policy_label_privacy": "سياسة الخصوصية",
+    "no_policies": "لم يضف البائع أي سياسات بعد."
   },
   "messages": {
     "title": "الرسائل",
