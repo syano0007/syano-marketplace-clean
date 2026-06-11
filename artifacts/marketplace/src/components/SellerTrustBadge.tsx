@@ -9,9 +9,10 @@ export interface TrustBadgeConfig {
   trustScore?: number | null;
   size?: "xs" | "sm" | "md";
   showScore?: boolean;
+  allowNone?: boolean;
 }
 
-function getVerificationConfig(level: VerificationLevel, isVerified: boolean) {
+function getVerificationConfig(level: VerificationLevel, isVerified: boolean, allowNone = false) {
   if (level === "business") {
     return {
       icon: Award,
@@ -33,13 +34,27 @@ function getVerificationConfig(level: VerificationLevel, isVerified: boolean) {
       dotClass: "bg-blue-400",
     };
   }
+  if (allowNone) {
+    return {
+      icon: Shield,
+      classes: "bg-muted text-muted-foreground border-border",
+      dotClass: "bg-muted-foreground",
+    };
+  }
   return null;
 }
 
-export function SellerTrustBadge({ level, isVerified = false, trustScore, size = "sm", showScore = false }: TrustBadgeConfig) {
+export function SellerTrustBadge({
+  level,
+  isVerified = false,
+  trustScore,
+  size = "sm",
+  showScore = false,
+  allowNone = false,
+}: TrustBadgeConfig) {
   const { t } = useTranslation();
 
-  const config = getVerificationConfig(level, isVerified);
+  const config = getVerificationConfig(level, isVerified, allowNone);
   if (!config) return null;
 
   const Icon = config.icon;
@@ -61,7 +76,9 @@ export function SellerTrustBadge({ level, isVerified = false, trustScore, size =
       ? t("trust.level_business", "Business Verified")
       : level === "verified"
         ? t("trust.level_verified", "ID Verified")
-        : t("trust.level_basic", "Verified Seller");
+        : level === "basic" || isVerified
+          ? t("trust.level_basic", "Verified Seller")
+          : t("trust.level_none", "Unverified");
 
   return (
     <span className={`inline-flex items-center font-bold rounded-full border ${sizeClasses[size]} ${config.classes}`}>

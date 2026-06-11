@@ -191,18 +191,24 @@ function KpiCard({
   label,
   value,
   sub,
-  accent,
+  accentColor,
 }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
   sub?: string;
-  accent?: string;
+  accentColor: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 p-4 rounded-2xl bg-card border hover:shadow-sm transition-shadow min-w-0">
-      <div className={`h-8 w-8 rounded-xl flex items-center justify-center mb-0.5 ${accent ?? "bg-primary/10"}`}>
-        <Icon className={`h-4 w-4 ${accent ? "text-white" : "text-primary"}`} />
+    <div
+      className="flex flex-col items-center gap-1 p-4 rounded-2xl bg-card border-s-4 border hover:shadow-sm transition-shadow min-w-0"
+      style={{ borderInlineStartColor: accentColor }}
+    >
+      <div
+        className="h-8 w-8 rounded-xl flex items-center justify-center mb-0.5"
+        style={{ backgroundColor: accentColor + "22" }}
+      >
+        <Icon className="h-4 w-4" style={{ color: accentColor }} />
       </div>
       <span translate="no" className="text-xl font-black text-foreground tabular-nums leading-tight">
         {value}
@@ -890,6 +896,7 @@ export default function StorePage() {
     );
 
   const storeExt = store as typeof store & Record<string, any>;
+  const storeAccent: string = (storeExt.accentColor as string | null) || "#10b981";
 
   const hasContact = !!(
     storeExt.contactPhone || storeExt.contactEmail || storeExt.website ||
@@ -920,7 +927,10 @@ export default function StorePage() {
   return (
     <Layout>
       {/* ── Banner ─────────────────────────────────────────────── */}
-      <div className="w-full h-48 sm:h-64 relative overflow-hidden bg-gradient-to-br from-primary/25 via-primary/10 to-muted">
+      <div
+        className="w-full h-48 sm:h-64 relative overflow-hidden"
+        style={{ background: `linear-gradient(135deg, ${storeAccent}40, ${storeAccent}15, transparent), hsl(var(--muted))` }}
+      >
         {store.storeBanner && (
           <img src={store.storeBanner} alt="" className="w-full h-full object-cover" />
         )}
@@ -948,7 +958,7 @@ export default function StorePage() {
             {store.storeLogo ? (
               <img src={store.storeLogo} alt={store.storeName} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-4xl font-black text-primary">
+              <span className="text-4xl font-black" style={{ color: storeAccent }}>
                 {(store.storeName || "S").charAt(0).toUpperCase()}
               </span>
             )}
@@ -992,13 +1002,13 @@ export default function StorePage() {
             icon={Users}
             label={t("store.kpi_followers")}
             value={store.followerCount.toLocaleString()}
-            accent="bg-blue-500"
+            accentColor={storeAccent}
           />
           <KpiCard
             icon={Package}
             label={t("store.kpi_products")}
             value={store.totalProducts.toLocaleString()}
-            accent="bg-violet-500"
+            accentColor={storeAccent}
           />
           {store.averageRating != null ? (
             <KpiCard
@@ -1006,14 +1016,14 @@ export default function StorePage() {
               label={t("store.kpi_rating")}
               value={store.averageRating.toFixed(1)}
               sub={`(${store.reviewCount})`}
-              accent="bg-amber-500"
+              accentColor={storeAccent}
             />
           ) : (
             <KpiCard
               icon={ShoppingBag}
               label={t("store.stat_completion")}
               value={`${store.completionRate}%`}
-              accent="bg-emerald-500"
+              accentColor={storeAccent}
             />
           )}
           <KpiCard
@@ -1021,7 +1031,7 @@ export default function StorePage() {
             label={t("store.kpi_orders")}
             value={store.totalOrders.toLocaleString()}
             sub={`${store.completionRate}% ✓`}
-            accent="bg-emerald-500"
+            accentColor={storeAccent}
           />
         </div>
 
@@ -1037,6 +1047,7 @@ export default function StorePage() {
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
+                style={activeTab === tab.key ? { borderColor: storeAccent, color: storeAccent } : undefined}
               >
                 {tab.label}
               </button>

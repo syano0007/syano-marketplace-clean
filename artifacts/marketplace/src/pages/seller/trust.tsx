@@ -57,11 +57,11 @@ export default function SellerTrustPage() {
   const details = trustData?.liveBreakdown?.details ?? null;
 
   const tierConfig = {
-    none:     { icon: Shield,      color: "text-muted-foreground", bg: "bg-muted",          label: t("trust.level_none", "Unverified") },
-    basic:    { icon: Shield,      color: "text-blue-600",         bg: "bg-blue-500/10",    label: t("trust.level_basic", "Basic Verified") },
-    verified: { icon: ShieldCheck, color: "text-emerald-600",      bg: "bg-emerald-500/10", label: t("trust.level_verified", "ID Verified") },
-    business: { icon: Award,       color: "text-violet-600",       bg: "bg-violet-500/10",  label: t("trust.level_business", "Business Verified") },
-  }[level] ?? { icon: Shield, color: "text-muted-foreground", bg: "bg-muted", label: "Unverified" };
+    none:     { icon: Shield,      color: "text-muted-foreground", bg: "bg-muted/60" },
+    basic:    { icon: Shield,      color: "text-blue-600",         bg: "bg-blue-500/10" },
+    verified: { icon: ShieldCheck, color: "text-emerald-600",      bg: "bg-emerald-500/10" },
+    business: { icon: Award,       color: "text-violet-600",       bg: "bg-violet-500/10" },
+  }[level] ?? { icon: Shield, color: "text-muted-foreground", bg: "bg-muted/60" };
 
   const TierIcon = tierConfig.icon;
 
@@ -89,11 +89,8 @@ export default function SellerTrustPage() {
                   <TierIcon className={`h-6 w-6 ${tierConfig.color}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-base font-black text-foreground">{tierConfig.label}</p>
-                    {isVerified && level !== "none" && (
-                      <SellerTrustBadge level={level} isVerified={isVerified} size="sm" />
-                    )}
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <SellerTrustBadge level={level} isVerified={isVerified} size="md" allowNone />
                   </div>
                   {trustData?.verifiedAt && (
                     <p className="text-xs text-muted-foreground mt-0.5">

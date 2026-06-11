@@ -1444,6 +1444,52 @@ async function checkUiConsistency(): Promise<CheckResult> {
   data["sellerTrustBadgeComponent"] = trustBadgeExists;
   if (!trustBadgeExists) failures.push("UI: SellerTrustBadge.tsx component not found");
 
+  // 5 — Brand color: accentColor returned by store API + applied in store page
+  const sellersPath = path.join(process.cwd(), "src", "routes", "sellers.ts");
+  if (fs.existsSync(sellersPath)) {
+    const sr = fs.readFileSync(sellersPath, "utf-8");
+    const hasAccentInQuery    = sr.includes("accentColor: sellerApplicationsTable.accentColor");
+    const hasAccentInResponse = sr.includes("accentColor: storeData.accentColor");
+    data["storeApiReturnsAccentColor"] = hasAccentInQuery && hasAccentInResponse;
+    if (!hasAccentInQuery || !hasAccentInResponse)
+      failures.push("BRAND: GET /sellers/store/:slug must return accentColor from seller_applications");
+  }
+  if (fs.existsSync(slugPath)) {
+    const sl2 = fs.readFileSync(slugPath, "utf-8");
+    const hasAccentApplied = sl2.includes("storeAccent") && sl2.includes("borderInlineStartColor");
+    data["storePageAppliesAccentColor"] = hasAccentApplied;
+    if (!hasAccentApplied)
+      failures.push("BRAND: store [slug].tsx must apply storeAccent via borderInlineStartColor");
+  }
+
+  // 6 — Verification consistency: SellerTrustBadge is sole label source in trust.tsx
+  const trustPagePath = path.join(marketplaceBase, "pages", "seller", "trust.tsx");
+  if (fs.existsSync(trustPagePath)) {
+    const tp = fs.readFileSync(trustPagePath, "utf-8");
+    const hasTrustBadgeAllowNone = tp.includes("allowNone");
+    const hasNoLocalLabel = !tp.includes("tierConfig.label");
+    data["verificationUnifiedViaComponent"] = hasTrustBadgeAllowNone && hasNoLocalLabel;
+    if (!hasTrustBadgeAllowNone || !hasNoLocalLabel)
+      failures.push("VERIFY: trust.tsx must use SellerTrustBadge allowNone instead of local tierConfig.label");
+  }
+  const badgePath2 = trustBadgePath;
+  if (fs.existsSync(badgePath2)) {
+    const bp = fs.readFileSync(badgePath2, "utf-8");
+    const supportsAllowNone = bp.includes("allowNone") && bp.includes("trust.level_none");
+    data["sellerTrustBadgeSupportsAllowNone"] = supportsAllowNone;
+    if (!supportsAllowNone)
+      failures.push("VERIFY: SellerTrustBadge.tsx must support allowNone prop and trust.level_none label");
+  }
+
+  // 7 — Dropdown portal: analytics DatePicker uses createPortal (no clipping by overflow:hidden)
+  if (fs.existsSync(analyticsPath)) {
+    const an2 = fs.readFileSync(analyticsPath, "utf-8");
+    const usesPortal = an2.includes("createPortal");
+    data["analyticsDropdownPortal"] = usesPortal;
+    if (!usesPortal)
+      failures.push("DROPDOWN: analytics DatePicker must use createPortal for viewport-safe rendering");
+  }
+
   return { ok: failures.length === 0, data, failures, warnings };
 }
 
@@ -1473,7 +1519,7 @@ const WEIGHTS = {
   mobile: 1,
   responsive: 0, // warnings only, no deduction
   storeSettingsV4: 0, // warnings only — V4 UI upgrade
-  uiConsistency: 0,   // warnings only — UI polish audit
+  uiConsistency: 3,   // brand color + verification + dropdown portal
 } as const;
 
 function computeScore(results: Record<string, CheckResult>): {

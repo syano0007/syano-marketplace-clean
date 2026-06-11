@@ -1,5 +1,6 @@
 // @refresh reset
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -171,6 +172,21 @@ function DatePicker({ preset, from, to, onPreset, onCustom, t, lang }: DatePicke
   const [open, setOpen] = useState(false);
   const [customFrom, setCustomFrom] = useState(toDateStr(from));
   const [customTo, setCustomTo] = useState(toDateStr(to));
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [dropPos, setDropPos] = useState<React.CSSProperties>({});
+
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const dropW = Math.min(288, vw - 32);
+      let left = rect.left;
+      if (left + dropW > vw - 16) left = vw - dropW - 16;
+      if (left < 16) left = 16;
+      setDropPos({ position: "fixed", top: rect.bottom + 8, left, width: dropW, zIndex: 9999 });
+    }
+  }, [open]);
+
   const presets: { key: DatePreset; label: string }[] = [
     { key: "today",      label: t("seller_analytics.preset_today") },
     { key: "yesterday",  label: t("seller_analytics.preset_yesterday") },
@@ -183,39 +199,52 @@ function DatePicker({ preset, from, to, onPreset, onCustom, t, lang }: DatePicke
   ];
   const selectedLabel = presets.find(p => p.key === preset)?.label ?? `${formatDateLabel(customFrom, lang)} — ${formatDateLabel(customTo, lang)}`;
 
+  const dropdown = (
+    <>
+      <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
+      <div
+        className="bg-popover border rounded-xl shadow-xl p-3 max-h-[80vh] overflow-y-auto"
+        style={dropPos}
+      >
+        <div className="grid grid-cols-2 gap-1 mb-3">
+          {presets.map(p => (
+            <button key={p.key} onClick={() => { onPreset(p.key); setOpen(false); }}
+              className={`px-2.5 py-1.5 rounded-lg text-sm font-medium text-start transition-colors ${preset === p.key ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"}`}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="border-t pt-3 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("seller_analytics.custom_range")}</p>
+          <div className="flex items-center gap-2">
+            <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
+              className="flex-1 h-8 rounded-lg border bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-primary outline-none" />
+            <span className="text-muted-foreground text-xs shrink-0">—</span>
+            <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)}
+              className="flex-1 h-8 rounded-lg border bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-primary outline-none" />
+          </div>
+          <Button size="sm" className="w-full" onClick={() => {
+            if (customFrom && customTo) { onCustom(new Date(customFrom), new Date(customTo)); setOpen(false); }
+          }}>{t("seller_analytics.apply")}</Button>
+        </div>
+      </div>
+    </>
+  );
+
   return (
-    <div className="relative">
-      <Button variant="outline" size="sm" className="gap-2 font-medium h-9" onClick={() => setOpen(v => !v)}>
+    <div>
+      <Button
+        ref={triggerRef}
+        variant="outline"
+        size="sm"
+        className="gap-2 font-medium h-9"
+        onClick={() => setOpen(v => !v)}
+      >
         <BarChart2 className="h-4 w-4 text-muted-foreground" />
         <span className="max-w-[160px] truncate">{selectedLabel}</span>
         <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </Button>
-      {open && (
-        <div className="absolute top-full mt-2 z-50 bg-popover border rounded-xl shadow-xl p-3 start-0 sm:start-auto sm:end-0 w-[min(288px,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto">
-          <div className="grid grid-cols-2 gap-1 mb-3">
-            {presets.map(p => (
-              <button key={p.key} onClick={() => { onPreset(p.key); setOpen(false); }}
-                className={`px-2.5 py-1.5 rounded-lg text-sm font-medium text-start transition-colors ${preset === p.key ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"}`}>
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <div className="border-t pt-3 space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("seller_analytics.custom_range")}</p>
-            <div className="flex items-center gap-2">
-              <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
-                className="flex-1 h-8 rounded-lg border bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-primary outline-none" />
-              <span className="text-muted-foreground text-xs shrink-0">—</span>
-              <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)}
-                className="flex-1 h-8 rounded-lg border bg-background px-2 text-xs text-foreground focus:ring-1 focus:ring-primary outline-none" />
-            </div>
-            <Button size="sm" className="w-full" onClick={() => {
-              if (customFrom && customTo) { onCustom(new Date(customFrom), new Date(customTo)); setOpen(false); }
-            }}>{t("seller_analytics.apply")}</Button>
-          </div>
-        </div>
-      )}
-      {open && <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />}
+      {open && typeof document !== "undefined" && createPortal(dropdown, document.body)}
     </div>
   );
 }
