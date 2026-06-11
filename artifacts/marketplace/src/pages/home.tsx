@@ -6,7 +6,7 @@ import { useListProducts, useGetBestSellers, useGetPublicSettings, getListProduc
 import { FEATURES } from "@/lib/features";
 import {
   ArrowRight, ShieldCheck, Truck, RotateCcw, Tag,
-  Zap, Star, Store, TrendingUp, Timer, Flame,
+  Zap, Star, Store, TrendingUp, Timer, Flame, Clock,
   Cpu, Shirt, Sparkles, Home as HomeIcon, ShoppingBasket, Dumbbell,
   Car, Gamepad2, BookOpen, PawPrint, Download, Palette,
   Gem, Baby, Wrench, TreePine, Gift,
@@ -18,6 +18,7 @@ import { CATEGORIES } from "@/lib/categories";
 import { useSEO } from "@/hooks/useSEO";
 import { useSellerOnboarding } from "@/hooks/useSellerOnboarding";
 import { useCourierOnboarding } from "@/hooks/useCourierOnboarding";
+import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 
 /* ── Category photo map — verified Unsplash & Pexels URLs ───── */
 const CATEGORY_IMAGES: Record<string, string> = {
@@ -247,6 +248,8 @@ export default function Home() {
   });
   const bestSellers = bestSellersData ?? [];
 
+  const { recentlyViewed, clearHistory } = useRecentlyViewed();
+
   /* Public settings — carries the admin-controlled flashSaleEnd timestamp.
      This query is cached by React Query and is NOT tied to auth state, so
      the value never changes when users log in, log out, or switch accounts. */
@@ -455,6 +458,33 @@ export default function Home() {
                   ? Array(4).fill(0).map((_, i) => <ProductSkeleton key={i} />)
                   : bestSellers.map((p) => <ProductCard key={p.id} product={p} />)
                 }
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ════════════════════════════════════════════════════════
+            RECENTLY VIEWED — شاهدتها مؤخراً
+        ════════════════════════════════════════════════════════ */}
+        {recentlyViewed.length > 0 && (
+          <section className="py-10 md:py-14 border-b cv-section">
+            <div className="container px-4">
+              <div className="flex items-center justify-between mb-6 md:mb-8">
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-muted-foreground" />
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{t("home.recently_viewed_title")}</h2>
+                </div>
+                <button
+                  onClick={clearHistory}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {t("home.recently_viewed_clear")}
+                </button>
+              </div>
+              <div className="product-grid">
+                {recentlyViewed.map((p) => (
+                  <ProductCard key={p.id} product={p as any} />
+                ))}
               </div>
             </div>
           </section>

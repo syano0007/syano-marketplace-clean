@@ -50,3 +50,4 @@
 - [Seller contact button gate](seller-contact-button.md) — ContactSellerButton must be gated on `sellerId` (always returned), NOT `storeSlug` (null when seller lacks approved application).
 - [Lib packages need tsc build](lib-tsc-build.md) — After fresh env: `npx tsc --build lib/db lib/api-zod lib/api-client-react` required; libs have composite:true + emitDeclarationOnly; no package-level build script.
 - [Fresh env restore steps](fresh-env-restore.md) — pnpm install → drizzle-kit push --force → npx tsc --build libs → restart workflows; run-migrations.ts is additive-only (requires base schema to exist first).
+- [Recently Viewed Products](recently-viewed.md) — localStorage key syano_recently_viewed; product snapshots; max 10; move-to-front on re-view; trackView() in product detail useEffect; section on homepage.

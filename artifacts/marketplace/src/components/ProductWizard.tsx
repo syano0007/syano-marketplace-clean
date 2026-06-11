@@ -751,24 +751,33 @@ export function ProductWizard({
       {/* Stock */}
       <Sec icon={Package} title={t("seller_products.initial_stock")} iconBg="bg-orange-500/10" iconColor="text-orange-600">
         {mode === "new" ? (
-          <FormField
-            control={form.control}
-            name="stock"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("seller_products.initial_stock")} <span className="text-destructive">*</span></FormLabel>
-                <FormControl>
-                  <Input
-                    type="number" step="1" min="0" placeholder="0"
-                    className="h-12 text-base tabular-nums"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          variantsEnabled ? (
+            <div className="flex items-start gap-3 p-3 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/30 rounded-xl">
+              <Package className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                {t("seller_products.stock_variant_managed")}
+              </p>
+            </div>
+          ) : (
+            <FormField
+              control={form.control}
+              name="stock"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("seller_products.initial_stock")} <span className="text-destructive">*</span></FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number" step="1" min="0" placeholder="0"
+                      className="h-12 text-base tabular-nums"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )
         ) : (
           <div className="h-12 px-4 border rounded-xl bg-muted/30 flex items-center gap-3">
             <span className="text-lg font-bold tabular-nums text-foreground">{existingStock ?? 0}</span>

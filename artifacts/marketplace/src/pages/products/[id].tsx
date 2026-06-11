@@ -17,6 +17,7 @@ import { ReviewSection } from "@/components/ReviewSection";
 import { RelatedProducts } from "@/components/RelatedProducts";
 import { useSEO } from "@/hooks/useSEO";
 import { FEATURES } from "@/lib/features";
+import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import {
   ChevronLeft, Minus, Plus, ShoppingCart, Truck, ShieldCheck, RefreshCw,
   ZoomIn, X, AlertTriangle, ChevronRight, Package, MessageCircle, Check,
@@ -144,6 +145,8 @@ export default function ProductDetail() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
+  const { trackView } = useRecentlyViewed();
+
   const [quantity, setQuantity] = useState(1);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -270,6 +273,10 @@ export default function ProductDetail() {
     setActiveImage(null);
     setImgLoaded(false);
   }, [selectedFirstOptionId]);
+
+  useEffect(() => {
+    if (product) trackView(product);
+  }, [product?.id]);
 
   useSEO(
     product

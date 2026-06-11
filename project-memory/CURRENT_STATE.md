@@ -1,8 +1,8 @@
 # CURRENT_STATE.md — SYANO (سوق سوريا)
 
 ## LATEST VERIFIED CHECKPOINT
-**Date:** 2026-06-09
-**Recovery Version:** Post-Migration Stable Build (v3) — VariantBuilder RTL Visual QA Complete
+**Date:** 2026-06-11
+**Recovery Version:** Post-Migration Stable Build (v4) — Recently Viewed + Product Wizard Inventory UX
 
 This document is the single authoritative source of truth for the workspace state.
 Future recovery agents must restore THIS EXACT checkpoint.
@@ -23,6 +23,8 @@ Future recovery agents must restore THIS EXACT checkpoint.
 | TypeScript | ✅ 0 STRUCTURAL ERRORS |
 | Known Structural Issues | ✅ NONE |
 | Known Runtime Issues | ✅ NONE |
+| Recently Viewed Products | ✅ IMPLEMENTED 2026-06-11 |
+| Product Wizard Inventory UX | ✅ IMPROVED 2026-06-11 |
 | Pending Features | ✅ NONE |
 
 ---

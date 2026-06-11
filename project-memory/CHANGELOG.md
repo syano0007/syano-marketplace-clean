@@ -4,6 +4,67 @@ Chronological log of all verified modifications. Never delete previous entries.
 
 ---
 
+## 2026-06-11 — Recently Viewed Products + Product Wizard Inventory UX
+
+### Task 1: Recently Viewed Products
+
+**Architecture:**
+- Persistence: `localStorage` key `syano_recently_viewed` — works for guests AND authenticated users, survives refresh
+- Storage: lightweight product snapshot (id, name, price, discountPercent, imageUrls, category, storeName, stock, isBestDeal, hasVariants)
+- Max 10 items, most-recent-first ordering
+- Duplicate prevention: re-viewing a product moves it to position 0, removes old entry
+- Cross-tab sync: `window.storage` event listener keeps all open tabs in sync
+
+**New file:**
+- `artifacts/marketplace/src/hooks/useRecentlyViewed.ts` — `useRecentlyViewed()` hook exports `{ recentlyViewed, trackView, clearHistory }`
+
+**Modified files:**
+- `artifacts/marketplace/src/pages/products/[id].tsx`
+  - Added `import { useRecentlyViewed }` 
+  - Added `const { trackView } = useRecentlyViewed()`
+  - Added `useEffect(() => { if (product) trackView(product); }, [product?.id])` — fires once per unique product ID
+- `artifacts/marketplace/src/pages/home.tsx`
+  - Added `import { useRecentlyViewed }`
+  - Added `import { Clock }` from lucide-react
+  - Added `const { recentlyViewed, clearHistory } = useRecentlyViewed()`
+  - Added "Recently Viewed" section between Best Sellers and Categories — conditionally rendered when `recentlyViewed.length > 0`; uses existing `ProductCard`; has "Clear" button
+- `artifacts/marketplace/src/i18n/en.json` — added `home.recently_viewed_title`, `home.recently_viewed_clear`
+- `artifacts/marketplace/src/i18n/ar.json` — added Arabic translations for both keys
+
+**Behavior:**
+- Guest: view product → refresh homepage → section appears with viewed products ✅
+- Auth: same behavior ✅
+- View same product again → moves to front, no duplicate ✅
+- Clear button → removes section ✅
+- Section only appears after at least one product has been viewed ✅
+
+---
+
+### Task 2: Product Wizard Inventory UX Improvement
+
+**Root cause:** In `mode="new"`, Step 2 showed the stock input field unconditionally. If a seller enabled variants in Step 3 then navigated back to Step 2, the stock field was confusing because variant products use per-variant stock, not the product-level stock field.
+
+**Architecture analysis:**
+- `products.stock` is authoritative for simple (no-variant) products
+- `product_variants.stock` is authoritative when variants exist; order system auto-syncs `products.stock = SUM(variant stocks)` on each order
+- The `variantsEnabled` state lives at the wizard scope and is accessible in `renderStep2()`
+
+**Change (additive UI only, zero logic/API/schema changes):**
+- `artifacts/marketplace/src/components/ProductWizard.tsx` → `renderStep2()` stock section:
+  - When `mode === "new"` AND `variantsEnabled === true`: show amber informational notice with Package icon: _"Stock is managed per variant — set quantities in the next step."_
+  - When `mode === "new"` AND `variantsEnabled === false`: show stock input as before (no change)
+  - When `mode === "edit"`: unchanged (read-only stock display with "(Manage in Inventory)")
+- `artifacts/marketplace/src/i18n/en.json` — added `seller_products.stock_variant_managed`
+- `artifacts/marketplace/src/i18n/ar.json` — added Arabic translation
+
+**Backward compatibility:**
+- Existing products: unaffected (edit mode is unchanged)
+- Existing orders: unaffected (no logic changes)
+- Existing variants: unaffected (VariantBuilder unchanged)
+- No migration required ✅
+
+---
+
 ## 2026-06-09 — new.tsx Main Toggle RTL Fix + Real Page Verification (Session 2b)
 
 **Root cause identified on real page `/seller/products/new`:**

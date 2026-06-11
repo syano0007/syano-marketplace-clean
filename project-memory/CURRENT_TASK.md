@@ -3,15 +3,15 @@
 ## Status: STABLE — AWAITING NEXT TASK
 
 The workspace is in a fully verified, stable state.
-Latest checkpoint: 2026-06-09 — VariantBuilder Toggle Fix (Session 2)
+Latest checkpoint: 2026-06-11 — Recently Viewed Products + Product Wizard Inventory UX
 
 ---
 
-## Last Completed Task: VariantBuilder RTL Toggle Bulletproof Fix
+## Last Completed Task: Recently Viewed Products + Product Wizard Inventory UX
 
-**Goal:** Fix Toggle thumb escaping track in Arabic RTL; verify all VariantBuilder bugs across mobile viewports and RTL audit.
+**Goal:** Implement fully functional Recently Viewed Products (localStorage, guest + auth, homepage section) and improve Product Wizard inventory UX (hide confusing stock field when variants are enabled in new mode).
 
-**Completed:** 2026-06-09
+**Completed:** 2026-06-11
 
 **Steps completed:**
 1. ✅ `pnpm install` — 1,129 packages installed
