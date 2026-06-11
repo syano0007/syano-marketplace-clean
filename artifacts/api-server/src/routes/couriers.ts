@@ -1,9 +1,9 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, sum, count, inArray } from "drizzle-orm";
+import { eq, and, desc, sum, count, inArray, gte, or, sql } from "drizzle-orm";
 import {
   db, couriersTable, usersTable, ordersTable, orderItemsTable,
   courierAssignmentsTable, courierWalletTransactionsTable,
-  orderStatusHistoryTable, sellerApplicationsTable,
+  orderStatusHistoryTable, sellerApplicationsTable, deliveryZonesTable,
 } from "@workspace/db";
 import { requireAuth, requireActiveAccount } from "../middlewares/auth";
 import { createNotification, bi } from "../lib/notif";
@@ -110,6 +110,7 @@ router.get("/couriers/assignments", requireAuth, requireActiveAccount, async (re
       deliveryFee: ordersTable.deliveryFee,
       total: ordersTable.total,
       customerId: ordersTable.customerId,
+      zoneId: ordersTable.zoneId,
     })
     .from(courierAssignmentsTable)
     .innerJoin(ordersTable, eq(ordersTable.id, courierAssignmentsTable.orderId))
@@ -160,6 +161,15 @@ router.get("/couriers/assignments", requireAuth, requireActiveAccount, async (re
   const sellerAppMap: Record<number, { storeName: string; phone: string }> =
     Object.fromEntries((sellerApps as any[]).map((s) => [s.userId, { storeName: s.storeName, phone: s.phone }]));
 
+  // Batch enrich: zones
+  const zoneIds = [...new Set(rows.map((r) => r.zoneId).filter((z): z is number => z != null))];
+  const zones = zoneIds.length > 0
+    ? await db.select({ id: deliveryZonesTable.id, nameEn: deliveryZonesTable.nameEn, nameAr: deliveryZonesTable.nameAr })
+        .from(deliveryZonesTable).where(inArray(deliveryZonesTable.id, zoneIds))
+    : [];
+  const zoneMap: Record<number, { nameEn: string; nameAr: string }> =
+    Object.fromEntries(zones.map((z) => [z.id, { nameEn: z.nameEn, nameAr: z.nameAr }]));
+
   // Group items by order
   const itemsByOrder: Record<number, typeof items> = {};
   for (const item of items) {
@@ -170,6 +180,7 @@ router.get("/couriers/assignments", requireAuth, requireActiveAccount, async (re
   res.json(rows.map((a) => {
     const orderItems = itemsByOrder[a.orderId] ?? [];
     const firstSellerId = orderItems[0]?.sellerId;
+    const zone = a.zoneId ? zoneMap[a.zoneId] : null;
     return {
       id: a.id,
       orderId: a.orderId,
@@ -191,6 +202,8 @@ router.get("/couriers/assignments", requireAuth, requireActiveAccount, async (re
       storeName: firstSellerId ? (sellerAppMap[firstSellerId]?.storeName ?? null) : null,
       sellerName: firstSellerId ? (sellerUserMap[firstSellerId] ?? null) : null,
       sellerPhone: firstSellerId ? (sellerAppMap[firstSellerId]?.phone ?? null) : null,
+      zoneNameEn: zone?.nameEn ?? null,
+      zoneNameAr: zone?.nameAr ?? null,
       products: orderItems.map((i) => ({
         name: i.productName,
         quantity: i.quantity,
@@ -230,6 +243,19 @@ router.patch("/couriers/assignments/:id/pickup", requireAuth, requireActiveAccou
     orderId: order.id, priority: "important", link: `/orders`,
   });
 
+  // Notify seller — fire-and-forget
+  db.select({ sellerId: orderItemsTable.sellerId }).from(orderItemsTable)
+    .where(eq(orderItemsTable.orderId, order.id)).limit(1)
+    .then(([item]) => {
+      if (!item) return;
+      return createNotification({
+        userId: item.sellerId, type: "order_picked_up",
+        title: bi("Order Picked Up by Courier", "استلم المندوب الطلب"),
+        body: bi(`Courier has picked up order #${order.id} and is heading to the customer.`, `استلم المندوب الطلب رقم #${order.id} وهو في طريقه إلى العميل.`),
+        orderId: order.id, priority: "normal", link: `/seller/orders`,
+      });
+    }).catch(() => {});
+
   res.json({ message: "Order marked as picked up", status: "picked_up" });
 });
 
@@ -264,6 +290,19 @@ router.patch("/couriers/assignments/:id/start-delivery", requireAuth, requireAct
     body: bi(`Your order #${order.id} is out for delivery and will arrive soon!`, `طلبك رقم #${order.id} في طريقه إليك وسيصل قريباً!`),
     orderId: order.id, priority: "important", link: `/orders`,
   });
+
+  // Notify seller — fire-and-forget
+  db.select({ sellerId: orderItemsTable.sellerId }).from(orderItemsTable)
+    .where(eq(orderItemsTable.orderId, order.id)).limit(1)
+    .then(([item]) => {
+      if (!item) return;
+      return createNotification({
+        userId: item.sellerId, type: "order_out_for_delivery",
+        title: bi("Order Out for Delivery", "الطلب في طريقه للعميل"),
+        body: bi(`Order #${order.id} is now out for delivery.`, `الطلب رقم #${order.id} في طريقه إلى العميل الآن.`),
+        orderId: order.id, priority: "normal", link: `/seller/orders`,
+      });
+    }).catch(() => {});
 
   res.json({ message: "Order is now out for delivery", status: "out_for_delivery" });
 });
@@ -314,6 +353,19 @@ router.patch("/couriers/assignments/:id/deliver", requireAuth, requireActiveAcco
     body: bi(`Your order #${order.id} has been delivered. Enjoy!`, `تم تسليم طلبك رقم #${order.id}. استمتع بمشترياتك!`),
     orderId: order.id, priority: "important", link: `/orders`,
   });
+
+  // Notify seller — fire-and-forget
+  db.select({ sellerId: orderItemsTable.sellerId }).from(orderItemsTable)
+    .where(eq(orderItemsTable.orderId, order.id)).limit(1)
+    .then(([item]) => {
+      if (!item) return;
+      return createNotification({
+        userId: item.sellerId, type: "order_delivered",
+        title: bi("Order Delivered", "تم تسليم الطلب"),
+        body: bi(`Order #${order.id} was successfully delivered to the customer.`, `تم تسليم الطلب رقم #${order.id} إلى العميل بنجاح.`),
+        orderId: order.id, priority: "normal", link: `/seller/orders`,
+      });
+    }).catch(() => {});
 
   res.json({ message: "Order marked as delivered", status: "delivered" });
 });
@@ -387,28 +439,74 @@ router.patch("/couriers/assignments/:id/fail-delivery", requireAuth, requireActi
   res.json({ message: "Delivery failure reported", status: "delivery_failed" });
 });
 
-// ─── Earnings summary ──────────────────────────────────────────────────────────
+// ─── Earnings summary (extended with time breakdown + performance) ─────────────
 router.get("/couriers/earnings", requireAuth, async (req, res): Promise<void> => {
   const userId = req.user!.userId;
   const [courier] = await db.select().from(couriersTable).where(eq(couriersTable.userId, userId));
   if (!courier) { res.status(404).json({ error: "No courier profile found" }); return; }
 
-  const [totals] = await db
-    .select({ total: sum(courierWalletTransactionsTable.amount) })
-    .from(courierWalletTransactionsTable)
-    .where(eq(courierWalletTransactionsTable.courierId, courier.id));
+  const now = new Date();
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+  const weekStart = new Date(now); weekStart.setDate(weekStart.getDate() - 7); weekStart.setHours(0, 0, 0, 0);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const recent = await db
+  // Fetch all transactions for this courier (for time-period breakdown)
+  const allTx = await db
     .select()
     .from(courierWalletTransactionsTable)
     .where(eq(courierWalletTransactionsTable.courierId, courier.id))
-    .orderBy(desc(courierWalletTransactionsTable.createdAt))
-    .limit(20);
+    .orderBy(desc(courierWalletTransactionsTable.createdAt));
+
+  const sumTx = (txs: typeof allTx) => txs.reduce((s, t) => s + parseFloat(String(t.amount)), 0);
+  const txToday = allTx.filter((t) => t.createdAt >= todayStart);
+  const txWeek  = allTx.filter((t) => t.createdAt >= weekStart);
+  const txMonth = allTx.filter((t) => t.createdAt >= monthStart);
+
+  // Fetch completed/failed assignments for performance stats
+  const assignStats = await db
+    .select({
+      status: courierAssignmentsTable.status,
+      deliveredAt: courierAssignmentsTable.deliveredAt,
+      createdAt: courierAssignmentsTable.createdAt,
+    })
+    .from(courierAssignmentsTable)
+    .where(and(
+      eq(courierAssignmentsTable.courierId, courier.id),
+      inArray(courierAssignmentsTable.status, ["delivered", "delivery_failed"]),
+    ));
+
+  const totalDeliveredCount = assignStats.filter((a) => a.status === "delivered").length;
+  const totalFailedCount    = assignStats.filter((a) => a.status === "delivery_failed").length;
+  const totalAttempted      = totalDeliveredCount + totalFailedCount;
+  const successRate         = totalAttempted > 0 ? Math.round((totalDeliveredCount / totalAttempted) * 100) : 100;
+
+  // delivered today count
+  const deliveredToday = assignStats.filter(
+    (a) => a.status === "delivered" && a.deliveredAt && a.deliveredAt >= todayStart
+  ).length;
+
+  const daysSinceJoin = Math.max(1, Math.ceil((now.getTime() - courier.createdAt.getTime()) / (1000 * 60 * 60 * 24)));
+  const avgPerDay = parseFloat((courier.completedDeliveries / daysSinceJoin).toFixed(2));
 
   res.json({
-    totalEarnings: parseFloat(String(totals?.total ?? "0")),
+    // Time-period breakdown
+    today:     { earnings: parseFloat(sumTx(txToday).toFixed(2)),  deliveries: deliveredToday },
+    thisWeek:  { earnings: parseFloat(sumTx(txWeek).toFixed(2)),   deliveries: 0 },
+    thisMonth: { earnings: parseFloat(sumTx(txMonth).toFixed(2)),  deliveries: 0 },
+    allTime:   { earnings: parseFloat(sumTx(allTx).toFixed(2)),    deliveries: courier.completedDeliveries },
+    walletBalance: parseFloat(sumTx(allTx).toFixed(2)),
+    // Performance
+    performance: {
+      totalDeliveries: courier.completedDeliveries,
+      totalFailed:     totalFailedCount,
+      successRate,
+      avgPerDay,
+      lifetimeEarnings: parseFloat(sumTx(allTx).toFixed(2)),
+    },
+    // Legacy field kept for backward compat
+    totalEarnings: parseFloat(sumTx(allTx).toFixed(2)),
     completedDeliveries: courier.completedDeliveries,
-    transactions: recent.map((t) => ({
+    transactions: allTx.slice(0, 30).map((t) => ({
       id: t.id,
       orderId: t.orderId,
       amount: parseFloat(String(t.amount)),
@@ -417,6 +515,90 @@ router.get("/couriers/earnings", requireAuth, async (req, res): Promise<void> =>
       createdAt: t.createdAt.toISOString(),
     })),
   });
+});
+
+// ─── Delivery history (completed + failed) ─────────────────────────────────────
+router.get("/couriers/history", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.user!.userId;
+  const [courier] = await db.select().from(couriersTable).where(eq(couriersTable.userId, userId));
+  if (!courier || courier.status !== "approved") { res.status(403).json({ error: "Access denied" }); return; }
+
+  const rows = await db
+    .select({
+      id: courierAssignmentsTable.id,
+      orderId: courierAssignmentsTable.orderId,
+      status: courierAssignmentsTable.status,
+      assignedAt: courierAssignmentsTable.assignedAt,
+      deliveredAt: courierAssignmentsTable.deliveredAt,
+      notes: courierAssignmentsTable.notes,
+      orderTotal: ordersTable.total,
+      deliveryFee: ordersTable.deliveryFee,
+      shippingAddress: ordersTable.shippingAddress,
+      customerPhone: ordersTable.customerPhone,
+      customerId: ordersTable.customerId,
+      orderCreatedAt: ordersTable.createdAt,
+      zoneId: ordersTable.zoneId,
+    })
+    .from(courierAssignmentsTable)
+    .innerJoin(ordersTable, eq(ordersTable.id, courierAssignmentsTable.orderId))
+    .where(and(
+      eq(courierAssignmentsTable.courierId, courier.id),
+      inArray(courierAssignmentsTable.status, ["delivered", "delivery_failed"]),
+    ))
+    .orderBy(desc(courierAssignmentsTable.assignedAt))
+    .limit(50);
+
+  if (rows.length === 0) { res.json([]); return; }
+
+  // Batch: customer names
+  const customerIds = [...new Set(rows.map((r) => r.customerId))];
+  const customerUsers = await db.select({ id: usersTable.id, name: usersTable.name })
+    .from(usersTable).where(inArray(usersTable.id, customerIds));
+  const customerMap: Record<number, string> = Object.fromEntries(customerUsers.map((u) => [u.id, u.name ?? ""]));
+
+  // Batch: order items
+  const orderIds = rows.map((r) => r.orderId);
+  const items = await db
+    .select({ orderId: orderItemsTable.orderId, productName: orderItemsTable.productName, quantity: orderItemsTable.quantity })
+    .from(orderItemsTable).where(inArray(orderItemsTable.orderId, orderIds));
+  const itemsByOrder: Record<number, typeof items> = {};
+  for (const item of items) {
+    if (!itemsByOrder[item.orderId]) itemsByOrder[item.orderId] = [];
+    itemsByOrder[item.orderId].push(item);
+  }
+
+  // Batch: zone names
+  const zoneIds = [...new Set(rows.map((r) => r.zoneId).filter(Boolean))] as number[];
+  const zones = zoneIds.length > 0
+    ? await db.select({ id: deliveryZonesTable.id, nameEn: deliveryZonesTable.nameEn, nameAr: deliveryZonesTable.nameAr })
+        .from(deliveryZonesTable).where(inArray(deliveryZonesTable.id, zoneIds))
+    : [];
+  const zoneMap: Record<number, { nameEn: string; nameAr: string }> =
+    Object.fromEntries(zones.map((z) => [z.id, { nameEn: z.nameEn, nameAr: z.nameAr }]));
+
+  res.json(rows.map((r) => {
+    const fee = r.deliveryFee ? parseFloat(String(r.deliveryFee)) : 0;
+    const yourCut = parseFloat((fee * 0.8).toFixed(2));
+    return {
+      id: r.id,
+      orderId: r.orderId,
+      status: r.status,
+      assignedAt: r.assignedAt.toISOString(),
+      deliveredAt: r.deliveredAt?.toISOString() ?? null,
+      failedAt: r.status === "delivery_failed" ? (r.deliveredAt?.toISOString() ?? null) : null,
+      failureReason: r.status === "delivery_failed" ? (r.notes ?? null) : null,
+      orderTotal: parseFloat(String(r.orderTotal)),
+      deliveryFee: fee,
+      yourCut,
+      shippingAddress: r.shippingAddress,
+      customerPhone: r.customerPhone,
+      customerName: customerMap[r.customerId] ?? null,
+      orderDate: r.orderCreatedAt.toISOString(),
+      zoneNameEn: r.zoneId ? (zoneMap[r.zoneId]?.nameEn ?? null) : null,
+      zoneNameAr: r.zoneId ? (zoneMap[r.zoneId]?.nameAr ?? null) : null,
+      products: (itemsByOrder[r.orderId] ?? []).map((i) => ({ name: i.productName, quantity: i.quantity })),
+    };
+  }));
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -617,12 +799,23 @@ router.post("/admin/orders/:id/assign-courier", requireAuth, async (req, res): P
   ]);
 
   const [courierUser] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, courier.userId));
-  await createNotification({
-    userId: order.customerId, type: "order_courier_assigned",
-    title: bi("Courier Assigned", "تم تعيين مندوب توصيل"),
-    body: bi(`A courier has been assigned to your order #${order.id}.`, `تم تعيين مندوب توصيل لطلبك رقم #${order.id}.`),
-    orderId: order.id, priority: "normal", link: `/orders`,
-  });
+
+  await Promise.all([
+    // Notify customer
+    createNotification({
+      userId: order.customerId, type: "order_courier_assigned",
+      title: bi("Courier Assigned", "تم تعيين مندوب توصيل"),
+      body: bi(`A courier has been assigned to your order #${order.id}.`, `تم تعيين مندوب توصيل لطلبك رقم #${order.id}.`),
+      orderId: order.id, priority: "normal", link: `/orders`,
+    }),
+    // Notify courier
+    createNotification({
+      userId: courier.userId, type: "order_processing",
+      title: bi("New Delivery Assigned", "طلب توصيل جديد"),
+      body: bi(`You have been assigned order #${order.id}. Go to your dashboard to accept it.`, `تم تعيين الطلب رقم #${order.id} إليك. انتقل إلى لوحة التحكم للاستلام.`),
+      orderId: order.id, priority: "important", link: `/courier/dashboard`,
+    }),
+  ]);
 
   res.json({ message: "Courier assigned", courierId, courierName: courierUser?.name ?? "Unknown", orderId, newStatus: "courier_assigned" });
 });
@@ -645,6 +838,54 @@ router.delete("/admin/orders/:id/assign-courier", requireAuth, async (req, res):
   res.json({ message: "Courier unassigned", orderId, newStatus: "ready_for_pickup" });
 });
 
+// ─── Admin: delivery stats bar ─────────────────────────────────────────────────
+router.get("/admin/delivery/stats", requireAuth, async (req, res): Promise<void> => {
+  if (req.user?.role !== "admin") { res.status(403).json({ error: "Access denied" }); return; }
+
+  const now = new Date();
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+
+  const [statusCounts] = await db
+    .select({
+      readyForPickup:   sql<number>`count(*) filter (where ${ordersTable.status} = 'ready_for_pickup')`.mapWith(Number),
+      assigned:         sql<number>`count(*) filter (where ${ordersTable.status} = 'courier_assigned')`.mapWith(Number),
+      pickedUp:         sql<number>`count(*) filter (where ${ordersTable.status} = 'picked_up')`.mapWith(Number),
+      outForDelivery:   sql<number>`count(*) filter (where ${ordersTable.status} = 'out_for_delivery')`.mapWith(Number),
+      deliveryFailed:   sql<number>`count(*) filter (where ${ordersTable.status} = 'delivery_failed')`.mapWith(Number),
+    })
+    .from(ordersTable)
+    .where(inArray(ordersTable.status as any, [
+      "ready_for_pickup", "courier_assigned", "picked_up", "out_for_delivery", "delivery_failed",
+    ]));
+
+  // Delivered today via assignment deliveredAt
+  const [deliveredTodayRow] = await db
+    .select({ cnt: count() })
+    .from(courierAssignmentsTable)
+    .where(and(
+      eq(courierAssignmentsTable.status, "delivered"),
+      gte(courierAssignmentsTable.deliveredAt as any, todayStart),
+    ));
+
+  // Failed today via assignment updatedAt (delivery_failed status set today)
+  const [failedTodayRow] = await db
+    .select({ cnt: count() })
+    .from(courierAssignmentsTable)
+    .where(and(
+      eq(courierAssignmentsTable.status, "delivery_failed"),
+      gte(courierAssignmentsTable.updatedAt, todayStart),
+    ));
+
+  res.json({
+    readyForPickup: statusCounts?.readyForPickup ?? 0,
+    assigned:       statusCounts?.assigned ?? 0,
+    inTransit:      (statusCounts?.pickedUp ?? 0) + (statusCounts?.outForDelivery ?? 0),
+    deliveryFailed: statusCounts?.deliveryFailed ?? 0,
+    deliveredToday: Number(deliveredTodayRow?.cnt ?? 0),
+    failedToday:    Number(failedTodayRow?.cnt ?? 0),
+  });
+});
+
 // ─── Admin: ready orders waiting for courier ───────────────────────────────────
 router.get("/admin/delivery/ready-orders", requireAuth, async (req, res): Promise<void> => {
   if (req.user?.role !== "admin") { res.status(403).json({ error: "Access denied" }); return; }
@@ -657,6 +898,7 @@ router.get("/admin/delivery/ready-orders", requireAuth, async (req, res): Promis
       customerPhone: ordersTable.customerPhone,
       city: ordersTable.city,
       deliveryFee: ordersTable.deliveryFee,
+      zoneId: ordersTable.zoneId,
       createdAt: ordersTable.createdAt,
       updatedAt: ordersTable.updatedAt,
       customerName: usersTable.name,
@@ -695,6 +937,15 @@ router.get("/admin/delivery/ready-orders", requireAuth, async (req, res): Promis
     itemsByOrder[item.orderId].push(item);
   }
 
+  // Batch: zone names
+  const zoneIds = [...new Set(orders.map((o) => o.zoneId).filter(Boolean))] as number[];
+  const readyZones = zoneIds.length > 0
+    ? await db.select({ id: deliveryZonesTable.id, nameEn: deliveryZonesTable.nameEn, nameAr: deliveryZonesTable.nameAr })
+        .from(deliveryZonesTable).where(inArray(deliveryZonesTable.id, zoneIds))
+    : [];
+  const readyZoneMap: Record<number, { nameEn: string; nameAr: string }> =
+    Object.fromEntries(readyZones.map((z) => [z.id, { nameEn: z.nameEn, nameAr: z.nameAr }]));
+
   res.json(orders.map((o) => {
     const orderItems = itemsByOrder[o.id] ?? [];
     const firstSellerId = orderItems[0]?.sellerId;
@@ -712,6 +963,8 @@ router.get("/admin/delivery/ready-orders", requireAuth, async (req, res): Promis
       sellerName: firstSellerId ? (sellerNameMap[firstSellerId] ?? null) : null,
       storeName: firstSellerId ? (sellerStoreMap[firstSellerId]?.storeName ?? null) : null,
       sellerPhone: firstSellerId ? (sellerStoreMap[firstSellerId]?.phone ?? null) : null,
+      zoneNameEn: o.zoneId ? (readyZoneMap[o.zoneId]?.nameEn ?? null) : null,
+      zoneNameAr: o.zoneId ? (readyZoneMap[o.zoneId]?.nameAr ?? null) : null,
       products: orderItems.map((i) => ({ name: i.productName, quantity: i.quantity })),
     };
   }));
@@ -727,9 +980,12 @@ router.get("/admin/delivery/active", requireAuth, async (req, res): Promise<void
       assignmentStatus: courierAssignmentsTable.status,
       assignedAt: courierAssignmentsTable.assignedAt,
       pickedUpAt: courierAssignmentsTable.pickedUpAt,
+      assignmentNotes: courierAssignmentsTable.notes,
       courierId: couriersTable.id,
       courierName: usersTable.name,
       courierPhone: couriersTable.phone,
+      courierRating: couriersTable.rating,
+      courierCompletedDeliveries: couriersTable.completedDeliveries,
       orderStatus: ordersTable.status,
       shippingAddress: ordersTable.shippingAddress,
       city: ordersTable.city,
@@ -737,6 +993,8 @@ router.get("/admin/delivery/active", requireAuth, async (req, res): Promise<void
       deliveryFee: ordersTable.deliveryFee,
       total: ordersTable.total,
       customerId: ordersTable.customerId,
+      zoneId: ordersTable.zoneId,
+      orderCreatedAt: ordersTable.createdAt,
     })
     .from(courierAssignmentsTable)
     .innerJoin(couriersTable, eq(couriersTable.id, courierAssignmentsTable.courierId))
@@ -776,6 +1034,15 @@ router.get("/admin/delivery/active", requireAuth, async (req, res): Promise<void
     itemsByOrder[item.orderId].push(item);
   }
 
+  // Batch: zone names
+  const activeZoneIds = [...new Set(rows.map((r) => r.zoneId).filter(Boolean))] as number[];
+  const activeZones = activeZoneIds.length > 0
+    ? await db.select({ id: deliveryZonesTable.id, nameEn: deliveryZonesTable.nameEn, nameAr: deliveryZonesTable.nameAr })
+        .from(deliveryZonesTable).where(inArray(deliveryZonesTable.id, activeZoneIds))
+    : [];
+  const activeZoneMap: Record<number, { nameEn: string; nameAr: string }> =
+    Object.fromEntries(activeZones.map((z) => [z.id, { nameEn: z.nameEn, nameAr: z.nameAr }]));
+
   res.json(rows.map((r) => {
     const orderItems = itemsByOrder[r.orderId] ?? [];
     const firstSellerId = orderItems[0]?.sellerId;
@@ -785,10 +1052,14 @@ router.get("/admin/delivery/active", requireAuth, async (req, res): Promise<void
       assignmentStatus: r.assignmentStatus,
       assignedAt: r.assignedAt.toISOString(),
       pickedUpAt: r.pickedUpAt?.toISOString() ?? null,
+      failureReason: r.assignmentStatus === "delivery_failed" ? (r.assignmentNotes ?? null) : null,
       courierId: r.courierId,
       courierName: r.courierName,
       courierPhone: r.courierPhone,
+      courierRating: r.courierRating ? parseFloat(String(r.courierRating)) : null,
+      courierCompletedDeliveries: r.courierCompletedDeliveries,
       orderStatus: r.orderStatus,
+      orderDate: r.orderCreatedAt.toISOString(),
       shippingAddress: r.shippingAddress,
       city: r.city,
       customerName: customerNameMap[r.customerId] ?? null,
@@ -796,6 +1067,8 @@ router.get("/admin/delivery/active", requireAuth, async (req, res): Promise<void
       deliveryFee: r.deliveryFee ? parseFloat(String(r.deliveryFee)) : null,
       total: parseFloat(String(r.total)),
       storeName: firstSellerId ? (sellerAppMap[firstSellerId] ?? null) : null,
+      zoneNameEn: r.zoneId ? (activeZoneMap[r.zoneId]?.nameEn ?? null) : null,
+      zoneNameAr: r.zoneId ? (activeZoneMap[r.zoneId]?.nameAr ?? null) : null,
       products: orderItems.map((i) => ({ name: i.productName, quantity: i.quantity })),
     };
   }));

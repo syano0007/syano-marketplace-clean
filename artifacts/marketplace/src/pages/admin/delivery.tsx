@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,11 +10,21 @@ import { cn } from "@/lib/utils";
 import {
   Truck, MapPin, User, Package, CheckCircle2, AlertCircle,
   Plus, Pencil, Trash2, X, Star, Phone, Store, ShoppingBag,
-  AlertTriangle, Activity, Clock,
+  AlertTriangle, Activity, Clock, Search, TrendingUp, BarChart3,
+  ChevronRight, Calendar,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ProductSnap { name: string; quantity: number; }
+
+interface DeliveryStats {
+  readyForPickup: number;
+  assigned: number;
+  inTransit: number;
+  deliveryFailed: number;
+  deliveredToday: number;
+  failedToday: number;
+}
 
 interface ReadyOrder {
   id: number;
@@ -28,6 +38,8 @@ interface ReadyOrder {
   sellerName: string | null;
   storeName: string | null;
   sellerPhone: string | null;
+  zoneNameEn: string | null;
+  zoneNameAr: string | null;
   products: ProductSnap[];
 }
 interface ActiveDelivery {
@@ -38,7 +50,10 @@ interface ActiveDelivery {
   pickedUpAt: string | null;
   courierName: string;
   courierPhone: string | null;
+  courierRating: number | null;
+  courierCompletedDeliveries: number;
   orderStatus: string;
+  orderDate: string;
   shippingAddress: string;
   city: string | null;
   customerName: string | null;
@@ -46,6 +61,9 @@ interface ActiveDelivery {
   deliveryFee: number | null;
   total: number;
   storeName: string | null;
+  failureReason: string | null;
+  zoneNameEn: string | null;
+  zoneNameAr: string | null;
   products: ProductSnap[];
 }
 interface CourierRow {
@@ -298,6 +316,28 @@ function ProductList({ products }: { products: ProductSnap[] }) {
   );
 }
 
+// ─── Stats bar ────────────────────────────────────────────────────────────────
+function StatsBar({ stats }: { stats: DeliveryStats }) {
+  const { t } = useTranslation();
+  const items = [
+    { label: t("delivery.stats_ready"),          value: stats.readyForPickup,  cls: "text-amber-600 dark:text-amber-400" },
+    { label: t("delivery.stats_assigned"),        value: stats.assigned,        cls: "text-violet-600 dark:text-violet-400" },
+    { label: t("delivery.stats_in_transit"),      value: stats.inTransit,       cls: "text-indigo-600 dark:text-indigo-400" },
+    { label: t("delivery.stats_delivered_today"), value: stats.deliveredToday,  cls: "text-emerald-600 dark:text-emerald-400" },
+    { label: t("delivery.stats_failed_today"),    value: stats.failedToday,     cls: "text-red-600 dark:text-red-400" },
+  ];
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+      {items.map(({ label, value, cls }) => (
+        <div key={label} className="bg-card border rounded-xl p-3 text-center shadow-sm">
+          <p className={cn("text-2xl font-black", cls)}>{value}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function AdminDelivery() {
   const { t, i18n } = useTranslation();
@@ -309,8 +349,17 @@ export default function AdminDelivery() {
   const [tab, setTab] = useState<"ready" | "active" | "couriers" | "zones">("ready");
   const [assigningOrderId, setAssigningOrderId] = useState<number | null>(null);
   const [editingZone, setEditingZone] = useState<Zone | null | "new">(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const headers = { Authorization: `Bearer ${token}` };
+
+  const { data: stats } = useQuery<DeliveryStats>({
+    queryKey: ["admin-delivery-stats"],
+    queryFn: () => fetch("/api/admin/delivery/stats", { headers }).then((r) => r.json()),
+    enabled: !!token,
+    refetchInterval: 30_000,
+  });
 
   const { data: readyOrders = [], refetch: refetchReady } = useQuery<ReadyOrder[]>({
     queryKey: ["admin-delivery-ready"],
@@ -338,6 +387,31 @@ export default function AdminDelivery() {
     enabled: !!token,
   });
 
+  // Client-side search + filter
+  const filteredReady = useMemo(() => {
+    const q = search.toLowerCase();
+    return readyOrders.filter((o) =>
+      !q ||
+      String(o.id).includes(q) ||
+      o.customerName?.toLowerCase().includes(q) ||
+      o.storeName?.toLowerCase().includes(q) ||
+      o.sellerName?.toLowerCase().includes(q)
+    );
+  }, [readyOrders, search]);
+
+  const filteredActive = useMemo(() => {
+    const q = search.toLowerCase();
+    return activeDeliveries.filter((d) => {
+      const matchSearch = !q ||
+        String(d.orderId).includes(q) ||
+        d.customerName?.toLowerCase().includes(q) ||
+        d.courierName?.toLowerCase().includes(q) ||
+        d.storeName?.toLowerCase().includes(q);
+      const matchStatus = statusFilter === "all" || d.assignmentStatus === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [activeDeliveries, search, statusFilter]);
+
   const updateCourier = async (courierId: number, status: string) => {
     try {
       const res = await fetch(`/api/admin/couriers/${courierId}`, {
@@ -350,7 +424,9 @@ export default function AdminDelivery() {
         ? t("delivery.courier_approved")
         : status === "rejected"
           ? t("delivery.courier_rejected")
-          : t("delivery.courier_suspended");
+          : status === "suspended"
+            ? t("delivery.courier_suspended")
+            : t("delivery.courier_reactivated");
       toast({ title: label });
       refetchCouriers();
     } catch {
@@ -368,6 +444,14 @@ export default function AdminDelivery() {
       toast({ title: t("common.error"), variant: "destructive" });
     }
   };
+
+  const STATUS_FILTERS = [
+    { key: "all",              label: t("delivery.filter_all") },
+    { key: "assigned",         label: t("delivery.filter_assigned") },
+    { key: "picked_up",        label: t("delivery.filter_picked_up") },
+    { key: "out_for_delivery", label: t("delivery.filter_out_for_delivery") },
+    { key: "delivery_failed",  label: t("delivery.filter_failed") },
+  ];
 
   const TABS = [
     { key: "ready",    label: t("delivery.tab_ready"),    count: readyOrders.length },
@@ -387,12 +471,15 @@ export default function AdminDelivery() {
           <p className="text-muted-foreground mt-1 text-sm">{t("delivery.subtitle")}</p>
         </div>
 
+        {/* Stats bar */}
+        {stats && <StatsBar stats={stats} />}
+
         {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-4">
           {TABS.map(({ key, label, count }) => (
             <button
               key={key}
-              onClick={() => setTab(key)}
+              onClick={() => { setTab(key); setSearch(""); setStatusFilter("all"); }}
               className={cn(
                 "inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold border transition-colors",
                 tab === key
@@ -409,22 +496,70 @@ export default function AdminDelivery() {
           ))}
         </div>
 
+        {/* Search bar (ready + active tabs) */}
+        {(tab === "ready" || tab === "active") && (
+          <div className="mb-4 flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("delivery.search_placeholder")}
+                className="ps-9"
+              />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute end-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {tab === "active" && (
+              <div className="flex gap-1.5 flex-wrap">
+                {STATUS_FILTERS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setStatusFilter(key)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
+                      statusFilter === key
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Tab: Ready for Pickup ──────────────────────────────────────── */}
         {tab === "ready" && (
           <div className="space-y-4">
-            {readyOrders.length === 0 ? (
+            {filteredReady.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-2xl text-center">
                 <CheckCircle2 className="h-12 w-12 text-muted-foreground/20 mb-3" />
-                <p className="text-muted-foreground text-sm">{t("delivery.ready_orders_empty")}</p>
+                <p className="text-muted-foreground text-sm">{search ? t("common.no_results") : t("delivery.ready_orders_empty")}</p>
               </div>
-            ) : readyOrders.map((order) => (
+            ) : filteredReady.map((order) => (
               <div key={order.id} className="bg-card border rounded-2xl overflow-hidden shadow-sm">
                 {/* Order header */}
                 <div className="px-5 py-3.5 border-b bg-muted/20 flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-black text-base" translate="no">#{order.id}</span>
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
                       <MapPin className="h-3 w-3" /> {t("orders.status_ready_for_pickup")}
+                    </span>
+                    {(order.zoneNameEn || order.zoneNameAr) && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                        <MapPin className="h-3 w-3" />
+                        {lang === "ar" ? order.zoneNameAr : order.zoneNameEn}
+                      </span>
+                    )}
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {new Date(order.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -461,6 +596,7 @@ export default function AdminDelivery() {
                         <Phone className="h-3 w-3" />{order.customerPhone}
                       </a>
                     )}
+                    <span className="text-[11px] text-muted-foreground font-medium">{t("delivery.payment_cod")}</span>
                   </div>
 
                   {/* Seller info */}
@@ -478,7 +614,6 @@ export default function AdminDelivery() {
                         <Phone className="h-3 w-3" />{order.sellerPhone}
                       </a>
                     )}
-                    {/* Products */}
                     {order.products.length > 0 && (
                       <div className="mt-1">
                         <p className="text-[11px] text-muted-foreground mb-0.5">{order.products.length} {t("delivery.product_count")}</p>
@@ -500,6 +635,7 @@ export default function AdminDelivery() {
                         refetchReady();
                         refetchActive();
                         queryClient.invalidateQueries({ queryKey: ["admin-couriers"] });
+                        queryClient.invalidateQueries({ queryKey: ["admin-delivery-stats"] });
                       }}
                       onCancel={() => setAssigningOrderId(null)}
                     />
@@ -513,12 +649,12 @@ export default function AdminDelivery() {
         {/* ── Tab: Active Deliveries ─────────────────────────────────────── */}
         {tab === "active" && (
           <div className="space-y-4">
-            {activeDeliveries.length === 0 ? (
+            {filteredActive.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-2xl text-center">
                 <Truck className="h-12 w-12 text-muted-foreground/20 mb-3" />
-                <p className="text-muted-foreground text-sm">{t("delivery.active_empty")}</p>
+                <p className="text-muted-foreground text-sm">{search || statusFilter !== "all" ? t("common.no_results") : t("delivery.active_empty")}</p>
               </div>
-            ) : activeDeliveries.map((d) => (
+            ) : filteredActive.map((d) => (
               <div key={d.assignmentId} className="bg-card border rounded-2xl overflow-hidden shadow-sm">
                 {/* Header */}
                 <div className="px-5 py-3.5 border-b bg-muted/20 flex items-center justify-between flex-wrap gap-2">
@@ -528,7 +664,17 @@ export default function AdminDelivery() {
                       "text-xs px-2 py-0.5 rounded-full font-semibold",
                       ORDER_STATUS_COLORS[d.orderStatus] ?? "bg-muted text-muted-foreground"
                     )}>
-                      {t(`orders.status_${d.orderStatus}`) }
+                      {t(`orders.status_${d.orderStatus}`)}
+                    </span>
+                    {(d.zoneNameEn || d.zoneNameAr) && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                        <MapPin className="h-3 w-3" />
+                        {lang === "ar" ? d.zoneNameAr : d.zoneNameEn}
+                      </span>
+                    )}
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {new Date(d.orderDate).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="text-right shrink-0">
@@ -538,6 +684,17 @@ export default function AdminDelivery() {
                     )}
                   </div>
                 </div>
+
+                {/* Failure reason banner */}
+                {d.assignmentStatus === "delivery_failed" && d.failureReason && (
+                  <div className="px-5 py-2.5 bg-red-50 dark:bg-red-950/20 border-b border-red-100 dark:border-red-900/30 flex items-center gap-2">
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                    <p className="text-xs text-red-700 dark:text-red-400">
+                      <span className="font-semibold">{t("delivery.failure_reason")}: </span>
+                      {d.failureReason}
+                    </p>
+                  </div>
+                )}
 
                 <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {/* Customer */}
@@ -553,6 +710,7 @@ export default function AdminDelivery() {
                         <Phone className="h-3 w-3" />{d.customerPhone}
                       </a>
                     )}
+                    <span className="text-[11px] text-muted-foreground">{t("delivery.payment_cod")}</span>
                   </div>
 
                   {/* Seller */}
@@ -581,6 +739,14 @@ export default function AdminDelivery() {
                         <Phone className="h-3 w-3" />{d.courierPhone}
                       </a>
                     )}
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
+                      {d.courierRating != null && (
+                        <span className="flex items-center gap-0.5">
+                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {d.courierRating.toFixed(1)}
+                        </span>
+                      )}
+                      <span>· {d.courierCompletedDeliveries} {t("delivery.col_deliveries")}</span>
+                    </div>
                     {d.pickedUpAt ? (
                       <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                         <Clock className="h-3 w-3" /> {t("orders.status_picked_up")}

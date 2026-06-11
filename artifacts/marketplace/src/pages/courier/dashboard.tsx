@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { Layout } from "@/components/Layout";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   Truck, Package, CheckCircle2, DollarSign, MapPin, Phone,
   User, Star, AlertTriangle, Store, ShoppingBag, Calendar,
+  TrendingUp, Award, History, XCircle,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -42,10 +43,25 @@ interface Assignment {
   storeName: string | null;
   sellerName: string | null;
   sellerPhone: string | null;
+  zoneNameEn: string | null;
+  zoneNameAr: string | null;
   products: ProductSnap[];
   notes: string | null;
 }
+interface EarningsPeriod { earnings: number; deliveries: number; }
 interface Earnings {
+  today:     EarningsPeriod;
+  thisWeek:  EarningsPeriod;
+  thisMonth: EarningsPeriod;
+  allTime:   EarningsPeriod;
+  walletBalance: number;
+  performance: {
+    totalDeliveries: number;
+    totalFailed:     number;
+    successRate:     number;
+    avgPerDay:       number;
+    lifetimeEarnings: number;
+  };
   totalEarnings: number;
   completedDeliveries: number;
   transactions: {
@@ -56,6 +72,25 @@ interface Earnings {
     notes: string | null;
     createdAt: string;
   }[];
+}
+interface HistoryItem {
+  id: number;
+  orderId: number;
+  status: "delivered" | "delivery_failed";
+  assignedAt: string;
+  deliveredAt: string | null;
+  failedAt: string | null;
+  failureReason: string | null;
+  orderTotal: number;
+  deliveryFee: number;
+  yourCut: number;
+  shippingAddress: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  orderDate: string;
+  zoneNameEn: string | null;
+  zoneNameAr: string | null;
+  products: { name: string; quantity: number }[];
 }
 
 // ─── Failure reasons ──────────────────────────────────────────────────────────
@@ -199,7 +234,7 @@ function DeliveryCard({ assignment, token, onAction }: {
   token: string;
   onAction: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [acting, setActing] = useState(false);
   const [showFailModal, setShowFailModal] = useState(false);
@@ -332,6 +367,14 @@ function DeliveryCard({ assignment, token, onAction }: {
               <p className="text-sm text-foreground leading-snug">{assignment.shippingAddress}</p>
             </div>
             {assignment.city && <p className="text-xs text-muted-foreground">{assignment.city}</p>}
+            {(assignment.zoneNameEn || assignment.zoneNameAr) && (
+              <div className="flex items-center gap-1">
+                <MapPin className="h-3 w-3 text-blue-500 shrink-0" />
+                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                  {i18n.language === "ar" ? assignment.zoneNameAr : assignment.zoneNameEn}
+                </span>
+              </div>
+            )}
             {assignment.customerPhone && (
               <a href={`tel:${assignment.customerPhone}`} className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline" translate="no">
                 <Phone className="h-3.5 w-3.5" />{assignment.customerPhone}
@@ -388,11 +431,11 @@ function DeliveryCard({ assignment, token, onAction }: {
 
 // ─── Main dashboard ────────────────────────────────────────────────────────────
 export default function CourierDashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { token } = useAuth();
   const { toast } = useToast();
 
-  const [tab, setTab] = useState<"deliveries" | "earnings">("deliveries");
+  const [tab, setTab] = useState<"deliveries" | "history" | "earnings">("deliveries");
   const [toggling, setToggling] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
@@ -418,6 +461,12 @@ export default function CourierDashboard() {
     queryFn: () => fetch("/api/couriers/assignments", { headers }).then((r) => r.json()),
     enabled: !!token && profile?.status === "approved",
     refetchInterval: 20_000,
+  });
+
+  const { data: history = [] } = useQuery<HistoryItem[]>({
+    queryKey: ["courier-history"],
+    queryFn: () => fetch("/api/couriers/history", { headers }).then((r) => r.json()),
+    enabled: !!token && profile?.status === "approved" && tab === "history",
   });
 
   const { data: earnings } = useQuery<Earnings>({
@@ -531,37 +580,54 @@ export default function CourierDashboard() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-4 gap-2 mb-5">
           <div className="bg-card border rounded-xl p-3 text-center">
-            <p className="text-xs text-muted-foreground">{t("courier.completed")}</p>
+            <p className="text-[11px] text-muted-foreground leading-tight">{t("courier.completed")}</p>
             <p className="text-xl font-black mt-0.5">{profile.completedDeliveries}</p>
           </div>
           <div className="bg-card border rounded-xl p-3 text-center">
-            <p className="text-xs text-muted-foreground">{t("courier.total_earnings")}</p>
-            <p className="text-xl font-black mt-0.5" translate="no">${(earnings?.totalEarnings ?? 0).toFixed(2)}</p>
+            <p className="text-[11px] text-muted-foreground leading-tight">{t("courier.earnings_today")}</p>
+            <p className="text-xl font-black mt-0.5 text-emerald-600 dark:text-emerald-400" translate="no">${(earnings?.today?.earnings ?? 0).toFixed(2)}</p>
           </div>
           <div className="bg-card border rounded-xl p-3 text-center">
-            <p className="text-xs text-muted-foreground">{t("delivery.col_rating")}</p>
+            <p className="text-[11px] text-muted-foreground leading-tight">{t("courier.total_earnings")}</p>
+            <p className="text-xl font-black mt-0.5" translate="no">${(earnings?.allTime?.earnings ?? earnings?.totalEarnings ?? 0).toFixed(2)}</p>
+          </div>
+          <div className="bg-card border rounded-xl p-3 text-center">
+            <p className="text-[11px] text-muted-foreground leading-tight">{t("delivery.col_rating")}</p>
             <p className="text-xl font-black mt-0.5">{profile.rating ? profile.rating.toFixed(1) : "—"}</p>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-4">
-          {(["deliveries", "earnings"] as const).map((k) => (
-            <button
-              key={k}
-              onClick={() => setTab(k)}
-              className={cn(
-                "px-4 py-2 rounded-full text-sm font-semibold border transition-colors",
-                tab === k ? "bg-primary text-primary-foreground border-primary" : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
-              )}
-            >
-              {k === "deliveries"
-                ? `${t("courier.my_deliveries")}${assignments.length > 0 ? ` (${assignments.length})` : ""}`
-                : t("courier.earnings_title")}
-            </button>
-          ))}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-0.5">
+          <button
+            onClick={() => setTab("deliveries")}
+            className={cn(
+              "px-4 py-2 rounded-full text-sm font-semibold border transition-colors whitespace-nowrap",
+              tab === "deliveries" ? "bg-primary text-primary-foreground border-primary" : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
+            )}
+          >
+            {t("courier.my_deliveries")}{assignments.length > 0 ? ` (${assignments.length})` : ""}
+          </button>
+          <button
+            onClick={() => setTab("history")}
+            className={cn(
+              "px-4 py-2 rounded-full text-sm font-semibold border transition-colors whitespace-nowrap",
+              tab === "history" ? "bg-primary text-primary-foreground border-primary" : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
+            )}
+          >
+            {t("courier.history_tab")}
+          </button>
+          <button
+            onClick={() => setTab("earnings")}
+            className={cn(
+              "px-4 py-2 rounded-full text-sm font-semibold border transition-colors whitespace-nowrap",
+              tab === "earnings" ? "bg-primary text-primary-foreground border-primary" : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
+            )}
+          >
+            {t("courier.earnings_title")}
+          </button>
         </div>
 
         {/* Deliveries tab */}
@@ -584,16 +650,149 @@ export default function CourierDashboard() {
           </div>
         )}
 
+        {/* History tab */}
+        {tab === "history" && (
+          <div className="space-y-3">
+            {history.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-2xl text-center">
+                <History className="h-12 w-12 text-muted-foreground/20 mb-3" />
+                <h3 className="font-semibold mb-1">{t("courier.history_empty_title")}</h3>
+                <p className="text-sm text-muted-foreground">{t("courier.history_empty_desc")}</p>
+              </div>
+            ) : history.map((h) => {
+              const isDelivered = h.status === "delivered";
+              const date = new Date(h.deliveredAt ?? h.failedAt ?? h.assignedAt).toLocaleDateString();
+              const zoneName = i18n.language === "ar" ? h.zoneNameAr : h.zoneNameEn;
+              return (
+                <div key={h.id} className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+                  <div className="px-4 py-3 border-b bg-muted/20 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-sm" translate="no">#{h.orderId}</span>
+                      {isDelivered ? (
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                          <CheckCircle2 className="h-3 w-3" /> {t("orders.status_delivered")}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                          <XCircle className="h-3 w-3" /> {t("courier.history_failed")}
+                        </span>
+                      )}
+                      {zoneName && (
+                        <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-0.5">
+                          <MapPin className="h-3 w-3" />{zoneName}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      {isDelivered && (
+                        <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400" translate="no">+${h.yourCut.toFixed(2)}</span>
+                      )}
+                      <span className="text-xs text-muted-foreground block flex items-center gap-1 justify-end">
+                        <Calendar className="h-3 w-3" /> {date}
+                      </span>
+                    </div>
+                  </div>
+                  {!isDelivered && h.failureReason && (
+                    <div className="px-4 py-2 bg-red-50 dark:bg-red-950/20 flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                      <p className="text-xs text-red-700 dark:text-red-400">{h.failureReason}</p>
+                    </div>
+                  )}
+                  <div className="px-4 py-3 flex items-start gap-2">
+                    <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm text-muted-foreground leading-snug truncate">{h.shippingAddress}</p>
+                      {h.customerName && <p className="text-xs text-muted-foreground mt-0.5">{h.customerName}</p>}
+                      {h.products.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {h.products.slice(0, 3).map((p, i) => (
+                            <span key={i} className="text-[11px] bg-muted/60 text-muted-foreground rounded-full px-2 py-0.5">
+                              {p.name}{p.quantity > 1 ? ` ×${p.quantity}` : ""}
+                            </span>
+                          ))}
+                          {h.products.length > 3 && <span className="text-[11px] text-muted-foreground px-1">+{h.products.length - 3}</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Earnings tab */}
         {tab === "earnings" && (
-          <div className="space-y-3">
-            {!earnings || earnings.transactions.length === 0 ? (
+          <div className="space-y-4">
+            {/* Time-period earnings breakdown */}
+            {earnings && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: t("courier.period_today"),      data: earnings.today },
+                    { label: t("courier.period_this_week"),  data: earnings.thisWeek },
+                    { label: t("courier.period_this_month"), data: earnings.thisMonth },
+                    { label: t("courier.period_all_time"),   data: earnings.allTime },
+                  ].map(({ label, data }) => (
+                    <div key={label} className="bg-card border rounded-xl p-4 shadow-sm">
+                      <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                      <p className="text-xl font-black text-emerald-600 dark:text-emerald-400" translate="no">${(data?.earnings ?? 0).toFixed(2)}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {data?.deliveries ?? 0} {t("delivery.col_deliveries")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Performance metrics */}
+                {earnings.performance && (
+                  <div className="bg-card border rounded-xl p-4 shadow-sm space-y-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Award className="h-4 w-4 text-primary" />
+                      <h3 className="font-semibold text-sm">{t("courier.performance_title")}</h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">{t("courier.perf_success_rate")}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 rounded-full transition-all"
+                              style={{ width: `${earnings.performance.successRate}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{earnings.performance.successRate.toFixed(0)}%</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">{t("courier.perf_avg_per_day")}</p>
+                        <p className="text-sm font-bold" translate="no">${earnings.performance.avgPerDay.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">{t("courier.perf_total_deliveries")}</p>
+                        <p className="text-sm font-bold">{earnings.performance.totalDeliveries}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">{t("courier.perf_failed")}</p>
+                        <p className={cn("text-sm font-bold", earnings.performance.totalFailed > 0 ? "text-red-500" : "text-muted-foreground")}>
+                          {earnings.performance.totalFailed}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Transactions */}
+            {(!earnings || earnings.transactions.length === 0) && !earnings && (
               <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-2xl text-center">
                 <DollarSign className="h-12 w-12 text-muted-foreground/20 mb-3" />
                 <p className="text-sm text-muted-foreground">{t("courier.no_transactions")}</p>
               </div>
-            ) : (
-              <>
+            )}
+            {earnings && earnings.transactions.length > 0 && (
+              <div className="space-y-2">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">{t("courier.recent_transactions")}</h3>
                 {earnings.transactions.map((tx) => (
                   <div key={tx.id} className="bg-card border rounded-xl px-4 py-3 flex items-center justify-between">
@@ -608,7 +807,7 @@ export default function CourierDashboard() {
                     <span className="font-bold text-emerald-600 dark:text-emerald-400" translate="no">+${tx.amount.toFixed(2)}</span>
                   </div>
                 ))}
-              </>
+              </div>
             )}
           </div>
         )}
