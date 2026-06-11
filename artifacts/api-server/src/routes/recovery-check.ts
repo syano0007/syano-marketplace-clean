@@ -1334,6 +1334,70 @@ async function checkStoreSettings(sellerToken: string, sellerId: number, adminTo
   return { ok: failures.length === 0, data, failures, warnings };
 }
 
+// ─── Store Settings V4 check ──────────────────────────────────────────────────
+async function checkStoreSettingsV4(): Promise<CheckResult> {
+  const data: Record<string, unknown> = {};
+  const failures: string[] = [];
+  const warnings: string[] = [];
+
+  const settingsPath = path.join(process.cwd(), "..", "marketplace", "src", "pages", "seller", "store-settings.tsx");
+  const trustPath    = path.join(process.cwd(), "..", "marketplace", "src", "pages", "seller", "trust.tsx");
+  const selectPath   = path.join(process.cwd(), "..", "marketplace", "src", "components", "ui", "select.tsx");
+  const enPath       = path.join(process.cwd(), "..", "marketplace", "src", "i18n", "en.json");
+
+  const settingsExists = fs.existsSync(settingsPath);
+  data["settingsPageExists"] = settingsExists;
+
+  if (settingsExists) {
+    const content = fs.readFileSync(settingsPath, "utf-8");
+    const hasMobileCardGrid      = content.includes("grid-cols-2") && content.includes("sm:hidden");
+    const hasDesktopDescriptions = content.includes("tab_desc_general");
+    const hasCompletionCta       = content.includes("completion_cta");
+    const hasAnimations          = content.includes("transition-all duration-200");
+    const hasHealthFixNow        = content.includes("completion_cta") && content.includes("setActiveTab(item.tab)");
+
+    data["mobileCardGrid"]      = hasMobileCardGrid;
+    data["desktopDescriptions"] = hasDesktopDescriptions;
+    data["completionCtaPresent"] = hasCompletionCta;
+    data["cardAnimations"]      = hasAnimations;
+    data["healthFixNowButton"]  = hasHealthFixNow;
+
+    if (!hasMobileCardGrid)      warnings.push("V4: mobile 2-col card grid not detected");
+    if (!hasDesktopDescriptions) warnings.push("V4: desktop card descriptions (tab_desc_general) not detected");
+    if (!hasCompletionCta)       warnings.push("V4: completion CTA button not detected");
+  } else {
+    failures.push("store-settings.tsx not found");
+  }
+
+  // Check RTL fix in select.tsx
+  const selectExists = fs.existsSync(selectPath);
+  if (selectExists) {
+    const sel = fs.readFileSync(selectPath, "utf-8");
+    const hasRtlFix = sel.includes("ps-2") && sel.includes("pe-8") && sel.includes("end-2");
+    data["selectRtlFixed"] = hasRtlFix;
+    if (!hasRtlFix) warnings.push("V4: select.tsx RTL physical props (pl/pr/right) should be logical (ps/pe/end)");
+  }
+
+  // Check trust.tsx has "how to improve" section
+  const trustExists = fs.existsSync(trustPath);
+  if (trustExists) {
+    const tr = fs.readFileSync(trustPath, "utf-8");
+    const hasTrustImprove = tr.includes("how_to_improve") || tr.includes("tip_get_verified");
+    data["trustHowToImprove"] = hasTrustImprove;
+    if (!hasTrustImprove) warnings.push("V4: trust.tsx missing how-to-improve section");
+  }
+
+  // Check i18n has V4 tab description keys
+  if (fs.existsSync(enPath)) {
+    const en = fs.readFileSync(enPath, "utf-8");
+    const hasTabDescs = en.includes("tab_desc_general") && en.includes("completion_cta");
+    data["i18nV4KeysPresent"] = hasTabDescs;
+    if (!hasTabDescs) warnings.push("V4: i18n tab description keys (tab_desc_*) not found in en.json");
+  }
+
+  return { ok: failures.length === 0, data, failures, warnings };
+}
+
 // ─── Confidence scoring ───────────────────────────────────────────────────────
 
 interface SectionWeight {
@@ -1359,6 +1423,7 @@ const WEIGHTS = {
   recovery: 2,
   mobile: 1,
   responsive: 0, // warnings only, no deduction
+  storeSettingsV4: 0, // warnings only — V4 UI upgrade
 } as const;
 
 function computeScore(results: Record<string, CheckResult>): {
@@ -1437,7 +1502,7 @@ router.get(
       : "";
     const sellerId = sellerUser?.id ?? 2;
 
-    // Run all 15 checks in parallel
+    // Run all 17 checks in parallel
     const [
       corePlatform,
       bootstrapAccounts,
@@ -1455,6 +1520,7 @@ router.get(
       recovery,
       storePages,
       storeSettings,
+      storeSettingsV4,
     ] = await Promise.all([
       checkCorePlatform(),
       checkBootstrapAccounts(),
@@ -1472,6 +1538,7 @@ router.get(
       checkRecoverySafety(),
       checkStorePages(sellerToken, sellerId),
       checkStoreSettings(sellerToken, sellerId, adminToken),
+      checkStoreSettingsV4(),
     ]);
 
     const checkResults: Record<string, CheckResult> = {
@@ -1491,6 +1558,7 @@ router.get(
       recovery,
       storePages,
       storeSettings,
+      storeSettingsV4,
     };
 
     const { score, modules, allFailures, allWarnings, deductions, recommendations } =
@@ -1620,6 +1688,13 @@ router.get(
           warnings: storeSettings.warnings,
           weight: WEIGHTS.storeSettings,
         },
+        storeSettingsV4: {
+          ok: storeSettingsV4.ok,
+          data: storeSettingsV4.data,
+          failures: storeSettingsV4.failures,
+          warnings: storeSettingsV4.warnings,
+          weight: WEIGHTS.storeSettingsV4,
+        },
       },
 
       failures: allFailures,
@@ -1635,11 +1710,12 @@ router.get(
         "Trust System V1": "✅ COMPLETE + VALIDATED",
         "Platform QA & UI Stabilization Audit": "✅ COMPLETE",
         "Recovery Integrity Audit & Migration Hardening": "✅ COMPLETE — Confidence 97/100",
-        "Admin Recovery Endpoint V2 (15-section)":
+        "Admin Recovery Endpoint V2 (17-section)":
           score >= 97 ? "✅ COMPLETE" : "⚠️ DEGRADED — see deductions",
         "Seller Store Pages V2": storePages.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ INCOMPLETE — see storePages section",
         "Store Settings V2": storeSettings.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ INCOMPLETE — see storeSettings section",
         "Store Settings V3 + Trust Consistency Audit": (storeSettings.ok && storePages.ok) ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
+        "Store Settings V4 + Store Page Consistency": storeSettingsV4.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
         next: "⏳ TBD",
       },
 

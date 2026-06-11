@@ -337,18 +337,18 @@ export default function SellerStoreSettingsPage() {
 
   const { score: healthScore, items: healthItems } = computeHealth(form, trustData);
 
-  const TABS: { id: TabId; labelKey: string; icon: React.ElementType; badge?: number }[] = [
-    { id: "general",  labelKey: "tab_general",  icon: Store },
-    { id: "branding", labelKey: "tab_branding", icon: Palette },
-    { id: "contact",  labelKey: "tab_contact",  icon: Phone },
-    { id: "policies", labelKey: "tab_policies", icon: Shield },
-    { id: "trust",    labelKey: "tab_trust",    icon: BadgeCheck },
-    { id: "seo",      labelKey: "tab_seo",      icon: Search },
+  const TABS: { id: TabId; labelKey: string; descKey: string; icon: React.ElementType; badge?: number }[] = [
+    { id: "general",  labelKey: "tab_general",  descKey: "tab_desc_general",  icon: Store },
+    { id: "branding", labelKey: "tab_branding", descKey: "tab_desc_branding", icon: Palette },
+    { id: "contact",  labelKey: "tab_contact",  descKey: "tab_desc_contact",  icon: Phone },
+    { id: "policies", labelKey: "tab_policies", descKey: "tab_desc_policies", icon: Shield },
+    { id: "trust",    labelKey: "tab_trust",    descKey: "tab_desc_trust",    icon: BadgeCheck },
+    { id: "seo",      labelKey: "tab_seo",      descKey: "tab_desc_seo",      icon: Search },
     {
-      id: "health", labelKey: "tab_health", icon: Activity,
+      id: "health", labelKey: "tab_health", descKey: "tab_desc_health", icon: Activity,
       badge: healthScore < 80 ? healthItems.filter((i) => !i.ok).length : undefined,
     },
-    { id: "advanced", labelKey: "tab_advanced", icon: Settings2 },
+    { id: "advanced", labelKey: "tab_advanced", descKey: "tab_desc_advanced", icon: Settings2 },
   ];
 
   if (loading) {
@@ -435,40 +435,56 @@ export default function SellerStoreSettingsPage() {
 
         {/* ── Store Completion Banner ───────────────────────────── */}
         {healthScore < 100 && (
-          <div className="bg-card border rounded-2xl p-4 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold">{t("store_settings.completion_title")}</p>
-                <p className="text-xs text-muted-foreground">{t("store_settings.completion_subtitle")}</p>
+          <div className="bg-card border rounded-2xl p-5">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-5">
+              <div className="flex-1 min-w-0 space-y-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t("store_settings.completion_title")}</p>
+                  <p className="text-3xl font-black text-foreground mt-0.5 tabular-nums">
+                    {healthScore}%{" "}
+                    <span className="text-xl font-semibold text-muted-foreground">{t("store_settings.completion_complete")}</span>
+                  </p>
+                </div>
+                <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${healthScore}%`,
+                      backgroundColor: healthScore >= 80 ? "#10b981" : healthScore >= 50 ? "#f59e0b" : "#ef4444",
+                    }}
+                  />
+                </div>
               </div>
-              <span className="text-2xl font-black tabular-nums text-primary shrink-0">{healthScore}%</span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${healthScore}%`,
-                  backgroundColor: healthScore >= 80 ? "#10b981" : healthScore >= 50 ? "#f59e0b" : "#ef4444",
-                }}
-              />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {healthItems.filter((i) => !i.ok).map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => handleTabChange(item.tab)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/60 hover:bg-muted border border-border text-xs font-medium transition-colors"
-                >
-                  <span className="text-muted-foreground">{t(`store_settings.${item.label}`)}</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">+{item.pts}{t("store_settings.health_pts")}</span>
-                </button>
-              ))}
+              {healthItems.filter((i) => !i.ok).length > 0 && (
+                <div className="sm:min-w-[210px] space-y-2.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t("store_settings.completion_missing")}:</p>
+                  <div className="space-y-1.5">
+                    {healthItems.filter((i) => !i.ok).slice(0, 4).map((item) => (
+                      <button
+                        key={item.label}
+                        onClick={() => handleTabChange(item.tab)}
+                        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-start group"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-primary shrink-0 transition-colors" />
+                        <span className="flex-1">{t(`store_settings.${item.label}`)}</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">+{item.pts}pts</span>
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => handleTabChange("health")}
+                    className="mt-1 w-full px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold hover:bg-primary/90 active:scale-95 transition-all duration-150"
+                  >
+                    {t("store_settings.completion_cta")}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* ── Tab Navigation: Chips (mobile) + Icon cards (desktop) ── */}
-        <div className="sm:hidden -mx-4 px-4 flex overflow-x-auto scrollbar-none gap-2 pb-1">
+        {/* ── Tab Navigation: 2-col card grid (mobile) + 4-col card grid (desktop) ── */}
+        <div className="grid grid-cols-2 gap-2 sm:hidden">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -476,16 +492,27 @@ export default function SellerStoreSettingsPage() {
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`relative flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm font-medium whitespace-nowrap shrink-0 min-h-[44px] transition-colors ${
+                className={`relative flex flex-col items-start gap-2 p-3 rounded-xl border text-start transition-all duration-200 min-h-[76px] ${
                   isActive
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card border-border text-muted-foreground hover:border-primary/40"
+                    ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-sm"
+                    : "border-border bg-card hover:border-primary/40 hover:shadow-sm active:scale-[0.98]"
                 }`}
               >
-                <Icon className="h-4 w-4 shrink-0" />
-                {t(`store_settings.${tab.labelKey}`)}
+                <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-200 ${
+                  isActive ? "bg-primary" : "bg-muted"
+                }`}>
+                  <Icon className={`h-[14px] w-[14px] transition-colors duration-200 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-xs font-semibold leading-tight truncate ${isActive ? "text-primary" : "text-foreground"}`}>
+                    {t(`store_settings.${tab.labelKey}`)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 line-clamp-2">
+                    {t(`store_settings.${tab.descKey}`)}
+                  </p>
+                </div>
                 {tab.badge != null && tab.badge > 0 && (
-                  <span className="bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0">
+                  <span className="absolute top-1.5 end-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                     {tab.badge}
                   </span>
                 )}
@@ -501,20 +528,25 @@ export default function SellerStoreSettingsPage() {
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`relative flex flex-col items-start gap-2 p-4 rounded-xl border transition-all text-start ${
+                className={`relative flex flex-col items-start gap-2.5 p-4 rounded-xl border transition-all duration-200 text-start group ${
                   isActive
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-sm"
-                    : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
+                    : "border-border bg-card hover:border-primary/40 hover:shadow-sm hover:bg-muted/20 active:scale-[0.98]"
                 }`}
               >
-                <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
-                  isActive ? "bg-primary" : "bg-muted"
+                <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-200 ${
+                  isActive ? "bg-primary" : "bg-muted group-hover:bg-primary/10"
                 }`}>
-                  <Icon className={`h-[18px] w-[18px] ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
+                  <Icon className={`h-[18px] w-[18px] transition-colors duration-200 ${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"}`} />
                 </div>
-                <p className={`text-xs font-semibold leading-tight ${isActive ? "text-primary" : "text-foreground"}`}>
-                  {t(`store_settings.${tab.labelKey}`)}
-                </p>
+                <div className="min-w-0 w-full">
+                  <p className={`text-xs font-semibold leading-tight ${isActive ? "text-primary" : "text-foreground"}`}>
+                    {t(`store_settings.${tab.labelKey}`)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 line-clamp-2">
+                    {t(`store_settings.${tab.descKey}`)}
+                  </p>
+                </div>
                 {tab.badge != null && tab.badge > 0 && (
                   <span className="absolute top-2 end-2 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
                     {tab.badge}
@@ -942,33 +974,45 @@ export default function SellerStoreSettingsPage() {
                       : t("store_settings.health_needs_work")}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1">{t("store_settings.health_subtitle")}</p>
+                  <div className="flex items-center gap-3 mt-3">
+                    <span className="text-xs text-muted-foreground">
+                      {healthItems.filter((i) => i.ok).length}/{healthItems.length} {t("store_settings.health_completed", "completed")}
+                    </span>
+                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                      {healthScore}/100 {t("store_settings.health_pts")}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-card border rounded-2xl divide-y">
+            <div className="bg-card border rounded-2xl overflow-hidden divide-y">
               {healthItems.map((item) => (
-                <div key={item.label} className="flex items-center justify-between px-5 py-3 gap-3">
-                  <div className="flex items-center gap-3">
+                <div key={item.label} className={`flex items-center justify-between px-5 py-4 gap-3 transition-colors ${item.ok ? "" : "hover:bg-muted/30"}`}>
+                  <div className="flex items-center gap-3 min-w-0">
                     {item.ok ? (
                       <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
                     ) : (
-                      <XCircle className="h-5 w-5 text-muted-foreground/40 shrink-0" />
+                      <XCircle className="h-5 w-5 text-muted-foreground/30 shrink-0" />
                     )}
-                    <span className={`text-sm ${item.ok ? "" : "text-muted-foreground"}`}>
-                      {t(`store_settings.${item.label}`)}
-                    </span>
+                    <div className="min-w-0">
+                      <span className={`text-sm font-medium ${item.ok ? "text-foreground" : "text-muted-foreground"}`}>
+                        {t(`store_settings.${item.label}`)}
+                      </span>
+                    </div>
                   </div>
-                  {!item.ok && (
+                  {item.ok ? (
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">✓</span>
+                  ) : (
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                        +{item.pts}{t("store_settings.health_pts")}
+                      <span className="hidden sm:inline text-[11px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
+                        +{item.pts}pts
                       </span>
                       <button
                         onClick={() => setActiveTab(item.tab)}
-                        className="text-xs text-primary hover:underline flex items-center gap-0.5"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-semibold"
                       >
-                        {t("store_settings.health_fix_in", { tab: t(`store_settings.tab_${item.tab}`) })}
+                        {t("store_settings.completion_cta")}
                         <ChevronRight className={`h-3 w-3 ${isRTL ? "rotate-180" : ""}`} />
                       </button>
                     </div>
