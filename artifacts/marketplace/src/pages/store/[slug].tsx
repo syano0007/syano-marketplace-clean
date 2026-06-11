@@ -638,25 +638,21 @@ function AboutTab({ store }: { store: StoreProfile & Record<string, any> }) {
 
       {/* Trust & Verification */}
       {(store.trustScore != null || store.isVerified) && (
-        <div className="p-4 border rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/30 space-y-3">
-          <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-emerald-600 shrink-0" />
-            <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
-              {t("store.trust_info_title")}
-            </span>
+        <div className="p-4 border rounded-2xl bg-card space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-sm font-bold text-foreground">{t("store.trust_info_title")}</span>
+            <SellerTrustBadge
+              level={(store.verificationLevel ?? "none") as VerificationLevel}
+              isVerified={store.isVerified ?? false}
+              size="sm"
+            />
           </div>
           {store.trustScore != null && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">{t("store.trust_score_label")}</span>
-                <span className="font-bold text-emerald-700 dark:text-emerald-400">{store.trustScore}/100</span>
-              </div>
-              <TrustScoreBar score={store.trustScore} />
-            </div>
+            <TrustScoreBar score={store.trustScore} size="md" />
           )}
           {store.isVerified && store.verifiedAt && (
-            <div className="flex items-center gap-2 text-xs text-emerald-600/80">
-              <BadgeCheck className="h-3.5 w-3.5 shrink-0" />
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
               <span>
                 {t("store.verified_since")}{" "}
                 {new Date(store.verifiedAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })}
@@ -960,7 +956,7 @@ export default function StorePage() {
           {/* Name + Trust */}
           <div className="pb-1 flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-black text-foreground leading-tight truncate max-w-full">
+              <h1 className="text-2xl sm:text-3xl font-black text-foreground leading-tight break-words min-w-0">
                 {store.storeName}
               </h1>
               <TrustBadge

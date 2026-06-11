@@ -483,8 +483,8 @@ export default function SellerStoreSettingsPage() {
           </div>
         )}
 
-        {/* ── Tab Navigation: 2-col card grid (mobile) + 4-col card grid (desktop) ── */}
-        <div className="grid grid-cols-2 gap-2 sm:hidden">
+        {/* ── Tab Navigation: responsive card grid (2→3→4 cols) ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -492,52 +492,18 @@ export default function SellerStoreSettingsPage() {
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`relative flex flex-col items-start gap-2 p-3 rounded-xl border text-start transition-all duration-200 min-h-[76px] ${
-                  isActive
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-sm"
-                    : "border-border bg-card hover:border-primary/40 hover:shadow-sm active:scale-[0.98]"
-                }`}
-              >
-                <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-200 ${
-                  isActive ? "bg-primary" : "bg-muted"
-                }`}>
-                  <Icon className={`h-[14px] w-[14px] transition-colors duration-200 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
-                </div>
-                <div className="min-w-0">
-                  <p className={`text-xs font-semibold leading-tight truncate ${isActive ? "text-primary" : "text-foreground"}`}>
-                    {t(`store_settings.${tab.labelKey}`)}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 line-clamp-2">
-                    {t(`store_settings.${tab.descKey}`)}
-                  </p>
-                </div>
-                {tab.badge != null && tab.badge > 0 && (
-                  <span className="absolute top-1.5 end-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <div className="hidden sm:grid grid-cols-4 gap-3">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`relative flex flex-col items-start gap-2.5 p-4 rounded-xl border transition-all duration-200 text-start group ${
+                className={`relative flex flex-col items-start gap-2 p-3 sm:p-4 rounded-xl border text-start transition-all duration-200 group min-h-[76px] sm:min-h-0 ${
                   isActive
                     ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-sm"
                     : "border-border bg-card hover:border-primary/40 hover:shadow-sm hover:bg-muted/20 active:scale-[0.98]"
                 }`}
               >
-                <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-200 ${
+                <div className={`h-7 w-7 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-200 ${
                   isActive ? "bg-primary" : "bg-muted group-hover:bg-primary/10"
                 }`}>
-                  <Icon className={`h-[18px] w-[18px] transition-colors duration-200 ${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"}`} />
+                  <Icon className={`h-[14px] w-[14px] sm:h-[18px] sm:w-[18px] transition-colors duration-200 ${
+                    isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
+                  }`} />
                 </div>
                 <div className="min-w-0 w-full">
                   <p className={`text-xs font-semibold leading-tight ${isActive ? "text-primary" : "text-foreground"}`}>
@@ -548,7 +514,7 @@ export default function SellerStoreSettingsPage() {
                   </p>
                 </div>
                 {tab.badge != null && tab.badge > 0 && (
-                  <span className="absolute top-2 end-2 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute top-1.5 end-1.5 sm:top-2 sm:end-2 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
                     {tab.badge}
                   </span>
                 )}

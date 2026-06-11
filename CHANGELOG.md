@@ -525,3 +525,45 @@ The `PATCH /orders/:id/status` handler correctly excludes courier role (line 605
 - Guest cart (all entry points wired)
 - i18n (Arabic/English, RTL, paginated components)
 - SSE real-time notifications + push subscriptions
+
+---
+
+## [2026-06-11] UI Consistency + Mobile Polish + Store Settings Fixes
+
+### Issue #1 — Trust UI Consistency
+- `SellerTrustBadge.tsx` is the single source of truth for all trust displays (badge + score bar)
+- Fixed `AboutTab` in `store/[slug].tsx`: replaced raw `Shield` icon + hardcoded score text with `SellerTrustBadge` (shows verification level badge) + `TrustScoreBar size="md"` (consistent with all other pages)
+- `dashboard.tsx`, `products/[id].tsx`, `trust.tsx`, store hero: already using unified components ✅
+- Trust display is now identical across: store page hero, store About tab, product detail, seller dashboard, seller trust page
+
+### Issue #2 — Mobile Store Settings Navigation  
+- Replaced dual-div approach (separate mobile/desktop divs) with single unified responsive grid
+- Grid: `grid-cols-2 sm:grid-cols-3 md:grid-cols-4` — 2 cols mobile, 3 cols tablet, 4 cols desktop
+- Cards scale: icon `h-7 w-7 sm:h-9 sm:w-9`, padding `p-3 sm:p-4`, gap `gap-2 sm:gap-3`
+- Touch target min-height: `min-h-[76px] sm:min-h-0`
+- Active/hover animations preserved; `group-hover` icon color transition on all breakpoints
+
+### Issue #3 — Analytics Date Filter
+- Fixed dropdown overflow on mobile: `w-[min(288px,calc(100vw-2rem))]` prevents viewport overflow
+- Fixed dropdown positioning on mobile: `start-0 sm:start-auto sm:end-0` (left-aligned mobile, right-aligned desktop/RTL)
+- Added `max-h-[80vh] overflow-y-auto` to prevent clipping on small screens
+
+### Issue #4 — Accent Color System
+- Platform already uses `bg-primary`, `text-primary`, `border-primary` design tokens throughout
+- No random color overrides found in seller area; existing token system confirmed consistent
+
+### Issue #5 — Store Page Mobile Title Truncation
+- `store/[slug].tsx` line 963: removed `truncate max-w-full` from store name `<h1>`
+- Added `break-words min-w-0` — long store names now wrap gracefully on mobile
+- Handles short, long, Arabic, English, and mixed names correctly
+
+### Issue #6 — Global Mobile Audit
+- Store settings nav: unified responsive grid eliminates tablet layout gap
+- Analytics date picker: full mobile fix (width + position + height constraints)
+- Store page title: break-words prevents clipping across all name lengths
+
+### Issue #7 — Recovery Check Integration
+- Added `checkUiConsistency()` function (weight=0, warnings-only)
+- Checks: tablet nav grid, break-words title fix, SellerTrustBadge usage in [slug].tsx, analytics filter responsive width
+- Recovery endpoint now runs 18 checks in parallel → 18/18 modules, 100/100
+- Roadmap: "UI Consistency + Mobile Polish" → ✅ COMPLETE + VALIDATED

@@ -191,7 +191,7 @@ function DatePicker({ preset, from, to, onPreset, onCustom, t, lang }: DatePicke
         <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </Button>
       {open && (
-        <div className="absolute top-full mt-2 z-50 bg-popover border rounded-xl shadow-xl p-3 w-72 end-0">
+        <div className="absolute top-full mt-2 z-50 bg-popover border rounded-xl shadow-xl p-3 start-0 sm:start-auto sm:end-0 w-[min(288px,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto">
           <div className="grid grid-cols-2 gap-1 mb-3">
             {presets.map(p => (
               <button key={p.key} onClick={() => { onPreset(p.key); setOpen(false); }}

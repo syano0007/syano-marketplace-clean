@@ -1350,7 +1350,7 @@ async function checkStoreSettingsV4(): Promise<CheckResult> {
 
   if (settingsExists) {
     const content = fs.readFileSync(settingsPath, "utf-8");
-    const hasMobileCardGrid      = content.includes("grid-cols-2") && content.includes("sm:hidden");
+    const hasMobileCardGrid      = content.includes("grid-cols-2") && content.includes("sm:grid-cols-3");
     const hasDesktopDescriptions = content.includes("tab_desc_general");
     const hasCompletionCta       = content.includes("completion_cta");
     const hasAnimations          = content.includes("transition-all duration-200");
@@ -1398,6 +1398,55 @@ async function checkStoreSettingsV4(): Promise<CheckResult> {
   return { ok: failures.length === 0, data, failures, warnings };
 }
 
+// ─── UI Consistency check ─────────────────────────────────────────────────────
+async function checkUiConsistency(): Promise<CheckResult> {
+  const data: Record<string, unknown> = {};
+  const failures: string[] = [];
+  const warnings: string[] = [];
+
+  const marketplaceBase = path.join(process.cwd(), "..", "marketplace", "src");
+  const settingsPath  = path.join(marketplaceBase, "pages", "seller", "store-settings.tsx");
+  const slugPath      = path.join(marketplaceBase, "pages", "store", "[slug].tsx");
+  const analyticsPath = path.join(marketplaceBase, "pages", "seller", "analytics.tsx");
+  const trustBadgePath = path.join(marketplaceBase, "components", "SellerTrustBadge.tsx");
+
+  // 1 — Responsive tablet nav (2→3→4)
+  if (fs.existsSync(settingsPath)) {
+    const s = fs.readFileSync(settingsPath, "utf-8");
+    const hasTabletGrid = s.includes("sm:grid-cols-3") && s.includes("md:grid-cols-4");
+    data["tabletNavGrid"] = hasTabletGrid;
+    if (!hasTabletGrid) warnings.push("UI: store-settings nav should use sm:grid-cols-3 md:grid-cols-4 responsive grid");
+  } else {
+    failures.push("store-settings.tsx not found");
+  }
+
+  // 2 — Store title break-words (not truncate)
+  if (fs.existsSync(slugPath)) {
+    const sl = fs.readFileSync(slugPath, "utf-8");
+    const hasTitleFix     = sl.includes("break-words");
+    const usesTrustBadge  = sl.includes("SellerTrustBadge");
+    data["storeTitleBreakWords"] = hasTitleFix;
+    data["slugUsesSellerTrustBadge"] = usesTrustBadge;
+    if (!hasTitleFix)    warnings.push("UI: store page title should use break-words instead of truncate on mobile");
+    if (!usesTrustBadge) failures.push("UI: store [slug].tsx should import SellerTrustBadge (trust consistency)");
+  }
+
+  // 3 — Analytics date filter responsive width
+  if (fs.existsSync(analyticsPath)) {
+    const an = fs.readFileSync(analyticsPath, "utf-8");
+    const hasResponsiveFilter = an.includes("min(288px") || an.includes("max-h-[80vh]");
+    data["analyticsFilterResponsive"] = hasResponsiveFilter;
+    if (!hasResponsiveFilter) warnings.push("UI: analytics date picker should have responsive width constraint");
+  }
+
+  // 4 — Unified trust badge component exists
+  const trustBadgeExists = fs.existsSync(trustBadgePath);
+  data["sellerTrustBadgeComponent"] = trustBadgeExists;
+  if (!trustBadgeExists) failures.push("UI: SellerTrustBadge.tsx component not found");
+
+  return { ok: failures.length === 0, data, failures, warnings };
+}
+
 // ─── Confidence scoring ───────────────────────────────────────────────────────
 
 interface SectionWeight {
@@ -1424,6 +1473,7 @@ const WEIGHTS = {
   mobile: 1,
   responsive: 0, // warnings only, no deduction
   storeSettingsV4: 0, // warnings only — V4 UI upgrade
+  uiConsistency: 0,   // warnings only — UI polish audit
 } as const;
 
 function computeScore(results: Record<string, CheckResult>): {
@@ -1502,7 +1552,7 @@ router.get(
       : "";
     const sellerId = sellerUser?.id ?? 2;
 
-    // Run all 17 checks in parallel
+    // Run all 18 checks in parallel
     const [
       corePlatform,
       bootstrapAccounts,
@@ -1521,6 +1571,7 @@ router.get(
       storePages,
       storeSettings,
       storeSettingsV4,
+      uiConsistency,
     ] = await Promise.all([
       checkCorePlatform(),
       checkBootstrapAccounts(),
@@ -1539,6 +1590,7 @@ router.get(
       checkStorePages(sellerToken, sellerId),
       checkStoreSettings(sellerToken, sellerId, adminToken),
       checkStoreSettingsV4(),
+      checkUiConsistency(),
     ]);
 
     const checkResults: Record<string, CheckResult> = {
@@ -1559,6 +1611,7 @@ router.get(
       storePages,
       storeSettings,
       storeSettingsV4,
+      uiConsistency,
     };
 
     const { score, modules, allFailures, allWarnings, deductions, recommendations } =
@@ -1695,6 +1748,13 @@ router.get(
           warnings: storeSettingsV4.warnings,
           weight: WEIGHTS.storeSettingsV4,
         },
+        uiConsistency: {
+          ok: uiConsistency.ok,
+          data: uiConsistency.data,
+          failures: uiConsistency.failures,
+          warnings: uiConsistency.warnings,
+          weight: WEIGHTS.uiConsistency,
+        },
       },
 
       failures: allFailures,
@@ -1710,12 +1770,13 @@ router.get(
         "Trust System V1": "✅ COMPLETE + VALIDATED",
         "Platform QA & UI Stabilization Audit": "✅ COMPLETE",
         "Recovery Integrity Audit & Migration Hardening": "✅ COMPLETE — Confidence 97/100",
-        "Admin Recovery Endpoint V2 (17-section)":
+        "Admin Recovery Endpoint V2 (18-section)":
           score >= 97 ? "✅ COMPLETE" : "⚠️ DEGRADED — see deductions",
         "Seller Store Pages V2": storePages.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ INCOMPLETE — see storePages section",
         "Store Settings V2": storeSettings.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ INCOMPLETE — see storeSettings section",
         "Store Settings V3 + Trust Consistency Audit": (storeSettings.ok && storePages.ok) ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
         "Store Settings V4 + Store Page Consistency": storeSettingsV4.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
+        "UI Consistency + Mobile Polish": uiConsistency.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
         next: "⏳ TBD",
       },
 
