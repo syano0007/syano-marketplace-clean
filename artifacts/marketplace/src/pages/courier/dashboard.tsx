@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   Truck, Package, CheckCircle2, DollarSign, MapPin, Phone,
-  User, Star, ChevronRight, ArrowRight,
+  User, Star, ChevronRight, ArrowRight, AlertTriangle,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -144,20 +144,22 @@ function DeliveryCard({ assignment, token, onAction }: {
   const { toast } = useToast();
   const [acting, setActing] = useState(false);
 
-  const isAssigned = assignment.orderStatus === "courier_assigned";
-  const isPickedUp  = assignment.orderStatus === "picked_up";
+  const isAssigned    = assignment.orderStatus === "courier_assigned";
+  const isPickedUp    = assignment.orderStatus === "picked_up";
+  const isOutForDel   = assignment.orderStatus === "out_for_delivery";
 
-  const handlePickup = async () => {
-    if (!confirm(t("courier.pickup_confirm", { id: assignment.orderId }))) return;
+  const doAction = async (endpoint: string, confirmKey: string, successKey: string, body?: object) => {
+    if (!confirm(t(confirmKey, { id: assignment.orderId }))) return;
     setActing(true);
     try {
-      const res = await fetch(`/api/couriers/assignments/${assignment.id}/pickup`, {
+      const res = await fetch(`/api/couriers/assignments/${assignment.id}/${endpoint}`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error");
-      toast({ title: t("courier.pickup_success") });
+      toast({ title: t(successKey) });
       onAction();
     } catch (err: any) {
       toast({ title: err.message ?? t("common.error"), variant: "destructive" });
@@ -166,37 +168,30 @@ function DeliveryCard({ assignment, token, onAction }: {
     }
   };
 
-  const handleDeliver = async () => {
-    if (!confirm(t("courier.deliver_confirm", { id: assignment.orderId }))) return;
-    setActing(true);
-    try {
-      const res = await fetch(`/api/couriers/assignments/${assignment.id}/deliver`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Error");
-      toast({ title: t("courier.deliver_success") });
-      onAction();
-    } catch (err: any) {
-      toast({ title: err.message ?? t("common.error"), variant: "destructive" });
-    } finally {
-      setActing(false);
-    }
-  };
+  const handlePickup       = () => doAction("pickup",         "courier.pickup_confirm",       "courier.pickup_success");
+  const handleStartDelivery= () => doAction("start-delivery", "courier.start_delivery_confirm","courier.start_delivery_success");
+  const handleDeliver      = () => doAction("deliver",        "courier.deliver_confirm",       "courier.deliver_success");
+  const handleFailDelivery = () => doAction("fail-delivery",  "courier.fail_delivery_confirm", "courier.fail_delivery_success");
+
+  const statusLabel = isPickedUp
+    ? t("orders.status_picked_up")
+    : isOutForDel
+      ? t("orders.status_out_for_delivery")
+      : t("orders.status_courier_assigned");
+
+  const statusCls = isOutForDel
+    ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400"
+    : isPickedUp
+      ? "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400"
+      : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
 
   return (
     <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
       <div className="px-5 py-3.5 border-b bg-muted/20 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span className="font-bold text-sm" translate="no">#{assignment.orderId}</span>
-          <span className={cn(
-            "text-xs px-2 py-0.5 rounded-full font-semibold",
-            isPickedUp
-              ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400"
-              : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-          )}>
-            {isPickedUp ? t("orders.status_picked_up") : t("orders.status_courier_assigned")}
+          <span className={cn("text-xs px-2 py-0.5 rounded-full font-semibold", statusCls)}>
+            {statusLabel}
           </span>
         </div>
         {assignment.deliveryFee != null && (
@@ -224,7 +219,7 @@ function DeliveryCard({ assignment, token, onAction }: {
         )}
       </div>
 
-      <div className="px-5 pb-4">
+      <div className="px-5 pb-4 flex flex-col gap-2">
         {isAssigned && (
           <Button onClick={handlePickup} disabled={acting} className="w-full gap-2">
             <Package className="h-4 w-4" />
@@ -232,10 +227,22 @@ function DeliveryCard({ assignment, token, onAction }: {
           </Button>
         )}
         {isPickedUp && (
-          <Button onClick={handleDeliver} disabled={acting} className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
-            <CheckCircle2 className="h-4 w-4" />
-            {acting ? "…" : t("courier.mark_delivered")}
+          <Button onClick={handleStartDelivery} disabled={acting} className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+            <Truck className="h-4 w-4" />
+            {acting ? "…" : t("courier.mark_out_for_delivery")}
           </Button>
+        )}
+        {isOutForDel && (
+          <>
+            <Button onClick={handleDeliver} disabled={acting} className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+              <CheckCircle2 className="h-4 w-4" />
+              {acting ? "…" : t("courier.mark_delivered")}
+            </Button>
+            <Button onClick={handleFailDelivery} disabled={acting} variant="outline" className="w-full gap-2 border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/30">
+              <AlertTriangle className="h-4 w-4" />
+              {acting ? "…" : t("courier.mark_failed")}
+            </Button>
+          </>
         )}
       </div>
     </div>

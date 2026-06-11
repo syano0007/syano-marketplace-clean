@@ -26,12 +26,15 @@ const STATUS_STYLES: Record<string, { pill: string; dot: string }> = {
   shipped:          { pill: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800", dot: "bg-indigo-500" },
   picked_up:        { pill: "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-800", dot: "bg-violet-500" },
   in_transit:       { pill: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800", dot: "bg-purple-500" },
+  out_for_delivery: { pill: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800", dot: "bg-indigo-500" },
   delivered:        { pill: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800", dot: "bg-emerald-500" },
   cancelled:        { pill: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",               dot: "bg-red-500" },
+  delivery_failed:  { pill: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800", dot: "bg-orange-500" },
+  returned:         { pill: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800",    dot: "bg-amber-500" },
   refunded:         { pill: "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-800", dot: "bg-violet-500" },
 };
 
-const ALL_STATUSES = ["pending", "confirmed", "processing", "preparing", "ready_for_pickup", "courier_assigned", "shipped", "picked_up", "in_transit", "delivered", "cancelled"];
+const ALL_STATUSES = ["pending", "confirmed", "processing", "preparing", "ready_for_pickup", "courier_assigned", "shipped", "picked_up", "in_transit", "out_for_delivery", "delivered", "cancelled", "delivery_failed", "returned", "refunded"];
 
 /* ─── Delivery day presets ────────────────────────────────────────── */
 function addDays(n: number): string {
@@ -417,25 +420,82 @@ export default function SellerOrders() {
                       </p>
                     </div>
 
-                    {/* ── Status action — forward-only ──────────────────
-                         Shows only the single allowed next action as a
-                         button. Cancelled and Delivered are read-only.   */}
+                    {/* ── Status action — V1 forward-only seller transitions ─
+                         pending → confirmed → preparing → ready_for_pickup
+                         Courier/admin manages from ready_for_pickup onwards. */}
                     <div>
                       <p className="text-xs text-muted-foreground font-medium mb-2">{t("seller_orders.status")}</p>
 
+                      {/* V1: pending → Confirm Order */}
                       {order.status === "pending" && (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-sky-300 text-sky-700 hover:bg-sky-50 dark:border-sky-700 dark:text-sky-400 dark:hover:bg-sky-950/30"
+                            onClick={() => handleForward(order.id, "confirmed")}
+                            disabled={updateStatus.isPending}
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 me-1.5" />
+                            {t("seller_orders.mark_confirmed")}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/30"
+                            onClick={() => handleForward(order.id, "cancelled")}
+                            disabled={updateStatus.isPending}
+                          >
+                            <XCircle className="h-3.5 w-3.5 me-1.5" />
+                            {t("seller_orders.cancel_order")}
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* V1: confirmed → Start Preparing */}
+                      {order.status === "confirmed" && (
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950/30"
-                          onClick={() => handleForward(order.id, "processing")}
+                          className="border-cyan-300 text-cyan-700 hover:bg-cyan-50 dark:border-cyan-700 dark:text-cyan-400 dark:hover:bg-cyan-950/30"
+                          onClick={() => handleForward(order.id, "preparing")}
                           disabled={updateStatus.isPending}
                         >
-                          <Clock className="h-3.5 w-3.5 me-1.5" />
-                          {t("seller_orders.mark_processing")}
+                          <Package className="h-3.5 w-3.5 me-1.5" />
+                          {t("seller_orders.mark_preparing")}
                         </Button>
                       )}
 
+                      {/* V1: preparing → Mark Ready for Pickup */}
+                      {order.status === "preparing" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                          onClick={() => handleForward(order.id, "ready_for_pickup")}
+                          disabled={updateStatus.isPending}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 me-1.5" />
+                          {t("seller_orders.mark_ready")}
+                        </Button>
+                      )}
+
+                      {/* ready_for_pickup onwards — courier/admin manages */}
+                      {order.status === "ready_for_pickup" && (
+                        <div className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400 font-semibold">
+                          <CheckCircle2 className="h-4 w-4" />
+                          {t("seller_orders.awaiting_courier")}
+                        </div>
+                      )}
+
+                      {["courier_assigned", "picked_up", "out_for_delivery", "in_transit"].includes(order.status) && (
+                        <div className="inline-flex items-center gap-1.5 text-sm text-teal-600 dark:text-teal-400 font-semibold">
+                          <Truck className="h-4 w-4" />
+                          {t("seller_orders.courier_handling")}
+                        </div>
+                      )}
+
+                      {/* Legacy processing path — still shown if order was in that state */}
                       {order.status === "processing" && !isShippingThisOrder && (
                         <div className="flex flex-wrap gap-2">
                           <Button
@@ -463,16 +523,10 @@ export default function SellerOrders() {
                       )}
 
                       {order.status === "shipped" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
-                          onClick={() => handleForward(order.id, "delivered")}
-                          disabled={updateStatus.isPending}
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5 me-1.5" />
-                          {t("seller_orders.mark_delivered")}
-                        </Button>
+                        <div className="inline-flex items-center gap-1.5 text-sm text-indigo-600 dark:text-indigo-400 font-semibold">
+                          <Truck className="h-4 w-4" />
+                          {t("seller_orders.shipped_readonly", { defaultValue: "Shipped" })}
+                        </div>
                       )}
 
                       {order.status === "delivered" && (
@@ -482,10 +536,24 @@ export default function SellerOrders() {
                         </div>
                       )}
 
+                      {order.status === "delivery_failed" && (
+                        <div className="inline-flex items-center gap-1.5 text-sm text-orange-600 dark:text-orange-400 font-semibold">
+                          <XCircle className="h-4 w-4" />
+                          {t("seller_orders.delivery_failed_readonly", { defaultValue: "Delivery Failed" })}
+                        </div>
+                      )}
+
                       {order.status === "cancelled" && (
                         <div className="inline-flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400 font-semibold">
                           <XCircle className="h-4 w-4" />
                           {t("seller_orders.cancelled_readonly")}
+                        </div>
+                      )}
+
+                      {order.status === "returned" && (
+                        <div className="inline-flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400 font-semibold">
+                          <XCircle className="h-4 w-4" />
+                          {t(`seller_orders.returned`, { defaultValue: "Returned" })}
                         </div>
                       )}
 

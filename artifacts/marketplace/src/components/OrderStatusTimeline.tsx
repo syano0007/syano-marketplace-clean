@@ -1,6 +1,6 @@
 import { type ElementType } from "react";
 import {
-  CheckCircle2, Circle, Clock, Package, Truck, Home, XCircle, MapPin, User,
+  CheckCircle2, Circle, Clock, Package, Truck, Home, XCircle, MapPin, User, AlertTriangle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils";
 export type OrderStatus =
   | "pending" | "confirmed" | "processing" | "preparing"
   | "ready_for_pickup" | "courier_assigned"
-  | "shipped" | "picked_up" | "in_transit"
-  | "delivered" | "cancelled" | "refunded";
+  | "shipped" | "picked_up" | "in_transit" | "out_for_delivery"
+  | "delivered" | "cancelled" | "delivery_failed" | "returned" | "refunded";
 
 interface OrderStatusTimelineProps {
   orderId: number;
@@ -22,18 +22,21 @@ interface OrderStatusTimelineProps {
   deliveryFee?: number | null;
 }
 
-// ── Two possible flows: Internal Delivery and External Shipping ────────────────
-// Internal: pending → processing → ready_for_pickup → courier_assigned → picked_up → delivered
-// External: pending → processing → shipped → delivered
-// We detect which flow is active from the order status.
+// ── V1 Delivery flow (canonical) ───────────────────────────────────────────────
+// pending → confirmed → preparing → ready_for_pickup → courier_assigned → picked_up → out_for_delivery → delivered
+//
+// Legacy External Shipping flow (backward compat for old orders):
+// pending → processing → shipped → delivered
 
-const DELIVERY_STEPS: { key: string; icon: ElementType; i18nKey: string }[] = [
-  { key: "pending",          icon: Clock,    i18nKey: "orders.step_pending" },
-  { key: "processing",       icon: Package,  i18nKey: "orders.step_processing" },
-  { key: "ready_for_pickup", icon: MapPin,   i18nKey: "orders.step_ready_for_pickup" },
-  { key: "courier_assigned", icon: User,     i18nKey: "orders.step_courier_assigned" },
-  { key: "picked_up",        icon: Truck,    i18nKey: "orders.step_picked_up" },
-  { key: "delivered",        icon: Home,     i18nKey: "orders.step_delivered" },
+const V1_DELIVERY_STEPS: { key: string; icon: ElementType; i18nKey: string }[] = [
+  { key: "pending",          icon: Clock,         i18nKey: "orders.step_pending" },
+  { key: "confirmed",        icon: CheckCircle2,  i18nKey: "orders.step_confirmed" },
+  { key: "preparing",        icon: Package,       i18nKey: "orders.step_preparing" },
+  { key: "ready_for_pickup", icon: MapPin,        i18nKey: "orders.step_ready_for_pickup" },
+  { key: "courier_assigned", icon: User,          i18nKey: "orders.step_courier_assigned" },
+  { key: "picked_up",        icon: Truck,         i18nKey: "orders.step_picked_up" },
+  { key: "out_for_delivery", icon: Truck,         i18nKey: "orders.step_out_for_delivery" },
+  { key: "delivered",        icon: Home,          i18nKey: "orders.step_delivered" },
 ];
 
 const SHIPPING_STEPS: { key: string; icon: ElementType; i18nKey: string }[] = [
@@ -43,23 +46,26 @@ const SHIPPING_STEPS: { key: string; icon: ElementType; i18nKey: string }[] = [
   { key: "delivered",  icon: Home,    i18nKey: "orders.step_delivered" },
 ];
 
-const DELIVERY_STATUS_ORDER: Record<string, number> = {
+const V1_STATUS_ORDER: Record<string, number> = {
   pending:          0,
-  confirmed:        0,
-  processing:       1,
-  preparing:        1,
-  ready_for_pickup: 2,
-  courier_assigned: 3,
-  picked_up:        4,
-  in_transit:       4,
-  delivered:        5,
+  confirmed:        1,
+  preparing:        2,
+  // legacy aliases that map to nearby steps
+  processing:       2,
+  ready_for_pickup: 3,
+  courier_assigned: 4,
+  picked_up:        5,
+  in_transit:       6,
+  out_for_delivery: 6,
+  delivered:        7,
   cancelled:        -1,
-  refunded:         -2,
+  delivery_failed:  -2,
+  returned:         -3,
+  refunded:         -4,
 };
 
 const SHIPPING_STATUS_ORDER: Record<string, number> = {
   pending:    0,
-  confirmed:  0,
   processing: 1,
   preparing:  1,
   shipped:    2,
@@ -68,12 +74,12 @@ const SHIPPING_STATUS_ORDER: Record<string, number> = {
   refunded:   -2,
 };
 
-function isDeliveryFlow(status: OrderStatus): boolean {
-  return ["ready_for_pickup", "courier_assigned", "picked_up", "in_transit"].includes(status);
-}
-
-function isShippingFlow(status: OrderStatus): boolean {
-  return ["shipped"].includes(status);
+/** Returns true if the order is on the V1 internal delivery flow */
+function isV1DeliveryFlow(status: OrderStatus): boolean {
+  return [
+    "confirmed", "preparing", "ready_for_pickup", "courier_assigned",
+    "picked_up", "out_for_delivery", "in_transit",
+  ].includes(status);
 }
 
 export function OrderStatusTimeline({ orderId, status, createdAt, updatedAt, deliveryFee }: OrderStatusTimelineProps) {
@@ -84,25 +90,33 @@ export function OrderStatusTimeline({ orderId, status, createdAt, updatedAt, del
   });
 
   const isCancelled = status === "cancelled";
-  const isRefunded  = status === "refunded";
+  const isDeliveryFailed = status === "delivery_failed";
+  const isReturned = status === "returned";
+  const isRefunded = status === "refunded";
 
-  // Pick the right flow: if status hints delivery flow, use it; else use shipping
-  const useDelivery = isDeliveryFlow(status);
-  const STEPS = useDelivery ? DELIVERY_STEPS : SHIPPING_STEPS;
-  const STATUS_ORDER = useDelivery ? DELIVERY_STATUS_ORDER : SHIPPING_STATUS_ORDER;
+  const useV1Delivery = isV1DeliveryFlow(status) || (
+    !["shipped", "processing"].includes(status) &&
+    !isCancelled && !isDeliveryFailed && !isReturned && !isRefunded
+  );
+  const STEPS = (status === "shipped" || status === "processing") && !isV1DeliveryFlow(status)
+    ? SHIPPING_STEPS
+    : V1_DELIVERY_STEPS;
+  const STATUS_ORDER = STEPS === SHIPPING_STEPS ? SHIPPING_STATUS_ORDER : V1_STATUS_ORDER;
   const currentIndex = STATUS_ORDER[status] ?? 0;
 
   function getTimestampFromHistory(stepKey: string): string | null {
     if (!history || history.length === 0) return null;
-    // Check both the key and its synonyms
     const synonyms: Record<string, string[]> = {
-      processing:       ["processing", "confirmed", "preparing"],
+      pending:          ["pending"],
+      confirmed:        ["confirmed"],
+      preparing:        ["preparing", "processing"],
       ready_for_pickup: ["ready_for_pickup"],
       courier_assigned: ["courier_assigned"],
-      picked_up:        ["picked_up", "in_transit"],
-      shipped:          ["shipped"],
+      picked_up:        ["picked_up"],
+      out_for_delivery: ["out_for_delivery", "in_transit"],
       delivered:        ["delivered"],
-      pending:          ["pending"],
+      processing:       ["processing", "confirmed", "preparing"],
+      shipped:          ["shipped"],
     };
     const targets = synonyms[stepKey] ?? [stepKey];
     const entry = history.find((h: OrderHistoryEntry) => targets.includes(h.toStatus));
@@ -111,7 +125,7 @@ export function OrderStatusTimeline({ orderId, status, createdAt, updatedAt, del
   }
 
   function getFallbackTimestamp(stepIndex: number): string | null {
-    if (isCancelled || isRefunded) return null;
+    if (isCancelled || isDeliveryFailed || isReturned || isRefunded) return null;
     if (stepIndex === 0) return format(new Date(createdAt), "MMM d, yyyy 'at' h:mm a");
     if (stepIndex <= currentIndex) return format(new Date(updatedAt), "MMM d, yyyy 'at' h:mm a");
     return null;
@@ -124,6 +138,8 @@ export function OrderStatusTimeline({ orderId, status, createdAt, updatedAt, del
   }
 
   const cancelledEntry = history?.find((h: OrderHistoryEntry) => h.toStatus === "cancelled");
+  const failedEntry = history?.find((h: OrderHistoryEntry) => h.toStatus === "delivery_failed");
+  const returnedEntry = history?.find((h: OrderHistoryEntry) => h.toStatus === "returned");
 
   return (
     <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
@@ -145,6 +161,33 @@ export function OrderStatusTimeline({ orderId, status, createdAt, updatedAt, del
               <p className="text-xs text-muted-foreground mt-0.5">
                 {cancelledEntry
                   ? format(new Date(cancelledEntry.createdAt), "MMM d, yyyy 'at' h:mm a")
+                  : format(new Date(updatedAt), "MMM d, yyyy 'at' h:mm a")}
+              </p>
+            </div>
+          </div>
+        ) : isDeliveryFailed ? (
+          <div className="flex items-center gap-3" style={{ color: "#F59E0B" }}>
+            <AlertTriangle className="h-6 w-6 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">{t("orders.status_delivery_failed")}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {failedEntry
+                  ? format(new Date(failedEntry.createdAt), "MMM d, yyyy 'at' h:mm a")
+                  : format(new Date(updatedAt), "MMM d, yyyy 'at' h:mm a")}
+              </p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                {t("orders.delivery_failed_desc")}
+              </p>
+            </div>
+          </div>
+        ) : isReturned ? (
+          <div className="flex items-center gap-3" style={{ color: "#8B5CF6" }}>
+            <XCircle className="h-6 w-6 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">{t("orders.status_returned")}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {returnedEntry
+                  ? format(new Date(returnedEntry.createdAt), "MMM d, yyyy 'at' h:mm a")
                   : format(new Date(updatedAt), "MMM d, yyyy 'at' h:mm a")}
               </p>
             </div>

@@ -23,33 +23,57 @@ import { useScreenLayout } from "@/hooks/useScreenLayout";
 import { t } from "../../src/i18n";
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "#F59E0B",
-  processing: "#3B82F6",
-  shipped: "#8B5CF6",
-  delivered: "#10B981",
-  cancelled: "#EF4444",
-  refunded: "#8B5CF6",
+  pending:          "#F59E0B",
+  confirmed:        "#0EA5E9",
+  processing:       "#3B82F6",
+  preparing:        "#06B6D4",
+  ready_for_pickup: "#10B981",
+  courier_assigned: "#14B8A6",
+  picked_up:        "#8B5CF6",
+  out_for_delivery: "#6366F1",
+  shipped:          "#8B5CF6",
+  in_transit:       "#A855F7",
+  delivered:        "#10B981",
+  cancelled:        "#EF4444",
+  delivery_failed:  "#F97316",
+  returned:         "#F59E0B",
+  refunded:         "#8B5CF6",
 };
 
-const STATUS_STEPS = ["pending", "processing", "shipped", "delivered"] as const;
+// V1 canonical 8-step flow for timeline display
+const STATUS_STEPS = [
+  "pending", "confirmed", "preparing", "ready_for_pickup",
+  "courier_assigned", "picked_up", "out_for_delivery", "delivered",
+] as const;
 
+// Seller V1 advance transitions
 const STATUS_NEXT: Record<string, string | null> = {
-  pending: "processing",
-  processing: "shipped",
-  shipped: "delivered",
-  delivered: null,
-  cancelled: null,
-  refunded: null,
+  pending:          "confirmed",
+  confirmed:        "preparing",
+  preparing:        "ready_for_pickup",
+  ready_for_pickup: null,  // courier takes over
+  delivered:        null,
+  cancelled:        null,
+  refunded:         null,
 };
 
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    pending: t("orders.status_pending"),
-    processing: t("orders.status_processing"),
-    shipped: t("orders.status_shipped"),
-    delivered: t("orders.status_delivered"),
-    cancelled: t("orders.status_cancelled"),
-    refunded: t("orders.status_refunded"),
+    pending:          t("orders.status_pending"),
+    confirmed:        t("orders.status_confirmed"),
+    processing:       t("orders.status_processing"),
+    preparing:        t("orders.status_preparing"),
+    ready_for_pickup: t("orders.status_ready_for_pickup"),
+    courier_assigned: t("orders.status_courier_assigned"),
+    picked_up:        t("orders.status_picked_up"),
+    out_for_delivery: t("orders.status_out_for_delivery"),
+    shipped:          t("orders.status_shipped"),
+    in_transit:       t("orders.status_in_transit"),
+    delivered:        t("orders.status_delivered"),
+    cancelled:        t("orders.status_cancelled"),
+    delivery_failed:  t("orders.status_delivery_failed"),
+    returned:         t("orders.status_returned"),
+    refunded:         t("orders.status_refunded"),
   };
   return labels[status] ?? status;
 }
@@ -93,7 +117,13 @@ export default function OrderDetailScreen() {
   });
 
   const statusColor = order ? (STATUS_COLORS[order.status] ?? colors.mutedForeground) : colors.mutedForeground;
-  const currentStepIdx = order ? STATUS_STEPS.findIndex(s => s === order.status) : -1;
+  // V1 step index mapping — handles legacy aliases
+  const V1_STEP_RANK: Record<string, number> = {
+    pending: 0, confirmed: 1, processing: 2, preparing: 2,
+    ready_for_pickup: 3, courier_assigned: 4, picked_up: 5,
+    in_transit: 6, out_for_delivery: 6, delivered: 7,
+  };
+  const currentStepIdx = order ? (V1_STEP_RANK[order.status] ?? -1) : -1;
 
   function getStepTimestamp(step: string): string | null {
     if (!history) return null;
@@ -165,10 +195,13 @@ export default function OrderDetailScreen() {
 
   const nextStatus = STATUS_NEXT[order.status];
   const isCancelled = order.status === "cancelled" || order.status === "refunded";
+  const isDeliveryFailed = order.status === "delivery_failed";
+  const isReturned = order.status === "returned";
 
-  // Customers can cancel from pending or processing
+  // V1 policy: customer may cancel until ready_for_pickup; blocked once courier_assigned or beyond
   const isCustomer = !isSeller;
-  const canCustomerCancel = isCustomer && (order.status === "pending" || order.status === "processing");
+  const CUSTOMER_CANCEL_ALLOWED = ["pending", "confirmed", "preparing", "ready_for_pickup"];
+  const canCustomerCancel = isCustomer && CUSTOMER_CANCEL_ALLOWED.includes(order.status);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

@@ -17,18 +17,22 @@ import { buildVariantData } from "./variants";
 
 const router: IRouter = Router();
 
+// V1 seller transitions — forward-only, courier-handoff at ready_for_pickup
 const SELLER_TRANSITIONS: Record<string, string[]> = {
-  pending:           ["processing"],
-  confirmed:         ["processing"],
-  processing:        ["shipped", "ready_for_pickup"],
+  pending:           ["confirmed", "cancelled"],
+  confirmed:         ["preparing"],
   preparing:         ["ready_for_pickup"],
-  ready_for_pickup:  [],
+  // ── Legacy / read-only past states ──────────────────────────────────────────
+  ready_for_pickup:  [],   // courier/admin manages from here
   courier_assigned:  [],
-  shipped:           ["delivered"],
   picked_up:         [],
+  out_for_delivery:  [],
   in_transit:        [],
+  shipped:           [],
   delivered:         [],
   cancelled:         [],
+  delivery_failed:   [],
+  returned:          [],
   refunded:          [],
 };
 
@@ -555,9 +559,13 @@ router.patch("/orders/:id/status", requireAuth, requireActiveAccount, async (req
   if (role === "customer") {
     if (order.customerId !== userId) { res.status(403).json({ error: "Access denied" }); return; }
     if (newStatus !== "cancelled") { res.status(403).json({ error: "Customers can only cancel orders" }); return; }
-    // Customers can cancel from pending or processing (not after shipment)
-    if (["shipped", "delivered", "cancelled", "refunded"].includes(currentStatus)) {
-      res.status(400).json({ error: "Order cannot be cancelled after shipment" }); return;
+    // V1 policy: customer may cancel up to ready_for_pickup; blocked once courier_assigned or beyond
+    const CUSTOMER_CANCEL_BLOCKED = [
+      "courier_assigned", "picked_up", "out_for_delivery", "in_transit",
+      "delivered", "cancelled", "delivery_failed", "returned", "refunded",
+    ];
+    if (CUSTOMER_CANCEL_BLOCKED.includes(currentStatus)) {
+      res.status(400).json({ error: "Order cannot be cancelled after courier assignment" }); return;
     }
   }
 
@@ -572,8 +580,13 @@ router.patch("/orders/:id/status", requireAuth, requireActiveAccount, async (req
       res.status(403).json({ error: "Cannot update status for orders containing other sellers' items" });
       return;
     }
-    if (["cancelled", "delivered"].includes(currentStatus)) {
-      res.status(403).json({ error: "Cannot modify a cancelled or delivered order" }); return;
+    // Seller cannot touch an order once courier has it, or it's in a terminal state
+    const SELLER_LOCKED = [
+      "courier_assigned", "picked_up", "out_for_delivery", "in_transit",
+      "delivered", "cancelled", "delivery_failed", "returned", "refunded",
+    ];
+    if (SELLER_LOCKED.includes(currentStatus)) {
+      res.status(403).json({ error: "Cannot modify an order that is courier-managed or in a terminal state" }); return;
     }
     const allowed = SELLER_TRANSITIONS[currentStatus] ?? [];
     if (!allowed.includes(newStatus)) {
@@ -588,18 +601,23 @@ router.patch("/orders/:id/status", requireAuth, requireActiveAccount, async (req
   // ── Admin logic ─────────────────────────────────────────────────────────────
   if (role === "admin") {
     const ADMIN_TRANSITIONS: Record<string, string[]> = {
-      pending:          ["confirmed", "processing", "cancelled"],
-      confirmed:        ["processing", "cancelled"],
-      processing:       ["shipped", "ready_for_pickup", "cancelled"],
+      // ── V1 canonical flow ──────────────────────────────────────────────────
+      pending:          ["confirmed", "cancelled"],
+      confirmed:        ["preparing", "cancelled"],
       preparing:        ["ready_for_pickup", "cancelled"],
-      ready_for_pickup: ["courier_assigned", "shipped", "cancelled"],
+      ready_for_pickup: ["courier_assigned", "cancelled"],
       courier_assigned: ["picked_up", "cancelled"],
-      picked_up:        ["in_transit", "delivered", "cancelled"],
-      in_transit:       ["delivered", "cancelled"],
-      shipped:          ["delivered", "cancelled"],
-      delivered:        ["refunded"],
+      picked_up:        ["out_for_delivery", "cancelled"],
+      out_for_delivery: ["delivered", "delivery_failed", "cancelled"],
+      delivered:        ["returned", "refunded"],
+      delivery_failed:  ["out_for_delivery", "cancelled", "returned"],
+      returned:         ["refunded"],
       cancelled:        [],
       refunded:         [],
+      // ── Legacy statuses — backward compat for old orders ──────────────────
+      processing:       ["preparing", "ready_for_pickup", "cancelled"],
+      shipped:          ["delivered", "cancelled"],
+      in_transit:       ["out_for_delivery", "delivered", "cancelled"],
     };
     const adminAllowed = ADMIN_TRANSITIONS[currentStatus] ?? [];
     if (!adminAllowed.includes(newStatus)) {
@@ -646,6 +664,12 @@ router.patch("/orders/:id/status", requireAuth, requireActiveAccount, async (req
     if (parsed.data.shippingCompany != null) updatePayload.shippingCompany = parsed.data.shippingCompany;
     if (parsed.data.trackingNumber != null)  updatePayload.trackingNumber = parsed.data.trackingNumber;
   }
+  if (newStatus === "cancelled") {
+    updatePayload.cancelledBy = role;
+    if ((parsed.data as any).cancellationReason) {
+      updatePayload.cancellationReason = (parsed.data as any).cancellationReason;
+    }
+  }
 
   const [updated] = await db.update(ordersTable)
     .set(updatePayload as any).where(eq(ordersTable.id, params.data.id)).returning();
@@ -653,12 +677,67 @@ router.patch("/orders/:id/status", requireAuth, requireActiveAccount, async (req
   // ── Mandatory status history insert ────────────────────────────────────────
   await insertStatusHistory(order.id, currentStatus, newStatus, userId, role);
 
-  // ── Notifications ───────────────────────────────────────────────────────────
-  if (newStatus === "processing") {
+  // ── Notifications — V1: every transition notifies ───────────────────────────
+  // Helper: collect all seller IDs for this order (fire-and-forget pattern)
+  async function getOrderSellerIds(): Promise<number[]> {
+    const items = await db.select({ sellerId: orderItemsTable.sellerId })
+      .from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id));
+    return [...new Set(items.map((i) => i.sellerId))];
+  }
+  async function notifyAdmins(title: ReturnType<typeof bi>, body: ReturnType<typeof bi>, notifType: string, priority: "normal" | "important" | "critical" = "normal") {
+    db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"))
+      .then((admins) => Promise.allSettled(admins.map((admin) =>
+        createNotification({ userId: admin.id, type: notifType, title, body, orderId: order.id, priority, link: `/admin/orders` })
+      ))).catch(() => {});
+  }
+
+  if (newStatus === "confirmed") {
+    await createNotification({ userId: order.customerId, type: "order_confirmed",
+      title: bi("Order Confirmed!", "تم تأكيد طلبك!"),
+      body: bi(`Your order #${order.id} has been confirmed by the seller.`, `تم تأكيد طلبك رقم #${order.id} من قِبل البائع.`),
+      orderId: order.id, priority: "important", link: `/orders` });
+
+  } else if (newStatus === "processing") {
     await createNotification({ userId: order.customerId, type: "order_processing",
       title: bi("Order Being Processed", "جارٍ معالجة طلبك"),
       body: bi(`Your order #${order.id} is now being processed by the seller.`, `طلبك رقم #${order.id} يُعالج الآن من قِبل البائع.`),
       orderId: order.id, priority: "normal", link: `/orders` });
+
+  } else if (newStatus === "preparing") {
+    await createNotification({ userId: order.customerId, type: "order_preparing",
+      title: bi("Order Being Prepared", "طلبك قيد التجهيز"),
+      body: bi(`Your order #${order.id} is being prepared for shipping.`, `طلبك رقم #${order.id} جارٍ تجهيزه للشحن.`),
+      orderId: order.id, priority: "normal", link: `/orders` });
+
+  } else if (newStatus === "ready_for_pickup") {
+    await createNotification({ userId: order.customerId, type: "order_ready",
+      title: bi("Order Ready for Pickup", "طلبك جاهز للتسليم"),
+      body: bi(`Your order #${order.id} is ready and waiting for courier pickup.`, `طلبك رقم #${order.id} جاهز وينتظر استلام المندوب.`),
+      orderId: order.id, priority: "important", link: `/orders` });
+    notifyAdmins(
+      bi("Order Ready for Pickup", "طلب جاهز للتسليم"),
+      bi(`Order #${order.id} is ready for courier assignment.`, `الطلب رقم #${order.id} جاهز لتعيين مندوب.`),
+      "order_ready", "normal"
+    );
+
+  } else if (newStatus === "courier_assigned") {
+    await createNotification({ userId: order.customerId, type: "order_courier_assigned",
+      title: bi("Courier Assigned", "تم تعيين مندوب التوصيل"),
+      body: bi(`A courier has been assigned to your order #${order.id} and will pick it up soon.`, `تم تعيين مندوب لطلبك رقم #${order.id} وسيستلمه قريباً.`),
+      orderId: order.id, priority: "important", link: `/orders` });
+
+  } else if (newStatus === "picked_up") {
+    await createNotification({ userId: order.customerId, type: "order_picked_up",
+      title: bi("Order Picked Up", "تم استلام طلبك"),
+      body: bi(`Your order #${order.id} has been picked up by the courier.`, `تم استلام طلبك رقم #${order.id} من قِبل المندوب.`),
+      orderId: order.id, priority: "important", link: `/orders` });
+
+  } else if (newStatus === "out_for_delivery") {
+    await createNotification({ userId: order.customerId, type: "order_out_for_delivery",
+      title: bi("Out for Delivery!", "طلبك في الطريق إليك!"),
+      body: bi(`Your order #${order.id} is out for delivery and will arrive soon!`, `طلبك رقم #${order.id} في طريقه إليك وسيصل قريباً!`),
+      orderId: order.id, priority: "important", link: `/orders` });
+
   } else if (newStatus === "shipped") {
     const estDate = parsed.data.estimatedDelivery
       ? new Date(parsed.data.estimatedDelivery).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
@@ -667,11 +746,19 @@ router.patch("/orders/:id/status", requireAuth, requireActiveAccount, async (req
       title: bi("Order Shipped!", "تم شحن طلبك!"),
       body: bi(`Your order #${order.id} has been shipped. Estimated delivery: ${estDate}.`, `تم شحن طلبك رقم #${order.id}. الموعد المتوقع للتسليم: ${estDate}.`),
       orderId: order.id, priority: "important", link: `/orders` });
+
   } else if (newStatus === "delivered") {
     await createNotification({ userId: order.customerId, type: "order_delivered",
       title: bi("Order Delivered", "تم تسليم طلبك"),
       body: bi(`Your order #${order.id} has been delivered. Enjoy your purchase!`, `تم تسليم طلبك رقم #${order.id}. نتمنى أن تستمتع بمشترياتك!`),
       orderId: order.id, priority: "important", link: `/orders` });
+    // Notify sellers of delivery completion
+    getOrderSellerIds().then((sellerIds) => Promise.allSettled(sellerIds.map((sid) =>
+      createNotification({ userId: sid, type: "order_delivered",
+        title: bi("Order Delivered", "اكتمل التوصيل"),
+        body: bi(`Order #${order.id} has been delivered successfully.`, `تم تسليم الطلب رقم #${order.id} بنجاح.`),
+        orderId: order.id, priority: "normal", link: `/seller/orders` })
+    ))).catch(() => {});
 
     // Auto-feature: increment salesCount for each delivered item, then promote products
     const deliveredItems = await db
@@ -689,44 +776,62 @@ router.patch("/orders/:id/status", requireAuth, requireActiveAccount, async (req
         .set({ featured: sql`sales_count >= ${FEATURED_THRESHOLD}` })
         .where(inArray(productsTable.id, featuredProductIds));
     }
+
+  } else if (newStatus === "delivery_failed") {
+    await createNotification({ userId: order.customerId, type: "order_delivery_failed",
+      title: bi("Delivery Failed", "فشل التوصيل"),
+      body: bi(`Delivery of order #${order.id} was unsuccessful. Our team will contact you shortly.`, `تعذّر تسليم طلبك رقم #${order.id}. سيتواصل معك فريقنا قريباً.`),
+      orderId: order.id, priority: "critical", link: `/orders` });
+    // Notify seller
+    getOrderSellerIds().then((sellerIds) => Promise.allSettled(sellerIds.map((sid) =>
+      createNotification({ userId: sid, type: "order_delivery_failed",
+        title: bi("Delivery Failed", "فشل التوصيل"),
+        body: bi(`Delivery of order #${order.id} failed. Please coordinate with admin.`, `فشل تسليم الطلب رقم #${order.id}. يُرجى التنسيق مع الإدارة.`),
+        orderId: order.id, priority: "critical", link: `/seller/orders` })
+    ))).catch(() => {});
+    // Notify admins
+    notifyAdmins(
+      bi("Delivery Failed", "فشل التوصيل"),
+      bi(`Delivery of order #${order.id} failed and requires resolution.`, `فشل تسليم الطلب رقم #${order.id} ويحتاج إلى معالجة.`),
+      "order_delivery_failed", "critical"
+    );
+
+  } else if (newStatus === "returned") {
+    await createNotification({ userId: order.customerId, type: "order_returned",
+      title: bi("Order Returned", "تم إرجاع الطلب"),
+      body: bi(`Your order #${order.id} has been returned.`, `تم إرجاع طلبك رقم #${order.id}.`),
+      orderId: order.id, priority: "important", link: `/orders` });
+
   } else if (newStatus === "cancelled") {
+    const cancelledByLabel = role === "customer" ? "العميل" : role === "seller" ? "البائع" : "الإدارة";
     await createNotification({ userId: order.customerId, type: "order_cancelled",
       title: bi("Order Cancelled", "تم إلغاء الطلب"),
       body: bi(`Your order #${order.id} has been cancelled.`, `تم إلغاء طلبك رقم #${order.id}.`),
       orderId: order.id, priority: "important", link: `/orders` });
 
-    // If customer cancelled, notify seller(s)
-    if (role === "customer") {
-      const orderItems = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id));
-      const uniqueSellerIds = [...new Set(orderItems.map((i) => i.sellerId))];
+    // Notify seller(s) on customer or admin cancellation
+    if (role === "customer" || role === "admin") {
       const [customerRecord] = await db.select({ name: usersTable.name })
-        .from(usersTable).where(eq(usersTable.id, userId));
+        .from(usersTable).where(eq(usersTable.id, order.customerId));
       const customerName = customerRecord?.name ?? "A customer";
-      for (const sellerId of uniqueSellerIds) {
-        await createNotification({
-          userId: sellerId, type: "order_cancelled",
-          title: bi("Order Cancelled by Customer", "إلغاء الطلب من قِبل العميل"),
+      getOrderSellerIds().then((sellerIds) => Promise.allSettled(sellerIds.map((sid) =>
+        createNotification({ userId: sid, type: "order_cancelled",
+          title: bi("Order Cancelled", "إلغاء طلب"),
           body: bi(`Order #${order.id} from ${customerName} has been cancelled.`, `تم إلغاء الطلب رقم #${order.id} من ${customerName}.`),
-          orderId: order.id, priority: "critical", link: `/seller/orders`,
-        });
-      }
+          orderId: order.id, priority: "critical", link: `/seller/orders` })
+      ))).catch(() => {});
     }
 
-    // Notify admins of cancellation — fire-and-forget
-    db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"))
-      .then((admins) =>
-        Promise.allSettled(admins.map((admin) =>
-          createNotification({
-            userId: admin.id, type: "order_cancelled",
-            title: bi("Order Cancelled", "إلغاء طلب"),
-            body: bi(
-              `Order #${order.id} has been cancelled (by ${role}).`,
-              `تم إلغاء الطلب رقم #${order.id} (من قِبل ${role === "customer" ? "العميل" : "البائع"}).`
-            ),
-            orderId: order.id, priority: "normal", link: `/admin/orders`,
-          })
-        ))
-      ).catch(() => {});
+    // Always notify admins
+    notifyAdmins(
+      bi("Order Cancelled", "إلغاء طلب"),
+      bi(
+        `Order #${order.id} has been cancelled (by ${role}).`,
+        `تم إلغاء الطلب رقم #${order.id} (من قِبل ${cancelledByLabel}).`
+      ),
+      "order_cancelled", "normal"
+    );
+
   } else if (newStatus === "refunded") {
     await createNotification({ userId: order.customerId, type: "order_cancelled",
       title: bi("Order Refunded", "تم استرداد المبلغ"),

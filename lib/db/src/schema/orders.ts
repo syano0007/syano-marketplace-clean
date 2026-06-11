@@ -11,8 +11,11 @@ export const orderStatusEnum = pgEnum("order_status", [
   "shipped",
   "picked_up",
   "in_transit",
+  "out_for_delivery",
   "delivered",
   "cancelled",
+  "delivery_failed",
+  "returned",
   "refunded",
 ]);
 
@@ -32,6 +35,8 @@ export const ordersTable = pgTable("orders", {
   shippedAt: timestamp("shipped_at", { withTimezone: true }),
   deliveryFee: numeric("delivery_fee", { precision: 10, scale: 2 }),
   zoneId: integer("zone_id"),
+  cancellationReason: text("cancellation_reason"),
+  cancelledBy: text("cancelled_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => [

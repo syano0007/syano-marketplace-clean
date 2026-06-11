@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useParams, Link } from "wouter";
 import { useGetOrder, useUpdateOrderStatus, getListOrdersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,6 +26,7 @@ export default function OrderDetail() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [trackingCopied, setTrackingCopied] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const { data: order, isLoading, refetch } = useGetOrder(id, {
     query: { enabled: !!id, queryKey: ["getOrder", id] }
@@ -46,18 +47,27 @@ export default function OrderDetail() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "pending": return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200">{t("orders.status_pending")}</Badge>;
-      case "processing": return <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200">{t("orders.status_processing")}</Badge>;
-      case "shipped": return <Badge variant="outline" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200">{t("orders.status_shipped")}</Badge>;
-      case "delivered": return <Badge className="bg-primary hover:bg-primary text-primary-foreground">{t("orders.status_delivered")}</Badge>;
-      case "cancelled": return <Badge variant="destructive">{t("orders.status_cancelled")}</Badge>;
-      case "refunded": return <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200">{t("orders.status_refunded")}</Badge>;
-      default: return <Badge variant="secondary">{status}</Badge>;
+      case "pending":          return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200">{t("orders.status_pending")}</Badge>;
+      case "confirmed":        return <Badge variant="outline" className="bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200">{t("orders.status_confirmed")}</Badge>;
+      case "processing":       return <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200">{t("orders.status_processing")}</Badge>;
+      case "preparing":        return <Badge variant="outline" className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400 border-cyan-200">{t("orders.status_preparing")}</Badge>;
+      case "ready_for_pickup": return <Badge variant="outline" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200">{t("orders.status_ready_for_pickup")}</Badge>;
+      case "courier_assigned": return <Badge variant="outline" className="bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400 border-teal-200">{t("orders.status_courier_assigned")}</Badge>;
+      case "picked_up":        return <Badge variant="outline" className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 border-violet-200">{t("orders.status_picked_up")}</Badge>;
+      case "out_for_delivery": return <Badge variant="outline" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200">{t("orders.status_out_for_delivery")}</Badge>;
+      case "shipped":          return <Badge variant="outline" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200">{t("orders.status_shipped")}</Badge>;
+      case "delivered":        return <Badge className="bg-primary hover:bg-primary text-primary-foreground">{t("orders.status_delivered")}</Badge>;
+      case "delivery_failed":  return <Badge variant="outline" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200">{t("orders.status_delivery_failed")}</Badge>;
+      case "returned":         return <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200">{t("orders.status_returned")}</Badge>;
+      case "cancelled":        return <Badge variant="destructive">{t("orders.status_cancelled")}</Badge>;
+      case "refunded":         return <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200">{t("orders.status_refunded")}</Badge>;
+      default:                 return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  // Customers can cancel from pending or processing
-  const canCancel = order && (order.status === "pending" || order.status === "processing") && user?.role === "customer";
+  // V1 policy: customer may cancel until ready_for_pickup; blocked once courier_assigned or beyond
+  const CUSTOMER_CANCEL_ALLOWED = ["pending", "confirmed", "preparing", "ready_for_pickup"];
+  const canCancel = order && CUSTOMER_CANCEL_ALLOWED.includes(order.status) && user?.role === "customer";
 
   const handleCopyTracking = (trackingNumber: string) => {
     navigator.clipboard.writeText(trackingNumber).then(() => {
@@ -82,13 +92,6 @@ export default function OrderDetail() {
   if (!order) {
     return <Layout><div className="container py-12 text-muted-foreground">{t("orders.empty")}</div></Layout>;
   }
-
-  const cancelTitle = order.status === "processing"
-    ? t("orders.cancel_processing_title", "Cancel this processing order?")
-    : t("orders.cancel_title");
-  const cancelDesc = order.status === "processing"
-    ? t("orders.cancel_processing_desc", { id: order.id })
-    : t("orders.cancel_desc", { id: order.id });
 
   return (
     <Layout>
@@ -120,7 +123,7 @@ export default function OrderDetail() {
               <p className="text-sm text-muted-foreground mt-0.5">{order.items.length} {t("orders.items")}</p>
             </div>
             {canCancel && (
-              <AlertDialog>
+              <AlertDialog onOpenChange={(open) => { if (!open) setCancelReason(""); }}>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10">
                     <AlertTriangle className="h-3.5 w-3.5 me-1.5" />
@@ -129,15 +132,35 @@ export default function OrderDetail() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>{cancelTitle}</AlertDialogTitle>
+                    <AlertDialogTitle>{t("orders.cancel_title")}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      {cancelDesc}
+                      {t("orders.cancel_desc", { id: order.id })}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
+                  <div className="px-1 py-2">
+                    <label className="text-sm font-medium text-foreground block mb-2">
+                      {t("orders.cancel_reason_label")}
+                    </label>
+                    <select
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="">—</option>
+                      <option value="changed_mind">{t("orders.cancel_reason_changed_mind")}</option>
+                      <option value="found_better">{t("orders.cancel_reason_found_better")}</option>
+                      <option value="duplicate">{t("orders.cancel_reason_duplicate")}</option>
+                      <option value="mistake">{t("orders.cancel_reason_mistake")}</option>
+                      <option value="other">{t("orders.cancel_reason_other")}</option>
+                    </select>
+                  </div>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{t("orders.keep_order")}</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={() => updateStatus.mutate({ id: order.id, data: { status: "cancelled" } })}
+                      onClick={() => updateStatus.mutate({
+                        id: order.id,
+                        data: { status: "cancelled", ...(cancelReason ? { cancellationReason: cancelReason } : {}) } as any
+                      })}
                       className="bg-destructive hover:bg-destructive/90"
                     >
                       {t("orders.confirm_cancel")}

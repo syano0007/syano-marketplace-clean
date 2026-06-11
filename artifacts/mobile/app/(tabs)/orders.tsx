@@ -18,23 +18,39 @@ import { useColors } from "@/hooks/useColors";
 import { useScreenLayout } from "@/hooks/useScreenLayout";
 import { t } from "../../src/i18n";
 
-const ORDER_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"] as const;
+const ORDER_STATUSES = [
+  "pending", "confirmed", "processing", "preparing",
+  "ready_for_pickup", "courier_assigned", "picked_up", "out_for_delivery",
+  "shipped", "delivered", "cancelled", "delivery_failed", "returned", "refunded",
+] as const;
 type OrderStatus = typeof ORDER_STATUSES[number];
 
-const STATUS_NEXT: Record<string, OrderStatus | null> = {
-  pending: "processing",
-  processing: "shipped",
-  shipped: "delivered",
-  delivered: null,
-  cancelled: null,
+// Seller-facing advance transitions (not used in customer tab, kept for seller view)
+const STATUS_NEXT: Record<string, string | null> = {
+  pending:    "confirmed",
+  confirmed:  "preparing",
+  preparing:  "ready_for_pickup",
+  delivered:  null,
+  cancelled:  null,
+  refunded:   null,
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  pending: "#F59E0B",
-  processing: "#3B82F6",
-  shipped: "#8B5CF6",
-  delivered: "#10B981",
-  cancelled: "#EF4444",
+  pending:          "#F59E0B",
+  confirmed:        "#0EA5E9",
+  processing:       "#3B82F6",
+  preparing:        "#06B6D4",
+  ready_for_pickup: "#10B981",
+  courier_assigned: "#14B8A6",
+  picked_up:        "#8B5CF6",
+  out_for_delivery: "#6366F1",
+  shipped:          "#8B5CF6",
+  in_transit:       "#A855F7",
+  delivered:        "#10B981",
+  cancelled:        "#EF4444",
+  delivery_failed:  "#F97316",
+  returned:         "#F59E0B",
+  refunded:         "#8B5CF6",
 };
 
 export default function OrdersScreen() {

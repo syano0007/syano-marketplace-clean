@@ -20,15 +20,28 @@ import {
 import { ShoppingCart, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
-  processing: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  shipped: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  delivered: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  cancelled: "bg-red-500/10 text-red-600 dark:text-red-400",
-  refunded: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  pending:          "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
+  confirmed:        "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+  processing:       "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  preparing:        "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
+  ready_for_pickup: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  courier_assigned: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
+  picked_up:        "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  out_for_delivery: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+  in_transit:       "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+  shipped:          "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+  delivered:        "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  cancelled:        "bg-red-500/10 text-red-600 dark:text-red-400",
+  delivery_failed:  "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+  returned:         "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  refunded:         "bg-violet-500/10 text-violet-600 dark:text-violet-400",
 };
 
-const STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled", "refunded"];
+const STATUSES = [
+  "pending", "confirmed", "processing", "preparing",
+  "ready_for_pickup", "courier_assigned", "picked_up", "out_for_delivery",
+  "in_transit", "shipped", "delivered", "cancelled", "delivery_failed", "returned", "refunded",
+];
 const PAGE_SIZE = 20;
 
 export default function AdminOrders() {

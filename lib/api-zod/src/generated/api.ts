@@ -594,10 +594,11 @@ export const UpdateOrderStatusParams = zod.object({
 })
 
 export const UpdateOrderStatusBody = zod.object({
-  "status": zod.enum(['pending', 'confirmed', 'processing', 'preparing', 'ready_for_pickup', 'courier_assigned', 'shipped', 'picked_up', 'in_transit', 'delivered', 'cancelled', 'refunded']),
+  "status": zod.enum(['pending', 'confirmed', 'processing', 'preparing', 'ready_for_pickup', 'courier_assigned', 'shipped', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'cancelled', 'delivery_failed', 'returned', 'refunded']),
   "estimatedDelivery": zod.string().optional().nullable(),
   "shippingCompany": zod.string().optional().nullable(),
   "trackingNumber": zod.string().optional().nullable(),
+  "cancellationReason": zod.string().optional().nullable(),
 })
 
 export const UpdateOrderStatusResponse = zod.object({
@@ -920,7 +921,7 @@ export const AdminUpdateOrderStatusParams = zod.object({
 })
 
 export const AdminUpdateOrderStatusBody = zod.object({
-  "status": zod.enum(['pending', 'confirmed', 'processing', 'preparing', 'ready_for_pickup', 'courier_assigned', 'shipped', 'picked_up', 'in_transit', 'delivered', 'cancelled', 'refunded'])
+  "status": zod.enum(['pending', 'confirmed', 'processing', 'preparing', 'ready_for_pickup', 'courier_assigned', 'shipped', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'cancelled', 'delivery_failed', 'returned', 'refunded'])
 })
 
 export const AdminUpdateOrderStatusResponse = zod.object({

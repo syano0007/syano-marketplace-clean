@@ -30,6 +30,9 @@ export async function runMigrations(): Promise<void> {
       "courier_assigned",
       "picked_up",
       "in_transit",
+      "out_for_delivery",
+      "delivery_failed",
+      "returned",
     ];
     for (const val of newStatusValues) {
       try {
@@ -135,8 +138,10 @@ export async function runMigrations(): Promise<void> {
         IF EXISTS (
           SELECT 1 FROM information_schema.tables WHERE table_name = 'orders'
         ) THEN
-          ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC(10,2);
-          ALTER TABLE orders ADD COLUMN IF NOT EXISTS zone_id      INTEGER;
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee        NUMERIC(10,2);
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS zone_id             INTEGER;
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT;
+          ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancelled_by        TEXT;
         END IF;
       END $$;
 

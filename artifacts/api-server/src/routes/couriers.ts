@@ -163,8 +163,8 @@ router.patch("/couriers/assignments/:id/pickup", requireAuth, requireActiveAccou
   res.json({ message: "Order marked as picked up", status: "picked_up" });
 });
 
-// ─── Mark delivered ────────────────────────────────────────────────────────────
-router.patch("/couriers/assignments/:id/deliver", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
+// ─── Start delivery (picked_up → out_for_delivery) ─────────────────────────────
+router.patch("/couriers/assignments/:id/start-delivery", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
   const userId = req.user!.userId;
   const assignmentId = parseInt(String(req.params.id), 10);
   const [courier] = await db.select().from(couriersTable).where(eq(couriersTable.userId, userId));
@@ -177,7 +177,43 @@ router.patch("/couriers/assignments/:id/deliver", requireAuth, requireActiveAcco
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, assignment.orderId));
   if (!order) { res.status(404).json({ error: "Order not found" }); return; }
   if (order.status !== "picked_up") {
-    res.status(400).json({ error: "Order must be in picked_up status" }); return;
+    res.status(400).json({ error: "Order must be in picked_up status to start delivery" }); return;
+  }
+
+  await Promise.all([
+    db.update(courierAssignmentsTable).set({ status: "out_for_delivery", updatedAt: new Date() })
+      .where(eq(courierAssignmentsTable.id, assignment.id)),
+    db.update(ordersTable).set({ status: "out_for_delivery" as any, updatedAt: new Date() })
+      .where(eq(ordersTable.id, order.id)),
+    insertStatusHistory(order.id, "picked_up", "out_for_delivery", userId, "courier"),
+  ]);
+
+  await createNotification({
+    userId: order.customerId, type: "order_out_for_delivery",
+    title: bi("Out for Delivery!", "طلبك في الطريق إليك!"),
+    body: bi(`Your order #${order.id} is out for delivery and will arrive soon!`, `طلبك رقم #${order.id} في طريقه إليك وسيصل قريباً!`),
+    orderId: order.id, priority: "important", link: `/orders`,
+  });
+
+  res.json({ message: "Order is now out for delivery", status: "out_for_delivery" });
+});
+
+// ─── Mark delivered (out_for_delivery → delivered) ─────────────────────────────
+router.patch("/couriers/assignments/:id/deliver", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
+  const userId = req.user!.userId;
+  const assignmentId = parseInt(String(req.params.id), 10);
+  const [courier] = await db.select().from(couriersTable).where(eq(couriersTable.userId, userId));
+  if (!courier || courier.status !== "approved") { res.status(403).json({ error: "Access denied" }); return; }
+
+  const [assignment] = await db.select().from(courierAssignmentsTable)
+    .where(and(eq(courierAssignmentsTable.id, assignmentId), eq(courierAssignmentsTable.courierId, courier.id)));
+  if (!assignment) { res.status(404).json({ error: "Assignment not found" }); return; }
+
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, assignment.orderId));
+  if (!order) { res.status(404).json({ error: "Order not found" }); return; }
+  // Accept both out_for_delivery (V1) and picked_up (backward compat for old orders)
+  if (order.status !== "out_for_delivery" && order.status !== "picked_up") {
+    res.status(400).json({ error: "Order must be out_for_delivery or picked_up to mark as delivered" }); return;
   }
 
   const fee = order.deliveryFee ? parseFloat(String(order.deliveryFee)) : 0;
@@ -191,7 +227,7 @@ router.patch("/couriers/assignments/:id/deliver", requireAuth, requireActiveAcco
     db.update(couriersTable).set({
       completedDeliveries: courier.completedDeliveries + 1, updatedAt: new Date(),
     }).where(eq(couriersTable.id, courier.id)),
-    insertStatusHistory(order.id, "picked_up", "delivered", userId, "courier"),
+    insertStatusHistory(order.id, order.status as string, "delivered", userId, "courier"),
   ]);
 
   if (fee > 0) {
@@ -210,6 +246,57 @@ router.patch("/couriers/assignments/:id/deliver", requireAuth, requireActiveAcco
   });
 
   res.json({ message: "Order marked as delivered", status: "delivered" });
+});
+
+// ─── Report delivery failure (out_for_delivery → delivery_failed) ──────────────
+router.patch("/couriers/assignments/:id/fail-delivery", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
+  const userId = req.user!.userId;
+  const assignmentId = parseInt(String(req.params.id), 10);
+  const [courier] = await db.select().from(couriersTable).where(eq(couriersTable.userId, userId));
+  if (!courier || courier.status !== "approved") { res.status(403).json({ error: "Access denied" }); return; }
+
+  const [assignment] = await db.select().from(courierAssignmentsTable)
+    .where(and(eq(courierAssignmentsTable.id, assignmentId), eq(courierAssignmentsTable.courierId, courier.id)));
+  if (!assignment) { res.status(404).json({ error: "Assignment not found" }); return; }
+
+  const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, assignment.orderId));
+  if (!order) { res.status(404).json({ error: "Order not found" }); return; }
+  if (order.status !== "out_for_delivery") {
+    res.status(400).json({ error: "Order must be out_for_delivery to report a failure" }); return;
+  }
+
+  const { notes } = req.body;
+
+  await Promise.all([
+    db.update(courierAssignmentsTable).set({
+      status: "delivery_failed",
+      notes: notes ?? null,
+      updatedAt: new Date(),
+    }).where(eq(courierAssignmentsTable.id, assignment.id)),
+    db.update(ordersTable).set({ status: "delivery_failed" as any, updatedAt: new Date() })
+      .where(eq(ordersTable.id, order.id)),
+    insertStatusHistory(order.id, "out_for_delivery", "delivery_failed", userId, "courier"),
+  ]);
+
+  // Notify customer
+  await createNotification({
+    userId: order.customerId, type: "order_delivery_failed",
+    title: bi("Delivery Failed", "فشل التوصيل"),
+    body: bi(`Delivery of order #${order.id} was unsuccessful. Our team will contact you.`, `تعذّر تسليم طلبك رقم #${order.id}. سيتواصل معك فريقنا.`),
+    orderId: order.id, priority: "critical", link: `/orders`,
+  });
+  // Notify admins fire-and-forget
+  db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"))
+    .then((admins) => Promise.allSettled(admins.map((admin) =>
+      createNotification({
+        userId: admin.id, type: "order_delivery_failed",
+        title: bi("Delivery Failed", "فشل التوصيل"),
+        body: bi(`Courier reported delivery failure for order #${order.id}.`, `أبلغ المندوب عن فشل تسليم الطلب رقم #${order.id}.`),
+        orderId: order.id, priority: "critical", link: `/admin/orders`,
+      })
+    ))).catch(() => {});
+
+  res.json({ message: "Delivery failure reported", status: "delivery_failed" });
 });
 
 // ─── Earnings summary ──────────────────────────────────────────────────────────
