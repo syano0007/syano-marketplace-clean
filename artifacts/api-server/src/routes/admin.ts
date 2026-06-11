@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, count, sum, desc, asc, inArray, gte, lte, lt, and, sql } from "drizzle-orm";
-import { db, usersTable, productsTable, ordersTable, orderItemsTable, cartItemsTable, platformSettingsTable, adminAuditLogTable, sellerApplicationsTable, orderStatusHistoryTable, reviewsTable } from "@workspace/db";
+import { db, usersTable, productsTable, ordersTable, orderItemsTable, cartItemsTable, platformSettingsTable, adminAuditLogTable, sellerApplicationsTable, orderStatusHistoryTable, reviewsTable, deliveryZonesTable, couriersTable, courierAssignmentsTable } from "@workspace/db";
 import { requireAuth, requireRole } from "../middlewares/auth";
 import { createNotification, kickSseUser, bi } from "../lib/notif";
 
@@ -590,9 +590,19 @@ router.get("/admin/orders", async (req, res): Promise<void> => {
       customerId: ordersTable.customerId,
       customerName: usersTable.name,
       customerEmail: usersTable.email,
+      customerPhone: ordersTable.customerPhone,
       total: ordersTable.total,
       status: ordersTable.status,
       shippingAddress: ordersTable.shippingAddress,
+      city: ordersTable.city,
+      deliveryNotes: ordersTable.deliveryNotes,
+      estimatedDelivery: ordersTable.estimatedDelivery,
+      shippingCompany: ordersTable.shippingCompany,
+      trackingNumber: ordersTable.trackingNumber,
+      deliveryFee: ordersTable.deliveryFee,
+      zoneId: ordersTable.zoneId,
+      cancelledBy: ordersTable.cancelledBy,
+      cancellationReason: ordersTable.cancellationReason,
       createdAt: ordersTable.createdAt,
       updatedAt: ordersTable.updatedAt,
     })
@@ -602,27 +612,74 @@ router.get("/admin/orders", async (req, res): Promise<void> => {
     .limit(limit)
     .offset(offset);
 
-  // Batch-fetch all items for the current page in one query — was N queries.
   const orderIds = orders.map((o) => o.id);
-  const allItems = orderIds.length > 0
-    ? await db.select().from(orderItemsTable).where(inArray(orderItemsTable.orderId, orderIds))
+  const uniqueZoneIds = [...new Set(orders.map(o => o.zoneId).filter((z): z is number => z != null))];
+
+  type OrderItemRow = typeof orderItemsTable.$inferSelect;
+  const [allItems, allZones, allAssignments] = await Promise.all([
+    orderIds.length > 0
+      ? db.select().from(orderItemsTable).where(inArray(orderItemsTable.orderId, orderIds))
+      : Promise.resolve([] as OrderItemRow[]),
+    uniqueZoneIds.length > 0
+      ? db.select({ id: deliveryZonesTable.id, nameEn: deliveryZonesTable.nameEn, nameAr: deliveryZonesTable.nameAr })
+          .from(deliveryZonesTable).where(inArray(deliveryZonesTable.id, uniqueZoneIds))
+      : Promise.resolve([] as { id: number; nameEn: string; nameAr: string }[]),
+    orderIds.length > 0
+      ? db.select({
+            orderId:       courierAssignmentsTable.orderId,
+            status:        courierAssignmentsTable.status,
+            courierPhone:  couriersTable.phone,
+            courierUserId: couriersTable.userId,
+          })
+          .from(courierAssignmentsTable)
+          .innerJoin(couriersTable, eq(courierAssignmentsTable.courierId, couriersTable.id))
+          .where(inArray(courierAssignmentsTable.orderId, orderIds))
+      : Promise.resolve([] as { orderId: number; status: string; courierPhone: string | null; courierUserId: number }[]),
+  ]);
+
+  const uniqueCourierUserIds = [...new Set(allAssignments.map(a => a.courierUserId).filter((id): id is number => id != null))];
+  const allCourierUsers = uniqueCourierUserIds.length > 0
+    ? await db.select({ id: usersTable.id, name: usersTable.name })
+        .from(usersTable).where(inArray(usersTable.id, uniqueCourierUserIds))
     : [];
+
   const itemsByOrder = new Map<number, typeof allItems>();
   for (const item of allItems) {
     if (!itemsByOrder.has(item.orderId)) itemsByOrder.set(item.orderId, []);
     itemsByOrder.get(item.orderId)!.push(item);
   }
+  const zoneMap        = new Map(allZones.map(z => [z.id, z]));
+  const assignmentMap  = new Map(allAssignments.map(a => [a.orderId, a]));
+  const courierUserMap = new Map(allCourierUsers.map(u => [u.id, u.name]));
 
   const data = orders.map((order) => {
-    const items = itemsByOrder.get(order.id) ?? [];
+    const items      = itemsByOrder.get(order.id) ?? [];
+    const zone       = order.zoneId ? zoneMap.get(order.zoneId) : null;
+    const assignment = assignmentMap.get(order.id);
+    const courierName = assignment?.courierUserId ? (courierUserMap.get(assignment.courierUserId) ?? null) : null;
     return {
       id: order.id,
       customerId: order.customerId,
       customerName: order.customerName ?? "Unknown",
       customerEmail: order.customerEmail ?? "",
+      customerPhone: order.customerPhone ?? null,
       total: parseFloat(order.total),
       status: order.status,
       shippingAddress: order.shippingAddress,
+      city: order.city ?? null,
+      deliveryNotes: order.deliveryNotes ?? null,
+      estimatedDelivery: order.estimatedDelivery ?? null,
+      shippingCompany: order.shippingCompany ?? null,
+      trackingNumber: order.trackingNumber ?? null,
+      deliveryFee: order.deliveryFee ? parseFloat(String(order.deliveryFee)) : null,
+      zoneId: order.zoneId ?? null,
+      zoneNameEn: zone?.nameEn ?? null,
+      zoneNameAr: zone?.nameAr ?? null,
+      courierName,
+      courierPhone: assignment?.courierPhone ?? null,
+      courierStatus: assignment?.status ?? null,
+      cancelledBy: order.cancelledBy ?? null,
+      cancellationReason: order.cancellationReason ?? null,
       items: items.map((i) => ({
         productId: i.productId,
         productName: i.productName,
@@ -646,24 +703,19 @@ router.patch("/admin/orders/:id/status", async (req, res): Promise<void> => {
   if (!existing) { res.status(404).json({ error: "Order not found" }); return; }
 
   const { status } = req.body;
-  const validStatuses = ["pending", "processing", "shipped", "delivered", "cancelled", "refunded"];
-  if (!validStatuses.includes(status)) { res.status(400).json({ error: "Invalid status" }); return; }
+  const ALL_STATUSES = [
+    "pending", "confirmed", "processing", "preparing", "ready_for_pickup",
+    "courier_assigned", "shipped", "picked_up", "in_transit", "out_for_delivery",
+    "delivered", "cancelled", "delivery_failed", "returned", "refunded",
+  ];
+  if (!ALL_STATUSES.includes(status)) { res.status(400).json({ error: "Invalid status" }); return; }
+  if (status === existing.status) { res.status(400).json({ error: "Order is already in that status" }); return; }
 
-  // Admin forward-only transitions (admins can cancel/refund from any state, but
-  // cannot move backwards through the normal flow)
-  const ADMIN_FORWARD: Record<string, string[]> = {
-    pending:    ["processing", "cancelled"],
-    processing: ["shipped", "cancelled"],
-    shipped:    ["delivered", "cancelled"],
-    delivered:  ["refunded"],
-    cancelled:  [],
-    refunded:   [],
-  };
-  const allowed = ADMIN_FORWARD[existing.status as string] ?? [];
-  if (!allowed.includes(status)) {
-    res.status(400).json({
-      error: `Cannot transition order from '${existing.status}' to '${status}'. Allowed: ${allowed.join(", ") || "none"}`
-    });
+  // Admins can override any status — full control for manual corrections.
+  // The only hard guard: terminal states that should never move backwards.
+  const TERMINAL = ["refunded"];
+  if (TERMINAL.includes(existing.status as string)) {
+    res.status(400).json({ error: `Cannot change status from '${existing.status}' (terminal state)` });
     return;
   }
 
@@ -681,7 +733,7 @@ router.patch("/admin/orders/:id/status", async (req, res): Promise<void> => {
 
   await db.update(ordersTable).set({ status, updatedAt: new Date() }).where(eq(ordersTable.id, id));
 
-  // Mandatory: insert status history (propagates on failure — no silent audit-log loss)
+  // Mandatory: insert status history
   await db.insert(orderStatusHistoryTable).values({
     orderId: id,
     fromStatus: existing.status as string,
@@ -691,45 +743,29 @@ router.patch("/admin/orders/:id/status", async (req, res): Promise<void> => {
     notes: null,
   });
 
-  // Send customer notification for each status change (same as seller route)
-  if (status === "processing") {
+  // Send customer notification for key status changes
+  type NotifType = Parameters<typeof createNotification>[0]["type"];
+  const notifMap: Record<string, { type: NotifType; title: string; titleAr: string; body: string; bodyAr: string; priority: "normal" | "important" }> = {
+    confirmed:        { type: "order_confirmed",        title: "Order Confirmed",         titleAr: "تم تأكيد طلبك",            body: `Your order #${existing.id} has been confirmed.`,              bodyAr: `تم تأكيد طلبك رقم #${existing.id}.`,                                       priority: "normal" },
+    processing:       { type: "order_processing",       title: "Order Being Processed",   titleAr: "جارٍ معالجة طلبك",         body: `Your order #${existing.id} is now being processed.`,          bodyAr: `طلبك رقم #${existing.id} قيد المعالجة الآن.`,                              priority: "normal" },
+    preparing:        { type: "order_preparing",        title: "Order Being Prepared",    titleAr: "جارٍ تجهيز طلبك",          body: `Your order #${existing.id} is being prepared by the seller.`, bodyAr: `البائع يجهّز طلبك رقم #${existing.id}.`,                                   priority: "normal" },
+    ready_for_pickup: { type: "order_ready",            title: "Order Ready for Pickup",  titleAr: "طلبك جاهز للاستلام",        body: `Your order #${existing.id} is ready for courier pickup.`,     bodyAr: `طلبك رقم #${existing.id} جاهز لاستلام المندوب.`,                           priority: "normal" },
+    shipped:          { type: "order_shipped",          title: "Order Shipped!",          titleAr: "تم شحن طلبك!",             body: `Your order #${existing.id} has been shipped.`,                bodyAr: `تم شحن طلبك رقم #${existing.id}.`,                                         priority: "important" },
+    out_for_delivery: { type: "order_out_for_delivery", title: "Out for Delivery",        titleAr: "طلبك في الطريق إليك",       body: `Your order #${existing.id} is out for delivery!`,             bodyAr: `طلبك رقم #${existing.id} في طريقه إليك الآن!`,                             priority: "important" },
+    delivered:        { type: "order_delivered",        title: "Order Delivered",         titleAr: "تم تسليم طلبك",            body: `Your order #${existing.id} has been delivered.`,              bodyAr: `تم تسليم طلبك رقم #${existing.id}.`,                                       priority: "important" },
+    cancelled:        { type: "order_cancelled",        title: "Order Cancelled",         titleAr: "تم إلغاء الطلب",           body: `Your order #${existing.id} has been cancelled.`,              bodyAr: `تم إلغاء طلبك رقم #${existing.id}.`,                                       priority: "important" },
+    delivery_failed:  { type: "order_delivery_failed",  title: "Delivery Failed",         titleAr: "فشل تسليم الطلب",          body: `Delivery of order #${existing.id} could not be completed.`,   bodyAr: `لم نتمكن من تسليم طلبك رقم #${existing.id}. سنتواصل معك قريباً.`,          priority: "important" },
+    refunded:         { type: "order_refunded",         title: "Order Refunded",          titleAr: "تم استرداد المبلغ",         body: `Your order #${existing.id} has been refunded.`,               bodyAr: `تم استرداد مبلغ طلبك رقم #${existing.id}.`,                                priority: "important" },
+  };
+  const notif = notifMap[status];
+  if (notif) {
     await createNotification({
       userId: existing.customerId,
-      type: "order_processing",
-      title: bi("Order Being Processed", "جارٍ معالجة طلبك"),
-      body: bi(`Your order #${existing.id} is now being processed.`, `طلبك رقم #${existing.id} قيد المعالجة الآن.`),
+      type: notif.type,
+      title: bi(notif.title, notif.titleAr),
+      body: bi(notif.body, notif.bodyAr),
       orderId: existing.id,
-      priority: "normal",
-      link: `/orders`,
-    });
-  } else if (status === "shipped") {
-    await createNotification({
-      userId: existing.customerId,
-      type: "order_shipped",
-      title: bi("Order Shipped!", "تم شحن طلبك!"),
-      body: bi(`Your order #${existing.id} has been shipped and is on its way to you.`, `تم شحن طلبك رقم #${existing.id} وهو في طريقه إليك.`),
-      orderId: existing.id,
-      priority: "important",
-      link: `/orders`,
-    });
-  } else if (status === "delivered") {
-    await createNotification({
-      userId: existing.customerId,
-      type: "order_delivered",
-      title: bi("Order Delivered", "تم تسليم طلبك"),
-      body: bi(`Your order #${existing.id} has been delivered. Enjoy your purchase!`, `تم تسليم طلبك رقم #${existing.id}. نتمنى أن تستمتع بمشترياتك!`),
-      orderId: existing.id,
-      priority: "important",
-      link: `/orders`,
-    });
-  } else if (status === "cancelled") {
-    await createNotification({
-      userId: existing.customerId,
-      type: "order_cancelled",
-      title: bi("Order Cancelled", "تم إلغاء الطلب"),
-      body: bi(`Your order #${existing.id} has been cancelled.`, `تم إلغاء طلبك رقم #${existing.id}.`),
-      orderId: existing.id,
-      priority: "important",
+      priority: notif.priority,
       link: `/orders`,
     });
   }

@@ -26,6 +26,62 @@
 
 ## RESOLVED ISSUES
 
+### KI-R-BUG001
+- **ID:** KI-R-BUG001
+- **Priority:** High
+- **Description:** `GET /api/orders` list missing 8 delivery/courier fields (`deliveryFee`, `zoneId`, `zoneNameEn`, `zoneNameAr`, `courierName`, `courierPhone`, `courierStatus`, `cancelledBy`, `cancellationReason`)
+- **Current status:** RESOLVED 2026-06-11
+- **Resolution:** Added batch-fetch of zones + courier assignments in orders.ts; all 8 fields now included in list response
+- **Resolved in version:** QA Audit V1
+
+### KI-R-BUG002
+- **ID:** KI-R-BUG002
+- **Priority:** High
+- **Description:** `GET /api/admin/orders` list missing same 8 delivery/courier fields
+- **Current status:** RESOLVED 2026-06-11
+- **Resolution:** Added missing table imports + batch-fetch pattern to admin.ts; also fixed TS `never[]` inference with explicit `OrderItemRow` type
+- **Resolved in version:** QA Audit V1
+
+### KI-R-BUG003
+- **ID:** KI-R-BUG003
+- **Priority:** High
+- **Description:** Customer orders "Active" tab silently hid all orders in new delivery statuses (`confirmed`, `preparing`, `ready_for_pickup`, `courier_assigned`, `picked_up`, `in_transit`, `out_for_delivery`, `delivery_failed`)
+- **Current status:** RESOLVED 2026-06-11
+- **Resolution:** Expanded `STATUS_TAB_KEYS` active filter in `orders/index.tsx` to include all 8 missing statuses; also fixed `canCancel` logic to match V1 policy
+- **Resolved in version:** QA Audit V1
+
+### KI-R-BUG004
+- **ID:** KI-R-BUG004
+- **Priority:** Medium
+- **Description:** Customer orders status badge rendered nothing (null) for all new delivery statuses
+- **Current status:** RESOLVED 2026-06-11
+- **Resolution:** Expanded `getStatusBadge()` switch statement in `orders/index.tsx` from 6 old cases to all 15 V1 statuses with correct badge colors
+- **Resolved in version:** QA Audit V1
+
+### KI-R-BUG005
+- **ID:** KI-R-BUG005
+- **Priority:** Critical (security)
+- **Description:** Courier role could read any order via `GET /api/orders/:id` — no ownership check meant couriers could access customer PII (name, phone, address) for any order by guessing IDs
+- **Current status:** RESOLVED 2026-06-11
+- **Resolution:** Added courier assignment guard in `orders.ts` — courier must have an active `courierAssignmentsTable` row for the order or receives 403
+- **Resolved in version:** QA Audit V1
+
+### KI-R-BUG006
+- **ID:** KI-R-BUG006
+- **Priority:** High
+- **Description:** `PATCH /api/admin/orders/:id/status` only accepted 6 stale statuses; all 9 new V1 statuses returned 400. Admin order status dropdown silently failed for all new statuses.
+- **Current status:** RESOLVED 2026-06-11
+- **Resolution:** Replaced 6-item `validStatuses` with all 15 V1 statuses; removed strict forward-only transitions (admins get full override); added `refunded` terminal guard; expanded notification map to cover all key status changes
+- **Resolved in version:** QA Audit V1
+
+### KI-R-BUG007
+- **ID:** KI-R-BUG007
+- **Priority:** Medium
+- **Description:** Seller dashboard `ordersByStatus` only tracked 5 old statuses; orders in `confirmed`, `preparing`, `ready_for_pickup`, `courier_assigned`, `picked_up`, `out_for_delivery`, `delivery_failed`, `returned`, `refunded` counted as zero
+- **Current status:** RESOLVED 2026-06-11
+- **Resolution:** Replaced hardcoded 5-entry array with `.map()` over all 15 V1 statuses in `dashboard.ts`
+- **Resolved in version:** QA Audit V1
+
 ### KI-R001
 - **ID:** KI-R001
 - **Priority:** Critical

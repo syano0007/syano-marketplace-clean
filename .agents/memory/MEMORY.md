@@ -52,3 +52,4 @@
 - [Fresh env restore steps](fresh-env-restore.md) — pnpm install → drizzle-kit push --force → npx tsc --build libs → restart workflows; run-migrations.ts is additive-only (requires base schema to exist first).
 - [Recently Viewed Products](recently-viewed.md) — localStorage key syano_recently_viewed; product snapshots; max 10; move-to-front on re-view; trackView() in product detail useEffect; section on homepage.
 - [Courier ops UX audit](courier-ops-ux.md) — Enriched courier APIs + full admin/courier page rewrites; failure reason modal; capacity indicator; COD label; your_cut calc; i18n keys pattern.
+- [QA Audit V1 patterns](qa-audit-v1.md) — 7 bugs found+fixed in delivery system rollout; key patterns to avoid repeating.

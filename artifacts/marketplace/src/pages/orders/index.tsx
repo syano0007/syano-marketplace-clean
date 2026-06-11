@@ -18,9 +18,13 @@ import {
 
 const STATUS_TAB_KEYS = [
   { key: "all", labelKey: "orders.tab_all" },
-  { key: "active", labelKey: "orders.tab_active", statuses: ["pending", "processing", "shipped"] },
+  { key: "active", labelKey: "orders.tab_active", statuses: [
+    "pending", "confirmed", "processing", "preparing",
+    "ready_for_pickup", "courier_assigned", "shipped",
+    "picked_up", "in_transit", "out_for_delivery", "delivery_failed",
+  ]},
   { key: "delivered", labelKey: "orders.status_delivered", statuses: ["delivered"] },
-  { key: "cancelled", labelKey: "orders.status_cancelled", statuses: ["cancelled", "refunded"] },
+  { key: "cancelled", labelKey: "orders.status_cancelled", statuses: ["cancelled", "returned", "refunded"] },
 ];
 
 export default function OrderHistory() {
@@ -46,13 +50,22 @@ export default function OrderHistory() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "pending": return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 shrink-0">{t("orders.status_pending")}</Badge>;
-      case "processing": return <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 shrink-0">{t("orders.status_processing")}</Badge>;
-      case "shipped": return <Badge variant="outline" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 shrink-0">{t("orders.status_shipped")}</Badge>;
-      case "delivered": return <Badge className="bg-primary hover:bg-primary text-primary-foreground shrink-0">{t("orders.status_delivered")}</Badge>;
-      case "cancelled": return <Badge variant="destructive" className="shrink-0">{t("orders.status_cancelled")}</Badge>;
-      case "refunded": return <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 shrink-0">{t("orders.status_refunded")}</Badge>;
-      default: return <Badge variant="secondary" className="shrink-0">{status}</Badge>;
+      case "pending":          return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 shrink-0">{t("orders.status_pending")}</Badge>;
+      case "confirmed":        return <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 shrink-0">{t("orders.status_confirmed")}</Badge>;
+      case "processing":       return <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 shrink-0">{t("orders.status_processing")}</Badge>;
+      case "preparing":        return <Badge variant="outline" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 shrink-0">{t("orders.status_preparing")}</Badge>;
+      case "ready_for_pickup": return <Badge variant="outline" className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400 border-cyan-200 shrink-0">{t("orders.status_ready_for_pickup")}</Badge>;
+      case "courier_assigned": return <Badge variant="outline" className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 border-violet-200 shrink-0">{t("orders.status_courier_assigned")}</Badge>;
+      case "picked_up":        return <Badge variant="outline" className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 border-violet-200 shrink-0">{t("orders.status_picked_up")}</Badge>;
+      case "shipped":          return <Badge variant="outline" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 shrink-0">{t("orders.status_shipped")}</Badge>;
+      case "in_transit":       return <Badge variant="outline" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 shrink-0">{t("orders.status_in_transit")}</Badge>;
+      case "out_for_delivery": return <Badge variant="outline" className="bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400 border-teal-200 shrink-0">{t("orders.status_out_for_delivery")}</Badge>;
+      case "delivered":        return <Badge className="bg-primary hover:bg-primary text-primary-foreground shrink-0">{t("orders.status_delivered")}</Badge>;
+      case "delivery_failed":  return <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 shrink-0">{t("orders.status_delivery_failed")}</Badge>;
+      case "returned":         return <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 shrink-0">{t("orders.status_returned")}</Badge>;
+      case "cancelled":        return <Badge variant="destructive" className="shrink-0">{t("orders.status_cancelled")}</Badge>;
+      case "refunded":         return <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 shrink-0">{t("orders.status_refunded")}</Badge>;
+      default:                 return <Badge variant="secondary" className="shrink-0">{status}</Badge>;
     }
   };
 
@@ -128,13 +141,14 @@ export default function OrderHistory() {
         ) : (
           <div className="space-y-3">
             {filteredOrders.map((order) => {
-              const canCancel = order.status === "pending" || order.status === "processing";
-              const cancelTitle = order.status === "processing"
-                ? t("orders.cancel_processing_title", "Cancel this processing order?")
-                : t("orders.cancel_title");
-              const cancelDesc = order.status === "processing"
-                ? t("orders.cancel_processing_desc", { id: order.id })
-                : t("orders.cancel_desc", { id: order.id });
+              const CUSTOMER_CANCEL_ALLOWED = ["pending", "confirmed", "processing", "preparing", "ready_for_pickup"];
+              const canCancel = CUSTOMER_CANCEL_ALLOWED.includes(order.status);
+              const cancelTitle = order.status === "pending"
+                ? t("orders.cancel_title")
+                : t("orders.cancel_processing_title", "Cancel this order?");
+              const cancelDesc = order.status === "pending"
+                ? t("orders.cancel_desc", { id: order.id })
+                : t("orders.cancel_processing_desc", { id: order.id });
 
               return (
                 <div key={order.id} className="group bg-card border rounded-xl hover:border-primary/40 hover:-translate-y-0.5 transition-[transform,border-color] duration-150">

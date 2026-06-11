@@ -83,13 +83,16 @@ router.get("/dashboard/seller", requireAuth, requireActiveAccount, async (req, r
 
   const totalRevenue = parseFloat(parseFloat(revenueRow?.total ?? "0").toFixed(2));
 
-  const ordersByStatus = [
-    { status: "pending",    count: orders.filter((o) => o.status === "pending").length },
-    { status: "processing", count: orders.filter((o) => o.status === "processing").length },
-    { status: "shipped",    count: orders.filter((o) => o.status === "shipped").length },
-    { status: "delivered",  count: orders.filter((o) => o.status === "delivered").length },
-    { status: "cancelled",  count: orders.filter((o) => o.status === "cancelled").length },
+  // V1 statuses — count every status so the seller dashboard reflects current pipeline
+  const ALL_SELLER_STATUSES = [
+    "pending", "confirmed", "processing", "preparing", "ready_for_pickup",
+    "courier_assigned", "shipped", "picked_up", "in_transit", "out_for_delivery",
+    "delivered", "cancelled", "delivery_failed", "returned", "refunded",
   ];
+  const ordersByStatus = ALL_SELLER_STATUSES.map((status) => ({
+    status,
+    count: orders.filter((o) => o.status === status).length,
+  }));
 
   // Recent orders: one query each for orders+customers and items (was N*2 queries)
   const recentIds = ids.slice(0, 5);

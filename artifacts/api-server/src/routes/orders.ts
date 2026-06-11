@@ -183,20 +183,35 @@ router.get("/orders", requireAuth, requireActiveAccount, async (req, res): Promi
 
   if (orders.length === 0) { res.json([]); return; }
 
-  // Batch all lookups — eliminates N+1 (was: N orders × (1+M*2) queries)
+  // Batch all lookups — eliminates N+1
   const orderIds    = orders.map(o => o.id);
   const customerIds = [...new Set(orders.map(o => o.customerId))];
+  const uniqueZoneIds = [...new Set(orders.map(o => o.zoneId).filter((z): z is number => z != null))];
 
-  const [allItems, allCustomers] = await Promise.all([
+  const [allItems, allCustomers, allZones, allAssignments] = await Promise.all([
     db.select().from(orderItemsTable).where(inArray(orderItemsTable.orderId, orderIds)),
     db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email })
       .from(usersTable).where(inArray(usersTable.id, customerIds)),
+    uniqueZoneIds.length > 0
+      ? db.select({ id: deliveryZonesTable.id, nameEn: deliveryZonesTable.nameEn, nameAr: deliveryZonesTable.nameAr })
+          .from(deliveryZonesTable).where(inArray(deliveryZonesTable.id, uniqueZoneIds))
+      : Promise.resolve([] as { id: number; nameEn: string; nameAr: string }[]),
+    db.select({
+        orderId:       courierAssignmentsTable.orderId,
+        status:        courierAssignmentsTable.status,
+        courierPhone:  couriersTable.phone,
+        courierUserId: couriersTable.userId,
+      })
+      .from(courierAssignmentsTable)
+      .innerJoin(couriersTable, eq(courierAssignmentsTable.courierId, couriersTable.id))
+      .where(inArray(courierAssignmentsTable.orderId, orderIds)),
   ]);
 
-  const uniqueProductIds = [...new Set(allItems.map(i => i.productId))];
-  const uniqueSellerIds  = [...new Set(allItems.map(i => i.sellerId))];
+  const uniqueProductIds    = [...new Set(allItems.map(i => i.productId))];
+  const uniqueSellerIds     = [...new Set(allItems.map(i => i.sellerId))];
+  const uniqueCourierUserIds = [...new Set(allAssignments.map(a => a.courierUserId).filter((id): id is number => id != null))];
 
-  const [allProductImages, allSellers] = await Promise.all([
+  const [allProductImages, allSellers, allCourierUsers] = await Promise.all([
     uniqueProductIds.length > 0
       ? db.select({ id: productsTable.id, imageUrl: productsTable.imageUrl })
           .from(productsTable).where(inArray(productsTable.id, uniqueProductIds))
@@ -205,11 +220,18 @@ router.get("/orders", requireAuth, requireActiveAccount, async (req, res): Promi
       ? db.select({ id: usersTable.id, name: usersTable.name })
           .from(usersTable).where(inArray(usersTable.id, uniqueSellerIds))
       : Promise.resolve([]),
+    uniqueCourierUserIds.length > 0
+      ? db.select({ id: usersTable.id, name: usersTable.name })
+          .from(usersTable).where(inArray(usersTable.id, uniqueCourierUserIds))
+      : Promise.resolve([]),
   ]);
 
-  const customerMap   = new Map(allCustomers.map(c => [c.id, c]));
-  const productImgMap = new Map(allProductImages.map(p => [p.id, p.imageUrl]));
-  const sellerNameMap = new Map(allSellers.map(s => [s.id, s.name]));
+  const customerMap    = new Map(allCustomers.map(c => [c.id, c]));
+  const productImgMap  = new Map(allProductImages.map(p => [p.id, p.imageUrl]));
+  const sellerNameMap  = new Map(allSellers.map(s => [s.id, s.name]));
+  const zoneMap        = new Map(allZones.map(z => [z.id, z]));
+  const assignmentMap  = new Map(allAssignments.map(a => [a.orderId, a]));
+  const courierUserMap = new Map(allCourierUsers.map(u => [u.id, u.name]));
 
   const itemsByOrder = new Map<number, typeof allItems>();
   for (const item of allItems) {
@@ -219,8 +241,11 @@ router.get("/orders", requireAuth, requireActiveAccount, async (req, res): Promi
 
   res.json(
     orders.map(order => {
-      const customer = customerMap.get(order.customerId);
-      const items    = itemsByOrder.get(order.id) ?? [];
+      const customer    = customerMap.get(order.customerId);
+      const items       = itemsByOrder.get(order.id) ?? [];
+      const zone        = order.zoneId ? zoneMap.get(order.zoneId) : null;
+      const assignment  = assignmentMap.get(order.id);
+      const courierName = assignment?.courierUserId ? (courierUserMap.get(assignment.courierUserId) ?? null) : null;
       return {
         id:               order.id,
         customerId:       order.customerId,
@@ -251,6 +276,15 @@ router.get("/orders", requireAuth, requireActiveAccount, async (req, res): Promi
         estimatedDelivery: order.estimatedDelivery ?? null,
         shippingCompany:  order.shippingCompany ?? null,
         trackingNumber:   order.trackingNumber ?? null,
+        deliveryFee:      order.deliveryFee ? parseFloat(String(order.deliveryFee)) : null,
+        zoneId:           order.zoneId ?? null,
+        zoneNameEn:       zone?.nameEn ?? null,
+        zoneNameAr:       zone?.nameAr ?? null,
+        courierName:      courierName,
+        courierPhone:     assignment?.courierPhone ?? null,
+        courierStatus:    assignment?.status ?? null,
+        cancelledBy:      (order as any).cancelledBy ?? null,
+        cancellationReason: (order as any).cancellationReason ?? null,
         createdAt:        order.createdAt.toISOString(),
         updatedAt:        order.updatedAt.toISOString(),
       };
@@ -507,13 +541,22 @@ router.get("/orders/:id", requireAuth, requireActiveAccount, async (req, res): P
   const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, params.data.id));
   if (!order) { res.status(404).json({ error: "Order not found" }); return; }
 
-  if (req.user!.role === "customer" && order.customerId !== req.user!.userId) {
+  const { role, userId } = req.user!;
+
+  if (role === "customer" && order.customerId !== userId) {
     res.status(403).json({ error: "Access denied" }); return;
   }
-  if (req.user!.role === "seller") {
+  if (role === "seller") {
     const [sellerItem] = await db.select().from(orderItemsTable)
-      .where(and(eq(orderItemsTable.orderId, order.id), eq(orderItemsTable.sellerId, req.user!.userId)));
+      .where(and(eq(orderItemsTable.orderId, order.id), eq(orderItemsTable.sellerId, userId)));
     if (!sellerItem) { res.status(403).json({ error: "Access denied" }); return; }
+  }
+  if (role === "courier") {
+    const [assignment] = await db.select({ id: courierAssignmentsTable.id })
+      .from(courierAssignmentsTable)
+      .innerJoin(couriersTable, eq(courierAssignmentsTable.courierId, couriersTable.id))
+      .where(and(eq(courierAssignmentsTable.orderId, order.id), eq(couriersTable.userId, userId)));
+    if (!assignment) { res.status(403).json({ error: "Access denied" }); return; }
   }
 
   res.json(await buildOrderResponse(order));

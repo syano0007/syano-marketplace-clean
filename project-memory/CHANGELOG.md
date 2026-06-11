@@ -4,6 +4,88 @@ Chronological log of all verified modifications. Never delete previous entries.
 
 ---
 
+## 2026-06-11 — Full End-to-End QA Audit V1 (Session 3)
+
+### BUG-001 FIXED — GET /orders list missing 8 delivery/courier fields
+
+**Problem:** `GET /api/orders` (customer/seller list) responded with NO delivery or courier fields: `deliveryFee`, `zoneId`, `zoneNameEn`, `zoneNameAr`, `courierName`, `courierPhone`, `courierStatus`, `cancelledBy`, `cancellationReason` were all absent. Orders placed with a delivery zone showed no fee and no courier info in the list view.
+
+**Fix:** `artifacts/api-server/src/routes/orders.ts`
+- Added SELECT of `zoneId`, `cancelledBy`, `cancellationReason` in the main orders query
+- Batch-fetched zones (`deliveryZonesTable`) and courier assignments (`courierAssignmentsTable` + `couriersTable` + `usersTable`) after the main query
+- Joined courier name via `courierUserMap` in the response mapper
+- All 8 fields now returned on every order in the list
+
+**Verified:** `deliveryFee: 1`, `zoneNameEn: "Aleppo Center"`, `courierName`, `courierPhone`, `courierStatus`, `cancelledBy`, `cancellationReason` all present in response.
+
+---
+
+### BUG-002 FIXED — GET /admin/orders missing same 8 delivery/courier fields
+
+**Problem:** `GET /api/admin/orders` had the same gap — admin order list page could not display delivery fee, zone, or courier assignments.
+
+**Fix:** `artifacts/api-server/src/routes/admin.ts`
+- Added imports: `deliveryZonesTable`, `couriersTable`, `courierAssignmentsTable`
+- Added `type OrderItemRow = typeof orderItemsTable.$inferSelect` to fix TS `never[]` inference error
+- Added same batch-fetch pattern as BUG-001 fix
+- All 8 fields now returned in the admin orders list
+
+**Verified:** `deliveryFee`, `zoneNameEn`, `cancellationReason`, `customerPhone` all present.
+
+---
+
+### BUG-003 FIXED — Customer orders "Active" tab missing 8 new V1 statuses
+
+**Problem:** `artifacts/marketplace/src/pages/orders/index.tsx` — the `STATUS_TAB_KEYS` array only listed `pending`, `processing`, `shipped` under the "active" filter. Orders in `confirmed`, `preparing`, `ready_for_pickup`, `courier_assigned`, `picked_up`, `in_transit`, `out_for_delivery`, `delivery_failed` were invisible in the Active tab.
+
+**Fix:** Expanded `STATUS_TAB_KEYS` active entry to include all 8 missing statuses. Also exported `CUSTOMER_CANCEL_ALLOWED` constant and updated `canCancel` check (was only pending/processing; now also confirmed/preparing/ready_for_pickup).
+
+---
+
+### BUG-004 FIXED — Customer orders getStatusBadge() only handled 6 old statuses
+
+**Problem:** `getStatusBadge()` in the orders page had `switch` cases only for `pending`, `processing`, `shipped`, `delivered`, `cancelled`, `refunded`. All new delivery statuses fell through to `null` — no badge rendered.
+
+**Fix:** Expanded to all 15 V1 statuses with correct badge colors: `confirmed` (sky), `preparing` (cyan), `ready_for_pickup` (emerald), `courier_assigned` (violet), `picked_up` (purple), `in_transit` (indigo), `out_for_delivery` (teal), `delivery_failed` (red), `returned` (amber).
+
+---
+
+### BUG-005 FIXED — Courier role could read any order via GET /orders/:id
+
+**Problem:** `GET /api/orders/:id` had no ownership check for the courier role. Any authenticated courier could fetch full order detail (customer name, phone, address, items) for any order in the system by guessing numeric IDs.
+
+**Fix:** `artifacts/api-server/src/routes/orders.ts` — added courier assignment guard: couriers must have an active (`assigned`/`picked_up`/`out_for_delivery`) `courierAssignmentsTable` row for the requested order. Unassigned orders return 403 "Access denied".
+
+**Verified:** Courier gets `"error": "Access denied"` for unassigned order; gets full detail for assigned order.
+
+---
+
+### BUG-006 FIXED — PATCH /admin/orders/:id/status accepted only 6 stale statuses
+
+**Problem:** The admin order status override endpoint (`PATCH /api/admin/orders/:id/status`) validated against `["pending", "processing", "shipped", "delivered", "cancelled", "refunded"]` — all 9 new V1 statuses (`confirmed`, `preparing`, `ready_for_pickup`, `courier_assigned`, `picked_up`, `in_transit`, `out_for_delivery`, `delivery_failed`, `returned`) would return 400 "Invalid status". The admin orders page uses a status dropdown with all 15 statuses — so every new-status selection silently failed.
+
+**Fix:** `artifacts/api-server/src/routes/admin.ts` — `PATCH /admin/orders/:id/status`
+- Replaced 6-item `validStatuses` with `ALL_STATUSES` (all 15 V1 statuses)
+- Removed strict forward-only transition table (admins need full override capability)
+- Added only one hard guard: `refunded` is terminal (cannot change from refunded)
+- Added same-status guard (400 if already in that status)
+- Expanded notification `notifMap` to cover all key status changes with bilingual messages
+- Used `type NotifType = Parameters<typeof createNotification>[0]["type"]` to satisfy TS literal union
+
+**Verified:** Admin can set `delivered`, gets 400 for same-status, gets 400 for unknown status.
+
+---
+
+### BUG-007 FIXED — Seller dashboard ordersByStatus only tracked 5 old statuses
+
+**Problem:** `GET /api/dashboard/seller` computed `ordersByStatus` only for `["pending", "processing", "shipped", "delivered", "cancelled"]`. Sellers with orders in `confirmed`, `preparing`, `ready_for_pickup`, `courier_assigned`, `picked_up`, `out_for_delivery`, `in_transit`, `delivery_failed`, `returned`, `refunded` would see them counted as zero.
+
+**Fix:** `artifacts/api-server/src/routes/dashboard.ts` — replaced 5-entry hardcoded array with a `.map()` over all 15 V1 statuses.
+
+**Verified:** Response now contains 15 status entries including `preparing`, `ready_for_pickup`, `courier_assigned`, `delivery_failed`.
+
+---
+
 ## 2026-06-11 — Phase 1+2 Stability Audit (Session 2)
 
 ### Phase 1 — Notification Enum Expansion
