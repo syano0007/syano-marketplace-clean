@@ -897,10 +897,17 @@ router.patch("/orders/:id/status", requireAuth, requireActiveAccount, async (req
     );
 
   } else if (newStatus === "refunded") {
-    await createNotification({ userId: order.customerId, type: "order_cancelled",
+    await createNotification({ userId: order.customerId, type: "order_refunded",
       title: bi("Order Refunded", "تم استرداد المبلغ"),
       body: bi(`Your order #${order.id} has been refunded.`, `تم استرداد مبلغ طلبك رقم #${order.id}.`),
       orderId: order.id, priority: "important", link: `/orders` });
+    // Notify sellers
+    getOrderSellerIds().then((sellerIds) => Promise.allSettled(sellerIds.map((sid) =>
+      createNotification({ userId: sid, type: "order_refunded",
+        title: bi("Order Refunded", "تم استرداد المبلغ"),
+        body: bi(`Order #${order.id} has been refunded.`, `تم استرداد مبلغ الطلب رقم #${order.id}.`),
+        orderId: order.id, priority: "important", link: `/seller/orders` })
+    ))).catch(() => {});
   }
 
   res.json(await buildOrderResponse(updated));

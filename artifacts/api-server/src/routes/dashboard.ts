@@ -242,6 +242,69 @@ router.get("/dashboard/seller/analytics", requireAuth, requireActiveAccount, asy
   });
 });
 
+/* ── GET /dashboard/seller/metrics ──────────────────────────── */
+router.get("/dashboard/seller/metrics", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
+  if (req.user!.role !== "seller") {
+    res.status(403).json({ error: "Seller access required" });
+    return;
+  }
+  const sellerId = req.user!.userId;
+
+  // Get all order IDs for this seller in one query
+  const orderIdRows = await db
+    .selectDistinct({ orderId: orderItemsTable.orderId })
+    .from(orderItemsTable)
+    .where(eq(orderItemsTable.sellerId, sellerId));
+
+  if (orderIdRows.length === 0) {
+    res.json({
+      ordersToday: 0, ordersThisWeek: 0, ordersThisMonth: 0,
+      avgOrderValue: 0, cancellationRate: 0, deliverySuccessRate: 0,
+      preparingCount: 0, awaitingCourierCount: 0,
+    });
+    return;
+  }
+
+  const ids = orderIdRows.map(r => r.orderId);
+
+  const [row] = await db.execute(sql`
+    SELECT
+      COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)                                AS today,
+      COUNT(*) FILTER (WHERE created_at >= date_trunc('week', NOW()))                   AS this_week,
+      COUNT(*) FILTER (WHERE created_at >= date_trunc('month', NOW()))                  AS this_month,
+      ROUND(AVG(total::numeric)::numeric, 2)                                            AS avg_order_value,
+      COUNT(*)                                                                           AS total_count,
+      COUNT(*) FILTER (WHERE status = 'cancelled')                                      AS cancelled_count,
+      COUNT(*) FILTER (WHERE status = 'delivered')                                      AS delivered_count,
+      COUNT(*) FILTER (WHERE status IN ('delivery_failed','returned'))                   AS failed_count,
+      COUNT(*) FILTER (WHERE status = 'preparing')                                      AS preparing_count,
+      COUNT(*) FILTER (WHERE status = 'ready_for_pickup')                               AS awaiting_courier_count
+    FROM orders
+    WHERE id IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})
+  `) as any;
+
+  const r = (row as any).rows?.[0] ?? row;
+  const totalCount    = Number(r.total_count ?? 0);
+  const cancelledCount = Number(r.cancelled_count ?? 0);
+  const deliveredCount = Number(r.delivered_count ?? 0);
+  const failedCount   = Number(r.failed_count ?? 0);
+
+  const cancellationRate     = totalCount > 0 ? parseFloat(((cancelledCount / totalCount) * 100).toFixed(1)) : 0;
+  const deliveryDenominator  = deliveredCount + failedCount;
+  const deliverySuccessRate  = deliveryDenominator > 0 ? parseFloat(((deliveredCount / deliveryDenominator) * 100).toFixed(1)) : 0;
+
+  res.json({
+    ordersToday:          Number(r.today ?? 0),
+    ordersThisWeek:       Number(r.this_week ?? 0),
+    ordersThisMonth:      Number(r.this_month ?? 0),
+    avgOrderValue:        parseFloat(String(r.avg_order_value ?? "0")),
+    cancellationRate,
+    deliverySuccessRate,
+    preparingCount:       Number(r.preparing_count ?? 0),
+    awaitingCourierCount: Number(r.awaiting_courier_count ?? 0),
+  });
+});
+
 /* ── GET /dashboard/customer ─────────────────────────────────── */
 router.get("/dashboard/customer", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
   if (req.user!.role !== "customer") {

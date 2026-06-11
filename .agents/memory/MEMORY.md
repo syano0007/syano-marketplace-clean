@@ -57,3 +57,4 @@
 - [Courier profile fields](courier-profile-fields.md) — /couriers/profile must return successRate, activeAssignments, walletBalance; these are computed on-the-fly (not stored columns); courier dashboard will break without them.
 - [Admin assign-courier flow](admin-assign-courier-flow.md) — Use POST /admin/orders/:id/assign-courier (couriers.ts) to assign courier + create assignment record atomically; PATCH /orders/:id/status courier_assigned does NOT create assignment record.
 - [Fresh env restore steps](fresh-env-restore.md) — pnpm install --force → psql -f schema.sql → enum fix SQL → npx tsc --build libs → restart workflows; run-migrations.ts adds 5 additive tables on first API start.
+- [Seller Orders V2 architecture](seller-orders-v2.md) — Stats cards + metrics panel + bulk ops + detail page; metrics via GET /dashboard/seller/metrics (seller role required).
