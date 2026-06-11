@@ -42,6 +42,34 @@ export async function runMigrations(): Promise<void> {
       }
     }
 
+    // ── Extend notification_type enum ─────────────────────────────────────────
+    // schema.sql only has 17 of 31 values — these 14 were added after initial
+    // schema generation and must be present for courier/delivery/trust features.
+    // Each ALTER TYPE must be its own non-transaction call.
+    const newNotifValues = [
+      "order_confirmed",
+      "order_preparing",
+      "order_ready",
+      "order_courier_assigned",
+      "order_picked_up",
+      "order_out_for_delivery",
+      "order_delivery_failed",
+      "order_returned",
+      "order_cancelled_by_customer",
+      "order_refunded",
+      "new_user",
+      "courier_applied",
+      "courier_approved",
+      "courier_rejected",
+    ];
+    for (const val of newNotifValues) {
+      try {
+        await client.query(`ALTER TYPE notification_type ADD VALUE IF NOT EXISTS '${val}'`);
+      } catch {
+        // May already exist
+      }
+    }
+
     // ── Main migration block (idempotent DDL) ──────────────────────────────────
     await client.query(`
       -- Order tracking fields (added in order-workflow redesign)

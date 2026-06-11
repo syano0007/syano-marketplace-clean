@@ -23,13 +23,14 @@ await bootstrapTestAccounts();
 
 ## Guarantees
 
-- Created if missing
-- Repaired if role/status/isVerified drifted
+- User record: created if missing, repaired if role/status/isVerified drifted
 - Password reset if empty/invalid hash
+- Seller application: created if missing (status=approved, storeSlug=syano-test-store)
+- Courier profile: created if missing (status=approved, active=true)
 - Never creates duplicates (SELECT before INSERT)
 - Survives schema restores and migration runs
 - Non-fatal per-account: one failure doesn't block the others
 
-**Why:** After any DB restore, test accounts are lost. The self-healing bootstrap ensures they always exist without manual intervention, matching the root owner pattern.
+**Why:** After any DB restore, test accounts AND their role-specific records are lost. Users without seller_application have non-functional seller dashboards. Users without couriers record return 404 on /couriers/profile and cannot use any courier route.
 
-**How to apply:** If adding more permanent accounts, add to the `TEST_ACCOUNTS` array in `bootstrap-test-accounts.ts`. Never add more bootstrap admins — only one root admin (delewatiamer7) is allowed.
+**How to apply:** If adding more permanent accounts, add to the `TEST_ACCOUNTS` array in `bootstrap-test-accounts.ts`. Add the corresponding profile bootstrap to `bootstrapSellerApplication()` or `bootstrapCourierProfile()` pattern. Never add more bootstrap admins — only one root admin (delewatiamer7) is allowed.

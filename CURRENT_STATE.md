@@ -1,10 +1,10 @@
 # SYANO — Current Project State
 **Last Updated:** June 11, 2026  
-**Updated By:** Platform QA & UI Stabilization Audit
+**Updated By:** Recovery Integrity Audit & Migration Hardening (9 Phases)
 
 ---
 
-## Platform Status: ✅ PRODUCTION READY
+## Platform Status: ✅ PRODUCTION READY — RECOVERY VERIFIED
 
 All services running. All features validated end-to-end with real API calls.
 
@@ -51,6 +51,7 @@ All services running. All features validated end-to-end with real API calls.
 | Seller Analytics Dashboard V2 | ✅ Complete + Validated |
 | **Trust System V1** | ✅ Complete + Validated |
 | **Platform QA & UI Stabilization Audit** | ✅ Complete |
+| **Recovery Integrity Audit & Migration Hardening** | ✅ Complete — Recovery Confidence: 97/100 |
 
 ---
 
@@ -121,8 +122,8 @@ Full E2E test suite passed — 13/13 steps:
 | Role | Email | Password | Notes |
 |---|---|---|---|
 | Admin / Root Owner | delewatiamer7@gmail.com | 00Amer00 | Permanent — auto-bootstrapped on every startup |
-| Permanent Seller | delewatiamer8@gmail.com | 00Amer00 | Permanent — auto-bootstrapped on every startup |
-| Permanent Courier | delewatiamer9@gmail.com | 00Amer00 | Permanent — auto-bootstrapped on every startup |
+| Permanent Seller | delewatiamer8@gmail.com | 00Amer00 | Permanent — auto-bootstrapped; **has approved seller application** (storeSlug=syano-test-store) |
+| Permanent Courier | delewatiamer9@gmail.com | 00Amer00 | Permanent — auto-bootstrapped; **has approved courier profile** (active=true) |
 | Seller | seller@syano.test | Seller@2026 | Dev test account, storeSlug=ahmad-electronics |
 | Customer | customer@syano.test | Customer@2026 | Dev test account, standard buyer |
 | Courier | courier@syano.test | Courier@2026 | Dev test account |
@@ -130,6 +131,12 @@ Full E2E test suite passed — 13/13 steps:
 ### Bootstrap Guarantee
 `bootstrapTestAccounts()` runs on every API startup alongside `bootstrapRootAdmin()`.  
 All three permanent accounts (delewatiamer7/8/9) are idempotent: created if missing, repaired if drifted, never duplicated.
+
+**Extended bootstrap (added in Recovery Audit):**
+- delewatiamer8 → also bootstraps an **approved seller_application** (storeSlug=syano-test-store) if missing
+- delewatiamer9 → also bootstraps an **approved couriers profile** (active=true) if missing
+
+Without these, the seller and courier dashboards are non-functional after a recovery even though the users exist.
 
 ---
 

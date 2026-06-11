@@ -47,34 +47,42 @@ psql "$DATABASE_URL" -c "\dt"
 
 ---
 
-## Step 3: Fix notification_type Enum (CRITICAL — always run this)
+## Step 3: Start API Server (Enums Auto-Patched on Startup)
 
-The `schema.sql` was generated before courier/delivery/trust notification types were added. Always run this after restoring from schema.sql:
+Start the API server workflow. `run-migrations.ts` runs automatically on startup and handles ALL enum extensions:
+- `role` enum: adds `courier`
+- `order_status` enum: adds 9 delivery workflow statuses
+- `notification_type` enum: adds 14 courier/delivery/trust notification types (was previously manual Step 3)
 
-```bash
-psql "$DATABASE_URL" << 'SQL'
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_confirmed';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_preparing';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_ready';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_courier_assigned';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_picked_up';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_out_for_delivery';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_delivery_failed';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_returned';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_cancelled_by_customer';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_refunded';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'new_user';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'courier_applied';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'courier_approved';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'courier_rejected';
-SQL
-```
+After the API starts, verify enums are complete:
 
-**Verify:**
 ```bash
 psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM unnest(enum_range(NULL::notification_type));"
 # Expected: 31
+
+psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM unnest(enum_range(NULL::order_status));"
+# Expected: 15
 ```
+
+> **Note:** If you need to run enum fixes BEFORE starting the API (e.g. to unblock a failed start), use this legacy SQL block:
+> ```bash
+> psql "$DATABASE_URL" << 'SQL'
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_confirmed';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_preparing';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_ready';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_courier_assigned';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_picked_up';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_out_for_delivery';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_delivery_failed';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_returned';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_cancelled_by_customer';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_refunded';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'new_user';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'courier_applied';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'courier_approved';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'courier_rejected';
+> SQL
+> ```
 
 ---
 
@@ -143,13 +151,16 @@ Files: `artifacts/api-server/src/lib/bootstrap-admin.ts`, `bootstrap-test-accoun
 ```
 [ ] pnpm install done
 [ ] DATABASE_URL and SESSION_SECRET set
-[ ] 26+ tables in DB
-[ ] notification_type enum has 31 values
+[ ] 27 tables in DB (21 base + 6 from run-migrations)
+[ ] notification_type enum has 31 values (auto-patched by run-migrations)
+[ ] order_status enum has 15 values (auto-patched by run-migrations)
 [ ] Shared libs built (tsc --build)
 [ ] API server responds to /api/healthz
 [ ] Root owner login works (delewatiamer7, role=admin)
 [ ] Permanent seller login works (delewatiamer8, role=seller)
 [ ] Permanent courier login works (delewatiamer9, role=courier)
+[ ] delewatiamer8 has approved seller_application (storeSlug=syano-test-store)
+[ ] delewatiamer9 has approved couriers profile (active=true)
 [ ] Marketplace loads
 [ ] Mobile builds
 ```
@@ -162,8 +173,10 @@ Files: `artifacts/api-server/src/lib/bootstrap-admin.ts`, `bootstrap-test-accoun
 |---|---|
 | `vite: not found` in workflow | Run `pnpm install --force` — per-package node_modules need to be re-linked |
 | `relation "users" does not exist` | DB is empty — run `psql "$DATABASE_URL" -f schema.sql` |
-| Courier notifications crash | `notification_type` enum missing values — run Step 3 SQL block |
+| Courier notifications crash | `notification_type` enum missing values — start API server (auto-patches) or run Step 3 legacy SQL |
 | Rate limited on login (429) | Restart API server — rate limiter is in-memory and resets on restart |
+| Seller dashboard shows no store after recovery | Bootstrap creates user but not seller_application — fixed: `bootstrapTestAccounts()` now also bootstraps the approved application |
+| Courier dashboard shows 404 profile after recovery | Bootstrap creates user but not couriers record — fixed: `bootstrapTestAccounts()` now also bootstraps the approved courier profile |
 | `drizzle-kit push` hangs | Requires TTY — use `psql -f schema.sql` instead for base schema |
 | Seller apply bounces back after submit | TanStack Query `isLoading` is false during refetch — guard must also check `!isFetching`; apply page must seed cache with `setQueryData` before navigating |
 | `verification_audit_log` name clash | The admin audit table is `seller_verification_log` — NOT `verification_audit_log` (that's the OTP log in base schema) |

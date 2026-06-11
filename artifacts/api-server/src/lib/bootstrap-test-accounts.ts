@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, sellerApplicationsTable, couriersTable } from "@workspace/db";
 import { logger } from "./logger";
 
 // ─── PERMANENT TEST ACCOUNTS ─────────────────────────────────────────────────
@@ -47,6 +47,10 @@ const TEST_ACCOUNTS: TestAccountSpec[] = [
  *   - is_verified = true
  *   - password matches env var (default: 00Amer00)
  *
+ * Additionally:
+ *   - delewatiamer8 (seller) → seller_application with status=approved + storeSlug
+ *   - delewatiamer9 (courier) → couriers profile with status=approved + active=true
+ *
  * Never creates duplicates. Never overwrites a valid password.
  * Survives schema restores and migration runs.
  */
@@ -61,23 +65,30 @@ export async function bootstrapTestAccounts(): Promise<void> {
         .where(eq(usersTable.email, spec.email))
         .limit(1);
 
+      let userId: number;
+
       if (!existing) {
         // Account missing — create it
         const passwordHash = await bcrypt.hash(password, 12);
-        await db.insert(usersTable).values({
-          email: spec.email,
-          phone: spec.phone,
-          passwordHash,
-          name: spec.name,
-          role: spec.role,
-          isVerified: true,
-          accountStatus: "active",
-        } as any);
+        const [created] = await db
+          .insert(usersTable)
+          .values({
+            email: spec.email,
+            phone: spec.phone,
+            passwordHash,
+            name: spec.name,
+            role: spec.role,
+            isVerified: true,
+            accountStatus: "active",
+          } as any)
+          .returning({ id: usersTable.id });
+        userId = created.id;
         logger.info(
           { email: spec.email, role: spec.role },
           `Test account bootstrapped (created): ${spec.name}`
         );
       } else {
+        userId = existing.id;
         // Account exists — repair any drift
         const patch: Partial<typeof usersTable.$inferInsert> = {};
         const repairs: string[] = [];
@@ -120,6 +131,13 @@ export async function bootstrapTestAccounts(): Promise<void> {
           );
         }
       }
+
+      // ── Role-specific profile bootstrap ───────────────────────────────────
+      if (spec.role === "seller") {
+        await bootstrapSellerApplication(userId, spec.name);
+      } else if (spec.role === "courier") {
+        await bootstrapCourierProfile(userId, spec.name);
+      }
     } catch (err) {
       // Non-fatal — log and continue so other accounts still bootstrap
       logger.error(
@@ -127,5 +145,95 @@ export async function bootstrapTestAccounts(): Promise<void> {
         `Failed to bootstrap test account: ${spec.name}`
       );
     }
+  }
+}
+
+/**
+ * Ensures the permanent test seller has an approved seller_application.
+ * Without this record, seller_applications/my returns null and the seller
+ * dashboard shows no store data.
+ */
+async function bootstrapSellerApplication(userId: number, name: string): Promise<void> {
+  try {
+    const [existing] = await db
+      .select({ id: sellerApplicationsTable.id, status: sellerApplicationsTable.status })
+      .from(sellerApplicationsTable)
+      .where(eq(sellerApplicationsTable.userId, userId))
+      .limit(1);
+
+    if (!existing) {
+      await db.insert(sellerApplicationsTable).values({
+        userId,
+        storeName: "Syano Test Store",
+        storeNameAr: "متجر سيانو التجريبي",
+        phone: "+963900000008",
+        contactPhone: "+963900000008",
+        city: "Aleppo",
+        address: "Aleppo City Center",
+        category: "Electronics",
+        categories: ["Electronics", "Phones & Tablets"],
+        description: "Official permanent test seller account for SYANO platform QA and recovery testing.",
+        descriptionAr: "حساب البائع التجريبي الدائم لمنصة سيانو.",
+        storeSlug: "syano-test-store",
+        status: "approved",
+        reviewedAt: new Date(),
+      } as any);
+      logger.info({ userId, name }, "Seller application bootstrapped (created): approved");
+    } else if (existing.status !== "approved") {
+      await db
+        .update(sellerApplicationsTable)
+        .set({ status: "approved", storeSlug: "syano-test-store", reviewedAt: new Date() } as any)
+        .where(eq(sellerApplicationsTable.userId, userId));
+      logger.info({ userId, name }, "Seller application bootstrapped (repaired to approved)");
+    } else {
+      logger.info({ userId, name }, "Seller application healthy: approved");
+    }
+  } catch (err) {
+    logger.error({ userId, err }, "Failed to bootstrap seller application");
+  }
+}
+
+/**
+ * Ensures the permanent test courier has an approved couriers profile.
+ * Without this record, /couriers/profile returns 404 and the courier
+ * dashboard is completely non-functional.
+ */
+async function bootstrapCourierProfile(userId: number, name: string): Promise<void> {
+  try {
+    const [existing] = await db
+      .select({ id: couriersTable.id, status: couriersTable.status, active: couriersTable.active })
+      .from(couriersTable)
+      .where(eq(couriersTable.userId, userId))
+      .limit(1);
+
+    if (!existing) {
+      await db.insert(couriersTable).values({
+        userId,
+        status: "approved",
+        active: true,
+        city: "Aleppo",
+        district: "Aleppo Center",
+        phone: "+963900000009",
+        vehicleType: "motorcycle",
+        completedDeliveries: 0,
+        notes: "Permanent test courier account for SYANO platform QA.",
+      } as any);
+      logger.info({ userId, name }, "Courier profile bootstrapped (created): approved");
+    } else {
+      const patch: Record<string, unknown> = {};
+      if (existing.status !== "approved") patch.status = "approved";
+      if (!existing.active) patch.active = true;
+      if (Object.keys(patch).length > 0) {
+        await db
+          .update(couriersTable)
+          .set(patch as any)
+          .where(eq(couriersTable.userId, userId));
+        logger.info({ userId, name }, "Courier profile bootstrapped (repaired)");
+      } else {
+        logger.info({ userId, name }, "Courier profile healthy: approved + active");
+      }
+    }
+  } catch (err) {
+    logger.error({ userId, err }, "Failed to bootstrap courier profile");
   }
 }

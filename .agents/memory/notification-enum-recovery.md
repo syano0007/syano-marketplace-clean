@@ -1,33 +1,23 @@
 ---
 name: notification_type enum recovery
-description: schema.sql has only 17 of 31 notification_type enum values; the 14 delivery/courier types must always be added manually after any schema.sql restore
+description: schema.sql has only 17 of 31 notification_type enum values; the 14 delivery/courier types are now auto-added by run-migrations.ts on startup
 ---
 
 # notification_type Enum Recovery
 
-**Rule:** After any `psql -f schema.sql` restore, always run the ALTER TYPE block below. Without it, every courier/delivery notification INSERT will crash the DB transaction.
+**RESOLVED:** The 14 missing enum values are now added automatically by `run-migrations.ts` on every server startup (added in Recovery Integrity Audit). No manual SQL required after a schema.sql restore.
 
-**Why:** The 14 missing values were added iteratively after the initial schema was exported to schema.sql. The enum cannot be modified inside a transaction block (PostgreSQL restriction), so they cannot be in schema.sql migrations easily.
+**Rule:** Start the API server after schema restore. It automatically patches all three enums:
+- `role`: adds `courier`
+- `order_status`: adds 9 delivery statuses
+- `notification_type`: adds 14 courier/delivery/trust values
 
-**How to apply:** Run after every fresh schema.sql restore, before starting the API server:
+**Legacy fallback (if API fails to start):** Run the SQL block manually from RECOVERY_GUIDE.md Step 3.
 
+**Why:** The 14 missing values were added iteratively after the initial schema export. They cannot be in schema.sql (PostgreSQL restriction: enum changes cannot run in transactions). Moving them to run-migrations.ts makes recovery zero-intervention.
+
+**Verify after startup:**
 ```sql
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_confirmed';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_preparing';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_ready';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_courier_assigned';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_picked_up';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_out_for_delivery';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_delivery_failed';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_returned';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_cancelled_by_customer';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'order_refunded';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'new_user';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'courier_applied';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'courier_approved';
-ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'courier_rejected';
+SELECT COUNT(*) FROM unnest(enum_range(NULL::notification_type)); -- expect 31
+SELECT COUNT(*) FROM unnest(enum_range(NULL::order_status));       -- expect 15
 ```
-
-Verify: `SELECT COUNT(*) FROM unnest(enum_range(NULL::notification_type));` → should return 31.
-
-See: RECOVERY_GUIDE.md Step 3.
