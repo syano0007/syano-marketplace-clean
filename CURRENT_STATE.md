@@ -1,6 +1,6 @@
 # SYANO — Current Project State
 **Last Updated:** June 11, 2026  
-**Updated By:** Full Recovery & Verification Session
+**Updated By:** Platform QA & UI Stabilization Audit
 
 ---
 
@@ -50,6 +50,7 @@ All services running. All features validated end-to-end with real API calls.
 | Seller Orders V2 (stats cards, metrics, bulk ops, detail) | ✅ Complete + Validated |
 | Seller Analytics Dashboard V2 | ✅ Complete + Validated |
 | **Trust System V1** | ✅ Complete + Validated |
+| **Platform QA & UI Stabilization Audit** | ✅ Complete |
 
 ---
 
@@ -119,10 +120,16 @@ Full E2E test suite passed — 13/13 steps:
 
 | Role | Email | Password | Notes |
 |---|---|---|---|
-| Admin / Root Owner | delewatiamer7@gmail.com | 00Amer00 | Auto-bootstrapped, login with role=admin |
-| Seller | seller@syano.test | Seller@2026 | Approved, storeSlug=ahmad-electronics |
-| Customer | customer@syano.test | Customer@2026 | Standard buyer |
-| Courier | courier@syano.test | Courier@2026 | role=courier (set via SQL) |
+| Admin / Root Owner | delewatiamer7@gmail.com | 00Amer00 | Permanent — auto-bootstrapped on every startup |
+| Permanent Seller | delewatiamer8@gmail.com | 00Amer00 | Permanent — auto-bootstrapped on every startup |
+| Permanent Courier | delewatiamer9@gmail.com | 00Amer00 | Permanent — auto-bootstrapped on every startup |
+| Seller | seller@syano.test | Seller@2026 | Dev test account, storeSlug=ahmad-electronics |
+| Customer | customer@syano.test | Customer@2026 | Dev test account, standard buyer |
+| Courier | courier@syano.test | Courier@2026 | Dev test account |
+
+### Bootstrap Guarantee
+`bootstrapTestAccounts()` runs on every API startup alongside `bootstrapRootAdmin()`.  
+All three permanent accounts (delewatiamer7/8/9) are idempotent: created if missing, repaired if drifted, never duplicated.
 
 ---
 
@@ -137,6 +144,30 @@ Full E2E test suite passed — 13/13 steps:
 
 ---
 
+## Translation Coverage (June 11, 2026)
+
+| Metric | Result |
+|---|---|
+| EN keys | ✅ 2,344 |
+| AR keys | ✅ 2,344 (perfectly balanced) |
+| Missing in AR | ✅ 0 |
+| Missing in EN | ✅ 0 |
+| Code t() calls with missing keys | ✅ 0 |
+| RTL-unsafe layout classes fixed | ✅ 11 fixes across 5 files |
+
+### Translation Fixes Applied (this audit)
+- Added 24 missing EN keys: `common.next/prev/not_found/required/submitting`, `messages.contact_seller`, `reviews.show_more/sort_by`, and 16 `trust_panel.*` keys
+- Added 25 matching AR translations (including `seller_nav.analytics` = "التحليلات")
+
+### RTL Layout Fixes Applied (this audit)
+- `admin/delivery.tsx`: 4 × `text-left/right` → `text-start/end`
+- `courier/dashboard.tsx`: 3 × `text-left/right` → `text-start/end`
+- `seller/analytics.tsx`: Date-range dropdown `left-0/right-0` → `end-0`
+- `admin/logs.tsx`: Metadata popover `left-0` → `start-0`
+- `seller/orders.tsx`: Table wrapper `overflow-hidden` → `overflow-x-auto`
+
+---
+
 ## Current Roadmap Position
 
 ```
@@ -146,6 +177,7 @@ Full E2E test suite passed — 13/13 steps:
 ✅ Seller Orders V2 — COMPLETE + VALIDATED
 ✅ Seller Analytics Dashboard V2 — COMPLETE + VALIDATED
 ✅ Trust System V1 — COMPLETE + VALIDATED
+✅ Platform QA & UI Stabilization Audit — COMPLETE
 
 ⏳ Next: TBD
 ```

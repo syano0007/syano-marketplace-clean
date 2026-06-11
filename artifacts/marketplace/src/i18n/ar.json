@@ -466,7 +466,8 @@
     "messages": "الرسائل",
     "store_settings": "إعدادات المتجر",
     "seller_panel": "لوحة البائع",
-    "trust": "الثقة"
+    "trust": "الثقة",
+    "analytics": "التحليلات"
   },
   "seller_dashboard": {
     "title": "لوحة تحكم البائع",
@@ -1003,7 +1004,12 @@
     "all": "الكل",
     "active": "نشط",
     "searching": "جاري البحث…",
-    "no_results": "لا توجد نتائج"
+    "no_results": "لا توجد نتائج",
+    "next": "التالي",
+    "prev": "السابق",
+    "not_found": "غير موجود",
+    "required": "مطلوب",
+    "submitting": "جاري الإرسال..."
   },
   "not_found": {
     "title": "404 — الصفحة غير موجودة",
@@ -1030,7 +1036,9 @@
     "based_on": "بناءً على {{count}} تقييم",
     "based_on_plural": "بناءً على {{count}} تقييمات",
     "verified": "شراء موثق",
-    "rating_label": "{{rating}} من 5 نجوم"
+    "rating_label": "{{rating}} من 5 نجوم",
+    "show_more": "عرض المزيد",
+    "sort_by": "ترتيب حسب"
   },
   "footer": {
     "tagline": "سوق حلب الإلكتروني — متجرك الموثوق للتسوق في سوريا",
@@ -2047,7 +2055,8 @@
     "customer_label": "العميل",
     "seller_inbox_title": "رسائل العملاء",
     "seller_no_conv_hint": "سيتواصل معك العملاء عبر صفحة متجرك.",
-    "seller_select_hint": "اختر محادثة للرد على عملائك."
+    "seller_select_hint": "اختر محادثة للرد على عملائك.",
+    "contact_seller": "تواصل مع البائع"
   },
   "suspended": {
     "title": "تم تعليق حسابك.",
@@ -2438,6 +2447,22 @@
     "followers": "المتابعون",
     "products": "المنتجات",
     "how_to_verify_title": "كيف تحصل على التحقق",
-    "verified_since": "موثق منذ"
+    "verified_since": "موثق منذ",
+    "account_age": "عمر الحساب",
+    "cancel_rate": "معدل الإلغاء",
+    "delivery_rate": "معدل التوصيل",
+    "factor_cancellation": "معدل الإلغاء",
+    "factor_delivery": "نجاح التوصيل",
+    "factor_rating": "تقييم المتجر",
+    "how_to_improve": "كيف تحسّن درجتك",
+    "penalties": "الخصومات",
+    "tip_cancellation": "معدل الإلغاء المرتفع يقلّل الدرجة",
+    "tip_complete_orders": "أكمل 10+ طلبات (+15 نقطة)",
+    "tip_delivery": "نسبة الطلبات المُوصَّلة بنجاح",
+    "tip_delivery_rate": "حافظ على 90%+ نجاح في التوصيل (+20 نقطة)",
+    "tip_earn_reviews": "احصل على 10+ تقييم للمنتج (+10 نقاط)",
+    "tip_followers_goal": "احصل على 10+ متابع للمتجر (+2.5 نقطة)",
+    "tip_get_verified": "احصل على التحقق من سيانو (حتى +30 نقطة)",
+    "tip_rating": "متوسط تقييم المنتج في متجرك"
   }
 }

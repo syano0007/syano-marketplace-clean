@@ -82,3 +82,9 @@
 | Customer confirm-delivery | Low | Required to unlock product reviews |
 | Real OTP delivery | Low | Needs RESEND or Twilio keys |
 | In-memory rate limiter | Low | Should be Redis-backed for production |
+
+### KNOWN-8 — Mobile forgot-password screen not translated
+**Severity:** Low  
+**Status:** Known (mobile-only)  
+**Description:** `app/forgot-password.tsx` uses keys like `auth.back_to_login`, `auth.check_email`, etc. The mobile i18n `index.ts` stores keys as object properties, so scanning is done differently than JSON. Manual inspection confirms auth section has `forgot_password_title`, `forgot_password_subtitle`, `send_reset_code` etc. — keys follow the correct dot notation pattern. No raw keys confirmed visible in production (all have string fallbacks).  
+**Status:** Monitor — no user-visible raw keys confirmed.

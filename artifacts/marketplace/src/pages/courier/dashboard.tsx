@@ -201,7 +201,7 @@ function FailureReasonModal({ orderId, onConfirm, onCancel, acting }: {
               type="button"
               onClick={() => setSelected(t(key))}
               className={cn(
-                "w-full text-left text-sm px-3 py-2.5 rounded-xl border transition-all",
+                "w-full text-start text-sm px-3 py-2.5 rounded-xl border transition-all",
                 selected === t(key)
                   ? "border-orange-400 bg-orange-50 text-orange-800 dark:border-orange-700 dark:bg-orange-950/30 dark:text-orange-300"
                   : "border-border bg-muted/30 hover:bg-muted/60 text-foreground"
@@ -303,7 +303,7 @@ function DeliveryCard({ assignment, token, onAction }: {
               {statusLabel}
             </span>
           </div>
-          <div className="text-right">
+          <div className="text-end">
             <span className="text-sm font-bold" translate="no">${assignment.total.toFixed(2)}</span>
             {assignment.deliveryFee != null && (
               <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold block" translate="no">
@@ -683,7 +683,7 @@ export default function CourierDashboard() {
                         </span>
                       )}
                     </div>
-                    <div className="text-right">
+                    <div className="text-end">
                       {isDelivered && (
                         <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400" translate="no">+${h.yourCut.toFixed(2)}</span>
                       )}

@@ -50,7 +50,7 @@ function MetadataTooltip({ metadata }: { metadata: Record<string, unknown> | nul
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-6 z-20 w-64 rounded-lg border border-border bg-card p-3 shadow-lg">
+          <div className="absolute start-0 top-6 z-20 w-64 rounded-lg border border-border bg-card p-3 shadow-lg">
             <p className="text-xs font-semibold text-foreground mb-2">{t("admin.logs_details")}</p>
             <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-all">
               {JSON.stringify(metadata, null, 2)}

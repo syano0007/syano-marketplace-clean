@@ -1004,7 +1004,12 @@
     "all": "All",
     "active": "Active",
     "searching": "Searching…",
-    "no_results": "No results found"
+    "no_results": "No results found",
+    "next": "Next",
+    "prev": "Previous",
+    "not_found": "Not Found",
+    "required": "Required",
+    "submitting": "Submitting..."
   },
   "not_found": {
     "title": "404 — Page Not Found",
@@ -1031,7 +1036,9 @@
     "based_on": "Based on {{count}} review",
     "based_on_plural": "Based on {{count}} reviews",
     "verified": "Verified Purchase",
-    "rating_label": "{{rating}} out of 5 stars"
+    "rating_label": "{{rating}} out of 5 stars",
+    "show_more": "Show more",
+    "sort_by": "Sort by"
   },
   "footer": {
     "tagline": "Aleppo's trusted online marketplace — shop Syria's finest.",
@@ -2048,7 +2055,8 @@
     "customer_label": "Customer",
     "seller_inbox_title": "Customer Messages",
     "seller_no_conv_hint": "Customers will contact you through your store page.",
-    "seller_select_hint": "Pick a conversation to reply to your customers."
+    "seller_select_hint": "Pick a conversation to reply to your customers.",
+    "contact_seller": "Contact Seller"
   },
   "suspended": {
     "title": "Your account has been suspended.",
@@ -2439,6 +2447,22 @@
     "followers": "Followers",
     "products": "Products",
     "how_to_verify_title": "How to get verified",
-    "verified_since": "Verified since"
+    "verified_since": "Verified since",
+    "account_age": "Account age",
+    "cancel_rate": "Cancellation rate",
+    "delivery_rate": "Delivery rate",
+    "factor_cancellation": "Cancellation rate",
+    "factor_delivery": "Delivery success",
+    "factor_rating": "Store rating",
+    "how_to_improve": "How to Improve Your Score",
+    "penalties": "Deductions",
+    "tip_cancellation": "High cancellation rate reduces score",
+    "tip_complete_orders": "Complete 10+ orders (+15 pts)",
+    "tip_delivery": "% of orders successfully delivered",
+    "tip_delivery_rate": "Maintain 90%+ delivery success (+20 pts)",
+    "tip_earn_reviews": "Earn 10+ product reviews (+10 pts)",
+    "tip_followers_goal": "Get 10+ store followers (+2.5 pts)",
+    "tip_get_verified": "Get verified by SYANO (up to +30 pts)",
+    "tip_rating": "Average product rating across your store"
   }
 }

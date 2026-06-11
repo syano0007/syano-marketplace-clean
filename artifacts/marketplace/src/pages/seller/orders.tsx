@@ -701,7 +701,7 @@ export default function SellerOrders() {
             ) : (
               <>
                 {/* Desktop table */}
-                <div className="hidden md:block bg-card border rounded-2xl overflow-hidden mb-4">
+                <div className="hidden md:block bg-card border rounded-2xl overflow-x-auto mb-4">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/30">

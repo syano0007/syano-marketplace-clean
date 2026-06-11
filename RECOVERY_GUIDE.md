@@ -108,17 +108,33 @@ curl http://localhost:8080/api/healthz
 
 ---
 
-## Step 7: Verify Root Owner Account
+## Step 7: Verify Bootstrap Accounts
+
+All three permanent accounts are auto-created on every API startup. Verify they exist:
 
 ```bash
+# Root Owner (admin)
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"delewatiamer7@gmail.com","password":"00Amer00","role":"admin"}'
 # Expected: {"user":{"role":"admin",...},"token":"..."}
+
+# Permanent Seller
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"delewatiamer8@gmail.com","password":"00Amer00","role":"seller"}'
+# Expected: {"user":{"role":"seller",...},"token":"..."}
+
+# Permanent Courier
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"delewatiamer9@gmail.com","password":"00Amer00","role":"courier"}'
+# Expected: {"user":{"role":"courier",...},"token":"..."}
 ```
 
-The root owner is auto-bootstrapped by `bootstrapRootAdmin()` on every server start.
-Note: use `role":"admin"` for the root owner (not "customer").
+All three are bootstrapped by `bootstrapRootAdmin()` + `bootstrapTestAccounts()` on every server start.  
+Self-healing: if an account is missing or has drifted role/status, it is automatically repaired.  
+Files: `artifacts/api-server/src/lib/bootstrap-admin.ts`, `bootstrap-test-accounts.ts`
 
 ---
 
@@ -131,7 +147,9 @@ Note: use `role":"admin"` for the root owner (not "customer").
 [ ] notification_type enum has 31 values
 [ ] Shared libs built (tsc --build)
 [ ] API server responds to /api/healthz
-[ ] Root owner login works (role=admin)
+[ ] Root owner login works (delewatiamer7, role=admin)
+[ ] Permanent seller login works (delewatiamer8, role=seller)
+[ ] Permanent courier login works (delewatiamer9, role=courier)
 [ ] Marketplace loads
 [ ] Mobile builds
 ```

@@ -2,6 +2,64 @@
 
 ---
 
+## [2026-06-11] Platform QA & UI Stabilization Audit
+
+### Summary
+Full platform QA audit. Permanent test accounts bootstrapped, translation files brought to 100% coverage (2344 EN = 2344 AR), RTL layout issues fixed across 5 dashboard files, responsive table overflow fixed. TypeScript 0 errors confirmed.
+
+### Part 1 — Permanent Test Accounts Bootstrap
+**New file:** `artifacts/api-server/src/lib/bootstrap-test-accounts.ts`
+- `bootstrapTestAccounts()` function mirrors `bootstrapRootAdmin()` pattern exactly
+- Self-healing: creates if missing, repairs role/status/isVerified if drifted
+- Never duplicates, never overwrites valid passwords
+- Runs on every API startup via `artifacts/api-server/src/index.ts`
+- Accounts bootstrapped:
+  - `delewatiamer8@gmail.com` — role=seller, status=active, isVerified=true, password=00Amer00
+  - `delewatiamer9@gmail.com` — role=courier, status=active, isVerified=true, password=00Amer00
+
+### Part 2 — Translation Audit & Fixes
+**Files:** `artifacts/marketplace/src/i18n/en.json`, `ar.json`
+
+**Before:** EN=2320, AR=2319, 24 keys used in code missing from en.json, 1 key missing from ar.json  
+**After:** EN=2344, AR=2344, 0 missing anywhere
+
+**Missing EN keys added (24):**
+- `common.next`, `common.prev`, `common.not_found`, `common.required`, `common.submitting`
+- `messages.contact_seller`
+- `reviews.show_more`, `reviews.sort_by`
+- `trust_panel.account_age`, `trust_panel.cancel_rate`, `trust_panel.delivery_rate`
+- `trust_panel.factor_cancellation`, `trust_panel.factor_delivery`, `trust_panel.factor_rating`
+- `trust_panel.how_to_improve`, `trust_panel.penalties`
+- `trust_panel.tip_cancellation`, `trust_panel.tip_complete_orders`, `trust_panel.tip_delivery`
+- `trust_panel.tip_delivery_rate`, `trust_panel.tip_earn_reviews`, `trust_panel.tip_followers_goal`
+- `trust_panel.tip_get_verified`, `trust_panel.tip_rating`
+
+**Missing AR key added (1):**
+- `seller_nav.analytics` → "التحليلات"
+
+**All 24 EN keys also translated to Arabic** — perfect 1:1 parity
+
+### Part 3 — RTL Layout Fixes (11 fixes across 5 files)
+
+| File | Fixes |
+|---|---|
+| `admin/delivery.tsx` | 4 × `text-left/right` → `text-start/end` |
+| `courier/dashboard.tsx` | 3 × `text-left/right` → `text-start/end` |
+| `seller/analytics.tsx` | Date-range dropdown `left-0/right-0` → `end-0` (removed lang ternary) |
+| `admin/logs.tsx` | Metadata popover `left-0` → `start-0` |
+| `seller/orders.tsx` | Table wrapper `overflow-hidden` → `overflow-x-auto` |
+
+### Part 4 — Final Verification
+- TypeScript: ✅ 0 errors (all 6 artifacts)
+- Translation: ✅ 2344 EN = 2344 AR, 0 missing
+- Bootstrap accounts: ✅ delewatiamer8 (seller), delewatiamer9 (courier) confirmed
+- Root owner: ✅ delewatiamer7 (admin) confirmed
+- API health: ✅ /api/healthz OK
+- Marketplace: ✅ Running and serving
+- Mobile: ✅ Running
+
+---
+
 ## [2026-06-11] Full Recovery, Verification & Bug Fixes
 
 ### Summary

@@ -189,7 +189,7 @@ function CourierPickerCard({ courier, selected, onClick }: {
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full text-left p-3 rounded-xl border-2 transition-all",
+        "w-full text-start p-3 rounded-xl border-2 transition-all",
         selected
           ? "border-primary bg-primary/5"
           : "border-border bg-card hover:border-primary/50 hover:bg-muted/30",
@@ -204,7 +204,7 @@ function CourierPickerCard({ courier, selected, onClick }: {
             {courier.district && <span className="text-[11px] text-muted-foreground">· {courier.district}</span>}
           </div>
         </div>
-        <div className="shrink-0 text-right">
+        <div className="shrink-0 text-end">
           <span className={cn(
             "text-[11px] font-bold px-1.5 py-0.5 rounded-full",
             isOverloaded
@@ -563,7 +563,7 @@ export default function AdminDelivery() {
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-right">
+                    <div className="text-end">
                       <span className="text-sm font-bold" translate="no">${order.total.toFixed(2)}</span>
                       {order.deliveryFee != null && (
                         <span className="text-xs text-muted-foreground block" translate="no">+${order.deliveryFee.toFixed(2)} {t("delivery.col_fee")}</span>
@@ -677,7 +677,7 @@ export default function AdminDelivery() {
                       {new Date(d.orderDate).toLocaleDateString()}
                     </span>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-end shrink-0">
                     <span className="text-sm font-bold" translate="no">${d.total.toFixed(2)}</span>
                     {d.deliveryFee != null && (
                       <span className="text-xs text-muted-foreground block" translate="no">+${d.deliveryFee.toFixed(2)} {t("delivery.col_fee")}</span>
