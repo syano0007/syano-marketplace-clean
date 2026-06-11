@@ -23,7 +23,9 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Search, Users, ChevronLeft, ChevronRight, ShieldCheck, ShieldOff, ShieldCheck as ShieldReactivate } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Trash2, Search, Users, ChevronLeft, ChevronRight, ShieldCheck, ShieldOff, ShieldCheck as ShieldReactivate, Shield, Award, ShieldX } from "lucide-react";
+import { SellerTrustBadge, type VerificationLevel } from "@/components/SellerTrustBadge";
 
 const ROLE_COLORS: Record<string, string> = {
   customer: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800",
@@ -40,6 +42,12 @@ const ACCOUNT_STATUS_CLASSES: Record<string, string> = {
 
 const PAGE_SIZE = 20;
 
+const VERIFY_TIERS: { value: VerificationLevel; label: string; description: string; icon: React.ElementType; color: string }[] = [
+  { value: "basic", label: "Basic Verified", description: "Phone/email confirmed. Standard verification.", icon: Shield, color: "text-blue-600" },
+  { value: "verified", label: "ID Verified", description: "Government ID checked and confirmed.", icon: ShieldCheck, color: "text-emerald-600" },
+  { value: "business", label: "Business Verified", description: "Business license and commercial registration confirmed.", icon: Award, color: "text-violet-600" },
+];
+
 export default function AdminUsers() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -48,13 +56,18 @@ export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
-  const [verifyingId, setVerifyingId] = useState<number | null>(null);
 
   const [suspendTarget, setSuspendTarget] = useState<AdminUser | null>(null);
   const [suspendReason, setSuspendReason] = useState("");
   const [suspendingId, setSuspendingId] = useState<number | null>(null);
   const [reactivateTarget, setReactivateTarget] = useState<AdminUser | null>(null);
   const [reactivatingId, setReactivatingId] = useState<number | null>(null);
+
+  const [verifyTarget, setVerifyTarget] = useState<AdminUser | null>(null);
+  const [verifyLevel, setVerifyLevel] = useState<VerificationLevel>("basic");
+  const [verifyingId, setVerifyingId] = useState<number | null>(null);
+  const [unverifyTarget, setUnverifyTarget] = useState<AdminUser | null>(null);
+  const [unverifyingId, setUnverifyingId] = useState<number | null>(null);
 
   const { data, isLoading } = useAdminListUsers({ page, limit: PAGE_SIZE });
 
@@ -77,20 +90,42 @@ export default function AdminUsers() {
     },
   });
 
-  const handleVerifyUser = async (user: AdminUser) => {
-    setVerifyingId(user.id);
+  const handleVerifyUser = async () => {
+    if (!verifyTarget) return;
+    setVerifyingId(verifyTarget.id);
     try {
-      const res = await fetch(`/api/admin/users/${user.id}/verify`, {
+      const res = await fetch(`/api/admin/users/${verifyTarget.id}/verify`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ level: verifyLevel }),
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
-      toast({ title: t("admin.users_verified_title"), description: t("admin.users_verified_desc", { name: user.name }) });
+      toast({ title: t("admin.users_verified_title"), description: t("admin.users_verified_desc", { name: verifyTarget.name }) });
       queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey() });
+      setVerifyTarget(null);
     } catch (err: any) {
       toast({ title: t("common.error"), description: err.message, variant: "destructive" });
     } finally {
       setVerifyingId(null);
+    }
+  };
+
+  const handleUnverifyUser = async () => {
+    if (!unverifyTarget) return;
+    setUnverifyingId(unverifyTarget.id);
+    try {
+      const res = await fetch(`/api/admin/users/${unverifyTarget.id}/unverify`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+      toast({ title: t("admin.user_unverified_title", "Verification removed"), description: unverifyTarget.name });
+      queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey() });
+      setUnverifyTarget(null);
+    } catch (err: any) {
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
+    } finally {
+      setUnverifyingId(null);
     }
   };
 
@@ -175,6 +210,7 @@ export default function AdminUsers() {
                   <th className="text-start px-4 py-3 font-semibold text-muted-foreground">{t("admin.col_name")}</th>
                   <th className="text-start px-4 py-3 font-semibold text-muted-foreground">{t("admin.col_email")}</th>
                   <th className="text-start px-4 py-3 font-semibold text-muted-foreground">{t("admin.col_role")}</th>
+                  <th className="text-start px-4 py-3 font-semibold text-muted-foreground">{t("admin.col_verification")}</th>
                   <th className="text-start px-4 py-3 font-semibold text-muted-foreground">{t("admin.col_joined")}</th>
                   <th className="text-start px-4 py-3 font-semibold text-muted-foreground">{t("admin.col_status")}</th>
                   <th className="text-end px-4 py-3 font-semibold text-muted-foreground">{t("admin.col_actions")}</th>
@@ -183,7 +219,7 @@ export default function AdminUsers() {
               <tbody className="divide-y divide-border">
                 {isLoading && Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 6 }).map((_, j) => (
+                    {Array.from({ length: 7 }).map((_, j) => (
                       <td key={j} className="px-4 py-3"><div className="h-4 bg-muted animate-pulse rounded" /></td>
                     ))}
                   </tr>
@@ -191,6 +227,8 @@ export default function AdminUsers() {
                 {!isLoading && filtered.map((user) => {
                   const acctStatus = (user as any).accountStatus as string ?? "active";
                   const isSuspended = acctStatus !== "active";
+                  const verificationLevel = ((user as any).verificationLevel ?? "none") as VerificationLevel;
+                  const isVerified = (user as any).isVerified as boolean ?? false;
                   return (
                     <tr key={user.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3">
@@ -206,6 +244,13 @@ export default function AdminUsers() {
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize ${ROLE_COLORS[user.role] ?? "bg-muted text-muted-foreground"}`}>
                           {user.role}
                         </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {isVerified && verificationLevel !== "none" ? (
+                          <SellerTrustBadge level={verificationLevel} isVerified={isVerified} size="xs" />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{new Date(user.createdAt).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
@@ -238,11 +283,34 @@ export default function AdminUsers() {
                               </Button>
                             )
                           )}
-                          {!user.isVerified && (
+                          {user.role === "seller" && (
+                            isVerified ? (
+                              <Button
+                                size="icon" variant="ghost"
+                                className="h-8 w-8 text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10"
+                                onClick={() => setUnverifyTarget(user)}
+                                disabled={unverifyingId === user.id}
+                                title={t("admin.unverify_user", "Remove verification")}
+                              >
+                                <ShieldX className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                size="icon" variant="ghost"
+                                className="h-8 w-8 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
+                                onClick={() => { setVerifyLevel("basic"); setVerifyTarget(user); }}
+                                disabled={verifyingId === user.id}
+                                title={t("admin.verify_user")}
+                              >
+                                <ShieldCheck className="h-4 w-4" />
+                              </Button>
+                            )
+                          )}
+                          {user.role !== "seller" && !user.isVerified && (
                             <Button
                               size="icon" variant="ghost"
                               className="h-8 w-8 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
-                              onClick={() => handleVerifyUser(user)}
+                              onClick={() => { setVerifyLevel("basic"); setVerifyTarget(user); }}
                               disabled={verifyingId === user.id}
                               title={t("admin.verify_user")}
                             >
@@ -262,7 +330,7 @@ export default function AdminUsers() {
                   );
                 })}
                 {!isLoading && !filtered.length && (
-                  <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">{t("admin.no_results")}</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">{t("admin.no_results")}</td></tr>
                 )}
               </tbody>
             </table>
@@ -300,6 +368,70 @@ export default function AdminUsers() {
               onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id })}
             >
               {t("seller_products.confirm_delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Verify modal — tier selection */}
+      <Dialog open={!!verifyTarget} onOpenChange={() => setVerifyTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-emerald-600" />
+              {t("admin.verify_user_title", "Verify Seller")}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.verify_user_desc_name", "Select verification tier for {{name}}:", { name: verifyTarget?.name })}
+          </p>
+          <RadioGroup value={verifyLevel} onValueChange={(v) => setVerifyLevel(v as VerificationLevel)} className="gap-3 mt-1">
+            {VERIFY_TIERS.map((tier) => {
+              const Icon = tier.icon;
+              return (
+                <label
+                  key={tier.value}
+                  htmlFor={`tier-${tier.value}`}
+                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${verifyLevel === tier.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 hover:bg-muted/30"}`}
+                >
+                  <RadioGroupItem id={`tier-${tier.value}`} value={tier.value} className="mt-0.5" />
+                  <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${tier.color}`} />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{tier.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{tier.description}</p>
+                  </div>
+                </label>
+              );
+            })}
+          </RadioGroup>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVerifyTarget(null)}>{t("seller_products.cancel")}</Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={verifyingId !== null}
+              onClick={handleVerifyUser}
+            >
+              <ShieldCheck className="h-4 w-4 me-1.5" />
+              {t("admin.verify_user")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unverify confirmation */}
+      <AlertDialog open={!!unverifyTarget} onOpenChange={() => setUnverifyTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("admin.unverify_confirm_title", "Remove Verification?")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("admin.unverify_confirm_desc", "This will remove the verification badge from {{name}}. Their trust score will be recalculated.", { name: unverifyTarget?.name })}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("seller_products.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={handleUnverifyUser}
+            >
+              {t("admin.unverify_user", "Remove Verification")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

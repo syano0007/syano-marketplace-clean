@@ -1331,6 +1331,13 @@
     "users_verified_title": "تم التحقق من المستخدم",
     "users_verified_desc": "تم التحقق من {{name}} بنجاح.",
     "verify_user": "التحقق اليدوي من المستخدم",
+    "col_verification": "التحقق",
+    "verify_user_title": "التحقق من البائع",
+    "verify_user_desc_name": "اختر مستوى التحقق لـ {{name}}:",
+    "unverify_confirm_title": "إزالة التحقق؟",
+    "unverify_confirm_desc": "سيؤدي هذا إلى إزالة شارة التحقق من {{name}}. سيتم إعادة حساب درجة الثقة.",
+    "unverify_user": "إزالة التحقق",
+    "user_unverified_title": "تمت إزالة التحقق",
     "platform_health": "صحة المنصة",
     "top_sellers_leaderboard": "أفضل البائعين",
     "top_sellers_empty": "لا توجد مبيعات مؤكدة بعد",
@@ -2369,5 +2376,21 @@
     "success_rejected": "تم رفض الطلب",
     "success_suspended": "تم إيقاف حساب المندوب",
     "success_reactivated": "تمت إعادة تفعيل حساب المندوب"
+  },
+  "trust": {
+    "level_basic": "بائع موثق",
+    "level_verified": "موثق بالهوية",
+    "level_business": "موثق تجارياً",
+    "trust_score": "درجة الثقة",
+    "band_trusted": "موثوق",
+    "band_established": "راسخ",
+    "band_basic": "أساسي",
+    "band_new": "جديد"
+  },
+  "trust_panel": {
+    "title": "مستوى ثقة المتجر",
+    "verified_desc": "متجرك تم التحقق منه من قِبل SYANO.",
+    "unverified_desc": "أكمل ملفك الشخصي لتحسين درجة الثقة.",
+    "how_to_verify": "للتحقق من حسابك، تواصل مع دعم SYANO أو أكمل إعداد البائع."
   }
 }

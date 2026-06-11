@@ -5,10 +5,11 @@ import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { useSEO } from "@/hooks/useSEO";
 import {
-  Star, Shield, Users, Package, ShoppingBag, Calendar,
+  Star, Users, Package, ShoppingBag, Calendar,
   MapPin, Globe, CheckCircle2, MessageCircle, ArrowLeft,
   TrendingUp,
 } from "lucide-react";
+import { SellerTrustBadge, TrustScoreBar, type VerificationLevel } from "@/components/SellerTrustBadge";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,17 +48,20 @@ function RatingStars({ rating, size = "sm" }: { rating: number; size?: "sm" | "m
   );
 }
 
-function TrustBadge({ level, verifiedAt }: { level: string; verifiedAt: string | null }) {
-  const { t } = useTranslation();
-  if (verifiedAt || level === "established" || level === "trusted") {
-    return (
-      <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold px-2 py-0.5 rounded-full">
-        <Shield className="h-3 w-3 shrink-0" />
-        {t("store.verified_seller")}
-      </span>
-    );
-  }
-  return null;
+function TrustBadge({ verificationLevel, trustScore, isVerified }: { verificationLevel: string; trustScore: number | null; isVerified?: boolean }) {
+  if (!isVerified && verificationLevel === "none") return null;
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <SellerTrustBadge
+        level={(verificationLevel ?? "none") as VerificationLevel}
+        isVerified={isVerified ?? false}
+        size="sm"
+      />
+      {trustScore != null && (
+        <span className="text-[10px] text-muted-foreground font-medium">{trustScore}/100</span>
+      )}
+    </div>
+  );
 }
 
 /* ── Follow Button ───────────────────────────────────────────── */
@@ -386,7 +390,7 @@ export default function StorePage() {
               <h1 className="text-xl sm:text-2xl font-black text-foreground leading-tight truncate max-w-full">
                 {store.storeName}
               </h1>
-              <TrustBadge level={store.trustLevel} verifiedAt={store.verifiedAt} />
+              <TrustBadge verificationLevel={(store as any).verificationLevel ?? "none"} trustScore={(store as any).trustScore ?? null} isVerified={(store as any).isVerified ?? false} />
             </div>
             <p className="text-sm text-muted-foreground mt-0.5 truncate">{store.sellerName}</p>
           </div>

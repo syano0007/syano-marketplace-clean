@@ -174,6 +174,16 @@ const en = {
     choose_option: "Choose {{group}}",
     select_options: "Select all options to add to cart",
   },
+  trust: {
+    level_basic: "Verified Seller",
+    level_verified: "ID Verified",
+    level_business: "Business Verified",
+    trust_score: "Trust Score",
+    band_trusted: "Trusted",
+    band_established: "Established",
+    band_basic: "Basic",
+    band_new: "New",
+  },
   shop: {
     title: "Shop",
     all: "All",
@@ -389,6 +399,16 @@ const ar: DeepLeaf<typeof en> = {
     menu_dashboard: "لوحة التحكم",
     sign_out: "تسجيل الخروج",
     unknown_store: "متجر",
+  },
+  trust: {
+    level_basic: "بائع موثق",
+    level_verified: "موثق بالهوية",
+    level_business: "موثق تجارياً",
+    trust_score: "درجة الثقة",
+    band_trusted: "موثوق",
+    band_established: "راسخ",
+    band_basic: "أساسي",
+    band_new: "جديد",
   },
   product: {
     in_stock: "{{count}} في المخزن",

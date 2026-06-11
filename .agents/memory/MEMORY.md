@@ -1,3 +1,4 @@
+- [Trust System V1 architecture](trust-system.md) — Verification tiers (none/basic/verified/business), 0-100 score engine, SellerTrustBadge component; Vite cache must be cleared (restart workflow) for new badge imports to render.
 - [Design system tokens](design-system.md) — All responsive design tokens live in index.css (not tailwind.config.js), using CSS custom props and @layer utilities.
 - [Product card uniform heights](product-card-heights.md) — Use pc-category/pc-title/pc-seller CSS utility classes for consistent card heights across Arabic/English.
 - [DB schema push without TTY](db-schema-push.md) — drizzle-kit push/push-force both require TTY; use executeSql for additive schema changes (ADD COLUMN IF NOT EXISTS, CREATE INDEX IF NOT EXISTS).

@@ -51,11 +51,14 @@ async function buildProductResponse(product: typeof productsTable.$inferSelect) 
         sellerName: usersTable.name,
         averageRating: avg(reviewsTable.rating),
         reviewCount: count(reviewsTable.id),
+        verificationLevel: usersTable.verificationLevel,
+        trustScore: usersTable.trustScore,
+        isVerified: usersTable.isVerified,
       })
       .from(usersTable)
       .leftJoin(reviewsTable, eq(reviewsTable.productId, product.id))
       .where(eq(usersTable.id, product.sellerId))
-      .groupBy(usersTable.name),
+      .groupBy(usersTable.name, usersTable.verificationLevel, usersTable.trustScore, usersTable.isVerified),
     db
       .select({ storeName: sellerApplicationsTable.storeName, storeSlug: sellerApplicationsTable.storeSlug, storeLogo: sellerApplicationsTable.storeLogo })
       .from(sellerApplicationsTable)
@@ -86,6 +89,9 @@ async function buildProductResponse(product: typeof productsTable.$inferSelect) 
     viewCount: product.viewCount,
     averageRating: row?.averageRating != null ? parseFloat(row.averageRating) : null,
     reviewCount: Number(row?.reviewCount ?? 0),
+    sellerVerificationLevel: row?.verificationLevel ?? "none",
+    sellerTrustScore: row?.trustScore ?? null,
+    sellerIsVerified: row?.isVerified ?? false,
     variantGroups,
     variants,
   };

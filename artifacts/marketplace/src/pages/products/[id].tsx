@@ -23,6 +23,7 @@ import {
   ZoomIn, X, AlertTriangle, ChevronRight, Package, MessageCircle, Check,
   Package2
 } from "lucide-react";
+import { SellerTrustBadge, TrustScoreBar, type VerificationLevel } from "@/components/SellerTrustBadge";
 
 // ── Module-level helpers ──────────────────────────────────────────────────────
 
@@ -844,10 +845,13 @@ export default function ProductDetail() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-bold text-sm text-foreground">{(product as any).storeName || product.sellerName}</span>
-                      <span className="inline-flex items-center gap-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
-                        <ShieldCheck className="h-2.5 w-2.5" />
-                        {t("seller.verified")}
-                      </span>
+                      {((product as any).sellerVerificationLevel && (product as any).sellerVerificationLevel !== "none") || (product as any).sellerIsVerified ? (
+                        <SellerTrustBadge
+                          level={((product as any).sellerVerificationLevel ?? "none") as VerificationLevel}
+                          isVerified={(product as any).sellerIsVerified ?? false}
+                          size="xs"
+                        />
+                      ) : null}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{t("product_detail.sold_by")} {product.sellerName}</p>
                   </div>
@@ -867,7 +871,14 @@ export default function ProductDetail() {
             )}
 
             {isCustomer && (product as any).sellerId && (
-              <ContactSellerButton sellerId={(product as any).sellerId} className="mb-5" />
+              <ContactSellerButton sellerId={(product as any).sellerId} className="mb-3" />
+            )}
+
+            {/* Trust score bar */}
+            {(product as any).sellerTrustScore != null && (
+              <div className="mb-5">
+                <TrustScoreBar score={(product as any).sellerTrustScore} size="sm" />
+              </div>
             )}
 
             {/* Desktop trust badges */}

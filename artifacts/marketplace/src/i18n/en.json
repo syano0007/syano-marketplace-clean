@@ -1332,6 +1332,13 @@
     "users_verified_title": "User verified",
     "users_verified_desc": "{{name}} is now verified.",
     "verify_user": "Manually verify user",
+    "col_verification": "Verification",
+    "verify_user_title": "Verify Seller",
+    "verify_user_desc_name": "Select verification tier for {{name}}:",
+    "unverify_confirm_title": "Remove Verification?",
+    "unverify_confirm_desc": "This will remove the verification badge from {{name}}. Their trust score will be recalculated.",
+    "unverify_user": "Remove Verification",
+    "user_unverified_title": "Verification removed",
     "platform_health": "Platform Health",
     "top_sellers_leaderboard": "Top Sellers",
     "top_sellers_empty": "No confirmed sales yet",
@@ -2370,5 +2377,21 @@
     "success_rejected": "Application rejected",
     "success_suspended": "Courier account suspended",
     "success_reactivated": "Courier account reactivated"
+  },
+  "trust": {
+    "level_basic": "Verified Seller",
+    "level_verified": "ID Verified",
+    "level_business": "Business Verified",
+    "trust_score": "Trust Score",
+    "band_trusted": "Trusted",
+    "band_established": "Established",
+    "band_basic": "Basic",
+    "band_new": "New"
+  },
+  "trust_panel": {
+    "title": "Store Trust Level",
+    "verified_desc": "Your store has been verified by SYANO.",
+    "unverified_desc": "Complete your profile to improve your trust score.",
+    "how_to_verify": "To get verified, contact SYANO support or complete seller onboarding."
   }
 }

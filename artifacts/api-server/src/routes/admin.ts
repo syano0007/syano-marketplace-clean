@@ -387,17 +387,57 @@ router.post("/admin/users/:id/verify", requireAuth, requireRole("admin"), async 
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid user ID" }); return; }
 
-  const [user] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, isVerified: usersTable.isVerified })
+  const level = (req.body?.level as string | undefined) ?? "basic";
+  const validLevels = ["basic", "verified", "business"];
+  if (!validLevels.includes(level)) {
+    res.status(400).json({ error: "Invalid verification level. Must be: basic | verified | business" });
+    return;
+  }
+
+  const [user] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, isVerified: usersTable.isVerified, role: usersTable.role })
     .from(usersTable).where(eq(usersTable.id, id));
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
   await db.update(usersTable)
-    .set({ isVerified: true, verifiedAt: new Date(), verificationMethod: "admin" })
+    .set({
+      isVerified: true,
+      verifiedAt: new Date(),
+      verificationMethod: "admin",
+      verificationLevel: level,
+      verifiedBy: req.user!.userId,
+    })
     .where(eq(usersTable.id, id));
 
-  await logAudit(req.user!.userId, "VERIFY_USER", "user", String(id), { name: user.name, email: user.email });
+  // Recompute trust score for sellers
+  if (user.role === "seller") {
+    const { refreshTrustScore } = await import("../lib/trustScore");
+    refreshTrustScore(id).catch(() => {});
+  }
 
-  res.json({ message: "User verified", userId: id });
+  await logAudit(req.user!.userId, "VERIFY_USER", "user", String(id), { name: user.name, email: user.email, level });
+
+  res.json({ message: "User verified", userId: id, verificationLevel: level });
+});
+
+router.post("/admin/users/:id/unverify", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid user ID" }); return; }
+
+  const [user] = await db.select({ id: usersTable.id, name: usersTable.name, role: usersTable.role })
+    .from(usersTable).where(eq(usersTable.id, id));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  await db.update(usersTable)
+    .set({ isVerified: false, verifiedAt: null, verificationMethod: null, verificationLevel: null, verifiedBy: null })
+    .where(eq(usersTable.id, id));
+
+  if (user.role === "seller") {
+    const { refreshTrustScore } = await import("../lib/trustScore");
+    refreshTrustScore(id).catch(() => {});
+  }
+
+  await logAudit(req.user!.userId, "UNVERIFY_USER", "user", String(id), { name: user.name });
+  res.json({ message: "User unverified", userId: id });
 });
 
 router.delete("/admin/users/:id", async (req, res): Promise<void> => {
@@ -1309,6 +1349,84 @@ router.get("/admin/reports/export", async (req, res): Promise<void> => {
   }
 
   res.status(400).json({ error: "Invalid type. Use: orders | sellers | products | revenue" });
+});
+
+// ─── TRUST SYSTEM ────────────────────────────────────────────────────────────
+
+router.get("/admin/sellers/:id/trust", async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid seller ID" }); return; }
+
+  const [user] = await db
+    .select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role, trustScore: usersTable.trustScore, trustScoreUpdatedAt: usersTable.trustScoreUpdatedAt, verificationLevel: usersTable.verificationLevel, isVerified: usersTable.isVerified, verifiedAt: usersTable.verifiedAt, verificationMethod: usersTable.verificationMethod, verifiedBy: usersTable.verifiedBy })
+    .from(usersTable)
+    .where(eq(usersTable.id, id));
+
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  const { computeTrustScore } = await import("../lib/trustScore");
+  const breakdown = await computeTrustScore(id);
+
+  res.json({
+    userId: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    cachedScore: user.trustScore,
+    cachedScoreUpdatedAt: user.trustScoreUpdatedAt?.toISOString() ?? null,
+    isVerified: user.isVerified,
+    verifiedAt: user.verifiedAt?.toISOString() ?? null,
+    verificationLevel: user.verificationLevel ?? "none",
+    verificationMethod: user.verificationMethod ?? null,
+    verifiedBy: user.verifiedBy ?? null,
+    liveBreakdown: breakdown,
+  });
+});
+
+router.post("/admin/sellers/:id/recompute-trust", async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid seller ID" }); return; }
+
+  const [user] = await db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).where(eq(usersTable.id, id));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  const { refreshTrustScore } = await import("../lib/trustScore");
+  const score = await refreshTrustScore(id);
+
+  await logAudit(req.user!.userId, "RECOMPUTE_TRUST", "user", String(id), { name: user.name, score });
+  res.json({ message: "Trust score recomputed", userId: id, trustScore: score });
+});
+
+router.get("/admin/trust/leaderboard", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: usersTable.id,
+      name: usersTable.name,
+      email: usersTable.email,
+      trustScore: usersTable.trustScore,
+      trustLevel: usersTable.trustLevel,
+      verificationLevel: usersTable.verificationLevel,
+      isVerified: usersTable.isVerified,
+      storeName: sellerApplicationsTable.storeName,
+      storeSlug: sellerApplicationsTable.storeSlug,
+    })
+    .from(usersTable)
+    .leftJoin(sellerApplicationsTable, and(eq(sellerApplicationsTable.userId, usersTable.id), eq(sellerApplicationsTable.status, "approved")))
+    .where(eq(usersTable.role, "seller"))
+    .orderBy(desc(usersTable.trustScore), desc(usersTable.createdAt))
+    .limit(50);
+
+  res.json(rows.map((r) => ({
+    userId: r.id,
+    name: r.name,
+    email: r.email,
+    trustScore: r.trustScore ?? null,
+    trustLevel: r.trustLevel ?? "new",
+    verificationLevel: r.verificationLevel ?? "none",
+    isVerified: r.isVerified,
+    storeName: r.storeName ?? null,
+    storeSlug: r.storeSlug ?? null,
+  })));
 });
 
 export default router;

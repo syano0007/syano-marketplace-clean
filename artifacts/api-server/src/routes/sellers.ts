@@ -96,6 +96,8 @@ router.get("/sellers/store/:slug", async (req, res): Promise<void> => {
       userName: usersTable.name,
       trustLevel: usersTable.trustLevel,
       verifiedAt: usersTable.verifiedAt,
+      verificationLevel: usersTable.verificationLevel,
+      trustScore: usersTable.trustScore,
       memberSince: usersTable.createdAt,
       storeName: sellerApplicationsTable.storeName,
       storeSlug: sellerApplicationsTable.storeSlug,
@@ -137,6 +139,8 @@ router.get("/sellers/store/:slug", async (req, res): Promise<void> => {
     sellerName: storeData.userName,
     trustLevel: storeData.trustLevel ?? "new",
     verifiedAt: storeData.verifiedAt?.toISOString() ?? null,
+    verificationLevel: storeData.verificationLevel ?? "none",
+    trustScore: storeData.trustScore ?? null,
     memberSince: storeData.memberSince.toISOString(),
     ...stats,
   });
@@ -154,6 +158,8 @@ router.get("/sellers/:id/store-preview", async (req, res): Promise<void> => {
       storeLogo: sellerApplicationsTable.storeLogo,
       trustLevel: usersTable.trustLevel,
       verifiedAt: usersTable.verifiedAt,
+      verificationLevel: usersTable.verificationLevel,
+      trustScore: usersTable.trustScore,
       memberSince: usersTable.createdAt,
     })
     .from(sellerApplicationsTable)
@@ -186,6 +192,8 @@ router.get("/sellers/:id/store-preview", async (req, res): Promise<void> => {
     storeLogo: data.storeLogo ?? null,
     trustLevel: data.trustLevel ?? "new",
     verifiedAt: data.verifiedAt?.toISOString() ?? null,
+    verificationLevel: data.verificationLevel ?? "none",
+    trustScore: data.trustScore ?? null,
     memberSince: data.memberSince.toISOString(),
     averageRating: ratingRow?.avgRating != null ? parseFloat(ratingRow.avgRating) : null,
     reviewCount: Number(ratingRow?.reviewCount ?? 0),

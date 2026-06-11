@@ -233,19 +233,36 @@ export default function ProductDetailScreen() {
   const showFooter = isCustomer && !isOutOfStock && !needsVariantSelection;
   const scrollBottomPad = showFooter ? footerHeight + bottomPad + 8 : bottomPad + 16;
 
+  const sellerVerifLevel = (storePreview as any)?.verificationLevel ?? "none";
+  const sellerIsVerified = (storePreview as any)?.isVerified ?? false;
+  const sellerTrustScore = (storePreview as any)?.trustScore ?? null;
+
   const trustColor =
-    storePreview?.trustLevel === "trusted"
+    sellerVerifLevel === "business"
+      ? "#8B5CF6"
+      : sellerVerifLevel === "verified"
       ? "#10B981"
-      : storePreview?.trustLevel === "verified"
+      : sellerVerifLevel === "basic" || sellerIsVerified
       ? "#3B82F6"
       : colors.mutedForeground;
 
   const trustIcon =
-    storePreview?.trustLevel === "trusted"
+    sellerVerifLevel === "business"
+      ? "ribbon"
+      : sellerVerifLevel === "verified"
       ? "shield-checkmark"
-      : storePreview?.trustLevel === "verified"
-      ? "checkmark-circle"
+      : sellerVerifLevel === "basic" || sellerIsVerified
+      ? "shield-outline"
       : "person-outline";
+
+  const trustLabel =
+    sellerVerifLevel === "business"
+      ? t("trust.level_business", "Business Verified")
+      : sellerVerifLevel === "verified"
+      ? t("trust.level_verified", "ID Verified")
+      : (sellerVerifLevel === "basic" || sellerIsVerified)
+      ? t("trust.level_basic", "Verified Seller")
+      : null;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -485,12 +502,17 @@ export default function ProductDetailScreen() {
                 <Text style={[styles.sellerCardName, { color: colors.foreground }]} numberOfLines={1}>
                   {storePreview?.storeName ?? product.sellerName}
                 </Text>
-                {storePreview?.trustLevel && storePreview.trustLevel !== "new" && (
+                {trustLabel && (
                   <View style={styles.trustRow}>
                     <Ionicons name={trustIcon as any} size={13} color={trustColor} />
                     <Text style={[styles.trustLabel, { color: trustColor }]}>
-                      {storePreview.trustLevel.charAt(0).toUpperCase() + storePreview.trustLevel.slice(1)} {t("product.seller_label")}
+                      {trustLabel}
                     </Text>
+                    {sellerTrustScore != null && (
+                      <Text style={[styles.trustLabel, { color: colors.mutedForeground, marginStart: 4 }]}>
+                        {sellerTrustScore}/100
+                      </Text>
+                    )}
                   </View>
                 )}
                 {storePreview?.averageRating != null && (

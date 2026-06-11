@@ -1,4 +1,5 @@
 import { useGetSellerDashboard, useGetSellerAnalytics } from "@workspace/api-client-react";
+import { SellerTrustBadge, TrustScoreBar, type VerificationLevel } from "@/components/SellerTrustBadge";
 import { Layout } from "@/components/Layout";
 import { SellerNav } from "@/components/SellerNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Package, DollarSign, ShoppingCart, AlertCircle, Plus, ArrowRight,
   Boxes, TrendingUp, Clock, AlertTriangle, ChevronRight, Users, Star,
-  MessageCircle, Store, Settings,
+  MessageCircle, Store, Settings, ShieldCheck,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell,
@@ -294,6 +295,47 @@ export default function SellerDashboard() {
             )}
           </div>
         )}
+
+        {/* Trust panel */}
+        {(() => {
+          const trustScore = (dashboard as any)?.trustScore ?? null;
+          const verificationLevel = ((dashboard as any)?.verificationLevel ?? "none") as VerificationLevel;
+          const isVerified = (dashboard as any)?.isVerified ?? false;
+          const hasVerification = isVerified || (verificationLevel && verificationLevel !== "none");
+          return (
+            <div className="mb-6 p-4 bg-card border border-border/80 rounded-2xl shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">{t("trust_panel.title", "Store Trust Level")}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {hasVerification
+                        ? t("trust_panel.verified_desc", "Your store has been verified by SYANO.")
+                        : t("trust_panel.unverified_desc", "Complete your profile to improve your score.")}
+                    </p>
+                  </div>
+                </div>
+                {hasVerification && (
+                  <SellerTrustBadge level={verificationLevel} isVerified={isVerified} size="sm" />
+                )}
+              </div>
+              {trustScore != null && (
+                <div className="mt-3">
+                  <TrustScoreBar score={trustScore} size="md" />
+                </div>
+              )}
+              {!hasVerification && (
+                <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-xl px-3 py-2">
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                  {t("trust_panel.how_to_verify", "To get verified, contact SYANO support or complete seller onboarding.")}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Stats grid */}
         <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 mb-6 md:mb-8">

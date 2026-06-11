@@ -24,7 +24,7 @@ router.get("/dashboard/seller", requireAuth, requireActiveAccount, async (req, r
   const sellerId = req.user!.userId;
 
   // All stats computed in parallel — N+1 eliminated
-  const [products, orderIdRows, followerStat, sellerReviewStat, storeRow] = await Promise.all([
+  const [products, orderIdRows, followerStat, sellerReviewStat, storeRow, userTrustRow] = await Promise.all([
     db.select().from(productsTable).where(eq(productsTable.sellerId, sellerId)),
 
     db
@@ -51,6 +51,12 @@ router.get("/dashboard/seller", requireAuth, requireActiveAccount, async (req, r
       .select({ storeSlug: sellerApplicationsTable.storeSlug })
       .from(sellerApplicationsTable)
       .where(and(eq(sellerApplicationsTable.userId, sellerId), eq(sellerApplicationsTable.status, "approved")))
+      .limit(1),
+
+    db
+      .select({ trustScore: usersTable.trustScore, verificationLevel: usersTable.verificationLevel, isVerified: usersTable.isVerified })
+      .from(usersTable)
+      .where(eq(usersTable.id, sellerId))
       .limit(1),
   ]);
 
@@ -169,6 +175,9 @@ router.get("/dashboard/seller", requireAuth, requireActiveAccount, async (req, r
     sellerScore,
     sellerReviewCount: Number(sr?.total ?? 0),
     storeSlug: storeRow[0]?.storeSlug ?? null,
+    trustScore: userTrustRow[0]?.trustScore ?? null,
+    verificationLevel: userTrustRow[0]?.verificationLevel ?? "none",
+    isVerified: userTrustRow[0]?.isVerified ?? false,
     recentOrders,
     ordersByStatus,
   });
