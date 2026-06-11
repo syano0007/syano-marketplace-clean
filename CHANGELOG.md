@@ -2,6 +2,30 @@
 
 ---
 
+## [2026-06-11] Seller Application Redirect Fix
+
+### Bug Fix: Seller Apply → Status Page Redirect Race Condition
+
+**Root cause (two interlocking bugs):**
+
+1. **`application-status.tsx` redirect guard fired on stale cache.**  
+   The guard `if (!isLoading && application === null) navigate("/seller/apply")` ran while a refetch was in flight (`isFetching=true`). React Query's `isLoading` is only true on the very first load — during a background refetch the cache still holds the old `null` value but `isLoading=false`, causing an immediate bounce back to the apply form.
+
+2. **`apply.tsx` did not seed the cache before navigating.**  
+   `onSuccess` called `invalidateQueries` (marks the cache stale, keeping `null`) then `navigate(...)`. The status page always arrived with a null cache entry, triggering the bounce.
+
+**Fixes applied:**
+
+- `apply.tsx` — `onSuccess` now calls `queryClient.setQueryData(["seller-application","my"], newApp)` **before** `invalidateQueries`, seeding the cache with the real `{status:"pending"}` data so the status page never sees null.
+- `apply.tsx` — Added `submitMutation.isSuccess` early-return to prevent the form from re-rendering after a successful submit (guards against any post-navigate re-render flashing the form).
+- `apply.tsx` — Submit button now also disabled on `submitMutation.isSuccess` to block duplicate submissions.
+- `application-status.tsx` — Redirect guard updated to `if (!isLoading && !isFetching && application === null)` — only redirects after the query has fully settled.
+- `application-status.tsx` — Skeleton loader now shown when `isFetching && application === null` to cover the brief refetch window on arrival.
+
+**Validated states:** guest (redirected to login), customer (form shows), pending (redirected to status), under_review (status), approved (status), rejected (form to reapply), suspended (status).
+
+---
+
 ## [2026-06-11] Recovery + Full E2E Validation + Bug Fixes
 
 ### Environment Recovery

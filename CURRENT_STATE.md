@@ -53,9 +53,10 @@ All services running. All features validated end-to-end with real API calls.
 ```
 ✅ Order Fulfillment Workflow V1 — COMPLETE
 ✅ Courier Operations Dashboard V2 — COMPLETE + VALIDATED
+✅ Seller Application Redirect Fix — COMPLETE
 ```
 
-**Next planned step:** Courier Operations Dashboard V2 audit fixes are now complete. Ready for new feature development.
+**Last fix:** Seller application submission now correctly redirects to the status page with no bounce loop. Cache is seeded on submit; status page guards against stale-null during refetch.
 
 ---
 

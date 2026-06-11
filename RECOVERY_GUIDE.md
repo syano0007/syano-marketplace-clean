@@ -143,6 +143,7 @@ The root owner is auto-bootstrapped by `bootstrapRootAdmin()` on every server st
 | Courier notifications crash | `notification_type` enum missing values — run Step 3 SQL block |
 | Rate limited on login (429) | Restart API server — rate limiter is in-memory and resets on restart |
 | `drizzle-kit push` hangs | Requires TTY — use `psql -f schema.sql` instead for base schema |
+| Seller apply bounces back after submit | TanStack Query `isLoading` is false during refetch — guard must also check `!isFetching`; apply page must seed cache with `setQueryData` before navigating |
 
 ---
 

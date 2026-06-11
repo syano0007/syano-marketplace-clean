@@ -167,7 +167,10 @@ export default function SellerApply() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (newApp) => {
+      // Seed the cache immediately with the fresh application so the status
+      // page never sees a null value during the refetch window.
+      queryClient.setQueryData(["seller-application", "my"], newApp);
       queryClient.invalidateQueries({ queryKey: ["seller-application", "my"] });
       toast({
         title: t("seller_apply.submitted_title"),
@@ -181,6 +184,19 @@ export default function SellerApply() {
   });
 
   if (checkingApp) {
+    return (
+      <Layout>
+        <div className="container py-12 flex justify-center">
+          <div className="h-8 w-64 bg-muted rounded animate-pulse" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // After successful submission, show a redirect indicator so the form is
+  // never visible again — the navigate() in onSuccess handles the actual
+  // transition, but this prevents any re-render from flashing the form.
+  if (submitMutation.isSuccess) {
     return (
       <Layout>
         <div className="container py-12 flex justify-center">
@@ -488,7 +504,7 @@ export default function SellerApply() {
               <Button
                 type="submit"
                 className="sm:flex-2 h-11 text-base font-semibold"
-                disabled={submitMutation.isPending}
+                disabled={submitMutation.isPending || submitMutation.isSuccess}
               >
                 {submitMutation.isPending
                   ? t("seller_apply.submitting")

@@ -70,7 +70,7 @@ export default function ApplicationStatus() {
   const queryClient = useQueryClient();
   const [withdrawConfirm, setWithdrawConfirm] = useState(false);
 
-  const { data: application, isLoading, refetch } = useQuery<SellerApplication | null>({
+  const { data: application, isLoading, isFetching, refetch } = useQuery<SellerApplication | null>({
     queryKey: ["seller-application", "my"],
     queryFn: async () => {
       const res = await fetch("/api/seller-applications/my", {
@@ -88,9 +88,13 @@ export default function ApplicationStatus() {
     if (user?.role === "seller") navigate("/seller/dashboard");
   }, [isAuthenticated, user]);
 
+  // Only redirect when the query has fully settled (not mid-refetch).
+  // Without the isFetching guard, a stale null in the cache while a fresh
+  // refetch is in flight causes a bounce back to /seller/apply right after
+  // a successful submission.
   useEffect(() => {
-    if (!isLoading && application === null) navigate("/seller/apply");
-  }, [application, isLoading]);
+    if (!isLoading && !isFetching && application === null) navigate("/seller/apply");
+  }, [application, isLoading, isFetching]);
 
   /* ── Withdraw mutation ────────────────────────────────────── */
   const withdrawMutation = useMutation({
@@ -120,7 +124,9 @@ export default function ApplicationStatus() {
     navigate("/seller/dashboard");
   };
 
-  if (isLoading || application === undefined) {
+  // Show skeleton on initial load AND while fetching with no settled data yet
+  // (covers the window right after navigation from the apply page).
+  if (isLoading || application === undefined || (isFetching && application === null)) {
     return (
       <Layout>
         <div className="container py-12 max-w-lg mx-auto space-y-4">

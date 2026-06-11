@@ -21,6 +21,7 @@
 - [i18n audit June 2026](i18n-audit-2026.md) — Full i18n audit results; also mobile i18n uses custom t() at src/i18n/index.ts, imported as `../../src/i18n` (2 levels up from any app/ screen).
 - [i18n language switch race](i18n-race-fix.md) — FIXED: languageChanged handler must never do async import; both bundles must be pre-loaded via Promise.all before i18n.init().
 - [Drizzle raw SQL array pattern](drizzle-raw-sql-arrays.md) — sql.array() does not exist; use sql.join(ids.map(id=>sql`${id}`), sql`, `) and IN() not ANY() for raw SQL array params.
+- [Seller apply redirect race](seller-apply-redirect.md) — status page must check `!isFetching` in null-redirect guard; apply page must `setQueryData` before `invalidateQueries` before navigate.
 - [Root Owner bootstrap](root-owner-bootstrap.md) — Permanent Root Owner is delewatiamer7@gmail.com / 00Amer00; self-healing via bootstrapRootAdmin(); legacy typo email auto-removed; protected from admin UI deletion.
 - [Suspension system + best deals](suspension-best-deals.md) — requireActiveAccount middleware pattern, SSE kick flow, isBestDeal in all mappers, ambiguous subquery column fix.
 - [Guest cart architecture](guest-cart.md) — ALL entry points (ProductCard + ProductDetail + Navbar) must wire to addGuestItem; detail page must NOT show login redirect.
