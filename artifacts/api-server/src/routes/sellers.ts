@@ -534,6 +534,197 @@ router.patch("/sellers/store/branding", requireAuth, requireRole("seller"), requ
   res.json(updated);
 });
 
+/* ── Helper: resolve slug → seller row ──────────────────────── */
+async function resolveSlug(slug: string) {
+  const [row] = await db
+    .select({
+      sellerId: usersTable.id,
+      storeName: sellerApplicationsTable.storeName,
+      categories: sellerApplicationsTable.categories,
+    })
+    .from(sellerApplicationsTable)
+    .innerJoin(usersTable, eq(sellerApplicationsTable.userId, usersTable.id))
+    .where(
+      and(
+        eq(sellerApplicationsTable.storeSlug, String(slug)),
+        eq(sellerApplicationsTable.status, "approved")
+      )
+    );
+  return row ?? null;
+}
+
+/* ── GET /sellers/store/:slug/metrics ───────────────────────── */
+router.get("/sellers/store/:slug/metrics", async (req, res): Promise<void> => {
+  const seller = await resolveSlug(String(req.params.slug));
+  if (!seller) { res.status(404).json({ error: "Store not found" }); return; }
+
+  const stats = await getStoreStats(seller.sellerId);
+
+  const [trustRow] = await db
+    .select({ trustScore: usersTable.trustScore, verificationLevel: usersTable.verificationLevel })
+    .from(usersTable)
+    .where(eq(usersTable.id, seller.sellerId));
+
+  res.json({
+    sellerId: seller.sellerId,
+    storeName: seller.storeName,
+    productsCount: stats.totalProducts,
+    reviewsCount: stats.reviewCount,
+    followersCount: stats.followerCount,
+    averageRating: stats.averageRating,
+    completedOrders: stats.totalOrders,
+    completionRate: stats.completionRate,
+    sellerReviewCount: stats.sellerReviewCount,
+    sellerScore: stats.sellerScore,
+    trustScore: trustRow?.trustScore ?? null,
+    verificationLevel: trustRow?.verificationLevel ?? "none",
+  });
+});
+
+/* ── GET /sellers/store/:slug/reviews ───────────────────────── */
+router.get("/sellers/store/:slug/reviews", async (req, res): Promise<void> => {
+  const seller = await resolveSlug(String(req.params.slug));
+  if (!seller) { res.status(404).json({ error: "Store not found" }); return; }
+
+  const limit = Math.min(parseInt((req.query.limit as string) || "20", 10), 50);
+  const offset = parseInt((req.query.offset as string) || "0", 10);
+
+  const [reviews, [summary]] = await Promise.all([
+    db
+      .select({
+        id: sellerReviewsTable.id,
+        customerId: sellerReviewsTable.customerId,
+        customerName: usersTable.name,
+        communicationRating: sellerReviewsTable.communicationRating,
+        shippingRating: sellerReviewsTable.shippingRating,
+        professionalismRating: sellerReviewsTable.professionalismRating,
+        comment: sellerReviewsTable.comment,
+        createdAt: sellerReviewsTable.createdAt,
+      })
+      .from(sellerReviewsTable)
+      .innerJoin(usersTable, eq(usersTable.id, sellerReviewsTable.customerId))
+      .where(eq(sellerReviewsTable.sellerId, seller.sellerId))
+      .orderBy(desc(sellerReviewsTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+
+    db
+      .select({
+        avgCommunication: avg(sellerReviewsTable.communicationRating),
+        avgShipping: avg(sellerReviewsTable.shippingRating),
+        avgProfessionalism: avg(sellerReviewsTable.professionalismRating),
+        total: count(),
+      })
+      .from(sellerReviewsTable)
+      .where(eq(sellerReviewsTable.sellerId, seller.sellerId)),
+  ]);
+
+  const overallScore =
+    summary && Number(summary.total) > 0
+      ? parseFloat(
+          (
+            parseFloat(summary.avgCommunication ?? "0") * 0.4 +
+            parseFloat(summary.avgShipping ?? "0") * 0.3 +
+            parseFloat(summary.avgProfessionalism ?? "0") * 0.3
+          ).toFixed(1)
+        )
+      : null;
+
+  res.json({
+    reviews: reviews.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+    summary: {
+      total: Number(summary?.total ?? 0),
+      overallScore,
+      avgCommunication: summary?.avgCommunication ? parseFloat(summary.avgCommunication) : null,
+      avgShipping: summary?.avgShipping ? parseFloat(summary.avgShipping) : null,
+      avgProfessionalism: summary?.avgProfessionalism ? parseFloat(summary.avgProfessionalism) : null,
+    },
+  });
+});
+
+/* ── GET /sellers/store/:slug/categories ────────────────────── */
+router.get("/sellers/store/:slug/categories", async (req, res): Promise<void> => {
+  const seller = await resolveSlug(String(req.params.slug));
+  if (!seller) { res.status(404).json({ error: "Store not found" }); return; }
+
+  const rows = await db
+    .select({
+      category: productsTable.category,
+      cnt: count(productsTable.id),
+    })
+    .from(productsTable)
+    .where(eq(productsTable.sellerId, seller.sellerId))
+    .groupBy(productsTable.category);
+
+  const categories = rows
+    .filter((r) => r.category)
+    .map((r) => ({ name: r.category as string, count: Number(r.cnt) }))
+    .sort((a, b) => b.count - a.count);
+
+  res.json({ categories, storeCategories: seller.categories ?? [] });
+});
+
+/* ── GET /sellers/store/:slug/featured ──────────────────────── */
+router.get("/sellers/store/:slug/featured", async (req, res): Promise<void> => {
+  const seller = await resolveSlug(String(req.params.slug));
+  if (!seller) { res.status(404).json({ error: "Store not found" }); return; }
+
+  const [featuredRows, newestRows] = await Promise.all([
+    db
+      .select({
+        id: productsTable.id,
+        name: productsTable.name,
+        price: productsTable.price,
+        discountPercent: productsTable.discountPercent,
+        imageUrl: productsTable.imageUrl,
+        category: productsTable.category,
+        featured: productsTable.featured,
+      })
+      .from(productsTable)
+      .where(
+        and(
+          eq(productsTable.sellerId, seller.sellerId),
+          eq(productsTable.featured, true)
+        )
+      )
+      .limit(12),
+
+    db
+      .select({
+        id: productsTable.id,
+        name: productsTable.name,
+        price: productsTable.price,
+        discountPercent: productsTable.discountPercent,
+        imageUrl: productsTable.imageUrl,
+        category: productsTable.category,
+        featured: productsTable.featured,
+        createdAt: productsTable.createdAt,
+      })
+      .from(productsTable)
+      .where(eq(productsTable.sellerId, seller.sellerId))
+      .orderBy(desc(productsTable.createdAt))
+      .limit(8),
+  ]);
+
+  const mapProduct = (p: typeof featuredRows[0] & { createdAt?: Date }) => ({
+    id: p.id,
+    name: p.name,
+    price: parseFloat(String(p.price)),
+    finalPrice: p.discountPercent
+      ? parseFloat((parseFloat(String(p.price)) * (1 - parseFloat(String(p.discountPercent)) / 100)).toFixed(2))
+      : parseFloat(String(p.price)),
+    discountPercent: p.discountPercent ? parseFloat(String(p.discountPercent)) : null,
+    imageUrl: p.imageUrl ?? null,
+    category: p.category ?? null,
+    featured: p.featured ?? false,
+  });
+
+  res.json({
+    featured: featuredRows.map(mapProduct),
+    newArrivals: newestRows.map(mapProduct),
+  });
+});
+
 /* ── GET /sellers/:id/trust ─────────────────────────────────── */
 router.get("/sellers/:id/trust", async (req, res): Promise<void> => {
   const sellerId = parseInt(String(req.params.id), 10);

@@ -1114,6 +1114,98 @@ async function checkBootstrapAccounts(): Promise<CheckResult> {
   };
 }
 
+// ─── SECTION 14 — Store Pages ─────────────────────────────────────────────────
+
+async function checkStorePages(sellerToken: string, sellerId: number): Promise<CheckResult> {
+  const failures: string[] = [];
+  const warnings: string[] = [];
+  const data: Record<string, unknown> = {};
+
+  // Resolve the test seller's store slug
+  const [sellerApp] = await db
+    .select({ storeSlug: sellerApplicationsTable.storeSlug, storeName: sellerApplicationsTable.storeName })
+    .from(sellerApplicationsTable)
+    .where(and(eq(sellerApplicationsTable.userId, sellerId), eq(sellerApplicationsTable.status, "approved")));
+
+  const slug = sellerApp?.storeSlug ?? null;
+  data["testSlug"] = slug;
+  data["testSellerId"] = sellerId;
+
+  if (!slug) {
+    failures.push("Bootstrap seller has no approved store application with storeSlug");
+    return { ok: false, data, failures, warnings };
+  }
+
+  // Test all store page endpoints
+  const [storeMain, storeMetrics, storeReviews, storeCategories, storeFeatured] = await Promise.all([
+    internalGet(`/sellers/store/${slug}`),
+    internalGet(`/sellers/store/${slug}/metrics`),
+    internalGet(`/sellers/store/${slug}/reviews`),
+    internalGet(`/sellers/store/${slug}/categories`),
+    internalGet(`/sellers/store/${slug}/featured`),
+  ]);
+
+  data["storeMainStatus"] = storeMain.status;
+  data["storeMetricsStatus"] = storeMetrics.status;
+  data["storeReviewsStatus"] = storeReviews.status;
+  data["storeCategoriesStatus"] = storeCategories.status;
+  data["storeFeaturedStatus"] = storeFeatured.status;
+
+  if (storeMain.status !== 200) failures.push(`GET /sellers/store/${slug} returned ${storeMain.status}`);
+  if (storeMetrics.status !== 200) failures.push(`GET /sellers/store/${slug}/metrics returned ${storeMetrics.status}`);
+  if (storeReviews.status !== 200) failures.push(`GET /sellers/store/${slug}/reviews returned ${storeReviews.status}`);
+  if (storeCategories.status !== 200) failures.push(`GET /sellers/store/${slug}/categories returned ${storeCategories.status}`);
+  if (storeFeatured.status !== 200) failures.push(`GET /sellers/store/${slug}/featured returned ${storeFeatured.status}`);
+
+  // Check response shapes
+  const mainBody = storeMain.body as Record<string, unknown> | null;
+  if (mainBody) {
+    const hasRequiredFields = ["sellerId", "storeName", "followerCount", "totalProducts", "trustScore"].every(
+      (k) => k in mainBody
+    );
+    data["storeMainShapeOk"] = hasRequiredFields;
+    if (!hasRequiredFields) warnings.push("Store main endpoint missing expected fields");
+  }
+
+  const metricsBody = storeMetrics.body as Record<string, unknown> | null;
+  if (metricsBody) {
+    const hasMetrics = ["productsCount", "reviewsCount", "followersCount", "trustScore"].every(
+      (k) => k in metricsBody
+    );
+    data["storeMetricsShapeOk"] = hasMetrics;
+    if (!hasMetrics) warnings.push("Store metrics endpoint missing expected fields");
+  }
+
+  const categoriesBody = storeCategories.body as Record<string, unknown> | null;
+  if (categoriesBody) {
+    data["storeCategoriesShapeOk"] = "categories" in categoriesBody;
+  }
+
+  const featuredBody = storeFeatured.body as Record<string, unknown> | null;
+  if (featuredBody) {
+    data["storeFeaturedShapeOk"] = "featured" in featuredBody && "newArrivals" in featuredBody;
+    if (!data["storeFeaturedShapeOk"]) warnings.push("Store featured endpoint missing featured/newArrivals fields");
+  }
+
+  // Check frontend file exists
+  const storePagePath = path.join(process.cwd(), "..", "marketplace", "src", "pages", "store", "[slug].tsx");
+  const storePageExists = fs.existsSync(storePagePath);
+  data["storePageFileExists"] = storePageExists;
+  if (!storePageExists) failures.push("Store page file [slug].tsx not found");
+
+  // Check follow system
+  const followStatus = await internalGet(`/sellers/${sellerId}/follow-status`, sellerToken);
+  data["followStatusStatus"] = followStatus.status;
+  if (followStatus.status !== 200) warnings.push("Follow status endpoint returned non-200");
+
+  // Check trust integration
+  const trustData = mainBody?.trustScore;
+  data["trustIntegrated"] = trustData !== undefined;
+  if (trustData === undefined) warnings.push("Store page trust data not integrated");
+
+  return { ok: failures.length === 0, data, failures, warnings };
+}
+
 // ─── Confidence scoring ───────────────────────────────────────────────────────
 
 interface SectionWeight {
@@ -1133,6 +1225,7 @@ const WEIGHTS = {
   translations: 7,
   sellerSystem: 7,
   courierSystem: 5,
+  storePages: 5,
   analytics: 3,
   recovery: 2,
   mobile: 1,
@@ -1215,7 +1308,7 @@ router.get(
       : "";
     const sellerId = sellerUser?.id ?? 2;
 
-    // Run all 13 checks in parallel
+    // Run all 15 checks in parallel
     const [
       corePlatform,
       bootstrapAccounts,
@@ -1231,6 +1324,7 @@ router.get(
       security,
       analytics,
       recovery,
+      storePages,
     ] = await Promise.all([
       checkCorePlatform(),
       checkBootstrapAccounts(),
@@ -1246,6 +1340,7 @@ router.get(
       checkSecurity(adminToken, sellerToken, courierToken),
       checkAnalytics(sellerToken, adminToken),
       checkRecoverySafety(),
+      checkStorePages(sellerToken, sellerId),
     ]);
 
     const checkResults: Record<string, CheckResult> = {
@@ -1263,6 +1358,7 @@ router.get(
       security,
       analytics,
       recovery,
+      storePages,
     };
 
     const { score, modules, allFailures, allWarnings, deductions, recommendations } =
@@ -1378,6 +1474,13 @@ router.get(
           warnings: recovery.warnings,
           weight: WEIGHTS.recovery,
         },
+        storePages: {
+          ok: storePages.ok,
+          data: storePages.data,
+          failures: storePages.failures,
+          warnings: storePages.warnings,
+          weight: WEIGHTS.storePages,
+        },
       },
 
       failures: allFailures,
@@ -1393,8 +1496,9 @@ router.get(
         "Trust System V1": "✅ COMPLETE + VALIDATED",
         "Platform QA & UI Stabilization Audit": "✅ COMPLETE",
         "Recovery Integrity Audit & Migration Hardening": "✅ COMPLETE — Confidence 97/100",
-        "Admin Recovery Endpoint V2 (13-section)":
+        "Admin Recovery Endpoint V2 (15-section)":
           score >= 97 ? "✅ COMPLETE" : "⚠️ DEGRADED — see deductions",
+        "Seller Store Pages V2": storePages.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ INCOMPLETE — see storePages section",
         next: "⏳ TBD",
       },
 

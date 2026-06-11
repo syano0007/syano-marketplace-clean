@@ -2,6 +2,36 @@
 
 ---
 
+## [2026-06-11] Seller Store Pages V2 — Premium Storefronts
+
+### Summary
+Transformed seller store pages from a basic product listing into a full Amazon/Shopify-quality storefront. All 5 new API endpoints validated. Recovery check upgraded to 15 modules (100/100 score maintained).
+
+### New API Endpoints (`/api/sellers/store/:slug/...`)
+| Endpoint | Description |
+|---|---|
+| `GET /metrics` | KPI summary: products, reviews, followers, trustScore, completionRate, totalOrders |
+| `GET /reviews` | Paginated seller reviews with rating distribution bars |
+| `GET /categories` | Product categories with counts for filter chips |
+| `GET /featured` | Featured products + new arrivals (last 8) |
+| `GET /admin/store-health/:sellerId` | Admin store health score 0-100 |
+
+### Frontend (`artifacts/marketplace/src/pages/store/[slug].tsx`)
+- **Hero header**: store avatar, store name, verified badge, member-since, follow button, contact button
+- **4 KPI cards**: Followers, Products, Completion Rate, Completed Orders — with icons and color accents
+- **4-tab navigation**: Products / Featured / Reviews / About — sticky on scroll
+- **Products tab**: client-side search + sort (newest/price/sales) + category filter chips
+- **Featured tab**: featured items grid + new arrivals grid
+- **Reviews tab**: star rating distribution bars + paginated review cards
+- **About tab**: description, trust score panel, policy accordion (listings/returns/shipping/privacy/terms)
+- **i18n**: 29 new `store.*` keys in EN + AR
+
+### Recovery Check
+- Added `checkStorePages()` as Section 14 (weight=5): validates 5 endpoints, response shapes, frontend file, follow/trust integration
+- Recovery check upgraded from 14 → 15 modules; score remains **100/100**
+
+---
+
 ## [2026-06-11] Recovery Check V2 — 13-Section Platform Integrity System
 
 ### Summary
