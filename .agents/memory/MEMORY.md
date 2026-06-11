@@ -53,3 +53,7 @@
 - [Recently Viewed Products](recently-viewed.md) — localStorage key syano_recently_viewed; product snapshots; max 10; move-to-front on re-view; trackView() in product detail useEffect; section on homepage.
 - [Courier ops UX audit](courier-ops-ux.md) — Enriched courier APIs + full admin/courier page rewrites; failure reason modal; capacity indicator; COD label; your_cut calc; i18n keys pattern.
 - [QA Audit V1 patterns](qa-audit-v1.md) — 7 bugs found+fixed in delivery system rollout; key patterns to avoid repeating.
+- [notification_type enum recovery](notification-enum-recovery.md) — schema.sql only has 17 of 31 enum values; always run ALTER TYPE ADD VALUE block (RECOVERY_GUIDE.md Step 3) after any schema.sql restore.
+- [Courier profile fields](courier-profile-fields.md) — /couriers/profile must return successRate, activeAssignments, walletBalance; these are computed on-the-fly (not stored columns); courier dashboard will break without them.
+- [Admin assign-courier flow](admin-assign-courier-flow.md) — Use POST /admin/orders/:id/assign-courier (couriers.ts) to assign courier + create assignment record atomically; PATCH /orders/:id/status courier_assigned does NOT create assignment record.
+- [Fresh env restore steps](fresh-env-restore.md) — pnpm install --force → psql -f schema.sql → enum fix SQL → npx tsc --build libs → restart workflows; run-migrations.ts adds 5 additive tables on first API start.

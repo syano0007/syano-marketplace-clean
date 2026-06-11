@@ -59,6 +59,30 @@ router.get("/couriers/profile", requireAuth, async (req, res): Promise<void> => 
   const userId = req.user!.userId;
   const [courier] = await db.select().from(couriersTable).where(eq(couriersTable.userId, userId));
   if (!courier) { res.status(404).json({ error: "No courier profile found" }); return; }
+
+  const [activeCount] = await db
+    .select({ cnt: count() })
+    .from(courierAssignmentsTable)
+    .where(and(
+      eq(courierAssignmentsTable.courierId, courier.id),
+      inArray(courierAssignmentsTable.status, ["assigned", "picked_up", "out_for_delivery"]),
+    ));
+
+  const allTx = await db.select({ amount: courierWalletTransactionsTable.amount })
+    .from(courierWalletTransactionsTable)
+    .where(eq(courierWalletTransactionsTable.courierId, courier.id));
+  const walletBalance = parseFloat(allTx.reduce((s, t) => s + parseFloat(String(t.amount)), 0).toFixed(2));
+
+  const totalAttempted = courier.completedDeliveries + (
+    await db.select({ cnt: count() })
+      .from(courierAssignmentsTable)
+      .where(and(eq(courierAssignmentsTable.courierId, courier.id), eq(courierAssignmentsTable.status, "delivery_failed")))
+      .then(([r]) => Number(r?.cnt ?? 0))
+  );
+  const successRate = totalAttempted > 0
+    ? Math.round((courier.completedDeliveries / totalAttempted) * 100)
+    : 100;
+
   res.json({
     id: courier.id,
     status: courier.status,
@@ -68,6 +92,9 @@ router.get("/couriers/profile", requireAuth, async (req, res): Promise<void> => 
     district: courier.district,
     rating: courier.rating ? parseFloat(String(courier.rating)) : null,
     completedDeliveries: courier.completedDeliveries,
+    activeAssignments: Number(activeCount?.cnt ?? 0),
+    walletBalance,
+    successRate,
   });
 });
 
@@ -532,6 +559,7 @@ router.get("/couriers/history", requireAuth, async (req, res): Promise<void> => 
       deliveredAt: courierAssignmentsTable.deliveredAt,
       notes: courierAssignmentsTable.notes,
       orderTotal: ordersTable.total,
+      orderStatus: ordersTable.status,
       deliveryFee: ordersTable.deliveryFee,
       shippingAddress: ordersTable.shippingAddress,
       customerPhone: ordersTable.customerPhone,
@@ -583,6 +611,7 @@ router.get("/couriers/history", requireAuth, async (req, res): Promise<void> => 
       id: r.id,
       orderId: r.orderId,
       status: r.status,
+      orderStatus: r.orderStatus as string,
       assignedAt: r.assignedAt.toISOString(),
       deliveredAt: r.deliveredAt?.toISOString() ?? null,
       failedAt: r.status === "delivery_failed" ? (r.deliveredAt?.toISOString() ?? null) : null,
