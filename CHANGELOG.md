@@ -2,6 +2,48 @@
 
 ---
 
+## [2026-06-11] Seller Orders V2 — Audit + Metrics Bug Fix
+
+### Critical Bug Fix: `GET /dashboard/seller/metrics` Crash
+
+**File:** `artifacts/api-server/src/routes/dashboard.ts`  
+**Root cause:** `const [row] = await db.execute(rawSql)` used array destructuring on a `QueryResult` object (not an array). This crashed with "is not iterable" on every call.  
+**Fix:** `const rawResult = await db.execute(rawSql); const r = rawResult.rows?.[0] ?? rawResult[0] ?? {}` — safely unwraps whether the driver returns `{rows:[...]}` or a bare array.  
+**Impact:** The Operational Metrics panel on the Seller Orders V2 page now loads correctly.
+
+### Seller Orders V2 — Full Code + API Audit
+
+**Page:** `artifacts/marketplace/src/pages/seller/orders.tsx` (790 lines)  
+**Detail:** `artifacts/marketplace/src/pages/seller/orders/[id].tsx` (478 lines)
+
+All features verified:
+- 6 stat cards, 8 KPI metrics, 9 filter groups, search, bulk actions
+- Desktop table + mobile card views, all with correct API field bindings
+- Order detail: customer, products (with images), financials, timeline, courier, action center
+- i18n: **122 translation keys** all present in `en.json` and `ar.json`
+- API response shapes: all fields present (`customerName`, `zoneNameEn`, `zoneNameAr`, `courierName`, `courierPhone`, `courierStatus`, `deliveryFee`, `items[].imageUrl`)
+
+### E2E Flow Validated
+
+```
+Order 9: pending → confirmed → preparing → ready_for_pickup → courier_assigned
+- All seller PATCH transitions succeeded
+- 5 notifications fired with correct types (no enum errors)
+- Courier assignment record created in courier_assignments
+```
+
+### Architecture Notes (Courier Status Updates)
+
+Couriers do NOT use `PATCH /orders/:id/status`. They use dedicated endpoints in `couriers.ts`:
+- `PATCH /couriers/assignments/:id/pickup` → `courier_assigned → picked_up`
+- `PATCH /couriers/assignments/:id/start-delivery` → `picked_up → out_for_delivery`
+- `PATCH /couriers/assignments/:id/deliver` → `out_for_delivery → delivered`
+- `PATCH /couriers/assignments/:id/fail-delivery` → `out_for_delivery → delivery_failed`
+
+The `PATCH /orders/:id/status` handler correctly excludes courier role (line 605) because couriers have their own routes. This is intentional, not a bug.
+
+---
+
 ## [2026-06-11] Seller Application Redirect Fix
 
 ### Bug Fix: Seller Apply → Status Page Redirect Race Condition

@@ -267,7 +267,7 @@ router.get("/dashboard/seller/metrics", requireAuth, requireActiveAccount, async
 
   const ids = orderIdRows.map(r => r.orderId);
 
-  const [row] = await db.execute(sql`
+  const rawResult = await db.execute(sql`
     SELECT
       COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)                                AS today,
       COUNT(*) FILTER (WHERE created_at >= date_trunc('week', NOW()))                   AS this_week,
@@ -283,7 +283,7 @@ router.get("/dashboard/seller/metrics", requireAuth, requireActiveAccount, async
     WHERE id IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})
   `) as any;
 
-  const r = (row as any).rows?.[0] ?? row;
+  const r = rawResult.rows?.[0] ?? rawResult[0] ?? {};
   const totalCount    = Number(r.total_count ?? 0);
   const cancelledCount = Number(r.cancelled_count ?? 0);
   const deliveredCount = Number(r.delivered_count ?? 0);

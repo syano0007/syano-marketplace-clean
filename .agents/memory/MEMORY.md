@@ -59,3 +59,6 @@
 - [Admin assign-courier flow](admin-assign-courier-flow.md) — Use POST /admin/orders/:id/assign-courier (couriers.ts) to assign courier + create assignment record atomically; PATCH /orders/:id/status courier_assigned does NOT create assignment record.
 - [Fresh env restore steps](fresh-env-restore.md) — pnpm install --force → psql -f schema.sql → enum fix SQL → npx tsc --build libs → restart workflows; run-migrations.ts adds 5 additive tables on first API start.
 - [Seller Orders V2 architecture](seller-orders-v2.md) — Stats cards + metrics panel + bulk ops + detail page; metrics via GET /dashboard/seller/metrics (seller role required).
+- [db.execute QueryResult destructuring](db-execute-unwrap.md) — db.execute() returns QueryResult not an array; always use rawResult.rows?.[0] ?? rawResult[0] ?? {} never const [row] = await db.execute(...).
+- [Courier status update routes](courier-status-routes.md) — Couriers use /couriers/assignments/:id/{pickup,start-delivery,deliver,fail-delivery}; PATCH /orders/:id/status correctly excludes courier role (line 605 orders.ts); this is intentional.
+- [Rate limiter dev pattern](rate-limiter-dev.md) — In-memory rate limiter resets on API restart; running many curl logins in test scripts triggers 429; restart API to clear.
