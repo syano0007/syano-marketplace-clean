@@ -16,6 +16,7 @@ import sellersRouter from "./sellers";
 import messagingRouter from "./messaging";
 import couriersRouter from "./couriers";
 import deliveryZonesRouter from "./delivery-zones";
+import recoveryCheckRouter from "./recovery-check";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(sellersRouter);
 router.use(messagingRouter);
 router.use(couriersRouter);
 router.use(deliveryZonesRouter);
+router.use(recoveryCheckRouter);
 
 export default router;

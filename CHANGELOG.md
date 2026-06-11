@@ -2,6 +2,67 @@
 
 ---
 
+## [2026-06-11] Full Recovery + Admin Recovery Endpoint
+
+### Summary
+Full SYANO recovery after Replit account migration. All 8 phases completed in order: DB restore → deps install → lib build → services started → DB audit → TS audit → bootstrap verification → platform audit. Recovery Confidence Score: **100/100** (up from 97 — all checks passed).
+
+### Recovery Sequence
+1. `pnpm install --force` — dependencies restored
+2. `psql -f schema.sql` — 21 base tables restored
+3. `npx tsc --build lib/db lib/api-zod lib/api-client-react` — libs compiled clean
+4. API server started — `run-migrations.ts` auto-applied 6 extra tables + all enum extensions
+5. Marketplace + Mobile workflows started
+
+### Phase 2 — Database Audit (All Pass)
+| Check | Result |
+|---|---|
+| Tables | ✅ 27/27 |
+| notification_type enum | ✅ 31/31 |
+| order_status enum | ✅ 15/15 |
+| delivery_zones | ✅ 40/40 |
+| users.verified_by column | ✅ |
+| seller_verification_log table | ✅ |
+
+### Phase 3 — TypeScript Audit (0 errors across all 6 artifacts)
+All clean: lib/db, lib/api-zod, lib/api-client-react, api-server, marketplace, mobile.
+
+### Phase 4 — Bootstrap Accounts (All Pass)
+- Admin (delewatiamer7) — role=admin, active ✅
+- Seller (delewatiamer8) — role=seller, approved application, storeSlug=syano-test-store ✅
+- Courier (delewatiamer9) — role=courier, courier profile active ✅
+
+### Phase 5 — Platform Audit (All Pass)
+- Admin routes, seller routes, courier routes, guest routes — all verified
+- Cross-role protection: seller→admin = 403, courier→admin = 403 ✅
+- Translation parity: EN=2344, AR=2344, 0 missing ✅
+- Trust System, Seller Analytics, Delivery Zones — all confirmed operational
+
+### Admin Recovery Endpoint — NEW
+**`GET /api/admin/recovery-check`** — admin-only endpoint that runs the full recovery audit automatically.
+
+Checks run in parallel:
+- Database: table count, enum counts, delivery zones, migration columns
+- Bootstrap accounts: admin/seller/courier existence, roles, seller application, courier profile
+- Security: env vars present
+- Translations: EN/AR parity
+- Trust System: seller_verification_log accessible, verified seller count
+- Seller Analytics: route inventory
+
+Response includes:
+- `confidenceScore` (0–100)
+- `confidenceOk` (true if ≥ 97)
+- `deductions[]` (list of what failed + point cost)
+- `summary` (per-check booleans)
+- `roadmapState` (full roadmap with status)
+
+**Validated:**
+- Admin token → 200 with `confidenceScore: 100` ✅
+- Seller token → 403 ✅
+- No token → 401 ✅
+
+---
+
 ## [2026-06-11] Recovery Integrity Audit & Migration Hardening (9 Phases)
 
 ### Summary
