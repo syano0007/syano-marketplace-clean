@@ -2018,7 +2018,15 @@
     "courier_rejected": "تم رفض طلب المندوب",
     "reactivate": "إعادة التفعيل",
     "courier_reactivated": "تمت إعادة تفعيل المندوب",
-    "status_rejected": "مرفوض"
+    "status_rejected": "مرفوض",
+    "section_customer": "العميل",
+    "section_seller": "البائع / نقطة الاستلام",
+    "section_courier": "المندوب",
+    "product_count": "منتجات",
+    "courier_available": "متاح",
+    "courier_overloaded": "مثقل",
+    "courier_active_n": "{{n}} نشط",
+    "active_now": "نشط الآن"
   },
   "courier": {
     "dashboard_title": "لوحة تحكم المندوب",
@@ -2084,7 +2092,19 @@
     "notif_suspended_body": "تم إيقاف حسابك كمندوب. يُرجى التواصل مع الدعم للمزيد من المعلومات.",
     "notif_reactivated_title": "إعادة تفعيل حساب المندوب",
     "notif_reactivated_body": "تمت إعادة تفعيل حسابك كمندوب. يمكنك الآن الوصول إلى لوحة تحكم المندوب.",
-    "notif_approved_body": "تهانينا! تمت الموافقة على طلبك كمندوب. لوحة تحكمك جاهزة الآن."
+    "notif_approved_body": "تهانينا! تمت الموافقة على طلبك كمندوب. لوحة تحكمك جاهزة الآن.",
+    "pickup_section": "معلومات الاستلام",
+    "delivery_section": "التسليم إلى",
+    "cod_label": "الدفع عند الاستلام",
+    "your_cut": "حصتك",
+    "failure_modal_title": "الإبلاغ عن فشل التوصيل",
+    "failure_modal_desc": "حدد سبب عدم اكتمال توصيل الطلب رقم #{{id}}:",
+    "failure_confirm_btn": "تأكيد الإبلاغ",
+    "failure_unavailable": "العميل غير متاح",
+    "failure_wrong_address": "العنوان خاطئ",
+    "failure_rejected": "العميل رفض الطلب",
+    "failure_unreachable": "تعذّر الوصول إلى العميل",
+    "failure_other": "أخرى"
   },
   "courier_applications": {
     "nav": "طلبات المندوبين",

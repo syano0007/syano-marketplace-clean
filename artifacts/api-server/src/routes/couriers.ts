@@ -1,9 +1,9 @@
 import { Router, type IRouter } from "express";
-import { eq, and, desc, sum, count } from "drizzle-orm";
+import { eq, and, desc, sum, count, inArray } from "drizzle-orm";
 import {
   db, couriersTable, usersTable, ordersTable, orderItemsTable,
   courierAssignmentsTable, courierWalletTransactionsTable,
-  orderStatusHistoryTable,
+  orderStatusHistoryTable, sellerApplicationsTable,
 } from "@workspace/db";
 import { requireAuth, requireActiveAccount } from "../middlewares/auth";
 import { createNotification, bi } from "../lib/notif";
@@ -84,14 +84,14 @@ router.patch("/couriers/profile/toggle", requireAuth, requireActiveAccount, asyn
   res.json({ active: updated.active });
 });
 
-// ─── My assignments (active) ───────────────────────────────────────────────────
+// ─── My assignments (active: assigned / picked_up / out_for_delivery) ──────────
 router.get("/couriers/assignments", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
   const userId = req.user!.userId;
   const [courier] = await db.select().from(couriersTable).where(eq(couriersTable.userId, userId));
   if (!courier) { res.status(404).json({ error: "No courier profile found" }); return; }
   if (courier.status !== "approved") { res.status(403).json({ error: "Courier account not approved" }); return; }
 
-  const assignments = await db
+  const rows = await db
     .select({
       id: courierAssignmentsTable.id,
       orderId: courierAssignmentsTable.orderId,
@@ -102,32 +102,102 @@ router.get("/couriers/assignments", requireAuth, requireActiveAccount, async (re
       deliveredAt: courierAssignmentsTable.deliveredAt,
       notes: courierAssignmentsTable.notes,
       orderStatus: ordersTable.status,
+      orderDate: ordersTable.createdAt,
       shippingAddress: ordersTable.shippingAddress,
       customerPhone: ordersTable.customerPhone,
       city: ordersTable.city,
       deliveryNotes: ordersTable.deliveryNotes,
       deliveryFee: ordersTable.deliveryFee,
       total: ordersTable.total,
+      customerId: ordersTable.customerId,
     })
     .from(courierAssignmentsTable)
     .innerJoin(ordersTable, eq(ordersTable.id, courierAssignmentsTable.orderId))
     .where(
       and(
         eq(courierAssignmentsTable.courierId, courier.id),
-        eq(courierAssignmentsTable.status, "assigned"),
+        inArray(courierAssignmentsTable.status, ["assigned", "picked_up", "out_for_delivery"]),
       )
     )
     .orderBy(desc(courierAssignmentsTable.assignedAt));
 
-  res.json(assignments.map((a) => ({
-    ...a,
-    deliveryFee: a.deliveryFee ? parseFloat(String(a.deliveryFee)) : null,
-    total: parseFloat(String(a.total)),
-    assignedAt: a.assignedAt.toISOString(),
-    acceptedAt: a.acceptedAt?.toISOString() ?? null,
-    pickedUpAt: a.pickedUpAt?.toISOString() ?? null,
-    deliveredAt: a.deliveredAt?.toISOString() ?? null,
-  })));
+  if (rows.length === 0) { res.json([]); return; }
+
+  // Batch enrich: customer names
+  const customerIds = [...new Set(rows.map((r) => r.customerId))];
+  const customerUsers = await db
+    .select({ id: usersTable.id, name: usersTable.name })
+    .from(usersTable)
+    .where(inArray(usersTable.id, customerIds));
+  const customerMap: Record<number, string> = Object.fromEntries(customerUsers.map((u) => [u.id, u.name ?? ""]));
+
+  // Batch enrich: order items (product snapshot)
+  const orderIds = rows.map((r) => r.orderId);
+  const items = await db
+    .select({
+      orderId: orderItemsTable.orderId,
+      productName: orderItemsTable.productName,
+      quantity: orderItemsTable.quantity,
+      unitPrice: orderItemsTable.unitPrice,
+      sellerId: orderItemsTable.sellerId,
+    })
+    .from(orderItemsTable)
+    .where(inArray(orderItemsTable.orderId, orderIds));
+
+  // Batch enrich: seller user names
+  const sellerIds = [...new Set(items.map((i) => i.sellerId))];
+  const [sellerUsers, sellerApps] = sellerIds.length > 0
+    ? await Promise.all([
+      db.select({ id: usersTable.id, name: usersTable.name })
+        .from(usersTable).where(inArray(usersTable.id, sellerIds)),
+      db.select({ userId: sellerApplicationsTable.userId, storeName: sellerApplicationsTable.storeName, phone: sellerApplicationsTable.phone })
+        .from(sellerApplicationsTable)
+        .where(and(inArray(sellerApplicationsTable.userId, sellerIds), eq(sellerApplicationsTable.status, "approved"))),
+    ])
+    : [[], []];
+
+  const sellerUserMap: Record<number, string> = Object.fromEntries((sellerUsers as any[]).map((u) => [u.id, u.name ?? ""]));
+  const sellerAppMap: Record<number, { storeName: string; phone: string }> =
+    Object.fromEntries((sellerApps as any[]).map((s) => [s.userId, { storeName: s.storeName, phone: s.phone }]));
+
+  // Group items by order
+  const itemsByOrder: Record<number, typeof items> = {};
+  for (const item of items) {
+    if (!itemsByOrder[item.orderId]) itemsByOrder[item.orderId] = [];
+    itemsByOrder[item.orderId].push(item);
+  }
+
+  res.json(rows.map((a) => {
+    const orderItems = itemsByOrder[a.orderId] ?? [];
+    const firstSellerId = orderItems[0]?.sellerId;
+    return {
+      id: a.id,
+      orderId: a.orderId,
+      status: a.status,
+      orderStatus: a.orderStatus,
+      orderDate: a.orderDate.toISOString(),
+      assignedAt: a.assignedAt.toISOString(),
+      acceptedAt: a.acceptedAt?.toISOString() ?? null,
+      pickedUpAt: a.pickedUpAt?.toISOString() ?? null,
+      deliveredAt: a.deliveredAt?.toISOString() ?? null,
+      notes: a.notes,
+      shippingAddress: a.shippingAddress,
+      city: a.city,
+      deliveryNotes: a.deliveryNotes,
+      deliveryFee: a.deliveryFee ? parseFloat(String(a.deliveryFee)) : null,
+      total: parseFloat(String(a.total)),
+      customerName: customerMap[a.customerId] ?? null,
+      customerPhone: a.customerPhone,
+      storeName: firstSellerId ? (sellerAppMap[firstSellerId]?.storeName ?? null) : null,
+      sellerName: firstSellerId ? (sellerUserMap[firstSellerId] ?? null) : null,
+      sellerPhone: firstSellerId ? (sellerAppMap[firstSellerId]?.phone ?? null) : null,
+      products: orderItems.map((i) => ({
+        name: i.productName,
+        quantity: i.quantity,
+        unitPrice: parseFloat(String(i.unitPrice)),
+      })),
+    };
+  }));
 });
 
 // ─── Mark picked up ────────────────────────────────────────────────────────────
@@ -265,18 +335,21 @@ router.patch("/couriers/assignments/:id/fail-delivery", requireAuth, requireActi
     res.status(400).json({ error: "Order must be out_for_delivery to report a failure" }); return;
   }
 
-  const { notes } = req.body;
+  const { notes, failureReason } = req.body;
+  const reasonLabel = failureReason ?? notes ?? null;
 
   await Promise.all([
     db.update(courierAssignmentsTable).set({
       status: "delivery_failed",
-      notes: notes ?? null,
+      notes: reasonLabel,
       updatedAt: new Date(),
     }).where(eq(courierAssignmentsTable.id, assignment.id)),
     db.update(ordersTable).set({ status: "delivery_failed" as any, updatedAt: new Date() })
       .where(eq(ordersTable.id, order.id)),
     insertStatusHistory(order.id, "out_for_delivery", "delivery_failed", userId, "courier"),
   ]);
+
+  const reasonSuffix = reasonLabel ? ` (${reasonLabel})` : "";
 
   // Notify customer
   await createNotification({
@@ -285,13 +358,28 @@ router.patch("/couriers/assignments/:id/fail-delivery", requireAuth, requireActi
     body: bi(`Delivery of order #${order.id} was unsuccessful. Our team will contact you.`, `تعذّر تسليم طلبك رقم #${order.id}. سيتواصل معك فريقنا.`),
     orderId: order.id, priority: "critical", link: `/orders`,
   });
+
+  // Notify seller — find via order items
+  const sellerItem = await db.select({ sellerId: orderItemsTable.sellerId }).from(orderItemsTable)
+    .where(eq(orderItemsTable.orderId, order.id)).limit(1);
+  if (sellerItem[0]) {
+    await createNotification({
+      userId: sellerItem[0].sellerId, type: "order_delivery_failed",
+      title: bi("Delivery Failed", "فشل توصيل طلب"),
+      body: bi(`Courier reported delivery failure for order #${order.id}${reasonSuffix}. Admin will follow up.`,
+        `أبلغ المندوب عن فشل تسليم الطلب رقم #${order.id}${reasonSuffix}. سيتابع الإدارة الأمر.`),
+      orderId: order.id, priority: "critical", link: `/seller/orders`,
+    }).catch(() => {});
+  }
+
   // Notify admins fire-and-forget
   db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"))
     .then((admins) => Promise.allSettled(admins.map((admin) =>
       createNotification({
         userId: admin.id, type: "order_delivery_failed",
         title: bi("Delivery Failed", "فشل التوصيل"),
-        body: bi(`Courier reported delivery failure for order #${order.id}.`, `أبلغ المندوب عن فشل تسليم الطلب رقم #${order.id}.`),
+        body: bi(`Courier reported delivery failure for order #${order.id}${reasonSuffix}.`,
+          `أبلغ المندوب عن فشل تسليم الطلب رقم #${order.id}${reasonSuffix}.`),
         orderId: order.id, priority: "critical", link: `/admin/orders`,
       })
     ))).catch(() => {});
@@ -358,10 +446,27 @@ router.get("/admin/couriers", requireAuth, async (req, res): Promise<void> => {
     .innerJoin(usersTable, eq(usersTable.id, couriersTable.userId))
     .orderBy(desc(couriersTable.createdAt));
 
+  if (rows.length === 0) { res.json([]); return; }
+
+  // Add active assignment count per courier
+  const courierIds = rows.map((r) => r.id);
+  const activeCounts = await db
+    .select({ courierId: courierAssignmentsTable.courierId, cnt: count() })
+    .from(courierAssignmentsTable)
+    .where(
+      and(
+        inArray(courierAssignmentsTable.courierId, courierIds),
+        inArray(courierAssignmentsTable.status, ["assigned", "picked_up", "out_for_delivery"]),
+      )
+    )
+    .groupBy(courierAssignmentsTable.courierId);
+  const activeMap: Record<number, number> = Object.fromEntries(activeCounts.map((c) => [c.courierId, Number(c.cnt)]));
+
   res.json(rows.map((r) => ({
     ...r,
     rating: r.rating ? parseFloat(String(r.rating)) : null,
     createdAt: r.createdAt.toISOString(),
+    activeAssignments: activeMap[r.id] ?? 0,
   })));
 });
 
@@ -558,15 +663,58 @@ router.get("/admin/delivery/ready-orders", requireAuth, async (req, res): Promis
     })
     .from(ordersTable)
     .innerJoin(usersTable, eq(usersTable.id, ordersTable.customerId))
-    .where(eq(ordersTable.status, "ready_for_pickup" as any));
+    .where(eq(ordersTable.status, "ready_for_pickup" as any))
+    .orderBy(desc(ordersTable.createdAt));
 
-  res.json(orders.map((o) => ({
-    ...o,
-    total: parseFloat(String(o.total)),
-    deliveryFee: o.deliveryFee ? parseFloat(String(o.deliveryFee)) : null,
-    createdAt: o.createdAt.toISOString(),
-    updatedAt: o.updatedAt.toISOString(),
-  })));
+  if (orders.length === 0) { res.json([]); return; }
+
+  // Batch: items + seller info
+  const orderIds = orders.map((o) => o.id);
+  const items = await db
+    .select({ orderId: orderItemsTable.orderId, productName: orderItemsTable.productName, quantity: orderItemsTable.quantity, sellerId: orderItemsTable.sellerId })
+    .from(orderItemsTable)
+    .where(inArray(orderItemsTable.orderId, orderIds));
+
+  const sellerIds = [...new Set(items.map((i) => i.sellerId))];
+  const [sellerUsers, sellerApps] = sellerIds.length > 0
+    ? await Promise.all([
+      db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).where(inArray(usersTable.id, sellerIds)),
+      db.select({ userId: sellerApplicationsTable.userId, storeName: sellerApplicationsTable.storeName, phone: sellerApplicationsTable.phone })
+        .from(sellerApplicationsTable)
+        .where(and(inArray(sellerApplicationsTable.userId, sellerIds), eq(sellerApplicationsTable.status, "approved"))),
+    ])
+    : [[], []];
+
+  const sellerNameMap: Record<number, string> = Object.fromEntries((sellerUsers as any[]).map((u) => [u.id, u.name ?? ""]));
+  const sellerStoreMap: Record<number, { storeName: string; phone: string }> =
+    Object.fromEntries((sellerApps as any[]).map((s) => [s.userId, { storeName: s.storeName, phone: s.phone }]));
+
+  const itemsByOrder: Record<number, typeof items> = {};
+  for (const item of items) {
+    if (!itemsByOrder[item.orderId]) itemsByOrder[item.orderId] = [];
+    itemsByOrder[item.orderId].push(item);
+  }
+
+  res.json(orders.map((o) => {
+    const orderItems = itemsByOrder[o.id] ?? [];
+    const firstSellerId = orderItems[0]?.sellerId;
+    return {
+      id: o.id,
+      total: parseFloat(String(o.total)),
+      status: o.status,
+      shippingAddress: o.shippingAddress,
+      customerPhone: o.customerPhone,
+      city: o.city,
+      deliveryFee: o.deliveryFee ? parseFloat(String(o.deliveryFee)) : null,
+      createdAt: o.createdAt.toISOString(),
+      updatedAt: o.updatedAt.toISOString(),
+      customerName: o.customerName,
+      sellerName: firstSellerId ? (sellerNameMap[firstSellerId] ?? null) : null,
+      storeName: firstSellerId ? (sellerStoreMap[firstSellerId]?.storeName ?? null) : null,
+      sellerPhone: firstSellerId ? (sellerStoreMap[firstSellerId]?.phone ?? null) : null,
+      products: orderItems.map((i) => ({ name: i.productName, quantity: i.quantity })),
+    };
+  }));
 });
 
 // ─── Admin: active deliveries ──────────────────────────────────────────────────
@@ -581,23 +729,76 @@ router.get("/admin/delivery/active", requireAuth, async (req, res): Promise<void
       pickedUpAt: courierAssignmentsTable.pickedUpAt,
       courierId: couriersTable.id,
       courierName: usersTable.name,
+      courierPhone: couriersTable.phone,
       orderStatus: ordersTable.status,
       shippingAddress: ordersTable.shippingAddress,
+      city: ordersTable.city,
+      customerPhone: ordersTable.customerPhone,
       deliveryFee: ordersTable.deliveryFee,
-      customerName: ordersTable.customerId,
+      total: ordersTable.total,
+      customerId: ordersTable.customerId,
     })
     .from(courierAssignmentsTable)
     .innerJoin(couriersTable, eq(couriersTable.id, courierAssignmentsTable.courierId))
     .innerJoin(usersTable, eq(usersTable.id, couriersTable.userId))
     .innerJoin(ordersTable, eq(ordersTable.id, courierAssignmentsTable.orderId))
-    .where(eq(courierAssignmentsTable.status, "assigned"));
+    .where(inArray(courierAssignmentsTable.status, ["assigned", "picked_up", "out_for_delivery", "delivery_failed"]))
+    .orderBy(desc(courierAssignmentsTable.assignedAt));
 
-  res.json(rows.map((r) => ({
-    ...r,
-    deliveryFee: r.deliveryFee ? parseFloat(String(r.deliveryFee)) : null,
-    assignedAt: r.assignedAt.toISOString(),
-    pickedUpAt: r.pickedUpAt?.toISOString() ?? null,
-  })));
+  if (rows.length === 0) { res.json([]); return; }
+
+  // Batch: customer names
+  const customerIds = [...new Set(rows.map((r) => r.customerId))];
+  const customerUsers = await db
+    .select({ id: usersTable.id, name: usersTable.name })
+    .from(usersTable)
+    .where(inArray(usersTable.id, customerIds));
+  const customerNameMap: Record<number, string> = Object.fromEntries(customerUsers.map((u) => [u.id, u.name ?? ""]));
+
+  // Batch: order items + seller info
+  const orderIds = rows.map((r) => r.orderId);
+  const items = await db
+    .select({ orderId: orderItemsTable.orderId, productName: orderItemsTable.productName, quantity: orderItemsTable.quantity, sellerId: orderItemsTable.sellerId })
+    .from(orderItemsTable)
+    .where(inArray(orderItemsTable.orderId, orderIds));
+
+  const sellerIds = [...new Set(items.map((i) => i.sellerId))];
+  const sellerApps = sellerIds.length > 0
+    ? await db.select({ userId: sellerApplicationsTable.userId, storeName: sellerApplicationsTable.storeName })
+        .from(sellerApplicationsTable)
+        .where(and(inArray(sellerApplicationsTable.userId, sellerIds), eq(sellerApplicationsTable.status, "approved")))
+    : [];
+  const sellerAppMap: Record<number, string> = Object.fromEntries((sellerApps as any[]).map((s) => [s.userId, s.storeName]));
+
+  const itemsByOrder: Record<number, typeof items> = {};
+  for (const item of items) {
+    if (!itemsByOrder[item.orderId]) itemsByOrder[item.orderId] = [];
+    itemsByOrder[item.orderId].push(item);
+  }
+
+  res.json(rows.map((r) => {
+    const orderItems = itemsByOrder[r.orderId] ?? [];
+    const firstSellerId = orderItems[0]?.sellerId;
+    return {
+      assignmentId: r.assignmentId,
+      orderId: r.orderId,
+      assignmentStatus: r.assignmentStatus,
+      assignedAt: r.assignedAt.toISOString(),
+      pickedUpAt: r.pickedUpAt?.toISOString() ?? null,
+      courierId: r.courierId,
+      courierName: r.courierName,
+      courierPhone: r.courierPhone,
+      orderStatus: r.orderStatus,
+      shippingAddress: r.shippingAddress,
+      city: r.city,
+      customerName: customerNameMap[r.customerId] ?? null,
+      customerPhone: r.customerPhone,
+      deliveryFee: r.deliveryFee ? parseFloat(String(r.deliveryFee)) : null,
+      total: parseFloat(String(r.total)),
+      storeName: firstSellerId ? (sellerAppMap[firstSellerId] ?? null) : null,
+      products: orderItems.map((i) => ({ name: i.productName, quantity: i.quantity })),
+    };
+  }));
 });
 
 // ─── Seller: mark order ready for pickup ──────────────────────────────────────

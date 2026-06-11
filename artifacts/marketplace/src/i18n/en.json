@@ -2018,7 +2018,15 @@
     "courier_rejected": "Courier application rejected",
     "reactivate": "Reactivate",
     "courier_reactivated": "Courier reactivated",
-    "status_rejected": "Rejected"
+    "status_rejected": "Rejected",
+    "section_customer": "Customer",
+    "section_seller": "Seller / Pickup",
+    "section_courier": "Courier",
+    "product_count": "items",
+    "courier_available": "Available",
+    "courier_overloaded": "Overloaded",
+    "courier_active_n": "{{n}} Active",
+    "active_now": "active now"
   },
   "courier": {
     "dashboard_title": "Courier Dashboard",
@@ -2084,7 +2092,19 @@
     "notif_suspended_body": "Your courier account has been suspended. Please contact support for more information.",
     "notif_reactivated_title": "Courier Account Reactivated",
     "notif_reactivated_body": "Your courier account has been reactivated. You can now access your courier dashboard.",
-    "notif_approved_body": "Congratulations! Your courier application has been approved. Your courier dashboard is now ready."
+    "notif_approved_body": "Congratulations! Your courier application has been approved. Your courier dashboard is now ready.",
+    "pickup_section": "Pickup Information",
+    "delivery_section": "Deliver To",
+    "cod_label": "Cash on Delivery",
+    "your_cut": "your cut",
+    "failure_modal_title": "Report Delivery Failure",
+    "failure_modal_desc": "Select the reason delivery for order #{{id}} could not be completed:",
+    "failure_confirm_btn": "Report Failure",
+    "failure_unavailable": "Customer unavailable",
+    "failure_wrong_address": "Wrong address",
+    "failure_rejected": "Customer rejected order",
+    "failure_unreachable": "Unable to reach customer",
+    "failure_other": "Other"
   },
   "courier_applications": {
     "nav": "Courier Applications",

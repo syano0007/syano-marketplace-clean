@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { Layout } from "@/components/Layout";
@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   Truck, Package, CheckCircle2, DollarSign, MapPin, Phone,
-  User, Star, ChevronRight, ArrowRight, AlertTriangle,
+  User, Star, AlertTriangle, Store, ShoppingBag, Calendar,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -23,6 +23,7 @@ interface CourierProfile {
   rating: number | null;
   completedDeliveries: number;
 }
+interface ProductSnap { name: string; quantity: number; unitPrice: number; }
 interface Assignment {
   id: number;
   orderId: number;
@@ -30,12 +31,19 @@ interface Assignment {
   assignedAt: string;
   pickedUpAt: string | null;
   orderStatus: string;
+  orderDate: string;
   shippingAddress: string;
-  customerPhone: string | null;
   city: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
   deliveryNotes: string | null;
   deliveryFee: number | null;
   total: number;
+  storeName: string | null;
+  sellerName: string | null;
+  sellerPhone: string | null;
+  products: ProductSnap[];
+  notes: string | null;
 }
 interface Earnings {
   totalEarnings: number;
@@ -49,6 +57,15 @@ interface Earnings {
     createdAt: string;
   }[];
 }
+
+// ─── Failure reasons ──────────────────────────────────────────────────────────
+const FAILURE_REASONS = [
+  "courier.failure_unavailable",
+  "courier.failure_wrong_address",
+  "courier.failure_rejected",
+  "courier.failure_unreachable",
+  "courier.failure_other",
+] as const;
 
 // ─── Apply form ───────────────────────────────────────────────────────────────
 function ApplyForm({ token, onApplied }: { token: string; onApplied: () => void }) {
@@ -96,13 +113,7 @@ function ApplyForm({ token, onApplied }: { token: string; onApplied: () => void 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-sm font-semibold text-foreground mb-1.5 block">{t("courier.phone_label")}</label>
-            <Input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder={t("courier.phone_placeholder")}
-              required
-            />
+            <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t("courier.phone_placeholder")} required />
           </div>
           <div>
             <label className="text-sm font-semibold text-foreground mb-1.5 block">{t("courier.vehicle_label")}</label>
@@ -119,16 +130,64 @@ function ApplyForm({ token, onApplied }: { token: string; onApplied: () => void 
           </div>
           <div>
             <label className="text-sm font-semibold text-foreground mb-1.5 block">{t("courier.district_label")}</label>
-            <Input
-              value={district}
-              onChange={(e) => setDistrict(e.target.value)}
-              placeholder="e.g. Al-Aziziyeh"
-            />
+            <Input value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="e.g. Al-Aziziyeh" />
           </div>
           <Button type="submit" className="w-full" disabled={submitting}>
             {submitting ? "…" : t("courier.submit_apply")}
           </Button>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Failure reason modal ─────────────────────────────────────────────────────
+function FailureReasonModal({ orderId, onConfirm, onCancel, acting }: {
+  orderId: number;
+  onConfirm: (reason: string) => void;
+  onCancel: () => void;
+  acting: boolean;
+}) {
+  const { t } = useTranslation();
+  const [selected, setSelected] = useState<string>("");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-card border rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0" />
+          <h3 className="font-bold text-base">{t("courier.failure_modal_title")}</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">{t("courier.failure_modal_desc", { id: orderId })}</p>
+        <div className="space-y-2">
+          {FAILURE_REASONS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setSelected(t(key))}
+              className={cn(
+                "w-full text-left text-sm px-3 py-2.5 rounded-xl border transition-all",
+                selected === t(key)
+                  ? "border-orange-400 bg-orange-50 text-orange-800 dark:border-orange-700 dark:bg-orange-950/30 dark:text-orange-300"
+                  : "border-border bg-muted/30 hover:bg-muted/60 text-foreground"
+              )}
+            >
+              {t(key)}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 pt-1">
+          <Button
+            onClick={() => selected && onConfirm(selected)}
+            disabled={!selected || acting}
+            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+          >
+            {acting ? "…" : t("courier.failure_confirm_btn")}
+          </Button>
+          <Button variant="ghost" onClick={onCancel} className="flex-1">
+            {t("common.cancel")}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -143,23 +202,22 @@ function DeliveryCard({ assignment, token, onAction }: {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [acting, setActing] = useState(false);
+  const [showFailModal, setShowFailModal] = useState(false);
 
-  const isAssigned    = assignment.orderStatus === "courier_assigned";
-  const isPickedUp    = assignment.orderStatus === "picked_up";
-  const isOutForDel   = assignment.orderStatus === "out_for_delivery";
+  const isAssigned  = assignment.orderStatus === "courier_assigned";
+  const isPickedUp  = assignment.orderStatus === "picked_up";
+  const isOutForDel = assignment.orderStatus === "out_for_delivery";
 
-  const doAction = async (endpoint: string, confirmKey: string, successKey: string, body?: object) => {
-    if (!confirm(t(confirmKey, { id: assignment.orderId }))) return;
+  const doAction = async (endpoint: string, body?: object) => {
     setActing(true);
     try {
       const res = await fetch(`/api/couriers/assignments/${assignment.id}/${endpoint}`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: body ? JSON.stringify(body) : undefined,
+        body: JSON.stringify(body ?? {}),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error");
-      toast({ title: t(successKey) });
       onAction();
     } catch (err: any) {
       toast({ title: err.message ?? t("common.error"), variant: "destructive" });
@@ -168,10 +226,13 @@ function DeliveryCard({ assignment, token, onAction }: {
     }
   };
 
-  const handlePickup       = () => doAction("pickup",         "courier.pickup_confirm",       "courier.pickup_success");
-  const handleStartDelivery= () => doAction("start-delivery", "courier.start_delivery_confirm","courier.start_delivery_success");
-  const handleDeliver      = () => doAction("deliver",        "courier.deliver_confirm",       "courier.deliver_success");
-  const handleFailDelivery = () => doAction("fail-delivery",  "courier.fail_delivery_confirm", "courier.fail_delivery_success");
+  const handlePickup        = () => doAction("pickup");
+  const handleStartDelivery = () => doAction("start-delivery");
+  const handleDeliver       = () => doAction("deliver");
+  const handleFailDelivery  = (reason: string) => {
+    setShowFailModal(false);
+    doAction("fail-delivery", { failureReason: reason });
+  };
 
   const statusLabel = isPickedUp
     ? t("orders.status_picked_up")
@@ -185,76 +246,151 @@ function DeliveryCard({ assignment, token, onAction }: {
       ? "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400"
       : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
 
+  const orderDateFmt = new Date(assignment.orderDate).toLocaleDateString();
+
   return (
-    <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
-      <div className="px-5 py-3.5 border-b bg-muted/20 flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-sm" translate="no">#{assignment.orderId}</span>
-          <span className={cn("text-xs px-2 py-0.5 rounded-full font-semibold", statusCls)}>
-            {statusLabel}
-          </span>
-        </div>
-        {assignment.deliveryFee != null && (
-          <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400" translate="no">
-            +${(assignment.deliveryFee * 0.8).toFixed(2)}
-          </span>
-        )}
-      </div>
+    <>
+      {showFailModal && (
+        <FailureReasonModal
+          orderId={assignment.orderId}
+          onConfirm={handleFailDelivery}
+          onCancel={() => setShowFailModal(false)}
+          acting={acting}
+        />
+      )}
 
-      <div className="px-5 py-4 space-y-2">
-        <div className="flex items-start gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-          <p className="text-sm text-foreground leading-snug">{assignment.shippingAddress}</p>
-        </div>
-        {assignment.customerPhone && (
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+        {/* ── Card header ── */}
+        <div className="px-5 py-3.5 border-b bg-muted/20 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-            <a href={`tel:${assignment.customerPhone}`} className="text-sm text-primary hover:underline" translate="no">
-              {assignment.customerPhone}
-            </a>
+            <span className="font-black text-base" translate="no">#{assignment.orderId}</span>
+            <span className={cn("text-xs px-2 py-0.5 rounded-full font-semibold", statusCls)}>
+              {statusLabel}
+            </span>
           </div>
-        )}
-        {assignment.deliveryNotes && (
-          <p className="text-xs text-muted-foreground italic">{assignment.deliveryNotes}</p>
-        )}
-      </div>
+          <div className="text-right">
+            <span className="text-sm font-bold" translate="no">${assignment.total.toFixed(2)}</span>
+            {assignment.deliveryFee != null && (
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold block" translate="no">
+                +${(assignment.deliveryFee * 0.8).toFixed(2)} {t("courier.your_cut")}
+              </span>
+            )}
+          </div>
+        </div>
 
-      <div className="px-5 pb-4 flex flex-col gap-2">
-        {isAssigned && (
-          <Button onClick={handlePickup} disabled={acting} className="w-full gap-2">
-            <Package className="h-4 w-4" />
-            {acting ? "…" : t("courier.mark_pickup")}
-          </Button>
-        )}
-        {isPickedUp && (
-          <Button onClick={handleStartDelivery} disabled={acting} className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
-            <Truck className="h-4 w-4" />
-            {acting ? "…" : t("courier.mark_out_for_delivery")}
-          </Button>
-        )}
-        {isOutForDel && (
-          <>
-            <Button onClick={handleDeliver} disabled={acting} className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
-              <CheckCircle2 className="h-4 w-4" />
-              {acting ? "…" : t("courier.mark_delivered")}
+        {/* ── Pickup info (store / seller) ── */}
+        <div className="px-5 pt-4 pb-3 border-b border-dashed border-border/60">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t("courier.pickup_section")}</p>
+          <div className="space-y-1.5">
+            {assignment.storeName && (
+              <div className="flex items-center gap-2">
+                <Store className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-sm font-semibold">{assignment.storeName}</span>
+              </div>
+            )}
+            {assignment.sellerName && (
+              <div className="flex items-center gap-2">
+                <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-xs text-muted-foreground">{assignment.sellerName}</span>
+              </div>
+            )}
+            {assignment.sellerPhone && (
+              <a href={`tel:${assignment.sellerPhone}`} className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline" translate="no">
+                <Phone className="h-3.5 w-3.5" />{assignment.sellerPhone}
+              </a>
+            )}
+            {/* Products list */}
+            {assignment.products.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {assignment.products.slice(0, 4).map((p, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 text-[11px] bg-muted/60 text-muted-foreground rounded-full px-2 py-0.5">
+                    <ShoppingBag className="h-2.5 w-2.5 shrink-0" />
+                    <span className="truncate max-w-[110px]">{p.name}</span>
+                    {p.quantity > 1 && <span className="font-semibold">×{p.quantity}</span>}
+                  </span>
+                ))}
+                {assignment.products.length > 4 && (
+                  <span className="text-[11px] text-muted-foreground px-1">+{assignment.products.length - 4}</span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Customer / delivery info ── */}
+        <div className="px-5 pt-3 pb-3 border-b border-dashed border-border/60">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t("courier.delivery_section")}</p>
+          <div className="space-y-1.5">
+            {assignment.customerName && (
+              <div className="flex items-center gap-2">
+                <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-sm font-semibold">{assignment.customerName}</span>
+              </div>
+            )}
+            <div className="flex items-start gap-2">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+              <p className="text-sm text-foreground leading-snug">{assignment.shippingAddress}</p>
+            </div>
+            {assignment.city && <p className="text-xs text-muted-foreground">{assignment.city}</p>}
+            {assignment.customerPhone && (
+              <a href={`tel:${assignment.customerPhone}`} className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline" translate="no">
+                <Phone className="h-3.5 w-3.5" />{assignment.customerPhone}
+              </a>
+            )}
+            {assignment.deliveryNotes && (
+              <p className="text-xs text-muted-foreground italic bg-muted/30 rounded-lg px-2.5 py-1.5 mt-1">{assignment.deliveryNotes}</p>
+            )}
+          </div>
+        </div>
+
+        {/* ── Order meta ── */}
+        <div className="px-5 py-3 border-b border-dashed border-border/60 flex items-center justify-between text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {orderDateFmt}</span>
+          <span className="font-medium">{t("courier.cod_label")}</span>
+        </div>
+
+        {/* ── Actions ── */}
+        <div className="px-5 pb-4 pt-3 flex flex-col gap-2">
+          {isAssigned && (
+            <Button onClick={handlePickup} disabled={acting} className="w-full gap-2">
+              <Package className="h-4 w-4" />
+              {acting ? "…" : t("courier.mark_pickup")}
             </Button>
-            <Button onClick={handleFailDelivery} disabled={acting} variant="outline" className="w-full gap-2 border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/30">
-              <AlertTriangle className="h-4 w-4" />
-              {acting ? "…" : t("courier.mark_failed")}
+          )}
+          {isPickedUp && (
+            <Button onClick={handleStartDelivery} disabled={acting} className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+              <Truck className="h-4 w-4" />
+              {acting ? "…" : t("courier.mark_out_for_delivery")}
             </Button>
-          </>
-        )}
+          )}
+          {isOutForDel && (
+            <>
+              <Button onClick={handleDeliver} disabled={acting} className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+                <CheckCircle2 className="h-4 w-4" />
+                {acting ? "…" : t("courier.mark_delivered")}
+              </Button>
+              <Button
+                onClick={() => setShowFailModal(true)}
+                disabled={acting}
+                variant="outline"
+                className="w-full gap-2 border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/30"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                {acting ? "…" : t("courier.mark_failed")}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
 // ─── Main dashboard ────────────────────────────────────────────────────────────
 export default function CourierDashboard() {
   const { t } = useTranslation();
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const [tab, setTab] = useState<"deliveries" | "earnings">("deliveries");
   const [toggling, setToggling] = useState(false);
@@ -288,6 +424,7 @@ export default function CourierDashboard() {
     queryKey: ["courier-earnings"],
     queryFn: () => fetch("/api/couriers/earnings", { headers }).then((r) => r.json()),
     enabled: !!token && profile?.status === "approved" && tab === "earnings",
+    refetchInterval: 30_000,
   });
 
   const handleToggle = async () => {
@@ -317,7 +454,6 @@ export default function CourierDashboard() {
     );
   }
 
-  // No profile yet — show apply form
   if ((profileError as any)?.message === "no_profile" || !profile) {
     return (
       <Layout>
@@ -328,7 +464,6 @@ export default function CourierDashboard() {
     );
   }
 
-  // Pending approval
   if (profile.status === "pending") {
     return (
       <Layout>
@@ -345,7 +480,6 @@ export default function CourierDashboard() {
     );
   }
 
-  // Suspended
   if (profile.status === "suspended") {
     return (
       <Layout>
@@ -362,7 +496,6 @@ export default function CourierDashboard() {
     );
   }
 
-  // Approved — full dashboard
   return (
     <Layout>
       <div className="container py-6 max-w-2xl">
@@ -424,14 +557,16 @@ export default function CourierDashboard() {
                 tab === k ? "bg-primary text-primary-foreground border-primary" : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
               )}
             >
-              {k === "deliveries" ? t("courier.my_deliveries") : t("courier.earnings_title")}
+              {k === "deliveries"
+                ? `${t("courier.my_deliveries")}${assignments.length > 0 ? ` (${assignments.length})` : ""}`
+                : t("courier.earnings_title")}
             </button>
           ))}
         </div>
 
         {/* Deliveries tab */}
         {tab === "deliveries" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {assignments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-2xl text-center">
                 <Truck className="h-12 w-12 text-muted-foreground/20 mb-3" />

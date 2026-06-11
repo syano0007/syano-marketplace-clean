@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdminLayout } from "@/components/AdminLayout";
@@ -9,10 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   Truck, MapPin, User, Package, CheckCircle2, AlertCircle,
-  Plus, Pencil, Trash2, X, Star, Phone,
+  Plus, Pencil, Trash2, X, Star, Phone, Store, ShoppingBag,
+  AlertTriangle, Activity, Clock,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+interface ProductSnap { name: string; quantity: number; }
+
 interface ReadyOrder {
   id: number;
   customerName: string;
@@ -22,7 +25,10 @@ interface ReadyOrder {
   deliveryFee: number | null;
   total: number;
   createdAt: string;
-  updatedAt: string;
+  sellerName: string | null;
+  storeName: string | null;
+  sellerPhone: string | null;
+  products: ProductSnap[];
 }
 interface ActiveDelivery {
   assignmentId: number;
@@ -31,9 +37,16 @@ interface ActiveDelivery {
   assignedAt: string;
   pickedUpAt: string | null;
   courierName: string;
+  courierPhone: string | null;
   orderStatus: string;
   shippingAddress: string;
+  city: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
   deliveryFee: number | null;
+  total: number;
+  storeName: string | null;
+  products: ProductSnap[];
 }
 interface CourierRow {
   id: number;
@@ -47,6 +60,7 @@ interface CourierRow {
   district: string | null;
   rating: number | null;
   completedDeliveries: number;
+  activeAssignments: number;
   createdAt: string;
 }
 interface Zone {
@@ -58,11 +72,17 @@ interface Zone {
   createdAt: string;
 }
 
-// ─── Status badge ──────────────────────────────────────────────────────────────
+// ─── Status helpers ────────────────────────────────────────────────────────────
 const COURIER_STATUS_COLORS: Record<string, string> = {
-  pending:  "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-  approved: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
-  suspended:"bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  pending:   "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  approved:  "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+  suspended: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+};
+const ORDER_STATUS_COLORS: Record<string, string> = {
+  courier_assigned:  "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  picked_up:         "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400",
+  out_for_delivery:  "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
+  delivery_failed:   "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
 
 // ─── Zone form ─────────────────────────────────────────────────────────────────
@@ -125,9 +145,7 @@ function ZoneForm({ zone, onSave, onCancel, token }: {
               active ? "bg-primary" : "bg-muted-foreground/30"
             )}
           >
-            <span
-              className={cn("pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg transition-transform", active ? "translate-x-5" : "translate-x-0")}
-            />
+            <span className={cn("pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg transition-transform", active ? "translate-x-5" : "translate-x-0")} />
           </button>
           <span className="text-sm text-muted-foreground">{t("delivery.zone_active")}</span>
         </div>
@@ -140,8 +158,68 @@ function ZoneForm({ zone, onSave, onCancel, token }: {
   );
 }
 
+// ─── Courier picker card ───────────────────────────────────────────────────────
+function CourierPickerCard({ courier, selected, onClick }: {
+  courier: CourierRow;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  const { t } = useTranslation();
+  const isOverloaded = courier.activeAssignments >= 5;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full text-left p-3 rounded-xl border-2 transition-all",
+        selected
+          ? "border-primary bg-primary/5"
+          : "border-border bg-card hover:border-primary/50 hover:bg-muted/30",
+        isOverloaded && "opacity-60",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm truncate">{courier.userName}</p>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span className="text-[11px] text-muted-foreground">{t(`delivery.vehicle_${courier.vehicleType}`)}</span>
+            {courier.district && <span className="text-[11px] text-muted-foreground">· {courier.district}</span>}
+          </div>
+        </div>
+        <div className="shrink-0 text-right">
+          <span className={cn(
+            "text-[11px] font-bold px-1.5 py-0.5 rounded-full",
+            isOverloaded
+              ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+              : courier.activeAssignments === 0
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+          )}>
+            {courier.activeAssignments === 0
+              ? t("delivery.courier_available")
+              : isOverloaded
+                ? t("delivery.courier_overloaded")
+                : t("delivery.courier_active_n", { n: courier.activeAssignments })}
+          </span>
+        </div>
+      </div>
+      <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
+        <span>{courier.completedDeliveries} {t("delivery.col_deliveries")}</span>
+        {courier.rating && (
+          <span className="flex items-center gap-0.5">
+            <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" /> {courier.rating.toFixed(1)}
+          </span>
+        )}
+        {courier.active && (
+          <span className="text-emerald-600 dark:text-emerald-400 font-medium">{t("courier.status_online")}</span>
+        )}
+      </div>
+    </button>
+  );
+}
+
 // ─── Assign courier dialog ─────────────────────────────────────────────────────
-function AssignCourierForm({ orderId, couriers, onAssign, onCancel, token }: {
+function AssignCourierPanel({ orderId, couriers, onAssign, onCancel, token }: {
   orderId: number;
   couriers: CourierRow[];
   onAssign: () => void;
@@ -150,10 +228,10 @@ function AssignCourierForm({ orderId, couriers, onAssign, onCancel, token }: {
 }) {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [courierId, setCourierId] = useState<string>("");
+  const [courierId, setCourierId] = useState<number | null>(null);
   const [assigning, setAssigning] = useState(false);
 
-  const approved = couriers.filter((c) => c.status === "approved");
+  const approved = couriers.filter((c) => c.status === "approved").sort((a, b) => a.activeAssignments - b.activeAssignments);
 
   const handleAssign = async () => {
     if (!courierId) return;
@@ -162,7 +240,7 @@ function AssignCourierForm({ orderId, couriers, onAssign, onCancel, token }: {
       const res = await fetch(`/api/admin/orders/${orderId}/assign-courier`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ courierId: parseInt(courierId) }),
+        body: JSON.stringify({ courierId }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Error");
       toast({ title: t("delivery.assign_success") });
@@ -175,24 +253,47 @@ function AssignCourierForm({ orderId, couriers, onAssign, onCancel, token }: {
   };
 
   return (
-    <div className="mt-2 p-3 bg-primary/5 border border-primary/20 rounded-xl space-y-2">
-      <select
-        value={courierId}
-        onChange={(e) => setCourierId(e.target.value)}
-        className="w-full h-9 px-3 text-sm rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-      >
-        <option value="">{t("delivery.select_courier")}</option>
-        {approved.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.userName} — {c.vehicleType} {c.district ? `(${c.district})` : ""}
-          </option>
-        ))}
-      </select>
-      {approved.length === 0 && <p className="text-xs text-muted-foreground">{t("delivery.no_couriers")}</p>}
+    <div className="mt-3 p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("delivery.select_courier")}</p>
+      {approved.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{t("delivery.no_couriers")}</p>
+      ) : (
+        <div className="space-y-2 max-h-60 overflow-y-auto">
+          {approved.map((c) => (
+            <CourierPickerCard
+              key={c.id}
+              courier={c}
+              selected={courierId === c.id}
+              onClick={() => setCourierId(c.id)}
+            />
+          ))}
+        </div>
+      )}
       <div className="flex gap-2">
-        <Button size="sm" onClick={handleAssign} disabled={!courierId || assigning}>{assigning ? "…" : t("delivery.assign")}</Button>
+        <Button size="sm" onClick={handleAssign} disabled={!courierId || assigning} className="gap-1.5">
+          {assigning ? "…" : <><Truck className="h-3.5 w-3.5" />{t("delivery.assign")}</>}
+        </Button>
         <Button size="sm" variant="ghost" onClick={onCancel}><X className="h-3.5 w-3.5" /></Button>
       </div>
+    </div>
+  );
+}
+
+// ─── Product list chip row ─────────────────────────────────────────────────────
+function ProductList({ products }: { products: ProductSnap[] }) {
+  if (products.length === 0) return null;
+  const shown = products.slice(0, 3);
+  const rest = products.length - shown.length;
+  return (
+    <div className="flex flex-wrap gap-1 mt-1.5">
+      {shown.map((p, i) => (
+        <span key={i} className="inline-flex items-center gap-1 text-[11px] bg-muted/60 text-muted-foreground rounded-full px-2 py-0.5">
+          <ShoppingBag className="h-2.5 w-2.5 shrink-0" />
+          <span className="truncate max-w-[120px]">{p.name}</span>
+          {p.quantity > 1 && <span className="font-semibold">×{p.quantity}</span>}
+        </span>
+      ))}
+      {rest > 0 && <span className="text-[11px] text-muted-foreground px-1 py-0.5">+{rest}</span>}
     </div>
   );
 }
@@ -269,10 +370,10 @@ export default function AdminDelivery() {
   };
 
   const TABS = [
-    { key: "ready",   label: t("delivery.tab_ready"),   count: readyOrders.length },
-    { key: "active",  label: t("delivery.tab_active"),  count: activeDeliveries.length },
-    { key: "couriers",label: t("delivery.tab_couriers"), count: couriers.length },
-    { key: "zones",   label: t("delivery.tab_zones"),   count: zones.length },
+    { key: "ready",    label: t("delivery.tab_ready"),    count: readyOrders.length },
+    { key: "active",   label: t("delivery.tab_active"),   count: activeDeliveries.length },
+    { key: "couriers", label: t("delivery.tab_couriers"), count: couriers.filter((c) => c.status === "approved").length },
+    { key: "zones",    label: t("delivery.tab_zones"),    count: zones.length },
   ] as const;
 
   return (
@@ -310,7 +411,7 @@ export default function AdminDelivery() {
 
         {/* ── Tab: Ready for Pickup ──────────────────────────────────────── */}
         {tab === "ready" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {readyOrders.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-2xl text-center">
                 <CheckCircle2 className="h-12 w-12 text-muted-foreground/20 mb-3" />
@@ -318,44 +419,88 @@ export default function AdminDelivery() {
               </div>
             ) : readyOrders.map((order) => (
               <div key={order.id} className="bg-card border rounded-2xl overflow-hidden shadow-sm">
-                <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-start gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-bold text-sm" translate="no">#{order.id}</span>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                        <MapPin className="h-3 w-3" /> {t("orders.status_ready_for_pickup")}
-                      </span>
-                    </div>
-                    <p className="text-sm font-semibold text-foreground">{order.customerName}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{order.shippingAddress}</p>
-                    {order.customerPhone && (
-                      <a href={`tel:${order.customerPhone}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1" translate="no">
-                        <Phone className="h-3 w-3" />{order.customerPhone}
-                      </a>
-                    )}
+                {/* Order header */}
+                <div className="px-5 py-3.5 border-b bg-muted/20 flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-base" translate="no">#{order.id}</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                      <MapPin className="h-3 w-3" /> {t("orders.status_ready_for_pickup")}
+                    </span>
                   </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <span className="text-sm font-bold" translate="no">${order.total.toFixed(2)}</span>
-                    {order.deliveryFee != null && (
-                      <span className="text-xs text-muted-foreground" translate="no">{t("delivery.col_fee")}: ${order.deliveryFee.toFixed(2)}</span>
-                    )}
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <span className="text-sm font-bold" translate="no">${order.total.toFixed(2)}</span>
+                      {order.deliveryFee != null && (
+                        <span className="text-xs text-muted-foreground block" translate="no">+${order.deliveryFee.toFixed(2)} {t("delivery.col_fee")}</span>
+                      )}
+                    </div>
                     <Button
                       size="sm"
                       onClick={() => setAssigningOrderId(assigningOrderId === order.id ? null : order.id)}
-                      className="gap-1.5"
+                      className="gap-1.5 shrink-0"
                     >
                       <User className="h-3.5 w-3.5" />
                       {t("delivery.assign")}
                     </Button>
                   </div>
                 </div>
+
+                {/* Body: 2 columns on sm+ */}
+                <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Customer info */}
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("delivery.section_customer")}</p>
+                    <p className="text-sm font-semibold text-foreground">{order.customerName}</p>
+                    <div className="flex items-start gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                      <p className="text-xs text-muted-foreground leading-snug">{order.shippingAddress}</p>
+                    </div>
+                    {order.city && <p className="text-xs text-muted-foreground">{order.city}</p>}
+                    {order.customerPhone && (
+                      <a href={`tel:${order.customerPhone}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline" translate="no">
+                        <Phone className="h-3 w-3" />{order.customerPhone}
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Seller info */}
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("delivery.section_seller")}</p>
+                    {order.storeName ? (
+                      <div className="flex items-center gap-1.5">
+                        <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <p className="text-sm font-semibold">{order.storeName}</p>
+                      </div>
+                    ) : null}
+                    {order.sellerName && <p className="text-xs text-muted-foreground">{order.sellerName}</p>}
+                    {order.sellerPhone && (
+                      <a href={`tel:${order.sellerPhone}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline" translate="no">
+                        <Phone className="h-3 w-3" />{order.sellerPhone}
+                      </a>
+                    )}
+                    {/* Products */}
+                    {order.products.length > 0 && (
+                      <div className="mt-1">
+                        <p className="text-[11px] text-muted-foreground mb-0.5">{order.products.length} {t("delivery.product_count")}</p>
+                        <ProductList products={order.products} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Assign panel */}
                 {assigningOrderId === order.id && (
-                  <div className="px-5 pb-4">
-                    <AssignCourierForm
+                  <div className="px-5 pb-5">
+                    <AssignCourierPanel
                       orderId={order.id}
                       couriers={couriers}
                       token={token!}
-                      onAssign={() => { setAssigningOrderId(null); refetchReady(); refetchActive(); }}
+                      onAssign={() => {
+                        setAssigningOrderId(null);
+                        refetchReady();
+                        refetchActive();
+                        queryClient.invalidateQueries({ queryKey: ["admin-couriers"] });
+                      }}
                       onCancel={() => setAssigningOrderId(null)}
                     />
                   </div>
@@ -367,40 +512,86 @@ export default function AdminDelivery() {
 
         {/* ── Tab: Active Deliveries ─────────────────────────────────────── */}
         {tab === "active" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {activeDeliveries.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-2xl text-center">
                 <Truck className="h-12 w-12 text-muted-foreground/20 mb-3" />
                 <p className="text-muted-foreground text-sm">{t("delivery.active_empty")}</p>
               </div>
             ) : activeDeliveries.map((d) => (
-              <div key={d.assignmentId} className="bg-card border rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4 shadow-sm">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="font-bold text-sm" translate="no">#{d.orderId}</span>
+              <div key={d.assignmentId} className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+                {/* Header */}
+                <div className="px-5 py-3.5 border-b bg-muted/20 flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-black text-base" translate="no">#{d.orderId}</span>
                     <span className={cn(
                       "text-xs px-2 py-0.5 rounded-full font-semibold",
-                      d.orderStatus === "picked_up" ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400" : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                      ORDER_STATUS_COLORS[d.orderStatus] ?? "bg-muted text-muted-foreground"
                     )}>
-                      {d.orderStatus === "picked_up" ? t("orders.status_picked_up") : t("orders.status_courier_assigned")}
+                      {t(`orders.status_${d.orderStatus}`) }
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{d.shippingAddress}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">{d.courierName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {d.pickedUpAt ? t("orders.status_picked_up") : t("orders.status_courier_assigned")}
-                    </p>
+                  <div className="text-right shrink-0">
+                    <span className="text-sm font-bold" translate="no">${d.total.toFixed(2)}</span>
+                    {d.deliveryFee != null && (
+                      <span className="text-xs text-muted-foreground block" translate="no">+${d.deliveryFee.toFixed(2)} {t("delivery.col_fee")}</span>
+                    )}
                   </div>
                 </div>
-                {d.deliveryFee != null && (
-                  <span className="text-sm font-bold shrink-0" translate="no">${d.deliveryFee.toFixed(2)}</span>
-                )}
+
+                <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Customer */}
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("delivery.section_customer")}</p>
+                    <p className="text-sm font-semibold">{d.customerName ?? "—"}</p>
+                    <div className="flex items-start gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                      <p className="text-xs text-muted-foreground leading-snug">{d.shippingAddress}</p>
+                    </div>
+                    {d.customerPhone && (
+                      <a href={`tel:${d.customerPhone}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline" translate="no">
+                        <Phone className="h-3 w-3" />{d.customerPhone}
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Seller */}
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("delivery.section_seller")}</p>
+                    {d.storeName ? (
+                      <div className="flex items-center gap-1.5">
+                        <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <p className="text-sm font-semibold">{d.storeName}</p>
+                      </div>
+                    ) : <p className="text-xs text-muted-foreground">—</p>}
+                    <ProductList products={d.products} />
+                  </div>
+
+                  {/* Courier */}
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("delivery.section_courier")}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <User className="h-3.5 w-3.5 text-primary" />
+                      </div>
+                      <p className="text-sm font-semibold">{d.courierName}</p>
+                    </div>
+                    {d.courierPhone && (
+                      <a href={`tel:${d.courierPhone}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline" translate="no">
+                        <Phone className="h-3 w-3" />{d.courierPhone}
+                      </a>
+                    )}
+                    {d.pickedUpAt ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Clock className="h-3 w-3" /> {t("orders.status_picked_up")}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Activity className="h-3 w-3" /> {t("orders.status_courier_assigned")}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -415,7 +606,7 @@ export default function AdminDelivery() {
                 <p className="text-muted-foreground text-sm">{t("delivery.couriers_empty")}</p>
               </div>
             ) : couriers.map((courier) => (
-              <div key={courier.id} className="bg-card border rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4 shadow-sm">
+              <div key={courier.id} className="bg-card border rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-start gap-4 shadow-sm">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <p className="font-semibold text-sm">{courier.userName}</p>
@@ -429,13 +620,23 @@ export default function AdminDelivery() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground" translate="no">{courier.userEmail}</p>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                  {courier.phone && (
+                    <a href={`tel:${courier.phone}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5" translate="no">
+                      <Phone className="h-3 w-3" />{courier.phone}
+                    </a>
+                  )}
+                  <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
                     <span>{t(`delivery.vehicle_${courier.vehicleType}`)}</span>
                     {courier.district && <span>· {courier.district}</span>}
-                    <span>· {t("delivery.col_deliveries")}: {courier.completedDeliveries}</span>
+                    <span>· {courier.completedDeliveries} {t("delivery.col_deliveries")}</span>
                     {courier.rating && (
                       <span className="flex items-center gap-0.5">
                         · <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {courier.rating.toFixed(1)}
+                      </span>
+                    )}
+                    {courier.activeAssignments > 0 && (
+                      <span className="font-semibold text-amber-600 dark:text-amber-400">
+                        · {courier.activeAssignments} {t("delivery.active_now")}
                       </span>
                     )}
                   </div>
