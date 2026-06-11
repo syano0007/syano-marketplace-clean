@@ -116,20 +116,20 @@ function ProductCard({ product, colors, onPress }: { product: Product; colors: a
 }
 
 export default function StoreScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { slug } = useLocalSearchParams<{ slug: string }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { tabBarHeight } = useScreenLayout();
   const [tab, setTab] = useState<"products" | "about">("products");
 
   const { data: storeData, isLoading: storeLoading } = useQuery<StoreData>({
-    queryKey: ["store-by-id", id],
+    queryKey: ["store-by-slug", slug],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/sellers/store/${id}`);
+      const res = await fetch(`${API_BASE_URL}/sellers/store/${slug}`);
       if (!res.ok) throw new Error("Store not found");
       return res.json();
     },
-    enabled: !!id,
+    enabled: !!slug,
   });
 
   const { data: productsData } = useQuery<{ data: Product[] }>({

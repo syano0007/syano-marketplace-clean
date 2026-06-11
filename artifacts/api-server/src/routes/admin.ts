@@ -1436,7 +1436,7 @@ router.post("/admin/sellers/:id/verification", async (req, res): Promise<void> =
     const score = await refreshTrustScore(id);
     await logAudit(req.user!.userId, "UNVERIFY_SELLER", "user", String(id), { name: user.name });
     await db.execute(sql`
-      INSERT INTO verification_audit_log (seller_id, admin_id, action, from_level, to_level, method, notes)
+      INSERT INTO seller_verification_log (seller_id, admin_id, action, from_level, to_level, method, notes)
       VALUES (${id}, ${req.user!.userId}, 'rejected', ${fromLevel}, 'none', ${method}, ${req.body?.notes ?? null})
     `);
     res.json({ message: "Verification removed", userId: id, verificationLevel: "none", trustScore: score });
@@ -1459,7 +1459,7 @@ router.post("/admin/sellers/:id/verification", async (req, res): Promise<void> =
       ? "level_promoted"
       : "level_demoted";
   await db.execute(sql`
-    INSERT INTO verification_audit_log (seller_id, admin_id, action, from_level, to_level, method, notes)
+    INSERT INTO seller_verification_log (seller_id, admin_id, action, from_level, to_level, method, notes)
     VALUES (${id}, ${req.user!.userId}, ${auditAction}, ${fromLevel}, ${level}, ${method}, ${req.body?.notes ?? null})
   `);
   res.json({ message: "Seller verified", userId: id, verificationLevel: level, trustScore: score });

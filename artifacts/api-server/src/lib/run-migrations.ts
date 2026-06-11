@@ -267,9 +267,11 @@ export async function runMigrations(): Promise<void> {
         IF EXISTS (
           SELECT 1 FROM information_schema.tables WHERE table_name = 'users'
         ) THEN
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_level TEXT DEFAULT 'none';
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS trust_score        INTEGER;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS trust_level        TEXT DEFAULT 'new';
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_level     TEXT DEFAULT 'none';
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_method    TEXT;
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_by            INTEGER;
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS trust_score            INTEGER;
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS trust_level            TEXT DEFAULT 'new';
           ALTER TABLE users ADD COLUMN IF NOT EXISTS trust_score_updated_at TIMESTAMPTZ;
         END IF;
       END $$;
@@ -277,8 +279,8 @@ export async function runMigrations(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_users_verification_level ON users(verification_level);
       CREATE INDEX IF NOT EXISTS idx_users_trust_score        ON users(trust_score);
 
-      -- ── Verification audit log ────────────────────────────────────────────────
-      CREATE TABLE IF NOT EXISTS verification_audit_log (
+      -- ── Seller verification audit log (admin approval/rejection history) ────────
+      CREATE TABLE IF NOT EXISTS seller_verification_log (
         id          SERIAL PRIMARY KEY,
         seller_id   INTEGER NOT NULL,
         admin_id    INTEGER NOT NULL,
@@ -289,8 +291,8 @@ export async function runMigrations(): Promise<void> {
         notes       TEXT,
         created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
-      CREATE INDEX IF NOT EXISTS idx_verification_audit_seller_id ON verification_audit_log(seller_id);
-      CREATE INDEX IF NOT EXISTS idx_verification_audit_admin_id  ON verification_audit_log(admin_id);
+      CREATE INDEX IF NOT EXISTS idx_seller_verif_log_seller_id ON seller_verification_log(seller_id);
+      CREATE INDEX IF NOT EXISTS idx_seller_verif_log_admin_id  ON seller_verification_log(admin_id);
     `);
 
     logger.info("Migrations complete: delivery system tables, courier enums, order delivery columns ready");

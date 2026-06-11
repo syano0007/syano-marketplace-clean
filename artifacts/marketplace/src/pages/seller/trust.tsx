@@ -4,17 +4,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Layout } from "@/components/Layout";
 import { SellerNav } from "@/components/SellerNav";
 import { SellerTrustBadge, TrustScoreBar, type VerificationLevel } from "@/components/SellerTrustBadge";
-import { Shield, ShieldCheck, Award, CheckCircle, XCircle, ChevronRight } from "lucide-react";
+import { Shield, ShieldCheck, Award, CheckCircle, XCircle, ChevronRight, TrendingDown } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 
-function ScoreRow({ label, score, max, tip }: { label: string; score: number; max: number; tip?: string }) {
-  const pct = max > 0 ? Math.round((score / max) * 100) : 0;
-  const color =
-    pct >= 75 ? "bg-emerald-500" :
-    pct >= 50 ? "bg-blue-500" :
-    pct >= 25 ? "bg-amber-500" :
-    "bg-muted-foreground";
+function ScoreRow({ label, score, max, tip, isNegative }: { label: string; score: number; max: number; tip?: string; isNegative?: boolean }) {
+  const display = isNegative ? Math.abs(score) : score;
+  const pct = max > 0 ? Math.round((display / max) * 100) : 0;
+  const color = isNegative
+    ? "bg-red-500"
+    : pct >= 75 ? "bg-emerald-500"
+    : pct >= 50 ? "bg-blue-500"
+    : pct >= 25 ? "bg-amber-500"
+    : "bg-muted-foreground";
   return (
     <div className="flex items-center gap-3">
       <div className="w-36 shrink-0">
@@ -24,31 +26,8 @@ function ScoreRow({ label, score, max, tip }: { label: string; score: number; ma
       <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs font-bold tabular-nums text-foreground w-12 text-end">
-        {score}/{max}
-      </span>
-    </div>
-  );
-}
-
-function CompletenessField({ field, filled }: { field: string; filled: boolean }) {
-  const FIELD_LABELS: Record<string, string> = {
-    storeName: "Store name",
-    description: "Store description",
-    logo: "Store logo",
-    banner: "Banner image",
-    categories: "Product categories",
-    city: "City",
-    website: "Website URL",
-    phone: "Phone number",
-  };
-  return (
-    <div className="flex items-center gap-2 py-1">
-      {filled
-        ? <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-        : <XCircle className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />}
-      <span className={`text-xs ${filled ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-        {FIELD_LABELS[field] ?? field}
+      <span className={`text-xs font-bold tabular-nums w-16 text-end ${isNegative ? "text-red-600 dark:text-red-400" : "text-foreground"}`}>
+        {isNegative ? `−${display}` : `${score}`}/{isNegative ? max : max}
       </span>
     </div>
   );
@@ -57,7 +36,7 @@ function CompletenessField({ field, filled }: { field: string; filled: boolean }
 export default function SellerTrustPage() {
   const { t } = useTranslation();
   const { token, user } = useAuth();
-  const sellerId = user?.userId;
+  const sellerId = user?.id;
 
   const { data: trustData, isLoading } = useQuery({
     queryKey: ["seller-trust", sellerId],
@@ -78,10 +57,10 @@ export default function SellerTrustPage() {
   const details = trustData?.liveBreakdown?.details ?? null;
 
   const tierConfig = {
-    none:     { icon: Shield,      color: "text-muted-foreground", bg: "bg-muted",              label: t("trust.level_none", "Unverified") },
-    basic:    { icon: Shield,      color: "text-blue-600",         bg: "bg-blue-500/10",        label: t("trust.level_basic", "Basic Verified") },
-    verified: { icon: ShieldCheck, color: "text-emerald-600",     bg: "bg-emerald-500/10",     label: t("trust.level_verified", "ID Verified") },
-    business: { icon: Award,       color: "text-violet-600",      bg: "bg-violet-500/10",      label: t("trust.level_business", "Business Verified") },
+    none:     { icon: Shield,      color: "text-muted-foreground", bg: "bg-muted",          label: t("trust.level_none", "Unverified") },
+    basic:    { icon: Shield,      color: "text-blue-600",         bg: "bg-blue-500/10",    label: t("trust.level_basic", "Basic Verified") },
+    verified: { icon: ShieldCheck, color: "text-emerald-600",      bg: "bg-emerald-500/10", label: t("trust.level_verified", "ID Verified") },
+    business: { icon: Award,       color: "text-violet-600",       bg: "bg-violet-500/10",  label: t("trust.level_business", "Business Verified") },
   }[level] ?? { icon: Shield, color: "text-muted-foreground", bg: "bg-muted", label: "Unverified" };
 
   const TierIcon = tierConfig.icon;
@@ -141,41 +120,60 @@ export default function SellerTrustPage() {
               <div className="p-5 rounded-2xl border border-border bg-card">
                 <h2 className="text-sm font-bold text-foreground mb-4">{t("trust_panel.score_breakdown", "Score Breakdown")}</h2>
                 <div className="space-y-3">
-                  <ScoreRow label={t("trust_panel.factor_verification", "Verification tier")} score={components.verification} max={30}
-                    tip={t("trust_panel.tip_verification", "Get verified by SYANO to earn up to 30 pts")} />
-                  <ScoreRow label={t("trust_panel.factor_profile", "Profile completeness")} score={components.profileCompleteness} max={15}
-                    tip={t("trust_panel.tip_profile", "Fill in all store details for full marks")} />
-                  <ScoreRow label={t("trust_panel.factor_reviews", "Product reviews")} score={components.productReviews} max={15}
-                    tip={t("trust_panel.tip_reviews", "High ratings + review volume")} />
-                  <ScoreRow label={t("trust_panel.factor_service", "Seller service")} score={components.sellerService} max={15}
-                    tip={t("trust_panel.tip_service", "Communication, shipping, professionalism ratings")} />
-                  <ScoreRow label={t("trust_panel.factor_orders", "Order completion")} score={components.orderCompletion} max={15}
-                    tip={t("trust_panel.tip_orders", "80%+ delivered orders earns full marks")} />
-                  <ScoreRow label={t("trust_panel.factor_age", "Account age")} score={components.accountAge} max={10}
-                    tip={t("trust_panel.tip_age", "1 pt per 2 months, up to 10")} />
-                  <ScoreRow label={t("trust_panel.factor_followers", "Store followers")} score={components.followers} max={10}
-                    tip={t("trust_panel.tip_followers", "Social proof from followers")} />
-                  <ScoreRow label={t("trust_panel.factor_activity", "Activity")} score={components.activity} max={5}
-                    tip={t("trust_panel.tip_activity", "Active listings and orders")} />
+                  <ScoreRow
+                    label={t("trust_panel.factor_orders", "Completed orders")}
+                    score={components.completedOrders ?? 0}
+                    max={30}
+                    tip={t("trust_panel.tip_orders", "More fulfilled orders → higher score (log scale)")}
+                  />
+                  <ScoreRow
+                    label={t("trust_panel.factor_rating", "Store rating")}
+                    score={components.storeRating ?? 0}
+                    max={25}
+                    tip={t("trust_panel.tip_rating", "Average product rating across your store")}
+                  />
+                  <ScoreRow
+                    label={t("trust_panel.factor_delivery", "Delivery success")}
+                    score={components.deliverySuccess ?? 0}
+                    max={20}
+                    tip={t("trust_panel.tip_delivery", "% of orders successfully delivered")}
+                  />
+                  <ScoreRow
+                    label={t("trust_panel.factor_reviews", "Review count")}
+                    score={components.reviewCount ?? 0}
+                    max={10}
+                    tip={t("trust_panel.tip_reviews", "More reviews builds credibility")}
+                  />
+                  <ScoreRow
+                    label={t("trust_panel.factor_age", "Account age")}
+                    score={components.accountAge ?? 0}
+                    max={5}
+                    tip={t("trust_panel.tip_age", "1 pt per 3 months active, up to 5")}
+                  />
+                  <ScoreRow
+                    label={t("trust_panel.factor_followers", "Store followers")}
+                    score={components.followers ?? 0}
+                    max={5}
+                    tip={t("trust_panel.tip_followers", "Social proof from your followers")}
+                  />
+                  {(components.cancellationPenalty ?? 0) < 0 && (
+                    <div className="pt-2 border-t border-border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+                        <span className="text-xs font-bold text-red-600 dark:text-red-400">
+                          {t("trust_panel.penalties", "Deductions")}
+                        </span>
+                      </div>
+                      <ScoreRow
+                        label={t("trust_panel.factor_cancellation", "Cancellation rate")}
+                        score={components.cancellationPenalty ?? 0}
+                        max={10}
+                        tip={t("trust_panel.tip_cancellation", "High cancellation rate reduces score")}
+                        isNegative
+                      />
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-
-            {/* Profile completeness checklist */}
-            {details?.completenessFields && (
-              <div className="p-5 rounded-2xl border border-border bg-card">
-                <h2 className="text-sm font-bold text-foreground mb-3">{t("trust_panel.profile_checklist", "Profile Checklist")}</h2>
-                <div className="grid grid-cols-2 gap-x-4">
-                  {details.completenessFields.map((f: { field: string; filled: boolean }) => (
-                    <CompletenessField key={f.field} field={f.field} filled={f.filled} />
-                  ))}
-                </div>
-                <Link href="/seller/store-settings">
-                  <Button variant="outline" size="sm" className="mt-4 gap-1.5">
-                    {t("trust_panel.edit_profile", "Edit Store Profile")}
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </Button>
-                </Link>
               </div>
             )}
 
@@ -185,12 +183,14 @@ export default function SellerTrustPage() {
                 <h2 className="text-sm font-bold text-foreground mb-3">{t("trust_panel.stats_snapshot", "Stats Snapshot")}</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
-                    { label: t("trust_panel.total_orders", "Total orders"), value: details.totalOrders },
-                    { label: t("trust_panel.completion_rate", "Completion rate"), value: `${details.completionRate}%` },
-                    { label: t("trust_panel.review_count", "Reviews"), value: details.reviewCount },
-                    { label: t("trust_panel.avg_rating", "Avg rating"), value: details.avgProductRating != null ? Number(details.avgProductRating).toFixed(1) : "—" },
-                    { label: t("trust_panel.followers", "Followers"), value: details.followerCount },
-                    { label: t("trust_panel.products", "Products"), value: details.totalProducts },
+                    { label: t("trust_panel.total_orders", "Total orders"),       value: details.totalOrders ?? 0 },
+                    { label: t("trust_panel.delivery_rate", "Delivery rate"),     value: `${details.deliverySuccessRate ?? 0}%` },
+                    { label: t("trust_panel.review_count", "Reviews"),            value: details.reviewCount ?? 0 },
+                    { label: t("trust_panel.avg_rating", "Avg rating"),           value: details.avgProductRating != null ? Number(details.avgProductRating).toFixed(1) : "—" },
+                    { label: t("trust_panel.followers", "Followers"),             value: details.followerCount ?? 0 },
+                    { label: t("trust_panel.products", "Products"),               value: details.totalProducts ?? 0 },
+                    { label: t("trust_panel.account_age", "Account age"),         value: `${details.accountAgeMonths ?? 0}mo` },
+                    { label: t("trust_panel.cancel_rate", "Cancellation rate"),   value: `${details.cancellationRate ?? 0}%` },
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-muted/40 rounded-xl px-3 py-2.5">
                       <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
@@ -200,6 +200,29 @@ export default function SellerTrustPage() {
                 </div>
               </div>
             )}
+
+            {/* How to improve */}
+            <div className="p-5 rounded-2xl border border-border bg-card">
+              <h2 className="text-sm font-bold text-foreground mb-3">{t("trust_panel.how_to_improve", "How to Improve Your Score")}</h2>
+              <div className="space-y-2">
+                {[
+                  { done: isVerified, label: t("trust_panel.tip_get_verified", "Get verified by SYANO (up to +30 pts)") },
+                  { done: (details?.reviewCount ?? 0) >= 10, label: t("trust_panel.tip_earn_reviews", "Earn 10+ product reviews (+10 pts)") },
+                  { done: (details?.deliveredOrders ?? 0) >= 10, label: t("trust_panel.tip_complete_orders", "Complete 10+ orders (+15 pts)") },
+                  { done: (details?.deliverySuccessRate ?? 100) >= 90, label: t("trust_panel.tip_delivery_rate", "Maintain 90%+ delivery success (+20 pts)") },
+                  { done: (details?.followerCount ?? 0) >= 10, label: t("trust_panel.tip_followers_goal", "Get 10+ store followers (+2.5 pts)") },
+                ].map(({ done, label }) => (
+                  <div key={label} className="flex items-center gap-2 py-1">
+                    {done
+                      ? <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                      : <XCircle className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />}
+                    <span className={`text-xs ${done ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                      {label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* How to get verified */}
             {!isVerified && (
@@ -211,6 +234,12 @@ export default function SellerTrustPage() {
                     <p className="text-xs text-muted-foreground mt-1">
                       {t("trust_panel.how_to_verify", "To get verified, contact SYANO support or complete seller onboarding.")}
                     </p>
+                    <Link href="/seller/store-settings">
+                      <Button variant="outline" size="sm" className="mt-3 gap-1.5">
+                        {t("trust_panel.edit_profile", "Edit Store Profile")}
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </div>

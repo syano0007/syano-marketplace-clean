@@ -34,19 +34,22 @@ Expected: ~1,131 packages installed. `shamefully-hoist=true` in `.npmrc` puts al
 psql "$DATABASE_URL" -f schema.sql
 ```
 
-This creates the base 21 tables. The API server's `run-migrations.ts` adds the remaining 5 tables (couriers, delivery_zones, courier_assignments, courier_wallet_transactions, variant_images) on first startup.
+This creates the base 21 tables. The API server's `run-migrations.ts` adds the remaining tables on first startup:
+- `couriers`, `delivery_zones`, `courier_assignments`, `courier_wallet_transactions`, `variant_images`
+- `seller_verification_log` (Trust System audit table — NOT `verification_audit_log`)
+- Additive columns: `users.verified_by`, `product_variants` price/barcode/weight/dimensions columns
 
 **Verify:**
 ```bash
 psql "$DATABASE_URL" -c "\dt"
-# Expected: 26 tables
+# Expected: 26+ tables (exact count depends on which migrations have run)
 ```
 
 ---
 
 ## Step 3: Fix notification_type Enum (CRITICAL — always run this)
 
-The `schema.sql` was generated before courier/delivery notification types were added. Always run this after restoring from schema.sql:
+The `schema.sql` was generated before courier/delivery/trust notification types were added. Always run this after restoring from schema.sql:
 
 ```bash
 psql "$DATABASE_URL" << 'SQL'
@@ -110,11 +113,12 @@ curl http://localhost:8080/api/healthz
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"delewatiamer7@gmail.com","password":"00Amer00","role":"customer"}'
+  -d '{"email":"delewatiamer7@gmail.com","password":"00Amer00","role":"admin"}'
 # Expected: {"user":{"role":"admin",...},"token":"..."}
 ```
 
 The root owner is auto-bootstrapped by `bootstrapRootAdmin()` on every server start.
+Note: use `role":"admin"` for the root owner (not "customer").
 
 ---
 
@@ -123,7 +127,7 @@ The root owner is auto-bootstrapped by `bootstrapRootAdmin()` on every server st
 ```
 [ ] pnpm install done
 [ ] DATABASE_URL and SESSION_SECRET set
-[ ] 26 tables in DB
+[ ] 26+ tables in DB
 [ ] notification_type enum has 31 values
 [ ] Shared libs built (tsc --build)
 [ ] API server responds to /api/healthz
@@ -144,6 +148,9 @@ The root owner is auto-bootstrapped by `bootstrapRootAdmin()` on every server st
 | Rate limited on login (429) | Restart API server — rate limiter is in-memory and resets on restart |
 | `drizzle-kit push` hangs | Requires TTY — use `psql -f schema.sql` instead for base schema |
 | Seller apply bounces back after submit | TanStack Query `isLoading` is false during refetch — guard must also check `!isFetching`; apply page must seed cache with `setQueryData` before navigating |
+| `verification_audit_log` name clash | The admin audit table is `seller_verification_log` — NOT `verification_audit_log` (that's the OTP log in base schema) |
+| Root owner login returns 401 | Use `role:"admin"` not `role:"customer"` for admin account |
+| Trust score shows `isVerified: null` | Server restart needed — tsx watch sometimes doesn't hot-reload route changes |
 
 ---
 
@@ -156,3 +163,22 @@ The root owner is auto-bootstrapped by `bootstrapRootAdmin()` on every server st
 - **Auth:** JWT in localStorage, `bootstrapRootAdmin()` runs on startup
 - **Notifications:** SSE stream + push (VAPID), `notification_type` Postgres enum
 - **Courier flow:** `POST /admin/orders/:id/assign-courier` creates assignment + updates order status atomically
+- **Trust System:** `lib/trustScore.ts` — 0-100 score; `seller_verification_log` audit table; admin routes in `admin.ts` (lines 1356–1530)
+
+## Trust System API Reference
+
+```
+GET  /api/sellers/:id/trust                    — public trust breakdown
+GET  /api/admin/sellers/verification           — admin: all sellers + verification status
+POST /api/admin/sellers/:id/verification       — admin: set/clear verification tier
+GET  /api/admin/trust/leaderboard              — admin: trust leaderboard
+POST /api/admin/sellers/:id/recompute-trust    — admin: force recompute score
+
+Seller application flow:
+POST /api/seller-applications                  — submit (needs categories:[])
+PATCH /api/seller-applications/:id/status      — admin approve/reject
+
+Store pages:
+GET  /api/sellers/store/:slug                  — public store by slug (has isVerified)
+GET  /api/sellers/:id/store-preview            — store preview by user ID (has isVerified)
+```
