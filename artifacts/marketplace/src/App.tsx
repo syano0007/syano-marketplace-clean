@@ -65,6 +65,8 @@ const ApplicationStatus = lazy(() => import("@/pages/seller/application-status")
 const AdminDelivery                  = lazy(() => import("@/pages/admin/delivery"));
 const AdminCourierApplications       = lazy(() => import("@/pages/admin/courier-applications"));
 const AdminCourierApplicationDetail  = lazy(() => import("@/pages/admin/courier-application-detail"));
+const AdminVerification              = lazy(() => import("@/pages/admin/verification"));
+const SellerTrustPage                = lazy(() => import("@/pages/seller/trust"));
 const CourierDashboard               = lazy(() => import("@/pages/courier/dashboard"));
 /* ── Footer / Info pages ─────────────────────────────────────── */
 const AboutPage           = lazy(() => import("@/pages/about/index"));
@@ -236,6 +238,9 @@ function Router() {
             <Route path="/seller/store-settings">
               <ProtectedRoute allowedRoles={["seller"]}><SellerStoreSettings /></ProtectedRoute>
             </Route>
+            <Route path="/seller/trust">
+              <ProtectedRoute allowedRoles={["seller"]}><SellerTrustPage /></ProtectedRoute>
+            </Route>
 
             <Route path="/store/:slug" component={StorePage} />
             <Route path="/messages">
@@ -274,6 +279,9 @@ function Router() {
             </Route>
             <Route path="/admin/delivery">
               <ProtectedRoute allowedRoles={["admin"]}><AdminDelivery /></ProtectedRoute>
+            </Route>
+            <Route path="/admin/verification">
+              <ProtectedRoute allowedRoles={["admin"]}><AdminVerification /></ProtectedRoute>
             </Route>
 
             {/* ── Courier application (customers only) ──────────────── */}

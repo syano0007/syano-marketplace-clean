@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/seller/orders",         icon: ShoppingCart,    key: "orders"         },
   { href: "/seller/inventory",      icon: Boxes,           key: "inventory"      },
   { href: "/seller/messages",       icon: MessageCircle,   key: "messages"       },
+  { href: "/seller/trust",          icon: ShieldCheck,     key: "trust"          },
   { href: "/seller/store-settings", icon: Settings,        key: "store_settings" },
 ];
 

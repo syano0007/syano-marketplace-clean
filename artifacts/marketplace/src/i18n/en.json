@@ -466,7 +466,8 @@
     "inventory": "Inventory",
     "messages": "Messages",
     "store_settings": "Store Settings",
-    "seller_panel": "Seller Panel"
+    "seller_panel": "Seller Panel",
+    "trust": "Trust"
   },
   "seller_dashboard": {
     "title": "Seller Dashboard",
@@ -1345,7 +1346,17 @@
     "top_products": "Top Products",
     "top_products_empty": "No confirmed sales yet",
     "units_sold": "{{count}} units sold",
-    "orders_count": "{{count}} orders"
+    "orders_count": "{{count}} orders",
+    "verification_title": "Seller Verification",
+    "verification_desc": "Manage seller verification tiers and trust scores.",
+    "col_verified_at": "Verified At",
+    "change_tier": "Change Tier",
+    "unverified": "Unverified",
+    "cancel": "Cancel",
+    "search_sellers": "Search sellers…",
+    "no_sellers_found": "No sellers found",
+    "refresh": "Refresh",
+    "remove_verification": "Remove"
   },
   "push_prompt": {
     "title": "Stay Informed",
@@ -2006,7 +2017,13 @@
     "shipping": "Shipping",
     "professionalism": "Professionalism",
     "no_reviews": "No reviews yet",
-    "no_reviews_desc": "Be the first to review this seller after a purchase."
+    "no_reviews_desc": "Be the first to review this seller after a purchase.",
+    "followers": "Followers",
+    "products": "Products",
+    "completion": "Completion",
+    "no_description": "No description provided.",
+    "member_since": "Member since",
+    "verified_since": "Verified since"
   },
   "messages": {
     "title": "Messages",
@@ -2386,12 +2403,42 @@
     "band_trusted": "Trusted",
     "band_established": "Established",
     "band_basic": "Basic",
-    "band_new": "New"
+    "band_new": "New",
+    "level_none": "Unverified"
   },
   "trust_panel": {
     "title": "Store Trust Level",
     "verified_desc": "Your store has been verified by SYANO.",
     "unverified_desc": "Complete your profile to improve your trust score.",
-    "how_to_verify": "To get verified, contact SYANO support or complete seller onboarding."
+    "how_to_verify": "To get verified, contact SYANO support or complete seller onboarding.",
+    "page_desc": "Your trust score is computed from live data — reviews, orders, profile completeness, and more.",
+    "score_breakdown": "Score Breakdown",
+    "profile_checklist": "Profile Checklist",
+    "stats_snapshot": "Stats Snapshot",
+    "edit_profile": "Edit Store Profile",
+    "factor_verification": "Verification tier",
+    "factor_profile": "Profile completeness",
+    "factor_reviews": "Product reviews",
+    "factor_service": "Seller service",
+    "factor_orders": "Order completion",
+    "factor_age": "Account age",
+    "factor_followers": "Store followers",
+    "factor_activity": "Activity",
+    "tip_verification": "Get verified by SYANO to earn up to 30 pts",
+    "tip_profile": "Fill in all store details for full marks",
+    "tip_reviews": "High ratings + review volume",
+    "tip_service": "Communication, shipping, professionalism ratings",
+    "tip_orders": "80%+ delivered orders earns full marks",
+    "tip_age": "1 pt per 2 months, up to 10",
+    "tip_followers": "Social proof from followers",
+    "tip_activity": "Active listings and orders",
+    "total_orders": "Total orders",
+    "completion_rate": "Completion rate",
+    "review_count": "Reviews",
+    "avg_rating": "Avg rating",
+    "followers": "Followers",
+    "products": "Products",
+    "how_to_verify_title": "How to get verified",
+    "verified_since": "Verified since"
   }
 }

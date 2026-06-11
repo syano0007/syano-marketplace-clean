@@ -330,13 +330,13 @@ router.get("/admin/users", async (req, res): Promise<void> => {
   const [{ total }] = await db.select({ total: count(usersTable.id) }).from(usersTable);
 
   const users = await db
-    .select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role, isVerified: usersTable.isVerified, accountStatus: usersTable.accountStatus, createdAt: usersTable.createdAt })
+    .select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role, isVerified: usersTable.isVerified, accountStatus: usersTable.accountStatus, createdAt: usersTable.createdAt, verificationLevel: usersTable.verificationLevel, trustScore: usersTable.trustScore, trustLevel: usersTable.trustLevel })
     .from(usersTable)
     .orderBy(desc(usersTable.createdAt))
     .limit(limit)
     .offset(offset);
 
-  res.json(paginated(users.map((u) => ({ ...u, createdAt: u.createdAt.toISOString() })), total, page, limit));
+  res.json(paginated(users.map((u) => ({ ...u, createdAt: u.createdAt.toISOString(), verificationLevel: u.verificationLevel ?? "none", trustScore: u.trustScore ?? null, trustLevel: u.trustLevel ?? "new" })), total, page, limit));
 });
 
 router.post("/admin/users/:id/suspend", async (req, res): Promise<void> => {
@@ -1351,7 +1351,100 @@ router.get("/admin/reports/export", async (req, res): Promise<void> => {
   res.status(400).json({ error: "Invalid type. Use: orders | sellers | products | revenue" });
 });
 
-// ─── TRUST SYSTEM ────────────────────────────────────────────────────────────
+// ─── TRUST / VERIFICATION MANAGEMENT ────────────────────────────────────────
+
+/* GET /admin/sellers/verification — list all sellers with their verification status */
+router.get("/admin/sellers/verification", async (req, res): Promise<void> => {
+  const filterLevel = typeof req.query.level === "string" ? req.query.level : null;
+  const filterVerified = req.query.verified === "true" ? true : req.query.verified === "false" ? false : null;
+
+  let query = db
+    .select({
+      userId: usersTable.id,
+      name: usersTable.name,
+      email: usersTable.email,
+      isVerified: usersTable.isVerified,
+      verificationLevel: usersTable.verificationLevel,
+      verifiedAt: usersTable.verifiedAt,
+      verificationMethod: usersTable.verificationMethod,
+      verifiedBy: usersTable.verifiedBy,
+      trustScore: usersTable.trustScore,
+      trustLevel: usersTable.trustLevel,
+      trustScoreUpdatedAt: usersTable.trustScoreUpdatedAt,
+      storeName: sellerApplicationsTable.storeName,
+      storeSlug: sellerApplicationsTable.storeSlug,
+      createdAt: usersTable.createdAt,
+    })
+    .from(usersTable)
+    .leftJoin(sellerApplicationsTable, and(eq(sellerApplicationsTable.userId, usersTable.id), eq(sellerApplicationsTable.status, "approved")))
+    .where(eq(usersTable.role, "seller"))
+    .$dynamic();
+
+  const rows = await query.orderBy(desc(usersTable.trustScore), desc(usersTable.createdAt));
+
+  const mapped = rows.map((r) => ({
+    userId: r.userId,
+    name: r.name,
+    email: r.email,
+    isVerified: r.isVerified,
+    verificationLevel: r.verificationLevel ?? "none",
+    verifiedAt: r.verifiedAt?.toISOString() ?? null,
+    verificationMethod: r.verificationMethod ?? null,
+    verifiedBy: r.verifiedBy ?? null,
+    trustScore: r.trustScore ?? null,
+    trustLevel: r.trustLevel ?? "new",
+    trustScoreUpdatedAt: r.trustScoreUpdatedAt?.toISOString() ?? null,
+    storeName: r.storeName ?? null,
+    storeSlug: r.storeSlug ?? null,
+    createdAt: r.createdAt.toISOString(),
+  }));
+
+  const filtered = mapped.filter((r) => {
+    if (filterLevel && r.verificationLevel !== filterLevel) return false;
+    if (filterVerified !== null && r.isVerified !== filterVerified) return false;
+    return true;
+  });
+
+  res.json(filtered);
+});
+
+/* POST /admin/sellers/:id/verification — set or clear verification tier */
+router.post("/admin/sellers/:id/verification", async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid seller ID" }); return; }
+
+  const action = typeof req.body?.action === "string" ? req.body.action : "verify";
+  const level  = typeof req.body?.level === "string"  ? req.body.level  : null;
+  const method = typeof req.body?.method === "string" ? req.body.method : "admin";
+
+  const [user] = await db.select({ id: usersTable.id, name: usersTable.name, role: usersTable.role }).from(usersTable).where(eq(usersTable.id, id));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  if (user.role !== "seller") { res.status(400).json({ error: "User is not a seller" }); return; }
+
+  const { refreshTrustScore } = await import("../lib/trustScore");
+
+  if (action === "unverify" || action === "remove") {
+    await db.update(usersTable)
+      .set({ isVerified: false, verifiedAt: null, verificationMethod: null, verificationLevel: null, verifiedBy: null })
+      .where(eq(usersTable.id, id));
+    const score = await refreshTrustScore(id);
+    await logAudit(req.user!.userId, "UNVERIFY_SELLER", "user", String(id), { name: user.name });
+    res.json({ message: "Verification removed", userId: id, verificationLevel: "none", trustScore: score });
+    return;
+  }
+
+  const validLevels = ["basic", "verified", "business"];
+  if (!level || !validLevels.includes(level)) {
+    res.status(400).json({ error: "Invalid level. Must be: basic | verified | business" });
+    return;
+  }
+  await db.update(usersTable)
+    .set({ isVerified: true, verifiedAt: new Date(), verificationMethod: method, verificationLevel: level, verifiedBy: req.user!.userId })
+    .where(eq(usersTable.id, id));
+  const score = await refreshTrustScore(id);
+  await logAudit(req.user!.userId, "VERIFY_SELLER", "user", String(id), { name: user.name, level, method });
+  res.json({ message: "Seller verified", userId: id, verificationLevel: level, trustScore: score });
+});
 
 router.get("/admin/sellers/:id/trust", async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);

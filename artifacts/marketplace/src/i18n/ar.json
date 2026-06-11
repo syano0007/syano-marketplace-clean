@@ -465,7 +465,8 @@
     "inventory": "المخزون",
     "messages": "الرسائل",
     "store_settings": "إعدادات المتجر",
-    "seller_panel": "لوحة البائع"
+    "seller_panel": "لوحة البائع",
+    "trust": "الثقة"
   },
   "seller_dashboard": {
     "title": "لوحة تحكم البائع",
@@ -1344,7 +1345,17 @@
     "top_products": "أفضل المنتجات",
     "top_products_empty": "لا توجد مبيعات مؤكدة بعد",
     "units_sold": "{{count}} وحدة مباعة",
-    "orders_count": "{{count}} طلب"
+    "orders_count": "{{count}} طلب",
+    "verification_title": "التحقق من البائعين",
+    "verification_desc": "إدارة مستويات التحقق ودرجات الثقة.",
+    "col_verified_at": "تاريخ التحقق",
+    "change_tier": "تغيير المستوى",
+    "unverified": "غير موثق",
+    "cancel": "إلغاء",
+    "search_sellers": "البحث عن بائعين…",
+    "no_sellers_found": "لا يوجد بائعون",
+    "refresh": "تحديث",
+    "remove_verification": "إزالة"
   },
   "push_prompt": {
     "title": "ابقَ على اطلاع",
@@ -2005,7 +2016,13 @@
     "shipping": "الشحن",
     "professionalism": "الاحترافية",
     "no_reviews": "لا توجد تقييمات بعد",
-    "no_reviews_desc": "كن أول من يقيّم هذا البائع بعد الشراء."
+    "no_reviews_desc": "كن أول من يقيّم هذا البائع بعد الشراء.",
+    "followers": "المتابعون",
+    "products": "المنتجات",
+    "completion": "الإتمام",
+    "no_description": "لا يوجد وصف.",
+    "member_since": "عضو منذ",
+    "verified_since": "موثق منذ"
   },
   "messages": {
     "title": "الرسائل",
@@ -2385,12 +2402,42 @@
     "band_trusted": "موثوق",
     "band_established": "راسخ",
     "band_basic": "أساسي",
-    "band_new": "جديد"
+    "band_new": "جديد",
+    "level_none": "غير موثق"
   },
   "trust_panel": {
     "title": "مستوى ثقة المتجر",
     "verified_desc": "متجرك تم التحقق منه من قِبل SYANO.",
     "unverified_desc": "أكمل ملفك الشخصي لتحسين درجة الثقة.",
-    "how_to_verify": "للتحقق من حسابك، تواصل مع دعم SYANO أو أكمل إعداد البائع."
+    "how_to_verify": "للتحقق من حسابك، تواصل مع دعم SYANO أو أكمل إعداد البائع.",
+    "page_desc": "تُحسب درجة ثقتك من بيانات حية — التقييمات والطلبات واكتمال الملف وأكثر.",
+    "score_breakdown": "تفاصيل الدرجة",
+    "profile_checklist": "قائمة الملف الشخصي",
+    "stats_snapshot": "لمحة إحصائية",
+    "edit_profile": "تعديل ملف المتجر",
+    "factor_verification": "مستوى التحقق",
+    "factor_profile": "اكتمال الملف",
+    "factor_reviews": "تقييمات المنتجات",
+    "factor_service": "جودة الخدمة",
+    "factor_orders": "إتمام الطلبات",
+    "factor_age": "عمر الحساب",
+    "factor_followers": "متابعو المتجر",
+    "factor_activity": "النشاط",
+    "tip_verification": "احصل على التحقق من سيانو لتكسب حتى 30 نقطة",
+    "tip_profile": "اكمل جميع بيانات المتجر للحصول على العلامة الكاملة",
+    "tip_reviews": "التقييمات العالية + حجم التقييمات",
+    "tip_service": "تقييمات التواصل والشحن والاحترافية",
+    "tip_orders": "80%+ من الطلبات المُسلَّمة تمنحك العلامة الكاملة",
+    "tip_age": "نقطة كل شهرين، حتى 10 نقاط",
+    "tip_followers": "الدليل الاجتماعي من المتابعين",
+    "tip_activity": "المنتجات النشطة والطلبات",
+    "total_orders": "إجمالي الطلبات",
+    "completion_rate": "معدل الإتمام",
+    "review_count": "التقييمات",
+    "avg_rating": "متوسط التقييم",
+    "followers": "المتابعون",
+    "products": "المنتجات",
+    "how_to_verify_title": "كيف تحصل على التحقق",
+    "verified_since": "موثق منذ"
   }
 }

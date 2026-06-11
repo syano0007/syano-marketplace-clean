@@ -530,4 +530,41 @@ router.patch("/sellers/store/branding", requireAuth, requireRole("seller"), requ
   res.json(updated);
 });
 
+/* ── GET /sellers/:id/trust ─────────────────────────────────── */
+router.get("/sellers/:id/trust", async (req, res): Promise<void> => {
+  const sellerId = parseInt(String(req.params.id), 10);
+  if (isNaN(sellerId)) { res.status(400).json({ error: "Invalid seller ID" }); return; }
+
+  const [user] = await db
+    .select({
+      id: usersTable.id,
+      name: usersTable.name,
+      trustScore: usersTable.trustScore,
+      trustLevel: usersTable.trustLevel,
+      trustScoreUpdatedAt: usersTable.trustScoreUpdatedAt,
+      isVerified: usersTable.isVerified,
+      verificationLevel: usersTable.verificationLevel,
+      verifiedAt: usersTable.verifiedAt,
+    })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, sellerId), eq(usersTable.role, "seller")));
+
+  if (!user) { res.status(404).json({ error: "Seller not found" }); return; }
+
+  const { computeTrustScore, scoreToBand } = await import("../lib/trustScore");
+  const breakdown = await computeTrustScore(sellerId);
+
+  res.json({
+    userId: user.id,
+    name: user.name,
+    cachedScore: user.trustScore,
+    cachedLevel: user.trustLevel ?? scoreToBand(user.trustScore ?? 0),
+    cachedScoreUpdatedAt: user.trustScoreUpdatedAt?.toISOString() ?? null,
+    isVerified: user.isVerified,
+    verificationLevel: user.verificationLevel ?? "none",
+    verifiedAt: user.verifiedAt?.toISOString() ?? null,
+    liveBreakdown: breakdown,
+  });
+});
+
 export default router;

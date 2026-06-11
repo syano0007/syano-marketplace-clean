@@ -24,6 +24,7 @@ const navItems = [
   { href: "/admin/analytics",             icon: BarChart2,       labelKey: "admin.nav_analytics" },
   { href: "/admin/delivery",              icon: Truck,           labelKey: "delivery.nav" },
   { href: "/admin/courier-applications",  icon: User,            labelKey: "courier_applications.nav", badgeKey: "couriers" },
+  { href: "/admin/verification",          icon: Shield,          labelKey: "admin.verification_title" },
   { href: "/admin/logs",                  icon: ScrollText,      labelKey: "admin.nav_logs" },
   { href: "/admin/settings",              icon: Settings,        labelKey: "admin.nav_settings" },
 ] as const;
