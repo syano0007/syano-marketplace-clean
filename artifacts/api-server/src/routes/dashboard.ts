@@ -305,6 +305,254 @@ router.get("/dashboard/seller/metrics", requireAuth, requireActiveAccount, async
   });
 });
 
+/* ── Analytics helpers ───────────────────────────────────────── */
+function parseQueryDate(val: unknown, fallback: Date): Date {
+  if (typeof val !== "string" || !val) return fallback;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? fallback : d;
+}
+function trendChange(curr: number, prev: number): number | null {
+  if (prev === 0) return curr === 0 ? 0 : null;
+  return parseFloat(((curr - prev) / prev * 100).toFixed(1));
+}
+function kpi(curr: number, prev: number) { return { value: curr, prev, change: trendChange(curr, prev) }; }
+
+/* ── GET /dashboard/seller/analytics/summary ────────────────── */
+router.get("/dashboard/seller/analytics/summary", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
+  if (req.user!.role !== "seller") { res.status(403).json({ error: "Seller access required" }); return; }
+  const sellerId = req.user!.userId;
+
+  const defaultTo   = new Date(); defaultTo.setHours(23, 59, 59, 999);
+  const defaultFrom = new Date(); defaultFrom.setDate(defaultFrom.getDate() - 30); defaultFrom.setHours(0, 0, 0, 0);
+
+  const currFrom = parseQueryDate(req.query.from, defaultFrom);
+  const currTo   = parseQueryDate(req.query.to,   defaultTo); currTo.setHours(23, 59, 59, 999);
+  const duration = currTo.getTime() - currFrom.getTime();
+  const prevFrom = new Date(currFrom.getTime() - duration - 1);
+  const prevTo   = new Date(currFrom.getTime() - 1);
+
+  const cf = currFrom.toISOString(); const ct = currTo.toISOString();
+  const pf = prevFrom.toISOString(); const pt = prevTo.toISOString();
+
+  const [currKpi, prevKpi, statusRows, topProds, followerRow, prevFollRow, reviewRow, deliveryRow] = await Promise.all([
+    db.execute(sql`
+      SELECT
+        COUNT(DISTINCT oi.order_id)::int                                                                AS total_orders,
+        COUNT(DISTINCT oi.order_id) FILTER (WHERE o.status = 'delivered')::int                        AS completed,
+        COUNT(DISTINCT oi.order_id) FILTER (WHERE o.status = 'cancelled')::int                        AS cancelled,
+        COUNT(DISTINCT oi.order_id) FILTER (WHERE o.status IN ('returned','refunded'))::int           AS refunded,
+        COALESCE(SUM(oi.unit_price::numeric * oi.quantity) FILTER (WHERE o.status = 'delivered'),0)::float AS revenue,
+        COALESCE(AVG(o.total::numeric) FILTER (WHERE o.status = 'delivered'), 0)::float               AS aov,
+        COUNT(DISTINCT o.customer_id)::int                                                            AS unique_customers
+      FROM order_items oi
+      JOIN orders o ON o.id = oi.order_id
+      WHERE oi.seller_id = ${sellerId} AND o.created_at >= ${cf} AND o.created_at <= ${ct}
+    `),
+    db.execute(sql`
+      SELECT
+        COUNT(DISTINCT oi.order_id)::int                                                                AS total_orders,
+        COUNT(DISTINCT oi.order_id) FILTER (WHERE o.status = 'delivered')::int                        AS completed,
+        COUNT(DISTINCT oi.order_id) FILTER (WHERE o.status = 'cancelled')::int                        AS cancelled,
+        COALESCE(SUM(oi.unit_price::numeric * oi.quantity) FILTER (WHERE o.status = 'delivered'),0)::float AS revenue,
+        COALESCE(AVG(o.total::numeric) FILTER (WHERE o.status = 'delivered'), 0)::float               AS aov,
+        COUNT(DISTINCT o.customer_id)::int                                                            AS unique_customers
+      FROM order_items oi
+      JOIN orders o ON o.id = oi.order_id
+      WHERE oi.seller_id = ${sellerId} AND o.created_at >= ${pf} AND o.created_at <= ${pt}
+    `),
+    db.execute(sql`
+      SELECT o.status, COUNT(DISTINCT oi.order_id)::int AS cnt
+      FROM order_items oi JOIN orders o ON o.id = oi.order_id
+      WHERE oi.seller_id = ${sellerId} AND o.created_at >= ${cf} AND o.created_at <= ${ct}
+      GROUP BY o.status
+    `),
+    db.execute(sql`
+      SELECT oi.product_id, oi.product_name, p.image_url, p.image_urls, p.view_count,
+        SUM(oi.quantity)::int AS units_sold,
+        SUM(oi.unit_price::numeric * oi.quantity)::float AS revenue
+      FROM order_items oi
+      JOIN orders o ON o.id = oi.order_id
+      LEFT JOIN products p ON p.id = oi.product_id
+      WHERE oi.seller_id = ${sellerId} AND o.status = 'delivered'
+        AND o.created_at >= ${cf} AND o.created_at <= ${ct}
+      GROUP BY oi.product_id, oi.product_name, p.image_url, p.image_urls, p.view_count
+      ORDER BY revenue DESC LIMIT 10
+    `),
+    db.execute(sql`
+      SELECT COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE created_at >= ${cf} AND created_at <= ${ct})::int AS new_curr
+      FROM store_follows WHERE seller_id = ${sellerId}
+    `),
+    db.execute(sql`
+      SELECT COUNT(*) FILTER (WHERE created_at >= ${pf} AND created_at <= ${pt})::int AS new_prev
+      FROM store_follows WHERE seller_id = ${sellerId}
+    `),
+    db.execute(sql`
+      SELECT COUNT(*)::int AS total,
+        COALESCE(AVG((communication_rating + shipping_rating + professionalism_rating)::float / 3),0)::float AS avg_rating,
+        COUNT(*) FILTER (WHERE created_at >= ${cf} AND created_at <= ${ct})::int AS new_curr,
+        COUNT(*) FILTER (WHERE created_at >= ${pf} AND created_at <= ${pt})::int AS new_prev
+      FROM seller_reviews WHERE seller_id = ${sellerId}
+    `),
+    db.execute(sql`
+      SELECT
+        COUNT(*) FILTER (WHERE ca.status = 'delivered')::int AS delivered,
+        COUNT(*) FILTER (WHERE ca.status IN ('failed','delivery_failed'))::int AS failed,
+        COALESCE(AVG(EXTRACT(EPOCH FROM (ca.delivered_at - ca.assigned_at))/3600)
+          FILTER (WHERE ca.status = 'delivered' AND ca.delivered_at IS NOT NULL),0)::float AS avg_hours
+      FROM courier_assignments ca
+      JOIN orders o ON o.id = ca.order_id
+      WHERE o.created_at >= ${cf} AND o.created_at <= ${ct}
+        AND EXISTS (
+          SELECT 1 FROM order_items oi WHERE oi.order_id = o.id AND oi.seller_id = ${sellerId}
+        )
+    `),
+  ]);
+
+  const c  = (currKpi    as any).rows?.[0] ?? (currKpi    as any)[0] ?? {};
+  const p  = (prevKpi    as any).rows?.[0] ?? (prevKpi    as any)[0] ?? {};
+  const fr = (followerRow as any).rows?.[0] ?? (followerRow as any)[0] ?? {};
+  const pfr= (prevFollRow as any).rows?.[0] ?? (prevFollRow as any)[0] ?? {};
+  const rv = (reviewRow  as any).rows?.[0] ?? (reviewRow  as any)[0] ?? {};
+  const dr = (deliveryRow as any).rows?.[0] ?? (deliveryRow as any)[0] ?? {};
+  const statusData = ((statusRows as any).rows ?? (statusRows as any) ?? []) as any[];
+  const prodsData  = ((topProds   as any).rows ?? (topProds   as any) ?? []) as any[];
+
+  // Returning customers = customers in curr period who also ordered before it
+  const currUnique = Number(c.unique_customers ?? 0);
+  let returningCustomers = 0;
+  if (currUnique > 0) {
+    const custIds = await db.execute(sql`
+      SELECT DISTINCT o.customer_id
+      FROM order_items oi JOIN orders o ON o.id = oi.order_id
+      WHERE oi.seller_id = ${sellerId} AND o.created_at >= ${cf} AND o.created_at <= ${ct}
+    `);
+    const ids = ((custIds as any).rows ?? (custIds as any) ?? []).map((r: any) => Number(r.customer_id));
+    if (ids.length > 0) {
+      const rcRow = await db.execute(sql`
+        SELECT COUNT(DISTINCT o.customer_id)::int AS cnt
+        FROM order_items oi JOIN orders o ON o.id = oi.order_id
+        WHERE oi.seller_id = ${sellerId}
+          AND o.customer_id IN (${sql.join(ids.map((id: number) => sql`${id}`), sql`, `)})
+          AND o.created_at < ${cf}
+      `);
+      returningCustomers = Number(((rcRow as any).rows?.[0] ?? (rcRow as any)[0] ?? {}).cnt ?? 0);
+    }
+  }
+
+  const currTotal     = Number(c.total_orders  ?? 0);
+  const currCompleted = Number(c.completed     ?? 0);
+  const currCancelled = Number(c.cancelled     ?? 0);
+  const currRefunded  = Number(c.refunded      ?? 0);
+  const currRevenue   = Number(c.revenue       ?? 0);
+  const currAOV       = Number(c.aov           ?? 0);
+  const prevTotal     = Number(p.total_orders  ?? 0);
+  const prevCompleted = Number(p.completed     ?? 0);
+  const prevCancelled = Number(p.cancelled     ?? 0);
+  const prevRevenue   = Number(p.revenue       ?? 0);
+  const prevAOV       = Number(p.aov           ?? 0);
+  const prevUnique    = Number(p.unique_customers ?? 0);
+  const totalFollowers= Number(fr.total        ?? 0);
+  const newFollCurr   = Number(fr.new_curr     ?? 0);
+  const newFollPrev   = Number(pfr.new_prev    ?? 0);
+  const totalReviews  = Number(rv.total        ?? 0);
+  const avgRating     = parseFloat(Number(rv.avg_rating ?? 0).toFixed(1));
+  const newRevCurr    = Number(rv.new_curr     ?? 0);
+  const newRevPrev    = Number(rv.new_prev     ?? 0);
+  const dlvDelivered  = Number(dr.delivered    ?? 0);
+  const dlvFailed     = Number(dr.failed       ?? 0);
+  const dlvHours      = parseFloat(Number(dr.avg_hours ?? 0).toFixed(1));
+  const dlvTotal      = dlvDelivered + dlvFailed;
+  const dlvSuccessRate= dlvTotal > 0 ? parseFloat((dlvDelivered / dlvTotal * 100).toFixed(1)) : 0;
+  const repeatRate    = currUnique > 0 ? parseFloat((returningCustomers / currUnique * 100).toFixed(1)) : 0;
+
+  res.json({
+    period: { from: currFrom.toISOString().split("T")[0], to: currTo.toISOString().split("T")[0] },
+    kpis: {
+      totalOrders:      kpi(currTotal,     prevTotal),
+      completedOrders:  kpi(currCompleted, prevCompleted),
+      cancelledOrders:  kpi(currCancelled, prevCancelled),
+      refundedOrders:   kpi(currRefunded,  0),
+      grossRevenue:     kpi(currRevenue,   prevRevenue),
+      avgOrderValue:    kpi(parseFloat(currAOV.toFixed(2)), parseFloat(prevAOV.toFixed(2))),
+      followers:        kpi(totalFollowers, totalFollowers - newFollCurr + newFollPrev),
+      storeRating:      kpi(avgRating,      avgRating),
+    },
+    orderStatusBreakdown: statusData.map((r) => ({ status: String(r.status), count: Number(r.cnt ?? 0) })),
+    topProducts: prodsData.map((r) => ({
+      productId:   Number(r.product_id),
+      productName: String(r.product_name),
+      imageUrl:    r.image_url ?? (Array.isArray(r.image_urls) ? r.image_urls[0] : null) ?? null,
+      viewCount:   Number(r.view_count  ?? 0),
+      unitsSold:   Number(r.units_sold  ?? 0),
+      revenue:     Number(r.revenue     ?? 0),
+    })),
+    customers: {
+      unique:               currUnique,
+      returning:            returningCustomers,
+      new:                  currUnique - returningCustomers,
+      repeatRate,
+      avgOrdersPerCustomer: currUnique > 0 ? parseFloat((currTotal / currUnique).toFixed(1)) : 0,
+      prevUnique,
+      change:               trendChange(currUnique, prevUnique),
+    },
+    delivery: {
+      totalDelivered:  dlvDelivered,
+      totalFailed:     dlvFailed,
+      successRate:     dlvSuccessRate,
+      avgDeliveryHours: dlvHours,
+      cancellationRate: currTotal > 0 ? parseFloat((currCancelled / currTotal * 100).toFixed(1)) : 0,
+    },
+    growth: {
+      totalFollowers,
+      newFollowers:  newFollCurr,
+      prevFollowers: newFollPrev,
+      followerChange: trendChange(newFollCurr, newFollPrev),
+      totalReviews,
+      avgRating,
+      newReviews:    newRevCurr,
+      prevReviews:   newRevPrev,
+      reviewChange:  trendChange(newRevCurr, newRevPrev),
+    },
+  });
+});
+
+/* ── GET /dashboard/seller/analytics/revenue-chart ──────────── */
+router.get("/dashboard/seller/analytics/revenue-chart", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
+  if (req.user!.role !== "seller") { res.status(403).json({ error: "Seller access required" }); return; }
+  const sellerId = req.user!.userId;
+
+  const defaultTo   = new Date(); defaultTo.setHours(23, 59, 59, 999);
+  const defaultFrom = new Date(); defaultFrom.setDate(defaultFrom.getDate() - 30); defaultFrom.setHours(0, 0, 0, 0);
+
+  const from  = parseQueryDate(req.query.from, defaultFrom);
+  const to    = parseQueryDate(req.query.to,   defaultTo); to.setHours(23, 59, 59, 999);
+  const gran  = (req.query.granularity as string) === "week" ? "week" : (req.query.granularity as string) === "month" ? "month" : "day";
+  const cf = from.toISOString(); const ct = to.toISOString();
+
+  const rows = await db.execute(sql`
+    SELECT
+      date_trunc(${gran}, o.created_at)::date::text AS period,
+      COALESCE(SUM(oi.unit_price::numeric * oi.quantity) FILTER (WHERE o.status = 'delivered'),0)::float AS revenue,
+      COUNT(DISTINCT oi.order_id)::int AS orders,
+      COALESCE(AVG(o.total::numeric) FILTER (WHERE o.status = 'delivered'), 0)::float AS aov
+    FROM order_items oi
+    JOIN orders o ON o.id = oi.order_id
+    WHERE oi.seller_id = ${sellerId}
+      AND o.created_at >= ${cf} AND o.created_at <= ${ct}
+    GROUP BY period ORDER BY period ASC
+  `);
+
+  const points = ((rows as any).rows ?? (rows as any) ?? []).map((r: any) => ({
+    date:     String(r.period),
+    revenue:  Number(r.revenue ?? 0),
+    orders:   Number(r.orders  ?? 0),
+    aov:      parseFloat(Number(r.aov ?? 0).toFixed(2)),
+  }));
+
+  res.json({ granularity: gran, points });
+});
+
 /* ── GET /dashboard/customer ─────────────────────────────────── */
 router.get("/dashboard/customer", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
   if (req.user!.role !== "customer") {

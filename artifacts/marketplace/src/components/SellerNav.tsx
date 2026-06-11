@@ -1,10 +1,11 @@
 import { useLocation, Link } from "wouter";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, Package, ShoppingCart, Boxes, Store, ShieldCheck, MessageCircle, Settings } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Boxes, Store, ShieldCheck, MessageCircle, Settings, BarChart2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const NAV_LINKS = [
   { href: "/seller/dashboard",      icon: LayoutDashboard, key: "dashboard"      },
+  { href: "/seller/analytics",      icon: BarChart2,       key: "analytics"      },
   { href: "/seller/products",       icon: Package,         key: "products"       },
   { href: "/seller/orders",         icon: ShoppingCart,    key: "orders"         },
   { href: "/seller/inventory",      icon: Boxes,           key: "inventory"      },
