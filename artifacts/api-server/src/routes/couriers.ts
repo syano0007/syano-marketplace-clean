@@ -224,7 +224,7 @@ router.patch("/couriers/assignments/:id/pickup", requireAuth, requireActiveAccou
   ]);
 
   await createNotification({
-    userId: order.customerId, type: "order_shipped",
+    userId: order.customerId, type: "order_picked_up",
     title: bi("Order Picked Up", "تم استلام طلبك"),
     body: bi(`Your order #${order.id} has been picked up by the courier and is on the way!`, `تم استلام طلبك رقم #${order.id} من قِبل المندوب وهو في الطريق إليك!`),
     orderId: order.id, priority: "important", link: `/orders`,
@@ -618,7 +618,7 @@ router.post("/admin/orders/:id/assign-courier", requireAuth, async (req, res): P
 
   const [courierUser] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, courier.userId));
   await createNotification({
-    userId: order.customerId, type: "order_shipped",
+    userId: order.customerId, type: "order_courier_assigned",
     title: bi("Courier Assigned", "تم تعيين مندوب توصيل"),
     body: bi(`A courier has been assigned to your order #${order.id}.`, `تم تعيين مندوب توصيل لطلبك رقم #${order.id}.`),
     orderId: order.id, priority: "normal", link: `/orders`,

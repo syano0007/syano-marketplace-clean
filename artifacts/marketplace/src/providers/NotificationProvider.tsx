@@ -194,14 +194,25 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           } else if (
             type === "new_order" ||
             type === "order_placed" ||
+            type === "order_confirmed" ||
             type === "order_processing" ||
+            type === "order_preparing" ||
+            type === "order_ready" ||
+            type === "order_courier_assigned" ||
+            type === "order_picked_up" ||
             type === "order_shipped" ||
+            type === "order_out_for_delivery" ||
             type === "order_delivered" ||
+            type === "order_delivery_failed" ||
+            type === "order_returned" ||
             type === "order_cancelled" ||
             type === "order_cancelled_by_customer" ||
             type === "order_refunded"
           ) {
             queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+            queryClient.invalidateQueries({
+              predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "getOrder",
+            });
           }
         } catch {}
       };

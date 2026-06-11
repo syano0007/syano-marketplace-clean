@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -100,7 +101,7 @@ export default function OrderDetailScreen() {
   }, []);
 
   const { data: order, isLoading, refetch, isRefetching } = useGetOrder(orderId, {
-    query: { enabled: !!orderId, queryKey: ["getOrder", orderId] }
+    query: { enabled: !!orderId, queryKey: ["getOrder", orderId], refetchInterval: 30000 }
   });
 
   const { data: history } = useGetOrderHistory(orderId, {
@@ -274,6 +275,25 @@ export default function OrderDetailScreen() {
           </View>
         )}
 
+        {/* Courier info — shown when a courier is assigned */}
+        {(order as any).courierName && (
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("orders.courier_info")}</Text>
+            <InfoRow icon="person" label={t("orders.courier_name")} value={(order as any).courierName} colors={colors} />
+            {(order as any).courierPhone && (
+              <View style={styles.infoRow}>
+                <Ionicons name="call-outline" size={16} color={colors.mutedForeground} style={{ marginTop: 2 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>{t("orders.courier_phone")}</Text>
+                  <Pressable onPress={() => Linking.openURL(`tel:${(order as any).courierPhone}`)}>
+                    <Text style={[styles.infoValue, { color: colors.primary }]}>{(order as any).courierPhone}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Items */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("orders.items")}</Text>
@@ -304,7 +324,22 @@ export default function OrderDetailScreen() {
         {/* Delivery info */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("orders.delivery_info")}</Text>
-          {order.city && (
+          {((order as any).zoneNameEn || (order as any).zoneNameAr) && (
+            <InfoRow
+              icon="map"
+              label={t("orders.delivery_zone")}
+              value={
+                (order as any).zoneNameAr
+                  ? (order as any).zoneNameAr
+                  : (order as any).zoneNameEn
+              }
+              colors={colors}
+            />
+          )}
+          {(order as any).deliveryFee > 0 && (
+            <InfoRow icon="cash" label={t("orders.delivery_fee")} value={`$${((order as any).deliveryFee as number).toFixed(2)}`} colors={colors} />
+          )}
+          {order.city && !(order as any).zoneNameEn && (
             <InfoRow icon="location" label={t("orders.city")} value={order.city} colors={colors} />
           )}
           <InfoRow icon="home" label={t("orders.address")} value={order.shippingAddress} colors={colors} />

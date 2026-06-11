@@ -127,6 +127,11 @@ const en = {
     cancel_desc: "This will cancel order #{{id}}. Stock will be restored. This action cannot be undone.",
     keep_order: "Keep Order",
     confirm_cancel: "Yes, Cancel",
+    courier_info: "Courier Info",
+    courier_name: "Courier",
+    courier_phone: "Courier Phone",
+    delivery_zone: "Delivery Zone",
+    delivery_fee: "Delivery fee",
   },
   messages: {
     type_message: "Type a message…",
@@ -351,6 +356,11 @@ const ar: DeepLeaf<typeof en> = {
     cancel_desc: "سيتم إلغاء الطلب رقم {{id}} واستعادة المخزون. لا يمكن التراجع عن هذا الإجراء.",
     keep_order: "الاحتفاظ بالطلب",
     confirm_cancel: "نعم، إلغاء",
+    courier_info: "بيانات المندوب",
+    courier_name: "المندوب",
+    courier_phone: "هاتف المندوب",
+    delivery_zone: "منطقة التوصيل",
+    delivery_fee: "رسوم التوصيل",
   },
   messages: {
     type_message: "اكتب رسالة…",

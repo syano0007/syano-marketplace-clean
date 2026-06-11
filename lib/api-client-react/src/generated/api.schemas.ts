@@ -344,6 +344,12 @@ export interface Order {
   zoneNameAr?: string | null;
   /** @nullable */
   deliveryFee?: number | null;
+  /** @nullable */
+  courierName?: string | null;
+  /** @nullable */
+  courierPhone?: string | null;
+  /** @nullable */
+  courierStatus?: string | null;
 }
 
 export interface OrderHistoryEntry {

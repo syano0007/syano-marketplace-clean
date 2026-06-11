@@ -399,7 +399,22 @@
     "cancel_reason_found_better": "Found a better price",
     "cancel_reason_duplicate": "Duplicate order",
     "cancel_reason_mistake": "Ordered by mistake",
-    "cancel_reason_other": "Other"
+    "cancel_reason_other": "Other",
+    "courier_info": "Courier Info",
+    "courier_name": "Courier",
+    "courier_phone": "Courier Phone",
+    "courier_status": "Status",
+    "courier_status_assigned": "Assigned",
+    "courier_status_out_for_delivery": "Out for delivery",
+    "courier_status_delivered": "Delivered",
+    "step_desc_pending": "Your order has been received and is awaiting seller confirmation.",
+    "step_desc_confirmed": "The seller has confirmed your order and will start preparing it soon.",
+    "step_desc_preparing": "Your order is being prepared and packed by the seller.",
+    "step_desc_ready_for_pickup": "Your order is packed and ready for courier pickup.",
+    "step_desc_courier_assigned": "A courier has been assigned and will pick up your order shortly.",
+    "step_desc_picked_up": "Your order has been picked up by the courier.",
+    "step_desc_out_for_delivery": "Your order is on its way to you!",
+    "step_desc_delivered": "Your order was successfully delivered. Enjoy!"
   },
   "customer_dashboard": {
     "title": "Customer Dashboard",

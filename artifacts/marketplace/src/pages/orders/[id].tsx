@@ -6,7 +6,7 @@ import { Layout } from "@/components/Layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { ChevronLeft, Package, MapPin, Phone, Truck, Calendar, AlertTriangle, Copy, Check } from "lucide-react";
+import { ChevronLeft, Package, MapPin, Phone, Truck, Calendar, AlertTriangle, Copy, Check, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { OrderStatusTimeline } from "@/components/OrderStatusTimeline";
@@ -29,7 +29,7 @@ export default function OrderDetail() {
   const [cancelReason, setCancelReason] = useState("");
 
   const { data: order, isLoading, refetch } = useGetOrder(id, {
-    query: { enabled: !!id, queryKey: ["getOrder", id] }
+    query: { enabled: !!id, queryKey: ["getOrder", id], refetchInterval: 30000 }
   });
 
   const updateStatus = useUpdateOrderStatus({
@@ -221,7 +221,9 @@ export default function OrderDetail() {
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>{t("orders.delivery_fee")}</span>
-                  <span className="font-medium">{t("checkout.free")}</span>
+                  <span className="font-medium" translate="no">
+                    {(order as any).deliveryFee > 0 ? formatCurrency((order as any).deliveryFee) : t("checkout.free")}
+                  </span>
                 </div>
                 <div className="flex justify-between text-base font-bold border-t pt-2 mt-1">
                   <span>{t("checkout.total")}</span>
@@ -310,6 +312,36 @@ export default function OrderDetail() {
                           {trackingCopied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
                         </button>
                       </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Courier info card — shown when a courier is assigned */}
+            {order.courierName && (
+              <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
+                <div className="px-4 sm:px-6 py-4 border-b bg-muted/30">
+                  <h3 className="font-semibold text-base flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" /> {t("orders.courier_info")}
+                  </h3>
+                </div>
+                <div className="p-4 sm:p-5 space-y-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium mb-0.5">{t("orders.courier_name")}</p>
+                    <p className="text-sm font-semibold">{order.courierName}</p>
+                  </div>
+                  {order.courierPhone && (
+                    <div>
+                      <p className="text-xs text-muted-foreground font-medium mb-0.5">{t("orders.courier_phone")}</p>
+                      <a
+                        href={`tel:${order.courierPhone}`}
+                        className="text-sm font-medium text-primary hover:underline flex items-center gap-2"
+                        translate="no"
+                      >
+                        <Phone className="h-3.5 w-3.5 shrink-0" />
+                        {order.courierPhone}
+                      </a>
                     </div>
                   )}
                 </div>

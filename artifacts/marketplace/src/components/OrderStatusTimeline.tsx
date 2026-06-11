@@ -28,22 +28,22 @@ interface OrderStatusTimelineProps {
 // Legacy External Shipping flow (backward compat for old orders):
 // pending → processing → shipped → delivered
 
-const V1_DELIVERY_STEPS: { key: string; icon: ElementType; i18nKey: string }[] = [
-  { key: "pending",          icon: Clock,         i18nKey: "orders.step_pending" },
-  { key: "confirmed",        icon: CheckCircle2,  i18nKey: "orders.step_confirmed" },
-  { key: "preparing",        icon: Package,       i18nKey: "orders.step_preparing" },
-  { key: "ready_for_pickup", icon: MapPin,        i18nKey: "orders.step_ready_for_pickup" },
-  { key: "courier_assigned", icon: User,          i18nKey: "orders.step_courier_assigned" },
-  { key: "picked_up",        icon: Truck,         i18nKey: "orders.step_picked_up" },
-  { key: "out_for_delivery", icon: Truck,         i18nKey: "orders.step_out_for_delivery" },
-  { key: "delivered",        icon: Home,          i18nKey: "orders.step_delivered" },
+const V1_DELIVERY_STEPS: { key: string; icon: ElementType; i18nKey: string; descKey: string }[] = [
+  { key: "pending",          icon: Clock,         i18nKey: "orders.step_pending",          descKey: "orders.step_desc_pending" },
+  { key: "confirmed",        icon: CheckCircle2,  i18nKey: "orders.step_confirmed",        descKey: "orders.step_desc_confirmed" },
+  { key: "preparing",        icon: Package,       i18nKey: "orders.step_preparing",        descKey: "orders.step_desc_preparing" },
+  { key: "ready_for_pickup", icon: MapPin,        i18nKey: "orders.step_ready_for_pickup", descKey: "orders.step_desc_ready_for_pickup" },
+  { key: "courier_assigned", icon: User,          i18nKey: "orders.step_courier_assigned", descKey: "orders.step_desc_courier_assigned" },
+  { key: "picked_up",        icon: Truck,         i18nKey: "orders.step_picked_up",        descKey: "orders.step_desc_picked_up" },
+  { key: "out_for_delivery", icon: Truck,         i18nKey: "orders.step_out_for_delivery", descKey: "orders.step_desc_out_for_delivery" },
+  { key: "delivered",        icon: Home,          i18nKey: "orders.step_delivered",        descKey: "orders.step_desc_delivered" },
 ];
 
-const SHIPPING_STEPS: { key: string; icon: ElementType; i18nKey: string }[] = [
-  { key: "pending",    icon: Clock,   i18nKey: "orders.step_pending" },
-  { key: "processing", icon: Package, i18nKey: "orders.step_processing" },
-  { key: "shipped",    icon: Truck,   i18nKey: "orders.step_shipped" },
-  { key: "delivered",  icon: Home,    i18nKey: "orders.step_delivered" },
+const SHIPPING_STEPS: { key: string; icon: ElementType; i18nKey: string; descKey: string }[] = [
+  { key: "pending",    icon: Clock,   i18nKey: "orders.step_pending",    descKey: "orders.step_desc_pending" },
+  { key: "processing", icon: Package, i18nKey: "orders.step_processing", descKey: "orders.step_desc_preparing" },
+  { key: "shipped",    icon: Truck,   i18nKey: "orders.step_shipped",    descKey: "orders.step_desc_picked_up" },
+  { key: "delivered",  icon: Home,    i18nKey: "orders.step_delivered",  descKey: "orders.step_desc_delivered" },
 ];
 
 const V1_STATUS_ORDER: Record<string, number> = {
@@ -253,6 +253,14 @@ export function OrderStatusTimeline({ orderId, status, createdAt, updatedAt, del
                     )}
                     {isCurrent && !timestamp && (
                       <p className="text-xs text-primary mt-1 font-medium">{t("orders.step_current")}</p>
+                    )}
+                    {(isCompleted || isCurrent) && (
+                      <p className={cn(
+                        "text-xs mt-1 leading-relaxed",
+                        isCurrent ? "text-primary/80 font-medium" : "text-muted-foreground/70"
+                      )}>
+                        {t(step.descKey)}
+                      </p>
                     )}
                     {isPending && (
                       <p className="text-xs text-muted-foreground/60 mt-1">{t("orders.step_pending_label")}</p>

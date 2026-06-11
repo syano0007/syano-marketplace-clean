@@ -3,7 +3,7 @@ import { eq, and, inArray, sql } from "drizzle-orm";
 import {
   db, ordersTable, orderItemsTable, cartItemsTable,
   productsTable, usersTable, productVariantsTable, orderStatusHistoryTable,
-  deliveryZonesTable,
+  deliveryZonesTable, couriersTable, courierAssignmentsTable,
 } from "@workspace/db";
 import { createNotification, bi } from "../lib/notif";
 import {
@@ -45,8 +45,8 @@ function computeFinalPrice(price: string, discountPercent: string | null, priceA
 }
 
 async function buildOrderResponse(order: typeof ordersTable.$inferSelect) {
-  // Fetch customer, items, and zone in parallel.
-  const [[customer], items, zoneRows] = await Promise.all([
+  // Fetch customer, items, zone, and courier assignment in parallel.
+  const [[customer], items, zoneRows, assignmentRows] = await Promise.all([
     db.select({ name: usersTable.name, email: usersTable.email })
       .from(usersTable).where(eq(usersTable.id, order.customerId)),
     db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id)),
@@ -54,8 +54,26 @@ async function buildOrderResponse(order: typeof ordersTable.$inferSelect) {
       ? db.select({ nameEn: deliveryZonesTable.nameEn, nameAr: deliveryZonesTable.nameAr })
           .from(deliveryZonesTable).where(eq(deliveryZonesTable.id, order.zoneId))
       : Promise.resolve([] as { nameEn: string; nameAr: string }[]),
+    db.select({
+        assignmentStatus: courierAssignmentsTable.status,
+        courierPhone: couriersTable.phone,
+        courierUserId: couriersTable.userId,
+      })
+      .from(courierAssignmentsTable)
+      .innerJoin(couriersTable, eq(courierAssignmentsTable.courierId, couriersTable.id))
+      .where(eq(courierAssignmentsTable.orderId, order.id))
+      .limit(1),
   ]);
   const zone = zoneRows[0] ?? null;
+  const assignment = assignmentRows[0] ?? null;
+
+  // Fetch courier user name if an assignment exists.
+  let courierName: string | null = null;
+  if (assignment?.courierUserId) {
+    const [courierUser] = await db.select({ name: usersTable.name })
+      .from(usersTable).where(eq(usersTable.id, assignment.courierUserId));
+    courierName = courierUser?.name ?? null;
+  }
 
   // Batch-fetch product images and seller names — 2 queries instead of 2×N.
   const productIds = [...new Set(items.map((i) => i.productId))];
@@ -113,6 +131,9 @@ async function buildOrderResponse(order: typeof ordersTable.$inferSelect) {
     zoneId:           order.zoneId ?? null,
     zoneNameEn:       zone?.nameEn ?? null,
     zoneNameAr:       zone?.nameAr ?? null,
+    courierName:      courierName,
+    courierPhone:     assignment?.courierPhone ?? null,
+    courierStatus:    assignment?.assignmentStatus ?? null,
     createdAt:        order.createdAt.toISOString(),
     updatedAt:        order.updatedAt.toISOString(),
   };
