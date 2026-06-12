@@ -9,7 +9,7 @@ import {
   Zap, Star, Store, TrendingUp, Timer, Flame, Clock,
   Cpu, Shirt, Sparkles, Home as HomeIcon, ShoppingBasket, Dumbbell,
   Car, Gamepad2, BookOpen, PawPrint, Download, Palette,
-  Gem, Baby, Wrench, TreePine, Gift,
+  Gem, Baby, Wrench, TreePine, Gift, BadgeCheck,
 } from "lucide-react";
 import { useCountdown } from "@/hooks/use-countdown";
 import { ProductCard } from "@/components/ProductCard";
@@ -281,23 +281,68 @@ export default function Home() {
         <HeroBanner />
 
         {/* ════════════════════════════════════════════════════════
-            TRUST BAR
+            TRUST BAR — 5-pillar commerce trust signals
         ════════════════════════════════════════════════════════ */}
-        <section className="border-b bg-muted/20">
-          <div className="container px-4 py-4">
-            <div className={`grid gap-3 ${FEATURES.RETURNS_ENABLED ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
+        <section className="border-b bg-gradient-to-r from-muted/30 via-background to-muted/30">
+          <div className="container px-4 py-0">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-border/40 rtl:divide-x-reverse">
               {[
-                { icon: <Truck className="h-4 w-4 shrink-0 text-primary" />,       label: t("product_detail.fast_shipping"),      sub: t("product_detail.fast_shipping_desc") },
-                { icon: <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />, label: t("product_detail.secure_payment"),     sub: t("product_detail.secure_payment_desc") },
-                { icon: <Tag className="h-4 w-4 shrink-0 text-primary" />,          label: t("home.best_prices"),                  sub: t("home.best_prices_sub") },
-                // RETURNS_ENABLED: hidden until feature launches — do not delete
-                ...(FEATURES.RETURNS_ENABLED ? [{ icon: <RotateCcw className="h-4 w-4 shrink-0 text-primary" />, label: t("product_detail.easy_returns"), sub: t("product_detail.easy_returns_desc") }] : []),
-              ].map(({ icon, label, sub }) => (
-                <div key={label} className="flex items-center gap-2.5 py-1">
-                  {icon}
+                {
+                  icon: Truck,
+                  iconBg: "bg-primary/10",
+                  iconColor: "text-primary",
+                  label: t("product_detail.fast_shipping"),
+                  sub: t("product_detail.fast_shipping_desc"),
+                },
+                {
+                  icon: ShieldCheck,
+                  iconBg: "bg-emerald-500/10",
+                  iconColor: "text-emerald-600 dark:text-emerald-400",
+                  label: t("product_detail.secure_payment"),
+                  sub: t("product_detail.secure_payment_desc"),
+                },
+                {
+                  icon: Tag,
+                  iconBg: "bg-amber-500/10",
+                  iconColor: "text-amber-600 dark:text-amber-400",
+                  label: t("home.best_prices"),
+                  sub: t("home.best_prices_sub"),
+                },
+                {
+                  icon: Store,
+                  iconBg: "bg-violet-500/10",
+                  iconColor: "text-violet-600 dark:text-violet-400",
+                  label: t("home.verified_sellers"),
+                  sub: t("home.verified_sellers_sub"),
+                },
+                {
+                  icon: BadgeCheck,
+                  iconBg: "bg-rose-500/10",
+                  iconColor: "text-rose-600 dark:text-rose-400",
+                  label: t("home.buyer_protection"),
+                  sub: t("home.buyer_protection_sub"),
+                },
+                // RETURNS_ENABLED: keep hidden until feature launches — do not delete
+                ...(FEATURES.RETURNS_ENABLED
+                  ? [{
+                      icon: RotateCcw,
+                      iconBg: "bg-sky-500/10",
+                      iconColor: "text-sky-600 dark:text-sky-400",
+                      label: t("product_detail.easy_returns"),
+                      sub: t("product_detail.easy_returns_desc"),
+                    }]
+                  : []),
+              ].map(({ icon: Icon, iconBg, iconColor, label, sub }) => (
+                <div
+                  key={label}
+                  className="flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4 first:ps-0 last:pe-0"
+                >
+                  <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
+                    <Icon className={`h-4 w-4 ${iconColor}`} />
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-semibold text-foreground leading-tight line-clamp-2">{label}</p>
-                    <p className="text-xs text-muted-foreground leading-tight hidden sm:block">{sub}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-foreground leading-tight">{label}</p>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground leading-tight mt-0.5 hidden sm:block">{sub}</p>
                   </div>
                 </div>
               ))}
