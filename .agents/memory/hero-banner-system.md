@@ -1,9 +1,22 @@
 ---
-name: Hero Banner System V1
-description: Architecture, schema, API, component, admin, and recovery-check integration for the homepage hero banner carousel.
+name: Hero Banner System V1 (Enhancement Layer in V4)
+description: Architecture, schema, API, component, admin, and recovery-check integration for the homepage hero banner carousel. In Homepage V4, HeroBanner.tsx is an enhancement overlay — not the primary hero.
 ---
 
 # Hero Banner System V1
+
+## Status in Homepage V4 (June 2026)
+
+**HeroBanner.tsx is preserved but no longer directly used in home.tsx.**
+
+In Homepage V4, the primary hero is `HeroV4.tsx`. When admin creates banner records:
+- `HeroV4` fetches `/api/banners` and activates `<BannerCarousel />` on the left column
+- The right column (`<HeroProductMosaic />`) always renders regardless of banner state
+- `HeroBanner.tsx` remains available as a reference and as a possible future full-bleed override
+
+**Recovery check module 21** checks `home.tsx uses HeroBanner` — this is now a false negative. The system is healthy even when this check fails; `HeroV4` contains its own carousel logic.
+
+# Hero Banner System V1 (Original)
 
 ## Schema
 - Table: `hero_banners` in `lib/db/src/schema/hero_banners.ts`

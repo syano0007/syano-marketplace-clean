@@ -235,6 +235,53 @@ The endpoint runs 13 parallel checks covering:
 - **Courier flow:** `POST /admin/orders/:id/assign-courier` creates assignment + updates order status atomically
 - **Trust System:** `lib/trustScore.ts` — 0-100 score; `seller_verification_log` audit table; admin routes in `admin.ts` (lines 1356–1530)
 
+## Homepage V4 Architecture (June 2026)
+
+**Homepage version:** V4 — Commerce-first split hero (Option C: Hybrid Marketplace Layout)
+
+### Section Order (top to bottom)
+1. `<HeroV4 />` — split hero, max 460px desktop, compact 260px mobile
+2. `<CategoryChipRow />` — 8 enhanced chip shortcuts (inline in home.tsx)
+3. Hot Deals — flash sale grid (conditional: hidden when 0 deals)
+4. Best Sellers — ranked by purchase volume (conditional: hidden when 0)
+5. New Arrivals — product list (always shown, empty state message)
+6. Recently Viewed — localStorage (conditional: hidden when no history)
+7. Category Gallery — 17 large photo cards with `id="categories"` anchor
+8. Bottom CTAs — Seller + Courier recruitment, side-by-side grid
+
+### New Components (June 2026)
+- `artifacts/marketplace/src/components/HeroV4.tsx` — split hero container
+  - Left: `<BrandStatement />` (dark gradient, no stock photos) OR `<BannerCarousel />` (if banners exist)
+  - Right: `<HeroProductMosaic />` (desktop only)
+  - Bottom: `<TrustStrip />` (3 signals — replaces standalone TrustBar section)
+- `artifacts/marketplace/src/components/HeroProductMosaic.tsx` — 2×2 live product grid
+  - Primary: 4 products from `GET /api/products/best-sellers?limit=4`
+  - Fallback: 4 category tiles (gradient + icon, no photography) when 0 products
+
+### Removed Components / Sections
+- `<StaticHero />` — replaced by `<BrandStatement />` inside `HeroV4.tsx`
+- Standalone `<TrustBar />` section — absorbed into `HeroV4` as `<TrustStrip />`
+- "Featured Products" standalone section — removed; `featured` flag shows badge on ProductCard
+
+### HeroBanner V3 — Enhancement Layer
+`HeroBanner.tsx` is preserved unchanged. When admin creates banner records in the DB, `HeroV4` automatically activates `<BannerCarousel />` on the left column (replaces `<BrandStatement />`). Right column product mosaic always renders. Zero banner records = homepage still looks complete.
+
+### API Endpoints (homepage)
+| Endpoint | Consumer | Notes |
+|---|---|---|
+| `GET /api/banners` | `HeroV4.tsx` | Active banners only; drives carousel |
+| `GET /api/products/best-sellers?limit=4` | `HeroProductMosaic.tsx` | Hero mosaic + Best Sellers section |
+| `GET /api/products` | `home.tsx` | New Arrivals + Hot Deals derived client-side |
+| `GET /api/settings` | `home.tsx` | Flash sale countdown end time |
+
+### Zero-Data Resilience
+The homepage renders premium at every data state:
+- 0 banners → brand statement renders (dark gradient, no stock photos)
+- 0 products → category tiles render in hero mosaic + "No products" in sections
+- 0 deals → Hot Deals section hidden (no empty state shown)
+- 0 best sellers → Best Sellers section hidden
+- no localStorage → Recently Viewed section hidden
+
 ## Trust System API Reference
 
 ```
