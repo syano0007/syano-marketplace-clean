@@ -64,6 +64,7 @@ const AdminAnalytics    = lazy(() => import("@/pages/admin/analytics"));
 const SellerApply       = lazy(() => import("@/pages/seller/apply"));
 const ApplicationStatus = lazy(() => import("@/pages/seller/application-status"));
 const AdminDelivery                  = lazy(() => import("@/pages/admin/delivery"));
+const AdminHeroBanners               = lazy(() => import("@/pages/admin/hero-banners"));
 const AdminCourierApplications       = lazy(() => import("@/pages/admin/courier-applications"));
 const AdminCourierApplicationDetail  = lazy(() => import("@/pages/admin/courier-application-detail"));
 const AdminVerification              = lazy(() => import("@/pages/admin/verification"));
@@ -286,6 +287,9 @@ function Router() {
             </Route>
             <Route path="/admin/verification">
               <ProtectedRoute allowedRoles={["admin"]}><AdminVerification /></ProtectedRoute>
+            </Route>
+            <Route path="/admin/hero-banners">
+              <ProtectedRoute allowedRoles={["admin"]}><AdminHeroBanners /></ProtectedRoute>
             </Route>
 
             {/* ── Courier application (customers only) ──────────────── */}

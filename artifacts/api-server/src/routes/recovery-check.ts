@@ -1497,6 +1497,7 @@ async function checkUiConsistency(): Promise<CheckResult> {
 // ─── SECTION 18 — Review System ───────────────────────────────────────────────
 
 async function checkReviewSystem(): Promise<CheckResult> {
+
   const failures: string[] = [];
   const warnings: string[] = [];
   const data: Record<string, unknown> = {};
@@ -1750,6 +1751,108 @@ async function checkAuditFixes(): Promise<CheckResult> {
   return { ok: failures.length === 0, data, failures, warnings };
 }
 
+// ─── SECTION 21 — Hero Banner System ─────────────────────────────────────────
+
+async function checkHeroBannerSystem(adminToken: string): Promise<CheckResult> {
+  const failures: string[] = [];
+  const warnings: string[] = [];
+  const data: Record<string, unknown> = {};
+
+  // #1 hero_banners table accessible
+  try {
+    const raw = await db.execute<{ count: number }>(
+      sql`SELECT COUNT(*)::int AS count FROM hero_banners`
+    );
+    const count = Number(raw.rows?.[0]?.count ?? 0);
+    data["heroBannersTableAccessible"] = true;
+    data["bannerCount"] = count;
+
+    // Count active+valid banners
+    const now = new Date();
+    const activeRaw = await db.execute<{ count: number }>(sql`
+      SELECT COUNT(*)::int AS count FROM hero_banners
+      WHERE active = TRUE
+        AND (start_date IS NULL OR start_date <= ${now})
+        AND (end_date   IS NULL OR end_date   >= ${now})
+    `);
+    data["activeBannerCount"] = Number(activeRaw.rows?.[0]?.count ?? 0);
+  } catch {
+    data["heroBannersTableAccessible"] = false;
+    failures.push("hero_banners table not accessible — run migrations");
+  }
+
+  // #2 GET /banners endpoint returns 200
+  const bannersEndpoint = await internalGet("/banners");
+  data["bannersEndpointStatus"] = bannersEndpoint.status;
+  if (bannersEndpoint.status !== 200) {
+    failures.push(`GET /banners returned ${bannersEndpoint.status}`);
+  }
+
+  // #3 Admin endpoint is protected (no token → 401)
+  const noTokenCheck = await internalGet("/admin/banners");
+  data["adminBannersProtected"] = noTokenCheck.status === 401;
+  if (noTokenCheck.status !== 401) {
+    failures.push(`GET /admin/banners should return 401 without token, got ${noTokenCheck.status}`);
+  }
+
+  // #4 Admin endpoint works with token
+  const adminCheck = await internalGet("/admin/banners", adminToken);
+  data["adminBannersStatus"] = adminCheck.status;
+  if (adminCheck.status !== 200) {
+    failures.push(`GET /admin/banners returned ${adminCheck.status} for admin`);
+  }
+
+  // #5 Analytics endpoint works
+  const analyticsCheck = await internalGet("/admin/banners/analytics", adminToken);
+  data["analyticsEndpointStatus"] = analyticsCheck.status;
+  if (analyticsCheck.status !== 200) {
+    failures.push(`GET /admin/banners/analytics returned ${analyticsCheck.status}`);
+  }
+
+  // #6 HeroBanner component exists
+  const heroBannerPath = path.resolve(
+    process.cwd(), "../../artifacts/marketplace/src/components/HeroBanner.tsx"
+  );
+  const heroBannerExists = fs.existsSync(heroBannerPath);
+  data["heroBannerComponentExists"] = heroBannerExists;
+  if (!heroBannerExists) failures.push("HeroBanner.tsx component not found");
+
+  // #7 Admin page exists
+  const adminPagePath = path.resolve(
+    process.cwd(), "../../artifacts/marketplace/src/pages/admin/hero-banners.tsx"
+  );
+  const adminPageExists = fs.existsSync(adminPagePath);
+  data["heroBannerAdminPageExists"] = adminPageExists;
+  if (!adminPageExists) failures.push("admin/hero-banners.tsx page not found");
+
+  // #8 Homepage uses HeroBanner component
+  const homePath = path.resolve(
+    process.cwd(), "../../artifacts/marketplace/src/pages/home.tsx"
+  );
+  if (fs.existsSync(homePath)) {
+    const homeContent = fs.readFileSync(homePath, "utf8");
+    const usesHeroBanner = homeContent.includes("HeroBanner");
+    data["homepageUsesHeroBanner"] = usesHeroBanner;
+    if (!usesHeroBanner) failures.push("home.tsx does not use HeroBanner component");
+  }
+
+  // #9 Impression + click tracking routes exist in router file
+  const heroBannersRoutePath = path.resolve(
+    process.cwd(), "../../artifacts/api-server/src/routes/hero-banners.ts"
+  );
+  if (fs.existsSync(heroBannersRoutePath)) {
+    const routerContent = fs.readFileSync(heroBannersRoutePath, "utf8");
+    data["impressionEndpointExists"] = routerContent.includes("/banners/:id/impression");
+    data["clickEndpointExists"] = routerContent.includes("/banners/:id/click");
+  } else {
+    data["impressionEndpointExists"] = false;
+    data["clickEndpointExists"] = false;
+    failures.push("hero-banners.ts router file not found");
+  }
+
+  return { ok: failures.length === 0, data, failures, warnings };
+}
+
 // ─── Confidence scoring ───────────────────────────────────────────────────────
 
 interface SectionWeight {
@@ -1779,6 +1882,7 @@ const WEIGHTS = {
   uiConsistency: 3,   // brand color + verification + dropdown portal
   auditFixes: 0,      // audit fix verification — warnings + failures only, no score deduction
   reviewSystem: 5,    // store review submission UX — customer-facing review lifecycle
+  heroBannerSystem: 5, // hero banner CRUD, scheduling, analytics, homepage integration
 } as const;
 
 function computeScore(results: Record<string, CheckResult>): {
@@ -1879,6 +1983,7 @@ router.get(
       uiConsistency,
       auditFixes,
       reviewSystem,
+      heroBannerSystem,
     ] = await Promise.all([
       checkCorePlatform(),
       checkBootstrapAccounts(),
@@ -1900,6 +2005,7 @@ router.get(
       checkUiConsistency(),
       checkAuditFixes(),
       checkReviewSystem(),
+      checkHeroBannerSystem(adminToken),
     ]);
 
     const checkResults: Record<string, CheckResult> = {
@@ -1923,6 +2029,7 @@ router.get(
       uiConsistency,
       auditFixes,
       reviewSystem,
+      heroBannerSystem,
     };
 
     const { score, modules, allFailures, allWarnings, deductions, recommendations } =
@@ -2080,6 +2187,13 @@ router.get(
           warnings: reviewSystem.warnings,
           weight: WEIGHTS.reviewSystem,
         },
+        heroBannerSystem: {
+          ok: heroBannerSystem.ok,
+          data: heroBannerSystem.data,
+          failures: heroBannerSystem.failures,
+          warnings: heroBannerSystem.warnings,
+          weight: WEIGHTS.heroBannerSystem,
+        },
       },
 
       failures: allFailures,
@@ -2104,6 +2218,7 @@ router.get(
         "UI Consistency + Mobile Polish": uiConsistency.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
         "Critical Logic & Trust Audit V1": auditFixes.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ AUDIT ISSUES — see auditFixes section",
         "Store Review System V2": reviewSystem.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS — see reviewSystem section",
+        "Hero Banner System V1": heroBannerSystem.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS — see heroBannerSystem section",
         next: "⏳ TBD",
       },
 

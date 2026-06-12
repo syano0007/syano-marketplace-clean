@@ -2687,5 +2687,23 @@
     "reply_char_limit": "حرف متبقٍ",
     "seller_response_label": "رد البائع",
     "reply_edited": "تم التعديل"
-  }
+  },
+  "hero_banner.region_label": "البانر الرئيسي للصفحة",
+  "hero_banner.prev": "الشريحة السابقة",
+  "hero_banner.next": "الشريحة التالية",
+  "hero_banner.pause": "إيقاف مؤقت",
+  "hero_banner.play": "تشغيل",
+  "hero_banner.go_to_slide": "انتقال للشريحة",
+  "admin.hero_banners.title": "البانرات الرئيسية",
+  "admin.hero_banners.create": "بانر جديد",
+  "admin.hero_banners.edit": "تعديل البانر",
+  "admin.hero_banners.delete": "حذف البانر",
+  "admin.hero_banners.analytics": "الإحصائيات",
+  "admin.hero_banners.total_impressions": "إجمالي المشاهدات",
+  "admin.hero_banners.total_clicks": "إجمالي النقرات",
+  "admin.hero_banners.overall_ctr": "نسبة النقر الكلية",
+  "admin.hero_banners.status_live": "نشط",
+  "admin.hero_banners.status_scheduled": "مجدول",
+  "admin.hero_banners.status_expired": "منتهي",
+  "admin.hero_banners.status_inactive": "غير نشط"
 }

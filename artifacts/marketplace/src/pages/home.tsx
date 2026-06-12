@@ -19,6 +19,7 @@ import { useSEO } from "@/hooks/useSEO";
 import { useSellerOnboarding } from "@/hooks/useSellerOnboarding";
 import { useCourierOnboarding } from "@/hooks/useCourierOnboarding";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
+import { HeroBanner } from "@/components/HeroBanner";
 
 /* ── Category photo map — verified Unsplash & Pexels URLs ───── */
 const CATEGORY_IMAGES: Record<string, string> = {
@@ -275,82 +276,9 @@ export default function Home() {
       <div className="w-full">
 
         {/* ════════════════════════════════════════════════════════
-            HERO — full-bleed market photo with dark overlay
+            HERO — premium dynamic banner system
         ════════════════════════════════════════════════════════ */}
-        <section className="relative overflow-hidden border-b min-h-[420px] sm:min-h-[500px] md:min-h-[580px] lg:min-h-[660px] xl:min-h-[720px] flex items-center">
-
-          {/* ── Full-bleed background image ── */}
-          <div className="absolute inset-0" aria-hidden="true">
-            <img
-              src={HERO_IMAGE}
-              alt=""
-              fetchPriority="high"
-              decoding="async"
-              sizes="100vw"
-              srcSet={[
-                "https://images.pexels.com/photos/7317590/pexels-photo-7317590.jpeg?auto=compress&cs=tinysrgb&w=768&h=600&fit=crop&crop=center 768w",
-                "https://images.pexels.com/photos/7317590/pexels-photo-7317590.jpeg?auto=compress&cs=tinysrgb&w=1280&h=800&fit=crop&crop=center 1280w",
-                "https://images.pexels.com/photos/7317590/pexels-photo-7317590.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop&crop=center 1920w",
-              ].join(", ")}
-              style={{ objectPosition: "center 40%" }}
-              className="absolute inset-0 h-full w-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = HERO_IMAGE_FALLBACK;
-              }}
-            />
-
-            {/* Layer 1 — deep dark vignette: darkest at edges, lighter in centre */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70" />
-
-            {/* Layer 2 — left-side darkening so RTL badge/text always readable */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/20" />
-
-            {/* Layer 3 — emerald brand tint bleeding from bottom-start */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-transparent" />
-
-            {/* Layer 4 — top edge darkened for nav contrast */}
-            <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/35 to-transparent" />
-          </div>
-
-          {/* Decorative emerald orbs — complement the market warmth */}
-          <div className="pointer-events-none absolute -top-16 -end-16 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-8 -start-8 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-
-          {/* ── Content ── */}
-          <div className="container px-4 py-12 sm:py-20 md:py-28 lg:py-32 relative z-10 w-full">
-            <div className="max-w-2xl mx-auto text-center space-y-5">
-
-              {/* Badge */}
-              <div className="inline-flex items-center gap-1.5 bg-primary/20 text-primary border border-primary/30 px-3.5 py-1.5 rounded-full text-xs font-semibold">
-                <Zap className="h-3.5 w-3.5" />
-                {t("home.hero_badge")}
-              </div>
-
-              {/* Headline — fluid clamp() scale: 26px mobile → 56px desktop */}
-              <h1 className="heading-hero text-white drop-shadow-lg">
-                {t("home.hero_title")}
-              </h1>
-
-              {/* Sub-copy */}
-              <p className="text-base sm:text-lg text-white/75 leading-relaxed max-w-xl mx-auto drop-shadow">
-                {t("home.hero_desc")}
-              </p>
-
-              {/* CTAs */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                <Link href="/products">
-                  <Button
-                    size="lg"
-                    className="h-12 px-8 text-base font-semibold w-full sm:w-auto shadow-lg shadow-primary/30"
-                  >
-                    {t("home.shop_all")}
-                    <ArrowRight className="ms-2 h-5 w-5" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
+        <HeroBanner />
 
         {/* ════════════════════════════════════════════════════════
             TRUST BAR

@@ -2687,5 +2687,23 @@
     "reply_char_limit": "characters remaining",
     "seller_response_label": "Seller Response",
     "reply_edited": "Edited"
-  }
+  },
+  "hero_banner.region_label": "Homepage hero banner",
+  "hero_banner.prev": "Previous slide",
+  "hero_banner.next": "Next slide",
+  "hero_banner.pause": "Pause slideshow",
+  "hero_banner.play": "Play slideshow",
+  "hero_banner.go_to_slide": "Go to slide",
+  "admin.hero_banners.title": "Hero Banners",
+  "admin.hero_banners.create": "New Banner",
+  "admin.hero_banners.edit": "Edit Banner",
+  "admin.hero_banners.delete": "Delete Banner",
+  "admin.hero_banners.analytics": "Analytics",
+  "admin.hero_banners.total_impressions": "Total Impressions",
+  "admin.hero_banners.total_clicks": "Total Clicks",
+  "admin.hero_banners.overall_ctr": "Overall CTR",
+  "admin.hero_banners.status_live": "Live",
+  "admin.hero_banners.status_scheduled": "Scheduled",
+  "admin.hero_banners.status_expired": "Expired",
+  "admin.hero_banners.status_inactive": "Inactive"
 }

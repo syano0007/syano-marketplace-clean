@@ -15,5 +15,6 @@ export * from "./conversations";
 export * from "./verification_audit_log";
 export * from "./couriers";
 export * from "./delivery";
+export * from "./hero_banners";
 
 export { orderStatusHistoryTable } from "./orders";

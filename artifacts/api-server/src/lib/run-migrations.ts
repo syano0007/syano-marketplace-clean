@@ -353,6 +353,37 @@ export async function runMigrations(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS idx_seller_verif_log_seller_id ON seller_verification_log(seller_id);
       CREATE INDEX IF NOT EXISTS idx_seller_verif_log_admin_id  ON seller_verification_log(admin_id);
+
+      -- ── Hero Banner System ─────────────────────────────────────────────────────
+      CREATE TABLE IF NOT EXISTS hero_banners (
+        id                      SERIAL PRIMARY KEY,
+        title_ar                TEXT NOT NULL,
+        title_en                TEXT NOT NULL,
+        subtitle_ar             TEXT,
+        subtitle_en             TEXT,
+        description_ar          TEXT,
+        description_en          TEXT,
+        desktop_image           TEXT NOT NULL,
+        mobile_image            TEXT,
+        cta_label_ar            TEXT,
+        cta_label_en            TEXT,
+        cta_url                 TEXT,
+        cta_label_ar_secondary  TEXT,
+        cta_label_en_secondary  TEXT,
+        cta_url_secondary       TEXT,
+        background_color        TEXT DEFAULT '#0f172a',
+        text_color              TEXT DEFAULT '#ffffff',
+        active                  BOOLEAN NOT NULL DEFAULT TRUE,
+        start_date              TIMESTAMPTZ,
+        end_date                TIMESTAMPTZ,
+        sort_order              INTEGER NOT NULL DEFAULT 0,
+        impressions             INTEGER NOT NULL DEFAULT 0,
+        clicks                  INTEGER NOT NULL DEFAULT 0,
+        created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS hero_banners_active_idx     ON hero_banners(active);
+      CREATE INDEX IF NOT EXISTS hero_banners_sort_order_idx ON hero_banners(sort_order);
     `);
 
     logger.info("Migrations complete: delivery system tables, courier enums, order delivery columns ready");

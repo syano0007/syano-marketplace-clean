@@ -17,6 +17,7 @@ import messagingRouter from "./messaging";
 import couriersRouter from "./couriers";
 import deliveryZonesRouter from "./delivery-zones";
 import recoveryCheckRouter from "./recovery-check";
+import heroBannersRouter from "./hero-banners";
 
 const router: IRouter = Router();
 
@@ -37,6 +38,7 @@ router.use(sellersRouter);
 router.use(messagingRouter);
 router.use(couriersRouter);
 router.use(deliveryZonesRouter);
+router.use(heroBannersRouter);
 router.use(recoveryCheckRouter);
 
 export default router;
