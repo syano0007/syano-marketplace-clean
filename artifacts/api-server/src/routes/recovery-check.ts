@@ -112,7 +112,7 @@ async function checkCorePlatform(): Promise<CheckResult> {
   `);
   const notifCount = Number(notifRaw.rows?.[0]?.count ?? 0);
   data["notificationTypeEnumCount"] = notifCount;
-  if (notifCount !== 31) failures.push(`notification_type enum: ${notifCount}/31`);
+  if (notifCount !== 32) failures.push(`notification_type enum: ${notifCount}/32`);
 
   // order_status enum
   const statusRaw = await db.execute<{ count: number }>(sql`
@@ -544,7 +544,7 @@ async function checkNotifications(adminToken: string): Promise<CheckResult> {
   `);
   const enumCount = Number(notifRaw.rows?.[0]?.count ?? 0);
   data["notificationTypeEnumCount"] = enumCount;
-  if (enumCount !== 31) failures.push(`notification_type enum: ${enumCount}/31`);
+  if (enumCount !== 32) failures.push(`notification_type enum: ${enumCount}/32`);
 
   // all expected enum values present
   const enumValuesRaw = await db.execute<{ enumlabel: string }>(sql`
@@ -562,6 +562,7 @@ async function checkNotifications(adminToken: string): Promise<CheckResult> {
     "order_out_for_delivery", "order_delivery_failed", "order_returned",
     "order_cancelled_by_customer", "order_refunded", "new_user",
     "courier_applied", "courier_approved", "courier_rejected",
+    "seller_review_reply",
   ];
   const missingEnumValues = requiredEnumValues.filter((v) => !enumValues.includes(v));
   data["missingNotificationTypes"] = missingEnumValues;

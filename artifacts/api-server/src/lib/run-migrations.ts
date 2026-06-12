@@ -61,6 +61,8 @@ export async function runMigrations(): Promise<void> {
       "courier_applied",
       "courier_approved",
       "courier_rejected",
+      "new_seller_review",
+      "seller_review_reply",
     ];
     for (const val of newNotifValues) {
       try {

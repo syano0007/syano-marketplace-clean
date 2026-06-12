@@ -711,7 +711,7 @@ router.patch("/sellers/reviews/:reviewId/reply", requireAuth, requireRole("selle
   }
 
   const [existing] = await db
-    .select({ id: sellerReviewsTable.id, sellerId: sellerReviewsTable.sellerId, sellerReply: sellerReviewsTable.sellerReply, sellerReplyAt: sellerReviewsTable.sellerReplyAt })
+    .select({ id: sellerReviewsTable.id, sellerId: sellerReviewsTable.sellerId, customerId: sellerReviewsTable.customerId, sellerReply: sellerReviewsTable.sellerReply, sellerReplyAt: sellerReviewsTable.sellerReplyAt })
     .from(sellerReviewsTable)
     .where(eq(sellerReviewsTable.id, reviewId));
 
@@ -733,6 +733,30 @@ router.patch("/sellers/reviews/:reviewId/reply", requireAuth, requireRole("selle
     )
     .where(eq(sellerReviewsTable.id, reviewId))
     .returning();
+
+  // Notify customer when seller creates a new reply (not on edit or delete)
+  if (!isDelete && !existing.sellerReply) {
+    db.select({ storeName: sellerApplicationsTable.storeName, storeSlug: sellerApplicationsTable.storeSlug })
+      .from(sellerApplicationsTable)
+      .where(eq(sellerApplicationsTable.userId, sellerId))
+      .limit(1)
+      .then(([app]) => {
+        const slug = app?.storeSlug;
+        const storeName = app?.storeName ?? "The seller";
+        createNotification({
+          userId: existing.customerId,
+          type: "seller_review_reply" as any,
+          title: bi("Seller Replied to Your Review", "ردّ البائع على تقييمك"),
+          body: bi(
+            `${storeName} replied to your store review.`,
+            `ردّ ${storeName} على تقييمك للمتجر.`
+          ),
+          link: slug ? `/store/${slug}` : `/orders`,
+          priority: "normal",
+        }).catch(() => {});
+      })
+      .catch(() => {});
+  }
 
   res.json({
     ...updated,
