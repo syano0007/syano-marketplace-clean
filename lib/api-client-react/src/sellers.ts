@@ -79,6 +79,9 @@ export interface SellerReview {
   professionalismRating: number;
   comment: string | null;
   createdAt: string;
+  sellerReply: string | null;
+  sellerReplyAt: string | null;
+  sellerReplyUpdatedAt: string | null;
 }
 
 export interface SellerReviewSummary {
@@ -87,6 +90,12 @@ export interface SellerReviewSummary {
   avgCommunication: number | null;
   avgShipping: number | null;
   avgProfessionalism: number | null;
+  repliedCount: number;
+  responseRate: number;
+}
+
+export interface PatchSellerReviewReplyBody {
+  reply: string | null;
 }
 
 export interface SellerReviewsResponse {
@@ -295,6 +304,32 @@ export function usePostSellerReview(
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body) => postSellerReview(sellerId, body),
+    onSuccess: (...args) => {
+      qc.invalidateQueries({ queryKey: getSellerReviewsQueryKey(sellerId) });
+      options?.onSuccess?.(...args);
+    },
+    ...options,
+  });
+}
+
+/* ── Patch Seller Review Reply ───────────────────────────────── */
+
+export const patchSellerReviewReply = async (
+  reviewId: number,
+  body: PatchSellerReviewReplyBody
+): Promise<SellerReview> =>
+  customFetch<SellerReview>(`/api/sellers/reviews/${reviewId}/reply`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+
+export function usePatchSellerReviewReply(
+  sellerId: number,
+  options?: UseMutationOptions<SellerReview, ErrorType<unknown>, { reviewId: number; reply: string | null }>
+): UseMutationResult<SellerReview, ErrorType<unknown>, { reviewId: number; reply: string | null }> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reviewId, reply }) => patchSellerReviewReply(reviewId, { reply }),
     onSuccess: (...args) => {
       qc.invalidateQueries({ queryKey: getSellerReviewsQueryKey(sellerId) });
       options?.onSuccess?.(...args);

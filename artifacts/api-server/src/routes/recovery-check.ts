@@ -1572,17 +1572,69 @@ async function checkReviewSystem(): Promise<CheckResult> {
   if (fs.existsSync(apiClientSellersPath)) {
     const content = fs.readFileSync(apiClientSellersPath, "utf8");
     const hasStatusHook = content.includes("useGetSellerReviewStatus");
-    data["apiClientReviewStatusHook"] = hasStatusHook;
+    const hasReplyHook  = content.includes("usePatchSellerReviewReply");
+    const hasReplyType  = content.includes("PatchSellerReviewReplyBody");
+    const hasReplyFields = content.includes("sellerReply") && content.includes("sellerReplyAt");
+    const hasRateFields  = content.includes("repliedCount") && content.includes("responseRate");
+    data["apiClientReviewStatusHook"]  = hasStatusHook;
+    data["apiClientReplyHook"]         = hasReplyHook;
+    data["apiClientReplyType"]         = hasReplyType;
+    data["apiClientReplyFields"]       = hasReplyFields;
+    data["apiClientResponseRateFields"] = hasRateFields;
     if (!hasStatusHook) failures.push("api-client-react/sellers.ts: useGetSellerReviewStatus hook missing");
+    if (!hasReplyHook)  failures.push("api-client-react/sellers.ts: usePatchSellerReviewReply hook missing");
+    if (!hasReplyType)  failures.push("api-client-react/sellers.ts: PatchSellerReviewReplyBody type missing");
+    if (!hasReplyFields) failures.push("api-client-react/sellers.ts: SellerReview missing sellerReply/sellerReplyAt fields");
+    if (!hasRateFields)  failures.push("api-client-react/sellers.ts: SellerReviewSummary missing repliedCount/responseRate");
   }
 
-  // #8 i18n has review submission keys
+  // #8 i18n has review submission + reply keys
   const i18nEnPath = path.join(mktBase, "i18n/en.json");
   if (fs.existsSync(i18nEnPath)) {
     const i18n = JSON.parse(fs.readFileSync(i18nEnPath, "utf8"));
     const hasReviewKeys = i18n?.store?.review_submit && i18n?.store?.review_success_title && i18n?.orders?.review_leave;
+    const hasReplyKeys  = i18n?.seller_reviews?.reply_btn && i18n?.seller_reviews?.reply_save_btn
+                        && i18n?.seller_reviews?.seller_response_label && i18n?.seller_reviews?.response_rate
+                        && i18n?.seller_reviews?.replied_count && i18n?.seller_reviews?.reply_char_limit;
     data["i18nReviewKeysPresent"] = !!hasReviewKeys;
+    data["i18nReplyKeysPresent"]  = !!hasReplyKeys;
     if (!hasReviewKeys) failures.push("en.json: review submission i18n keys missing (review_submit, review_success_title, review_leave)");
+    if (!hasReplyKeys)  failures.push("en.json: seller reply i18n keys missing in seller_reviews section");
+  }
+
+  // #9 PATCH reply endpoint exists in sellers.ts
+  if (fs.existsSync(sellersPath)) {
+    const content = fs.readFileSync(sellersPath, "utf8");
+    const hasPatchReply = content.includes("/sellers/reviews/:reviewId/reply");
+    const hasReplyColumns = content.includes("seller_reply") && content.includes("seller_reply_at");
+    const hasRateInSummary = content.includes("repliedCount") && content.includes("responseRate");
+    data["patchReplyEndpoint"]    = hasPatchReply;
+    data["replyColumnsInRoutes"]  = hasReplyColumns;
+    data["responseRateInSummary"] = hasRateInSummary;
+    if (!hasPatchReply)    failures.push("sellers.ts: PATCH /sellers/reviews/:reviewId/reply endpoint missing");
+    if (!hasReplyColumns)  failures.push("sellers.ts: seller_reply/seller_reply_at not referenced in routes");
+    if (!hasRateInSummary) failures.push("sellers.ts: repliedCount/responseRate missing from review summary");
+  }
+
+  // #10 Seller reviews page has reply UI + store page has reply display
+  if (fs.existsSync(sellerReviewsPagePath)) {
+    const content = fs.readFileSync(sellerReviewsPagePath, "utf8");
+    const hasReplyForm    = content.includes("ReplyForm");
+    const hasDeleteReply  = content.includes("delete_reply_btn") || content.includes("reply: null");
+    const hasResponseRate = content.includes("responseRate") || content.includes("response_rate");
+    data["sellerReviewsReplyForm"]    = hasReplyForm;
+    data["sellerReviewsDeleteReply"]  = hasDeleteReply;
+    data["sellerReviewsResponseRate"] = hasResponseRate;
+    if (!hasReplyForm)    failures.push("seller/reviews.tsx: ReplyForm component missing");
+    if (!hasDeleteReply)  failures.push("seller/reviews.tsx: delete reply functionality missing");
+    if (!hasResponseRate) failures.push("seller/reviews.tsx: response rate display missing");
+  }
+
+  if (fs.existsSync(storeSlugPath)) {
+    const content = fs.readFileSync(storeSlugPath, "utf8");
+    const hasSellerReply = content.includes("sellerReply");
+    data["storeSellerReplyDisplay"] = hasSellerReply;
+    if (!hasSellerReply) failures.push("store/[slug].tsx: seller reply not displayed in ReviewCard");
   }
 
   return { ok: failures.length === 0, data, failures, warnings };
@@ -2050,7 +2102,7 @@ router.get(
         "Store Settings V4 + Store Page Consistency": storeSettingsV4.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
         "UI Consistency + Mobile Polish": uiConsistency.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
         "Critical Logic & Trust Audit V1": auditFixes.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ AUDIT ISSUES — see auditFixes section",
-        "Store Review System V1": reviewSystem.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS — see reviewSystem section",
+        "Store Review System V2": reviewSystem.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS — see reviewSystem section",
         next: "⏳ TBD",
       },
 

@@ -2549,7 +2549,9 @@
     "rep_ship": "Shipping",
     "rep_prof": "Professionalism",
     "rep_no_reviews": "No reviews yet — complete more orders to earn reviews.",
-    "rep_new": "New Reviews"
+    "rep_new": "New Reviews",
+    "rep_response_rate": "Response Rate",
+    "rep_replied": "Replied"
   },
   "courier_applications": {
     "nav": "Courier Applications",
@@ -2670,6 +2672,20 @@
     "verified_purchase": "Verified Purchase",
     "overview_title": "Rating Overview",
     "recent_title": "Recent Reviews",
-    "low_title": "Critical Reviews (< 3★)"
+    "low_title": "Critical Reviews (< 3★)",
+    "response_rate": "Response Rate",
+    "replied_count": "Replied",
+    "reply_btn": "Reply",
+    "edit_reply_btn": "Edit Reply",
+    "delete_reply_btn": "Delete Reply",
+    "reply_placeholder": "Write a professional response to this review...",
+    "reply_save_btn": "Save Reply",
+    "reply_cancel_btn": "Cancel",
+    "reply_saving": "Saving...",
+    "reply_success": "Reply saved",
+    "reply_deleted": "Reply removed",
+    "reply_char_limit": "characters remaining",
+    "seller_response_label": "Seller Response",
+    "reply_edited": "Edited"
   }
 }

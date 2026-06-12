@@ -393,7 +393,7 @@ export default function SellerAnalytics() {
   const lang = i18n.language;
   const dir = i18n.dir();
   const { format: formatCurrency } = useCurrency();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [preset, setPreset] = useState<DatePreset>("30d");
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => getPresetRange("30d"));
@@ -795,11 +795,11 @@ export default function SellerAnalytics() {
                 </div>
                 <div className="flex-1 w-full space-y-3">
                   {[
-                    { label: t("seller_analytics.rep_comm"), score: reviewsSummary.summary?.avgCommunication },
-                    { label: t("seller_analytics.rep_ship"), score: reviewsSummary.summary?.avgShipping },
-                    { label: t("seller_analytics.rep_prof"), score: reviewsSummary.summary?.avgProfessionalism },
-                  ].map(({ label, score }) => {
-                    const pct = score != null ? Math.round((score / 5) * 100) : 0;
+                    { label: t("seller_analytics.rep_comm"), score: reviewsSummary.summary?.avgCommunication, max: 5 },
+                    { label: t("seller_analytics.rep_ship"), score: reviewsSummary.summary?.avgShipping, max: 5 },
+                    { label: t("seller_analytics.rep_prof"), score: reviewsSummary.summary?.avgProfessionalism, max: 5 },
+                  ].map(({ label, score, max }) => {
+                    const pct = score != null ? Math.round((score / max) * 100) : 0;
                     return (
                       <div key={label} className="flex items-center gap-3">
                         <span className="text-xs text-muted-foreground w-24 shrink-0">{label}</span>
@@ -810,6 +810,23 @@ export default function SellerAnalytics() {
                       </div>
                     );
                   })}
+                  {/* Response rate strip */}
+                  {(reviewsSummary.summary?.total ?? 0) > 0 && (
+                    <div className="pt-2 border-t flex items-center gap-4 text-xs text-muted-foreground">
+                      <span>
+                        {t("seller_analytics.rep_response_rate")}:{" "}
+                        <strong className="text-foreground tabular-nums">
+                          {reviewsSummary.summary?.responseRate ?? 0}%
+                        </strong>
+                      </span>
+                      <span>
+                        {t("seller_analytics.rep_replied")}:{" "}
+                        <strong className="text-foreground tabular-nums">
+                          {reviewsSummary.summary?.repliedCount ?? 0}/{reviewsSummary.summary?.total}
+                        </strong>
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

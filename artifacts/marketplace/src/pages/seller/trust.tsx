@@ -4,9 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Layout } from "@/components/Layout";
 import { SellerNav } from "@/components/SellerNav";
 import { SellerTrustBadge, TrustScoreBar, type VerificationLevel } from "@/components/SellerTrustBadge";
-import { Shield, ShieldCheck, Award, CheckCircle, XCircle, ChevronRight, TrendingDown } from "lucide-react";
+import { Shield, ShieldCheck, Award, CheckCircle, XCircle, ChevronRight, TrendingDown, MessageCircle } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { useGetSellerReviews } from "@workspace/api-client-react";
 
 function ScoreRow({ label, score, max, tip, isNegative }: { label: string; score: number; max: number; tip?: string; isNegative?: boolean }) {
   const display = isNegative ? Math.abs(score) : score;
@@ -48,6 +49,10 @@ export default function SellerTrustPage() {
       return res.json();
     },
     enabled: !!sellerId && !!token,
+  });
+
+  const { data: reviewsData } = useGetSellerReviews(sellerId ?? 0, {
+    query: { enabled: !!sellerId },
   });
 
   const level = (trustData?.verificationLevel ?? "none") as VerificationLevel;
@@ -220,6 +225,47 @@ export default function SellerTrustPage() {
                 ))}
               </div>
             </div>
+
+            {/* Review transparency metrics — NOT a trust score factor */}
+            {reviewsData && reviewsData.summary.total > 0 && (
+              <div className="p-5 rounded-2xl border border-border bg-card">
+                <div className="flex items-center gap-2 mb-3">
+                  <MessageCircle className="h-4 w-4 text-primary" />
+                  <h2 className="text-sm font-bold text-foreground">
+                    {t("trust_panel.review_transparency_title", "Review Transparency")}
+                  </h2>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  {t("trust_panel.review_transparency_desc", "These metrics are displayed publicly on your store. Replies do not affect your trust score.")}
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-xl px-3 py-2.5 text-center">
+                    <p className="text-xl font-black text-amber-700 dark:text-amber-400 tabular-nums">
+                      {reviewsData.summary.total}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {t("trust_panel.total_reviews", "Reviews")}
+                    </p>
+                  </div>
+                  <div className="bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/30 rounded-xl px-3 py-2.5 text-center">
+                    <p className="text-xl font-black text-violet-700 dark:text-violet-400 tabular-nums">
+                      {reviewsData.summary.repliedCount ?? 0}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {t("seller_reviews.replied_count", "Replied")}
+                    </p>
+                  </div>
+                  <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-xl px-3 py-2.5 text-center">
+                    <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums">
+                      {reviewsData.summary.responseRate ?? 0}%
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {t("seller_reviews.response_rate", "Response Rate")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* How to get verified */}
             {!isVerified && (

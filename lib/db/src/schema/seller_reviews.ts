@@ -14,6 +14,9 @@ export const sellerReviewsTable = pgTable(
     professionalismRating: integer("professionalism_rating").notNull(),
     comment: text("comment"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
+    sellerReply: text("seller_reply"),
+    sellerReplyAt: timestamp("seller_reply_at"),
+    sellerReplyUpdatedAt: timestamp("seller_reply_updated_at"),
   },
   (t) => [
     unique("seller_reviews_unique").on(t.sellerId, t.customerId),

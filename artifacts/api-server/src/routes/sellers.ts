@@ -379,6 +379,9 @@ router.get("/sellers/:id/reviews", async (req, res): Promise<void> => {
         professionalismRating: sellerReviewsTable.professionalismRating,
         comment: sellerReviewsTable.comment,
         createdAt: sellerReviewsTable.createdAt,
+        sellerReply: sellerReviewsTable.sellerReply,
+        sellerReplyAt: sellerReviewsTable.sellerReplyAt,
+        sellerReplyUpdatedAt: sellerReviewsTable.sellerReplyUpdatedAt,
       })
       .from(sellerReviewsTable)
       .innerJoin(usersTable, eq(usersTable.id, sellerReviewsTable.customerId))
@@ -393,13 +396,19 @@ router.get("/sellers/:id/reviews", async (req, res): Promise<void> => {
         avgShipping: avg(sellerReviewsTable.shippingRating),
         avgProfessionalism: avg(sellerReviewsTable.professionalismRating),
         total: count(),
+        repliedCount: sql<number>`cast(count(${sellerReviewsTable.sellerReply}) as int)`,
+        oldestReplyMs: sql<number>`extract(epoch from min(${sellerReviewsTable.sellerReplyAt} - ${sellerReviewsTable.createdAt})) * 1000`,
       })
       .from(sellerReviewsTable)
       .where(eq(sellerReviewsTable.sellerId, sellerId)),
   ]);
 
+  const totalCount = Number(summary?.total ?? 0);
+  const repliedCount = Number(summary?.repliedCount ?? 0);
+  const responseRate = totalCount > 0 ? Math.round((repliedCount / totalCount) * 100) : 0;
+
   const overallScore =
-    summary && Number(summary.total) > 0
+    summary && totalCount > 0
       ? parseFloat(
           (
             parseFloat(summary.avgCommunication ?? "0") * 0.4 +
@@ -410,13 +419,20 @@ router.get("/sellers/:id/reviews", async (req, res): Promise<void> => {
       : null;
 
   res.json({
-    reviews: reviews.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+    reviews: reviews.map((r) => ({
+      ...r,
+      createdAt: r.createdAt.toISOString(),
+      sellerReplyAt: r.sellerReplyAt ? r.sellerReplyAt.toISOString() : null,
+      sellerReplyUpdatedAt: r.sellerReplyUpdatedAt ? r.sellerReplyUpdatedAt.toISOString() : null,
+    })),
     summary: {
-      total: Number(summary?.total ?? 0),
+      total: totalCount,
       overallScore,
       avgCommunication: summary?.avgCommunication ? parseFloat(summary.avgCommunication) : null,
       avgShipping: summary?.avgShipping ? parseFloat(summary.avgShipping) : null,
       avgProfessionalism: summary?.avgProfessionalism ? parseFloat(summary.avgProfessionalism) : null,
+      repliedCount,
+      responseRate,
     },
   });
 });
@@ -678,6 +694,53 @@ router.get("/sellers/store/:slug/metrics", async (req, res): Promise<void> => {
   });
 });
 
+/* ── PATCH /sellers/reviews/:reviewId/reply ─────────────────── */
+router.patch("/sellers/reviews/:reviewId/reply", requireAuth, requireRole("seller"), requireActiveAccount, async (req, res): Promise<void> => {
+  const sellerId = req.user!.userId;
+  const reviewId = parseInt(String(req.params.reviewId), 10);
+  if (isNaN(reviewId)) { res.status(400).json({ error: "Invalid review ID" }); return; }
+
+  const { reply } = req.body;
+
+  if (reply !== undefined && reply !== null && reply !== "") {
+    if (typeof reply !== "string") { res.status(400).json({ error: "Reply must be a string" }); return; }
+    const trimmed = reply.trim();
+    if (trimmed.length > 1000) { res.status(400).json({ error: "Reply must be 1000 characters or fewer" }); return; }
+    if (trimmed.length === 0) { res.status(400).json({ error: "Reply cannot be empty" }); return; }
+  }
+
+  const [existing] = await db
+    .select({ id: sellerReviewsTable.id, sellerId: sellerReviewsTable.sellerId, sellerReply: sellerReviewsTable.sellerReply })
+    .from(sellerReviewsTable)
+    .where(eq(sellerReviewsTable.id, reviewId));
+
+  if (!existing) { res.status(404).json({ error: "Review not found" }); return; }
+  if (existing.sellerId !== sellerId) { res.status(403).json({ error: "You can only reply to your own reviews" }); return; }
+
+  const isDelete = reply === null || reply === "" || reply === undefined;
+  const now = new Date();
+
+  const [updated] = await db
+    .update(sellerReviewsTable)
+    .set(isDelete
+      ? { sellerReply: null, sellerReplyAt: null, sellerReplyUpdatedAt: null }
+      : {
+          sellerReply: reply.trim(),
+          sellerReplyAt: existing.sellerReply ? existing.sellerReplyAt : now,
+          sellerReplyUpdatedAt: existing.sellerReply ? now : null,
+        }
+    )
+    .where(eq(sellerReviewsTable.id, reviewId))
+    .returning();
+
+  res.json({
+    ...updated,
+    createdAt: updated.createdAt.toISOString(),
+    sellerReplyAt: updated.sellerReplyAt ? updated.sellerReplyAt.toISOString() : null,
+    sellerReplyUpdatedAt: updated.sellerReplyUpdatedAt ? updated.sellerReplyUpdatedAt.toISOString() : null,
+  });
+});
+
 /* ── GET /sellers/store/:slug/reviews ───────────────────────── */
 router.get("/sellers/store/:slug/reviews", async (req, res): Promise<void> => {
   const seller = await resolveSlug(String(req.params.slug));
@@ -697,6 +760,9 @@ router.get("/sellers/store/:slug/reviews", async (req, res): Promise<void> => {
         professionalismRating: sellerReviewsTable.professionalismRating,
         comment: sellerReviewsTable.comment,
         createdAt: sellerReviewsTable.createdAt,
+        sellerReply: sellerReviewsTable.sellerReply,
+        sellerReplyAt: sellerReviewsTable.sellerReplyAt,
+        sellerReplyUpdatedAt: sellerReviewsTable.sellerReplyUpdatedAt,
       })
       .from(sellerReviewsTable)
       .innerJoin(usersTable, eq(usersTable.id, sellerReviewsTable.customerId))
@@ -711,13 +777,18 @@ router.get("/sellers/store/:slug/reviews", async (req, res): Promise<void> => {
         avgShipping: avg(sellerReviewsTable.shippingRating),
         avgProfessionalism: avg(sellerReviewsTable.professionalismRating),
         total: count(),
+        repliedCount: sql<number>`cast(count(${sellerReviewsTable.sellerReply}) as int)`,
       })
       .from(sellerReviewsTable)
       .where(eq(sellerReviewsTable.sellerId, seller.sellerId)),
   ]);
 
+  const totalCount = Number(summary?.total ?? 0);
+  const repliedCount = Number(summary?.repliedCount ?? 0);
+  const responseRate = totalCount > 0 ? Math.round((repliedCount / totalCount) * 100) : 0;
+
   const overallScore =
-    summary && Number(summary.total) > 0
+    summary && totalCount > 0
       ? parseFloat(
           (
             parseFloat(summary.avgCommunication ?? "0") * 0.4 +
@@ -728,13 +799,20 @@ router.get("/sellers/store/:slug/reviews", async (req, res): Promise<void> => {
       : null;
 
   res.json({
-    reviews: reviews.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+    reviews: reviews.map((r) => ({
+      ...r,
+      createdAt: r.createdAt.toISOString(),
+      sellerReplyAt: r.sellerReplyAt ? r.sellerReplyAt.toISOString() : null,
+      sellerReplyUpdatedAt: r.sellerReplyUpdatedAt ? r.sellerReplyUpdatedAt.toISOString() : null,
+    })),
     summary: {
-      total: Number(summary?.total ?? 0),
+      total: totalCount,
       overallScore,
       avgCommunication: summary?.avgCommunication ? parseFloat(summary.avgCommunication) : null,
       avgShipping: summary?.avgShipping ? parseFloat(summary.avgShipping) : null,
       avgProfessionalism: summary?.avgProfessionalism ? parseFloat(summary.avgProfessionalism) : null,
+      repliedCount,
+      responseRate,
     },
   });
 });

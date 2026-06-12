@@ -2549,7 +2549,9 @@
     "rep_ship": "الشحن",
     "rep_prof": "الاحترافية",
     "rep_no_reviews": "لا توجد تقييمات بعد — أكمل المزيد من الطلبات للحصول على تقييمات.",
-    "rep_new": "تقييمات جديدة"
+    "rep_new": "تقييمات جديدة",
+    "rep_response_rate": "معدل الرد",
+    "rep_replied": "تم الرد عليها"
   },
   "courier_applications": {
     "nav": "طلبات المندوبين",
@@ -2670,6 +2672,20 @@
     "verified_purchase": "شراء موثّق",
     "overview_title": "نظرة عامة على التقييمات",
     "recent_title": "أحدث التقييمات",
-    "low_title": "التقييمات الحرجة (< 3★)"
+    "low_title": "التقييمات الحرجة (< 3★)",
+    "response_rate": "معدل الرد",
+    "replied_count": "تم الرد عليها",
+    "reply_btn": "ردّ",
+    "edit_reply_btn": "تعديل الرد",
+    "delete_reply_btn": "حذف الرد",
+    "reply_placeholder": "اكتب ردًا احترافيًا على هذا التقييم...",
+    "reply_save_btn": "حفظ الرد",
+    "reply_cancel_btn": "إلغاء",
+    "reply_saving": "جارٍ الحفظ...",
+    "reply_success": "تم حفظ الرد",
+    "reply_deleted": "تم حذف الرد",
+    "reply_char_limit": "حرف متبقٍ",
+    "seller_response_label": "رد البائع",
+    "reply_edited": "تم التعديل"
   }
 }

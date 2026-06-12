@@ -460,11 +460,13 @@ function FeaturedTab({ sellerId }: { sellerId: number }) {
 }
 
 /* ── Reviews Tab ─────────────────────────────────────────────── */
-function ReviewCard({ review }: { review: any }) {
+function ReviewCard({ review, storeName }: { review: any; storeName?: string }) {
   const { t } = useTranslation();
   const avg = (review.communicationRating + review.shippingRating + review.professionalismRating) / 3;
+  const hasReply = !!review.sellerReply;
   return (
     <div className="border rounded-2xl p-4 bg-card space-y-3">
+      {/* Customer row */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">
@@ -488,18 +490,50 @@ function ReviewCard({ review }: { review: any }) {
           </span>
         </div>
       </div>
+
+      {/* Customer comment */}
       {review.comment && <p className="text-sm text-foreground/80 leading-relaxed">{review.comment}</p>}
+
+      {/* Sub-ratings */}
       <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground border-t pt-2.5">
-        <span>
-          {t("store.communication")}: <strong>{review.communicationRating}/5</strong>
-        </span>
-        <span>
-          {t("store.shipping")}: <strong>{review.shippingRating}/5</strong>
-        </span>
-        <span>
-          {t("store.professionalism")}: <strong>{review.professionalismRating}/5</strong>
-        </span>
+        <span>{t("store.communication")}: <strong>{review.communicationRating}/5</strong></span>
+        <span>{t("store.shipping")}: <strong>{review.shippingRating}/5</strong></span>
+        <span>{t("store.professionalism")}: <strong>{review.professionalismRating}/5</strong></span>
       </div>
+
+      {/* Seller reply — only shown when present */}
+      {hasReply && (
+        <div className="bg-primary/5 border border-primary/15 rounded-xl p-3.5 space-y-2">
+          {/* Reply header */}
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+              <span className="text-[10px] font-bold text-primary">
+                {storeName ? storeName.charAt(0).toUpperCase() : "S"}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-primary leading-none">
+                {storeName ?? t("store.seller_response_label", "Seller Response")}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {t("store.seller_response_label", "Seller Response")}
+                {review.sellerReplyAt && (
+                  <span className="ms-1">
+                    · {new Date(review.sellerReplyAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                  </span>
+                )}
+                {review.sellerReplyUpdatedAt && (
+                  <span className="ms-1 italic">· {t("seller_reviews.reply_edited", "Edited")}</span>
+                )}
+              </p>
+            </div>
+          </div>
+          {/* Reply body */}
+          <p className="text-sm text-foreground/80 leading-relaxed ps-8">
+            {review.sellerReply}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -588,7 +622,7 @@ function ReviewsTab({
       {hasReviews && (
         <div className="space-y-3">
           {reviews.map((r: any) => (
-            <ReviewCard key={r.id} review={r} />
+            <ReviewCard key={r.id} review={r} storeName={sellerName} />
           ))}
         </div>
       )}
