@@ -1493,6 +1493,115 @@ async function checkUiConsistency(): Promise<CheckResult> {
   return { ok: failures.length === 0, data, failures, warnings };
 }
 
+// ─── SECTION 17 — Audit Fixes Verification ────────────────────────────────────
+
+async function checkAuditFixes(): Promise<CheckResult> {
+  const failures: string[] = [];
+  const warnings: string[] = [];
+  const data: Record<string, unknown> = {};
+
+  // #4 Trust delivery count: trustScore.ts must use DISTINCT order IDs
+  const trustScorePath = path.resolve(process.cwd(), "../../artifacts/api-server/src/lib/trustScore.ts");
+  if (fs.existsSync(trustScorePath)) {
+    const content = fs.readFileSync(trustScorePath, "utf8");
+    const hasDistinctTotal     = content.includes("count(distinct ${ordersTable.id})");
+    const hasDistinctDelivered = content.includes("count(distinct case when ${ordersTable.status} = 'delivered'");
+    const hasSellerReviews     = content.includes("sellerReviewsTable");
+    const hasProductReviews    = content.includes("reviewsTable") && !content.includes("sellerReviewsTable");
+    data["trustDistinctOrderCount"]  = hasDistinctTotal && hasDistinctDelivered;
+    data["trustUsesSellerReviews"]   = hasSellerReviews;
+    data["trustStillUsesProductRevs"]= hasProductReviews;
+    if (!hasDistinctTotal || !hasDistinctDelivered)
+      failures.push("trustScore.ts: delivery/order counts not using DISTINCT — 1 order with N items would count as N deliveries");
+    if (!hasSellerReviews)
+      warnings.push("trustScore.ts: seller reviews not used for store rating factor");
+  } else {
+    warnings.push("trustScore.ts not found at expected path");
+  }
+
+  // #5 Store review separation: sellers.ts must NOT use reviewsTable for averageRating
+  const sellersPath = path.resolve(process.cwd(), "../../artifacts/api-server/src/routes/sellers.ts");
+  if (fs.existsSync(sellersPath)) {
+    const content = fs.readFileSync(sellersPath, "utf8");
+    const getStoreStatsBlock = content.slice(0, content.indexOf("router.get"));
+    const storeStatsUsesProductReviews = getStoreStatsBlock.includes("reviewsTable.rating");
+    const storeStatsUsesSellerReviews  = getStoreStatsBlock.includes("sellerReviewsTable");
+    const storePreviewUsesProductReviews = content.includes("ratingRow?.avgRating");
+    data["storeStatsUsesProductReviews"]  = storeStatsUsesProductReviews;
+    data["storeStatsUsesSellerReviews"]   = storeStatsUsesSellerReviews;
+    data["storePreviewCorrect"]           = !storePreviewUsesProductReviews;
+    if (storeStatsUsesProductReviews)
+      failures.push("sellers.ts getStoreStats: still using product reviewsTable for store averageRating — must use sellerReviewsTable");
+    if (!storeStatsUsesSellerReviews)
+      failures.push("sellers.ts getStoreStats: sellerReviewsTable not used for store rating");
+    if (storePreviewUsesProductReviews)
+      failures.push("sellers.ts /store-preview: still using ratingRow (product reviews) for averageRating");
+  } else {
+    warnings.push("sellers.ts not found at expected path");
+  }
+
+  // #2 Recently viewed images: useRecentlyViewed.ts must include imageUrl in snapshot
+  const recentlyViewedPath = path.resolve(
+    process.cwd(),
+    "../../artifacts/marketplace/src/hooks/useRecentlyViewed.ts",
+  );
+  if (fs.existsSync(recentlyViewedPath)) {
+    const content = fs.readFileSync(recentlyViewedPath, "utf8");
+    const hasImageUrlInType     = content.includes('"imageUrl"') || content.includes("\"imageUrl\"");
+    const hasImageUrlInSnapshot = content.includes("imageUrl: product.imageUrl");
+    data["recentlyViewedHasImageUrl"]         = hasImageUrlInType;
+    data["recentlyViewedSnapshotHasImageUrl"] = hasImageUrlInSnapshot;
+    if (!hasImageUrlInType)
+      failures.push("useRecentlyViewed.ts: imageUrl missing from RecentProduct Pick type — recently viewed cards show no image");
+    if (!hasImageUrlInSnapshot)
+      failures.push("useRecentlyViewed.ts: imageUrl not stored in snapshot — recently viewed cards will always show placeholder");
+  } else {
+    warnings.push("useRecentlyViewed.ts not found at expected path");
+  }
+
+  // #1 Courier earnings invalidation: dashboard.tsx must invalidate courier-earnings after deliver
+  const courierDashPath = path.resolve(
+    process.cwd(),
+    "../../artifacts/marketplace/src/pages/courier/dashboard.tsx",
+  );
+  if (fs.existsSync(courierDashPath)) {
+    const content = fs.readFileSync(courierDashPath, "utf8");
+    const hasQueryClient       = content.includes("useQueryClient");
+    const hasEarningsInvalidate = content.includes("courier-earnings");
+    data["courierDashUsesQueryClient"]   = hasQueryClient;
+    data["courierEarningsInvalidated"]   = hasEarningsInvalidate;
+    if (!hasQueryClient)
+      warnings.push("courier/dashboard.tsx: useQueryClient not imported — earnings invalidation impossible");
+    if (!hasEarningsInvalidate)
+      failures.push("courier/dashboard.tsx: courier-earnings query not invalidated after deliver action — stale earnings displayed");
+  } else {
+    warnings.push("courier/dashboard.tsx not found at expected path");
+  }
+
+  // #3 Assignment form: admin/delivery.tsx must use Dialog for assign panel
+  const deliveryPagePath = path.resolve(
+    process.cwd(),
+    "../../artifacts/marketplace/src/pages/admin/delivery.tsx",
+  );
+  if (fs.existsSync(deliveryPagePath)) {
+    const content = fs.readFileSync(deliveryPagePath, "utf8");
+    const hasDialog        = content.includes("Dialog") && content.includes("DialogContent");
+    const hasSearch        = content.includes("search_courier") || content.includes("search.toLowerCase()");
+    const hasConfirmStep   = content.includes("confirm") && content.includes("setStep");
+    data["assignPanelUsesDialog"]  = hasDialog;
+    data["assignPanelHasSearch"]   = hasSearch;
+    data["assignPanelHasConfirm"]  = hasConfirmStep;
+    if (!hasDialog)
+      warnings.push("admin/delivery.tsx: assign courier panel not using Dialog component");
+    if (!hasSearch)
+      warnings.push("admin/delivery.tsx: assign courier panel missing search functionality");
+  } else {
+    warnings.push("admin/delivery.tsx not found at expected path");
+  }
+
+  return { ok: failures.length === 0, data, failures, warnings };
+}
+
 // ─── Confidence scoring ───────────────────────────────────────────────────────
 
 interface SectionWeight {
@@ -1520,6 +1629,7 @@ const WEIGHTS = {
   responsive: 0, // warnings only, no deduction
   storeSettingsV4: 0, // warnings only — V4 UI upgrade
   uiConsistency: 3,   // brand color + verification + dropdown portal
+  auditFixes: 0,      // audit fix verification — warnings + failures only, no score deduction
 } as const;
 
 function computeScore(results: Record<string, CheckResult>): {
@@ -1618,6 +1728,7 @@ router.get(
       storeSettings,
       storeSettingsV4,
       uiConsistency,
+      auditFixes,
     ] = await Promise.all([
       checkCorePlatform(),
       checkBootstrapAccounts(),
@@ -1637,6 +1748,7 @@ router.get(
       checkStoreSettings(sellerToken, sellerId, adminToken),
       checkStoreSettingsV4(),
       checkUiConsistency(),
+      checkAuditFixes(),
     ]);
 
     const checkResults: Record<string, CheckResult> = {
@@ -1658,6 +1770,7 @@ router.get(
       storeSettings,
       storeSettingsV4,
       uiConsistency,
+      auditFixes,
     };
 
     const { score, modules, allFailures, allWarnings, deductions, recommendations } =
@@ -1801,6 +1914,13 @@ router.get(
           warnings: uiConsistency.warnings,
           weight: WEIGHTS.uiConsistency,
         },
+        auditFixes: {
+          ok: auditFixes.ok,
+          data: auditFixes.data,
+          failures: auditFixes.failures,
+          warnings: auditFixes.warnings,
+          weight: WEIGHTS.auditFixes,
+        },
       },
 
       failures: allFailures,
@@ -1823,6 +1943,7 @@ router.get(
         "Store Settings V3 + Trust Consistency Audit": (storeSettings.ok && storePages.ok) ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
         "Store Settings V4 + Store Page Consistency": storeSettingsV4.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
         "UI Consistency + Mobile Polish": uiConsistency.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
+        "Critical Logic & Trust Audit V1": auditFixes.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ AUDIT ISSUES — see auditFixes section",
         next: "⏳ TBD",
       },
 

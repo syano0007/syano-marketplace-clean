@@ -6,6 +6,7 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   Truck, MapPin, User, Package, CheckCircle2, AlertCircle,
@@ -237,25 +238,40 @@ function CourierPickerCard({ courier, selected, onClick }: {
 }
 
 // ─── Assign courier dialog ─────────────────────────────────────────────────────
-function AssignCourierPanel({ orderId, couriers, onAssign, onCancel, token }: {
-  orderId: number;
+function AssignCourierPanel({ order, couriers, onAssign, onCancel, token }: {
+  order: ReadyOrder;
   couriers: CourierRow[];
   onAssign: () => void;
   onCancel: () => void;
   token: string;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [courierId, setCourierId] = useState<number | null>(null);
   const [assigning, setAssigning] = useState(false);
+  const [search, setSearch] = useState("");
+  const [step, setStep] = useState<"select" | "confirm">("select");
+  const lang = i18n.language;
 
-  const approved = couriers.filter((c) => c.status === "approved").sort((a, b) => a.activeAssignments - b.activeAssignments);
+  const approved = couriers
+    .filter((c) => c.status === "approved")
+    .sort((a, b) => a.activeAssignments - b.activeAssignments);
+
+  const filtered = search.trim()
+    ? approved.filter((c) =>
+        c.userName.toLowerCase().includes(search.toLowerCase()) ||
+        (c.district ?? "").toLowerCase().includes(search.toLowerCase())
+      )
+    : approved;
+
+  const selected = approved.find((c) => c.id === courierId);
+  const zoneName = lang === "ar" ? order.zoneNameAr : order.zoneNameEn;
 
   const handleAssign = async () => {
     if (!courierId) return;
     setAssigning(true);
     try {
-      const res = await fetch(`/api/admin/orders/${orderId}/assign-courier`, {
+      const res = await fetch(`/api/admin/orders/${order.id}/assign-courier`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ courierId }),
@@ -265,35 +281,133 @@ function AssignCourierPanel({ orderId, couriers, onAssign, onCancel, token }: {
       onAssign();
     } catch (err: any) {
       toast({ title: err.message ?? t("delivery.assign_error"), variant: "destructive" });
+      setStep("select");
     } finally {
       setAssigning(false);
     }
   };
 
   return (
-    <div className="mt-3 p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("delivery.select_courier")}</p>
-      {approved.length === 0 ? (
-        <p className="text-xs text-muted-foreground">{t("delivery.no_couriers")}</p>
-      ) : (
-        <div className="space-y-2 max-h-60 overflow-y-auto">
-          {approved.map((c) => (
-            <CourierPickerCard
-              key={c.id}
-              courier={c}
-              selected={courierId === c.id}
-              onClick={() => setCourierId(c.id)}
-            />
-          ))}
+    <Dialog open onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="max-w-lg p-0 overflow-hidden gap-0">
+        <DialogHeader className="px-5 pt-5 pb-3 border-b">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Truck className="h-4 w-4 text-primary shrink-0" />
+            {t("delivery.assign_courier_title")}
+            <span className="text-muted-foreground font-normal text-sm ms-1">#{order.id}</span>
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Order summary */}
+        <div className="px-5 py-3 bg-muted/30 border-b">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1 min-w-0">
+              <p className="text-sm font-semibold truncate">{order.customerName}</p>
+              <p className="text-xs text-muted-foreground truncate">{order.shippingAddress}</p>
+              {zoneName && (
+                <span className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-full px-2 py-0.5">
+                  <MapPin className="h-2.5 w-2.5 shrink-0" />{zoneName}
+                </span>
+              )}
+            </div>
+            <div className="text-end shrink-0">
+              <p className="text-sm font-bold" translate="no">${order.total.toFixed(2)}</p>
+              {order.deliveryFee != null && (
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium" translate="no">
+                  +${order.deliveryFee.toFixed(2)} {t("delivery.col_fee")}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
-      )}
-      <div className="flex gap-2">
-        <Button size="sm" onClick={handleAssign} disabled={!courierId || assigning} className="gap-1.5">
-          {assigning ? "…" : <><Truck className="h-3.5 w-3.5" />{t("delivery.assign")}</>}
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onCancel}><X className="h-3.5 w-3.5" /></Button>
-      </div>
-    </div>
+
+        {step === "select" ? (
+          <>
+            {/* Search */}
+            <div className="px-5 pt-4 pb-3">
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t("delivery.search_courier")}
+                  className="ps-8 h-9 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Courier list */}
+            <div className="px-5 pb-3 max-h-64 overflow-y-auto space-y-2">
+              {filtered.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">
+                  {t("delivery.no_couriers")}
+                </p>
+              ) : (
+                filtered.map((c) => (
+                  <CourierPickerCard
+                    key={c.id}
+                    courier={c}
+                    selected={courierId === c.id}
+                    onClick={() => setCourierId(c.id)}
+                  />
+                ))
+              )}
+            </div>
+
+            <div className="px-5 py-3 border-t flex justify-between gap-2">
+              <Button variant="ghost" size="sm" onClick={onCancel}>{t("delivery.cancel")}</Button>
+              <Button size="sm" disabled={!courierId} onClick={() => setStep("confirm")} className="gap-1.5">
+                <ChevronRight className="h-3.5 w-3.5" />
+                {t("delivery.next")}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Confirmation step */}
+            <div className="px-5 py-5 space-y-4">
+              <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  {t("delivery.assign_to")}
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <User className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm">{selected?.userName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {selected ? t(`delivery.vehicle_${selected.vehicleType}`) : ""}
+                      {selected?.district ? ` · ${selected.district}` : ""}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] text-muted-foreground">
+                        {selected?.completedDeliveries} {t("delivery.col_deliveries")}
+                      </span>
+                      {selected?.rating && (
+                        <span className="inline-flex items-center gap-0.5 text-[11px] text-amber-600 dark:text-amber-400">
+                          <Star className="h-2.5 w-2.5 fill-current" />
+                          {selected.rating.toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">{t("delivery.confirm_assign_desc")}</p>
+            </div>
+
+            <div className="px-5 pb-5 flex justify-between gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setStep("select")}>{t("delivery.back")}</Button>
+              <Button size="sm" onClick={handleAssign} disabled={assigning} className="gap-1.5">
+                <Truck className="h-3.5 w-3.5" />
+                {assigning ? "…" : t("delivery.confirm_assign")}
+              </Button>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -625,21 +739,19 @@ export default function AdminDelivery() {
 
                 {/* Assign panel */}
                 {assigningOrderId === order.id && (
-                  <div className="px-5 pb-5">
-                    <AssignCourierPanel
-                      orderId={order.id}
-                      couriers={couriers}
-                      token={token!}
-                      onAssign={() => {
-                        setAssigningOrderId(null);
-                        refetchReady();
-                        refetchActive();
-                        queryClient.invalidateQueries({ queryKey: ["admin-couriers"] });
-                        queryClient.invalidateQueries({ queryKey: ["admin-delivery-stats"] });
-                      }}
-                      onCancel={() => setAssigningOrderId(null)}
-                    />
-                  </div>
+                  <AssignCourierPanel
+                    order={order}
+                    couriers={couriers}
+                    token={token!}
+                    onAssign={() => {
+                      setAssigningOrderId(null);
+                      refetchReady();
+                      refetchActive();
+                      queryClient.invalidateQueries({ queryKey: ["admin-couriers"] });
+                      queryClient.invalidateQueries({ queryKey: ["admin-delivery-stats"] });
+                    }}
+                    onCancel={() => setAssigningOrderId(null)}
+                  />
                 )}
               </div>
             ))}

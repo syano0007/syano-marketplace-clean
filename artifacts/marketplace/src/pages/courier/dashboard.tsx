@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { Layout } from "@/components/Layout";
@@ -434,6 +434,7 @@ export default function CourierDashboard() {
   const { t, i18n } = useTranslation();
   const { token } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [tab, setTab] = useState<"deliveries" | "history" | "earnings">("deliveries");
   const [toggling, setToggling] = useState(false);
@@ -644,7 +645,7 @@ export default function CourierDashboard() {
                 key={a.id}
                 assignment={a}
                 token={token!}
-                onAction={() => { refetchAssignments(); refetchProfile(); }}
+                onAction={() => { refetchAssignments(); refetchProfile(); queryClient.invalidateQueries({ queryKey: ["courier-earnings"] }); }}
               />
             ))}
           </div>

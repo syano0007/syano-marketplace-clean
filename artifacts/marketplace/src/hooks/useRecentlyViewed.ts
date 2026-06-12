@@ -7,7 +7,7 @@ const MAX_ITEMS = 10;
 
 type RecentProduct = Pick<
   Product,
-  "id" | "name" | "price" | "discountPercent" | "imageUrls" | "category" | "storeName" | "stock" | "isBestDeal"
+  "id" | "name" | "price" | "discountPercent" | "imageUrl" | "imageUrls" | "category" | "storeName" | "stock" | "isBestDeal"
 > & { hasVariants?: boolean };
 
 function readFromStorage(): RecentProduct[] {
@@ -50,6 +50,7 @@ export function useRecentlyViewed() {
       name: product.name,
       price: product.price,
       discountPercent: product.discountPercent,
+      imageUrl: product.imageUrl || product.imageUrls?.[0] || null,
       imageUrls: product.imageUrls,
       category: product.category,
       storeName: product.storeName,

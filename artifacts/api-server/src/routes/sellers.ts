@@ -18,7 +18,7 @@ const router: IRouter = Router();
 
 /* ── Shared: compute store stats ────────────────────────────── */
 async function getStoreStats(sellerId: number) {
-  const [productStats, ratingStats, orderStats, followerStat, sellerReviewStat] =
+  const [productStats, orderStats, followerStat, sellerReviewStat] =
     await Promise.all([
       db
         .select({ count: count() })
@@ -26,15 +26,9 @@ async function getStoreStats(sellerId: number) {
         .where(eq(productsTable.sellerId, sellerId)),
 
       db
-        .select({ avgRating: avg(reviewsTable.rating), reviewCount: count(reviewsTable.id) })
-        .from(reviewsTable)
-        .innerJoin(productsTable, eq(productsTable.id, reviewsTable.productId))
-        .where(eq(productsTable.sellerId, sellerId)),
-
-      db
         .select({
-          total: count(ordersTable.id),
-          delivered: sql<number>`cast(count(case when ${ordersTable.status} = 'delivered' then 1 end) as int)`,
+          total: sql<number>`cast(count(distinct ${ordersTable.id}) as int)`,
+          delivered: sql<number>`cast(count(distinct case when ${ordersTable.status} = 'delivered' then ${ordersTable.id} end) as int)`,
           revenue: sql<string>`coalesce(sum(case when ${ordersTable.status} = 'delivered' then ${orderItemsTable.unitPrice}::numeric * ${orderItemsTable.quantity} end), 0)`,
         })
         .from(orderItemsTable)
@@ -75,8 +69,8 @@ async function getStoreStats(sellerId: number) {
 
   return {
     totalProducts: Number(productStats[0]?.count ?? 0),
-    averageRating: ratingStats[0]?.avgRating != null ? parseFloat(ratingStats[0].avgRating) : null,
-    reviewCount: Number(ratingStats[0]?.reviewCount ?? 0),
+    averageRating: sellerScore, // from seller reviews (store reviews), NOT product reviews
+    reviewCount: Number(sr?.total ?? 0),
     totalOrders,
     completionRate,
     totalRevenue: parseFloat(parseFloat(orderStats[0]?.revenue ?? "0").toFixed(2)),
@@ -198,17 +192,29 @@ router.get("/sellers/:id/store-preview", async (req, res): Promise<void> => {
 
   if (!data) { res.status(404).json({ error: "Seller not found" }); return; }
 
-  const [[ratingRow], [followerRow]] = await Promise.all([
+  const [[storeReviewRow], [followerRow]] = await Promise.all([
     db
-      .select({ avgRating: avg(reviewsTable.rating), reviewCount: count(reviewsTable.id) })
-      .from(reviewsTable)
-      .innerJoin(productsTable, eq(productsTable.id, reviewsTable.productId))
-      .where(eq(productsTable.sellerId, sellerId)),
+      .select({
+        avgCommunication: avg(sellerReviewsTable.communicationRating),
+        avgShipping: avg(sellerReviewsTable.shippingRating),
+        avgProfessionalism: avg(sellerReviewsTable.professionalismRating),
+        total: count(),
+      })
+      .from(sellerReviewsTable)
+      .where(eq(sellerReviewsTable.sellerId, sellerId)),
     db
       .select({ count: count() })
       .from(storeFollowsTable)
       .where(eq(storeFollowsTable.sellerId, sellerId)),
   ]);
+
+  const storeRating = storeReviewRow && Number(storeReviewRow.total) > 0
+    ? parseFloat((
+        parseFloat(storeReviewRow.avgCommunication ?? "0") * 0.4 +
+        parseFloat(storeReviewRow.avgShipping ?? "0") * 0.3 +
+        parseFloat(storeReviewRow.avgProfessionalism ?? "0") * 0.3
+      ).toFixed(1))
+    : null;
 
   res.json({
     sellerId,
@@ -221,8 +227,8 @@ router.get("/sellers/:id/store-preview", async (req, res): Promise<void> => {
     verificationLevel: data.verificationLevel ?? "none",
     trustScore: data.trustScore ?? null,
     memberSince: data.memberSince.toISOString(),
-    averageRating: ratingRow?.avgRating != null ? parseFloat(ratingRow.avgRating) : null,
-    reviewCount: Number(ratingRow?.reviewCount ?? 0),
+    averageRating: storeRating,
+    reviewCount: Number(storeReviewRow?.total ?? 0),
     followerCount: Number(followerRow?.count ?? 0),
   });
 });

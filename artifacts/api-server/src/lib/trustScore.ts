@@ -3,7 +3,7 @@
  *
  * Factor breakdown (max 100 pts, with penalty deductions):
  *   completed_orders  → 0-30  (log scale on delivered order count)
- *   store_rating      → 0-25  (avg product rating 0-5 × 5)
+ *   store_rating      → 0-25  (seller review score 0-5 × 5 — from store reviews, NOT product reviews)
  *   delivery_success  → 0-20  (delivery success rate %)
  *   review_count      → 0-10  (log scale)
  *   account_age       → 0-5   (months active)
@@ -17,7 +17,7 @@ import {
   usersTable,
   sellerApplicationsTable,
   productsTable,
-  reviewsTable,
+  sellerReviewsTable,
   ordersTable,
   orderItemsTable,
   storeFollowsTable,
@@ -79,22 +79,27 @@ export async function computeTrustScore(sellerId: number): Promise<TrustScoreBre
       )
     );
 
-  const [productStats, orderStats, followerRow] = await Promise.all([
+  const [productStats, storeReviewStats, orderStats, followerRow] = await Promise.all([
     db
-      .select({
-        totalProducts: count(productsTable.id),
-        avgRating:     avg(reviewsTable.rating),
-        reviewCount:   count(reviewsTable.id),
-      })
+      .select({ totalProducts: count(productsTable.id) })
       .from(productsTable)
-      .leftJoin(reviewsTable, eq(reviewsTable.productId, productsTable.id))
       .where(eq(productsTable.sellerId, sellerId)),
 
     db
       .select({
-        total:      count(ordersTable.id),
-        delivered:  sql<number>`cast(count(case when ${ordersTable.status} = 'delivered' then 1 end) as int)`,
-        cancelled:  sql<number>`cast(count(case when ${ordersTable.status} IN ('cancelled','returned') then 1 end) as int)`,
+        avgCommunication:   avg(sellerReviewsTable.communicationRating),
+        avgShipping:        avg(sellerReviewsTable.shippingRating),
+        avgProfessionalism: avg(sellerReviewsTable.professionalismRating),
+        reviewCount:        count(sellerReviewsTable.id),
+      })
+      .from(sellerReviewsTable)
+      .where(eq(sellerReviewsTable.sellerId, sellerId)),
+
+    db
+      .select({
+        total:      sql<number>`cast(count(distinct ${ordersTable.id}) as int)`,
+        delivered:  sql<number>`cast(count(distinct case when ${ordersTable.status} = 'delivered' then ${ordersTable.id} end) as int)`,
+        cancelled:  sql<number>`cast(count(distinct case when ${ordersTable.status} IN ('cancelled','returned') then ${ordersTable.id} end) as int)`,
       })
       .from(orderItemsTable)
       .innerJoin(ordersTable, eq(ordersTable.id, orderItemsTable.orderId))
@@ -121,10 +126,18 @@ export async function computeTrustScore(sellerId: number): Promise<TrustScoreBre
   const deliverySuccessRate = totalOrders > 0 ? (deliveredOrders / totalOrders) * 100 : 100;
   const cancellationRate    = totalOrders > 0 ? (cancelledOrders / totalOrders) * 100 : 0;
 
-  // ── Product/review stats ─────────────────────────────────────────────────────
+  // ── Product/store-review stats ───────────────────────────────────────────────
+  // Store rating comes from seller_reviews (store reviews), NOT product reviews
   const totalProducts = Number(productStats[0]?.totalProducts ?? 0);
-  const avgRating     = productStats[0]?.avgRating != null ? parseFloat(productStats[0].avgRating) : null;
-  const reviewCount   = Number(productStats[0]?.reviewCount ?? 0);
+  const srr = storeReviewStats[0];
+  const avgRating = srr && Number(srr.reviewCount) > 0
+    ? parseFloat((
+        parseFloat(srr.avgCommunication ?? "0") * 0.4 +
+        parseFloat(srr.avgShipping ?? "0") * 0.3 +
+        parseFloat(srr.avgProfessionalism ?? "0") * 0.3
+      ).toFixed(2))
+    : null;
+  const reviewCount = Number(srr?.reviewCount ?? 0);
 
   // ── Followers ────────────────────────────────────────────────────────────────
   const followerCount = Number(followerRow[0]?.count ?? 0);
