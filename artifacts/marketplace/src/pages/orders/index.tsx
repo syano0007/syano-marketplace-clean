@@ -15,6 +15,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { SellerReviewPrompt } from "@/components/SellerReviewPrompt";
 
 const STATUS_TAB_KEYS = [
   { key: "all", labelKey: "orders.tab_all" },
@@ -31,6 +33,7 @@ export default function OrderHistory() {
   const { data: orders, isLoading, refetch } = useListOrders();
   const { t } = useTranslation();
   const { format: formatCurrency } = useCurrency();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("all");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -232,6 +235,17 @@ export default function OrderHistory() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                    </div>
+                  )}
+
+                  {/* Review prompt for delivered orders */}
+                  {order.status === "delivered" && user?.role === "customer" && order.items[0]?.sellerId && (
+                    <div className="px-5 sm:px-6 pb-4 border-t pt-3 flex items-center gap-2">
+                      <SellerReviewPrompt
+                        sellerId={order.items[0].sellerId}
+                        sellerName={order.items[0].sellerName}
+                        compact
+                      />
                     </div>
                   )}
                 </div>

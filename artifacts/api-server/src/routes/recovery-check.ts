@@ -2,7 +2,7 @@
  * GET /api/admin/recovery-check
  *
  * Comprehensive platform integrity verification endpoint.
- * 13 sections, all real validation — no mocked values.
+ * 19 sections, all real validation — no mocked values.
  * Admin-only. Confidence score 0-100.
  */
 import path from "path";
@@ -1493,6 +1493,101 @@ async function checkUiConsistency(): Promise<CheckResult> {
   return { ok: failures.length === 0, data, failures, warnings };
 }
 
+// ─── SECTION 18 — Review System ───────────────────────────────────────────────
+
+async function checkReviewSystem(): Promise<CheckResult> {
+  const failures: string[] = [];
+  const warnings: string[] = [];
+  const data: Record<string, unknown> = {};
+
+  // #1 review-status endpoint exists in sellers.ts
+  const sellersPath = path.resolve(process.cwd(), "../../artifacts/api-server/src/routes/sellers.ts");
+  if (fs.existsSync(sellersPath)) {
+    const content = fs.readFileSync(sellersPath, "utf8");
+    const hasReviewStatus   = content.includes("/sellers/:id/review-status");
+    const hasPostReviews    = content.includes("/sellers/:id/reviews");
+    const hasEligibleCheck  = content.includes("eligible");
+    const hasAlreadyReviewed = content.includes("alreadyReviewed");
+    data["reviewStatusEndpoint"]  = hasReviewStatus;
+    data["postReviewsEndpoint"]   = hasPostReviews;
+    data["eligibleField"]         = hasEligibleCheck;
+    data["alreadyReviewedField"]  = hasAlreadyReviewed;
+    if (!hasReviewStatus)   failures.push("sellers.ts: GET /sellers/:id/review-status endpoint missing");
+    if (!hasPostReviews)    failures.push("sellers.ts: POST /sellers/:id/reviews endpoint missing");
+    if (!hasEligibleCheck)  failures.push("sellers.ts: review-status must return eligible field");
+    if (!hasAlreadyReviewed) failures.push("sellers.ts: review-status must return alreadyReviewed field");
+  } else {
+    failures.push("sellers.ts not found at expected path");
+  }
+
+  // #2 SellerReviewModal + SellerReviewPrompt components exist
+  const mktBase = path.resolve(process.cwd(), "../../artifacts/marketplace/src");
+  const modalPath  = path.join(mktBase, "components/SellerReviewModal.tsx");
+  const promptPath = path.join(mktBase, "components/SellerReviewPrompt.tsx");
+  data["reviewModalExists"]  = fs.existsSync(modalPath);
+  data["reviewPromptExists"] = fs.existsSync(promptPath);
+  if (!fs.existsSync(modalPath))  failures.push("SellerReviewModal.tsx component not found");
+  if (!fs.existsSync(promptPath)) failures.push("SellerReviewPrompt.tsx component not found");
+
+  // #3 SellerReviewPrompt integrated in order detail page
+  const orderDetailPath = path.join(mktBase, "pages/orders/[id].tsx");
+  if (fs.existsSync(orderDetailPath)) {
+    const content = fs.readFileSync(orderDetailPath, "utf8");
+    const hasPromptImport = content.includes("SellerReviewPrompt");
+    const hasDeliveredCheck = content.includes('status === "delivered"');
+    data["orderDetailHasReviewPrompt"] = hasPromptImport && hasDeliveredCheck;
+    if (!hasPromptImport || !hasDeliveredCheck)
+      failures.push("orders/[id].tsx: SellerReviewPrompt not integrated for delivered orders");
+  }
+
+  // #4 SellerReviewPrompt integrated in orders list
+  const ordersListPath = path.join(mktBase, "pages/orders/index.tsx");
+  if (fs.existsSync(ordersListPath)) {
+    const content = fs.readFileSync(ordersListPath, "utf8");
+    data["ordersListHasReviewPrompt"] = content.includes("SellerReviewPrompt");
+    if (!content.includes("SellerReviewPrompt"))
+      warnings.push("orders/index.tsx: SellerReviewPrompt not on order list cards");
+  }
+
+  // #5 Verified Purchase badge in store page reviews
+  const storeSlugPath = path.join(mktBase, "pages/store/[slug].tsx");
+  if (fs.existsSync(storeSlugPath)) {
+    const content = fs.readFileSync(storeSlugPath, "utf8");
+    const hasVerifiedBadge = content.includes("verified_purchase");
+    const hasWriteReviewOnStore = content.includes("SellerReviewPrompt");
+    data["storeVerifiedPurchaseBadge"] = hasVerifiedBadge;
+    data["storeWriteReviewIntegrated"] = hasWriteReviewOnStore;
+    if (!hasVerifiedBadge)      failures.push("store/[slug].tsx: Verified Purchase badge missing from ReviewCard");
+    if (!hasWriteReviewOnStore) failures.push("store/[slug].tsx: SellerReviewPrompt not in ReviewsTab");
+  }
+
+  // #6 Seller reviews page exists
+  const sellerReviewsPagePath = path.join(mktBase, "pages/seller/reviews.tsx");
+  data["sellerReviewsPageExists"] = fs.existsSync(sellerReviewsPagePath);
+  if (!fs.existsSync(sellerReviewsPagePath))
+    warnings.push("seller/reviews.tsx page not found — sellers cannot view their reviews dashboard");
+
+  // #7 API client has useGetSellerReviewStatus hook
+  const apiClientSellersPath = path.resolve(process.cwd(), "../../lib/api-client-react/src/sellers.ts");
+  if (fs.existsSync(apiClientSellersPath)) {
+    const content = fs.readFileSync(apiClientSellersPath, "utf8");
+    const hasStatusHook = content.includes("useGetSellerReviewStatus");
+    data["apiClientReviewStatusHook"] = hasStatusHook;
+    if (!hasStatusHook) failures.push("api-client-react/sellers.ts: useGetSellerReviewStatus hook missing");
+  }
+
+  // #8 i18n has review submission keys
+  const i18nEnPath = path.join(mktBase, "i18n/en.json");
+  if (fs.existsSync(i18nEnPath)) {
+    const i18n = JSON.parse(fs.readFileSync(i18nEnPath, "utf8"));
+    const hasReviewKeys = i18n?.store?.review_submit && i18n?.store?.review_success_title && i18n?.orders?.review_leave;
+    data["i18nReviewKeysPresent"] = !!hasReviewKeys;
+    if (!hasReviewKeys) failures.push("en.json: review submission i18n keys missing (review_submit, review_success_title, review_leave)");
+  }
+
+  return { ok: failures.length === 0, data, failures, warnings };
+}
+
 // ─── SECTION 17 — Audit Fixes Verification ────────────────────────────────────
 
 async function checkAuditFixes(): Promise<CheckResult> {
@@ -1630,6 +1725,7 @@ const WEIGHTS = {
   storeSettingsV4: 0, // warnings only — V4 UI upgrade
   uiConsistency: 3,   // brand color + verification + dropdown portal
   auditFixes: 0,      // audit fix verification — warnings + failures only, no score deduction
+  reviewSystem: 5,    // store review submission UX — customer-facing review lifecycle
 } as const;
 
 function computeScore(results: Record<string, CheckResult>): {
@@ -1708,7 +1804,7 @@ router.get(
       : "";
     const sellerId = sellerUser?.id ?? 2;
 
-    // Run all 18 checks in parallel
+    // Run all 19 checks in parallel
     const [
       corePlatform,
       bootstrapAccounts,
@@ -1729,6 +1825,7 @@ router.get(
       storeSettingsV4,
       uiConsistency,
       auditFixes,
+      reviewSystem,
     ] = await Promise.all([
       checkCorePlatform(),
       checkBootstrapAccounts(),
@@ -1749,6 +1846,7 @@ router.get(
       checkStoreSettingsV4(),
       checkUiConsistency(),
       checkAuditFixes(),
+      checkReviewSystem(),
     ]);
 
     const checkResults: Record<string, CheckResult> = {
@@ -1771,6 +1869,7 @@ router.get(
       storeSettingsV4,
       uiConsistency,
       auditFixes,
+      reviewSystem,
     };
 
     const { score, modules, allFailures, allWarnings, deductions, recommendations } =
@@ -1921,6 +2020,13 @@ router.get(
           warnings: auditFixes.warnings,
           weight: WEIGHTS.auditFixes,
         },
+        reviewSystem: {
+          ok: reviewSystem.ok,
+          data: reviewSystem.data,
+          failures: reviewSystem.failures,
+          warnings: reviewSystem.warnings,
+          weight: WEIGHTS.reviewSystem,
+        },
       },
 
       failures: allFailures,
@@ -1944,6 +2050,7 @@ router.get(
         "Store Settings V4 + Store Page Consistency": storeSettingsV4.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
         "UI Consistency + Mobile Polish": uiConsistency.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS",
         "Critical Logic & Trust Audit V1": auditFixes.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ AUDIT ISSUES — see auditFixes section",
+        "Store Review System V1": reviewSystem.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS — see reviewSystem section",
         next: "⏳ TBD",
       },
 

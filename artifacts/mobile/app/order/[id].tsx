@@ -6,16 +6,18 @@ import {
   Alert,
   Image,
   Linking,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
   Share,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useGetOrder, useUpdateOrderStatus, useGetOrderHistory, getListOrdersQueryKey, getGetOrderHistoryQueryKey } from "@workspace/api-client-react";
+import { useGetOrder, useUpdateOrderStatus, useGetOrderHistory, usePostSellerReview, useGetSellerReviewStatus, getSellerReviewStatusQueryKey, getListOrdersQueryKey, getGetOrderHistoryQueryKey } from "@workspace/api-client-react";
 import type { OrderStatusUpdateStatus, OrderHistoryEntry } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -93,6 +95,11 @@ export default function OrderDetailScreen() {
   const queryClient = useQueryClient();
   const [trackingCopied, setTrackingCopied] = useState(false);
   const trackingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [commRating, setCommRating] = useState(0);
+  const [shipRating, setShipRating] = useState(0);
+  const [profRating, setProfRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
 
   useEffect(() => {
     return () => {
@@ -116,6 +123,43 @@ export default function OrderDetailScreen() {
       }
     }
   });
+
+  const sellerId = (order?.items as any[])?.[0]?.sellerId ?? 0;
+  const isDelivered = order?.status === "delivered";
+  const isCustomer = user?.role === "customer";
+
+  const { data: reviewStatus } = useGetSellerReviewStatus(sellerId, {
+    query: {
+      enabled: !!sellerId && isDelivered && isCustomer,
+      queryKey: getSellerReviewStatusQueryKey(sellerId),
+    },
+  });
+
+  const postReview = usePostSellerReview(sellerId, {
+    mutation: {
+      onSuccess: () => {
+        setReviewModalOpen(false);
+        queryClient.invalidateQueries({ queryKey: getSellerReviewStatusQueryKey(sellerId) });
+        Alert.alert(t("orders.review_success_title"), t("orders.review_success_desc"));
+      },
+      onError: () => {
+        Alert.alert(t("common.error"), t("orders.review_error"));
+      },
+    },
+  });
+
+  function handleSubmitReview() {
+    if (commRating === 0 || shipRating === 0 || profRating === 0) {
+      Alert.alert(t("common.error"), t("orders.review_rate_all"));
+      return;
+    }
+    postReview.mutate({
+      communicationRating: commRating,
+      shippingRating: shipRating,
+      professionalismRating: profRating,
+      comment: reviewComment.trim() || undefined,
+    });
+  }
 
   const statusColor = order ? (STATUS_COLORS[order.status] ?? colors.mutedForeground) : colors.mutedForeground;
   // V1 step index mapping — handles legacy aliases
@@ -434,6 +478,110 @@ export default function OrderDetailScreen() {
             </Pressable>
           </View>
         )}
+
+        {/* Review prompt for delivered orders */}
+        {isDelivered && isCustomer && sellerId > 0 && reviewStatus && !reviewStatus.alreadyReviewed && reviewStatus.eligible && (
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#F59E0B40", borderWidth: 1.5 }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Ionicons name="star-outline" size={18} color="#F59E0B" />
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("orders.review_leave")}</Text>
+            </View>
+            <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 2 }}>
+              {t("orders.review_leave_desc")}
+            </Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.advanceBtn,
+                { backgroundColor: "#F59E0B", opacity: pressed ? 0.85 : 1, marginTop: 4 }
+              ]}
+              onPress={() => setReviewModalOpen(true)}
+            >
+              <Ionicons name="star" size={16} color="#fff" />
+              <Text style={styles.advanceBtnText}>{t("orders.review_submit_btn")}</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* Already reviewed */}
+        {isDelivered && isCustomer && sellerId > 0 && reviewStatus?.alreadyReviewed && (
+          <View style={[styles.card, { backgroundColor: "#10B98110", borderColor: "#10B98140", borderWidth: 1.5, flexDirection: "row", alignItems: "center", gap: 8 }]}>
+            <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+            <Text style={{ fontSize: 13, color: "#10B981", fontWeight: "600" }}>{t("orders.already_reviewed")}</Text>
+          </View>
+        )}
+
+        {/* Review modal */}
+        <Modal
+          visible={reviewModalOpen}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setReviewModalOpen(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+            <View style={{ backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40, gap: 16 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ fontSize: 17, fontWeight: "700", color: colors.foreground }}>{t("store.review_title")}</Text>
+                <Pressable onPress={() => setReviewModalOpen(false)}>
+                  <Ionicons name="close" size={22} color={colors.mutedForeground} />
+                </Pressable>
+              </View>
+              {[
+                { label: t("store.communication"), value: commRating, onRate: setCommRating },
+                { label: t("store.shipping"), value: shipRating, onRate: setShipRating },
+                { label: t("store.professionalism"), value: profRating, onRate: setProfRating },
+              ].map(({ label, value, onRate }) => (
+                <View key={label}>
+                  <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 6 }}>{label}</Text>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    {[1,2,3,4,5].map((star) => (
+                      <Pressable key={star} onPress={() => onRate(star)}>
+                        <Ionicons name={star <= value ? "star" : "star-outline"} size={28} color="#F59E0B" />
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ))}
+              <View>
+                <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 6 }}>{t("store.review_comment_label")}</Text>
+                <TextInput
+                  value={reviewComment}
+                  onChangeText={setReviewComment}
+                  placeholder={t("store.review_comment_ph")}
+                  placeholderTextColor={colors.mutedForeground}
+                  multiline
+                  numberOfLines={3}
+                  style={{
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    padding: 10,
+                    color: colors.foreground,
+                    fontSize: 14,
+                    minHeight: 72,
+                    textAlignVertical: "top",
+                  }}
+                />
+              </View>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.advanceBtn,
+                  { backgroundColor: "#F59E0B", opacity: pressed || postReview.isPending ? 0.8 : 1 }
+                ]}
+                onPress={handleSubmitReview}
+                disabled={postReview.isPending}
+              >
+                {postReview.isPending
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <>
+                      <Ionicons name="send" size={16} color="#fff" />
+                      <Text style={styles.advanceBtnText}>{t("store.review_submit")}</Text>
+                    </>
+                }
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </View>
   );

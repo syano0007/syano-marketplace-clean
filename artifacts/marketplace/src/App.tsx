@@ -50,6 +50,7 @@ const EditProduct       = lazy(() => import("@/pages/seller/products/[id]/edit")
 const SellerOrders      = lazy(() => import("@/pages/seller/orders"));
 const SellerOrderDetail = lazy(() => import("@/pages/seller/orders/[id]"));
 const SellerAnalytics   = lazy(() => import("@/pages/seller/analytics"));
+const SellerReviews     = lazy(() => import("@/pages/seller/reviews"));
 const Inventory         = lazy(() => import("@/pages/seller/inventory"));
 const SellerStoreSettings = lazy(() => import("@/pages/seller/store-settings"));
 const AdminDashboard    = lazy(() => import("@/pages/admin/index"));
@@ -234,6 +235,9 @@ function Router() {
             </Route>
             <Route path="/seller/analytics">
               <ProtectedRoute allowedRoles={["seller"]}><SellerAnalytics /></ProtectedRoute>
+            </Route>
+            <Route path="/seller/reviews">
+              <ProtectedRoute allowedRoles={["seller"]}><SellerReviews /></ProtectedRoute>
             </Route>
             <Route path="/seller/store-settings">
               <ProtectedRoute allowedRoles={["seller"]}><SellerStoreSettings /></ProtectedRoute>

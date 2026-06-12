@@ -303,6 +303,46 @@ export function usePostSellerReview(
   });
 }
 
+/* ── Seller Review Status ────────────────────────────────────── */
+
+export interface SellerReviewStatus {
+  eligible: boolean;
+  alreadyReviewed: boolean;
+  deliveredOrderId: number | null;
+  existingReview: {
+    id: number;
+    communicationRating: number;
+    shippingRating: number;
+    professionalismRating: number;
+    comment: string | null;
+    createdAt: string;
+  } | null;
+}
+
+export const getSellerReviewStatusUrl = (sellerId: number) =>
+  `/api/sellers/${sellerId}/review-status` as const;
+
+export const getSellerReviewStatusQueryKey = (sellerId: number) =>
+  [getSellerReviewStatusUrl(sellerId)] as const;
+
+export const getSellerReviewStatus = async (
+  sellerId: number,
+  options?: RequestInit
+): Promise<SellerReviewStatus> =>
+  customFetch<SellerReviewStatus>(getSellerReviewStatusUrl(sellerId), { ...options, method: "GET" });
+
+export function useGetSellerReviewStatus<TData = SellerReviewStatus, TError = ErrorType<unknown>>(
+  sellerId: number,
+  options?: { query?: UseQueryOptions<SellerReviewStatus, TError, TData>; request?: RequestInit }
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const { query: queryOptions, request } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getSellerReviewStatusQueryKey(sellerId);
+  const queryFn: QueryFunction<SellerReviewStatus> = ({ signal }) =>
+    getSellerReviewStatus(sellerId, { signal, ...request });
+  const query = useQuery({ queryKey, queryFn, enabled: !!sellerId, ...queryOptions });
+  return { ...query, queryKey };
+}
+
 /* ── Seller Analytics ────────────────────────────────────────── */
 
 export const getSellerAnalyticsUrl = (days?: number) =>

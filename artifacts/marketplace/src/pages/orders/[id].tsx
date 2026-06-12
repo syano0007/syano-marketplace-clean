@@ -16,6 +16,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { SellerReviewPrompt } from "@/components/SellerReviewPrompt";
 
 export default function OrderDetail() {
   const params = useParams();
@@ -180,6 +181,16 @@ export default function OrderDetail() {
             updatedAt={order.updatedAt}
           />
         </div>
+
+        {/* Review prompt for delivered orders */}
+        {order.status === "delivered" && order.items[0]?.sellerId && (
+          <div className="mb-6">
+            <SellerReviewPrompt
+              sellerId={order.items[0].sellerId}
+              sellerName={order.items[0].sellerName}
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-4">

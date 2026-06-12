@@ -3,6 +3,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
+import { useGetSellerReviews } from "@workspace/api-client-react";
 import {
   TrendingUp, TrendingDown, Minus,
   DollarSign, ShoppingBag, Users, Star, Package,
@@ -459,6 +460,10 @@ export default function SellerAnalytics() {
 
   const insights = useMemo(() => s ? generateInsights(s, formatCurrency, t) : [], [s, formatCurrency, t]);
 
+  const { data: reviewsSummary } = useGetSellerReviews(user?.userId ?? 0, {
+    query: { enabled: !!user?.userId },
+  });
+
   /* ── CSV export ── */
   const handleExportRevenue = useCallback(() => {
     if (!chart?.points) return;
@@ -764,6 +769,52 @@ export default function SellerAnalytics() {
             ) : null}
           </SectionCard>
         </div>
+
+        {/* ── Store Reputation ── */}
+        {reviewsSummary && (
+          <SectionCard title={t("seller_analytics.rep_title")} subtitle={t("seller_analytics.rep_sub")}>
+            {(reviewsSummary.summary?.total ?? 0) === 0 ? (
+              <div className="flex items-center gap-3 text-sm text-muted-foreground py-2">
+                <Star className="h-4 w-4 opacity-40" />
+                {t("seller_analytics.rep_no_reviews")}
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
+                <div className="text-center shrink-0">
+                  <div className="text-4xl font-black text-foreground tabular-nums leading-none">
+                    {reviewsSummary.summary?.overallScore?.toFixed(1) ?? "—"}
+                  </div>
+                  <div className="flex justify-center mt-1 gap-0.5">
+                    {[1,2,3,4,5].map((s) => (
+                      <Star key={s} className={`h-3.5 w-3.5 ${s <= Math.round(reviewsSummary.summary?.overallScore ?? 0) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t("seller_analytics.rep_total")}: {reviewsSummary.summary?.total}
+                  </p>
+                </div>
+                <div className="flex-1 w-full space-y-3">
+                  {[
+                    { label: t("seller_analytics.rep_comm"), score: reviewsSummary.summary?.avgCommunication },
+                    { label: t("seller_analytics.rep_ship"), score: reviewsSummary.summary?.avgShipping },
+                    { label: t("seller_analytics.rep_prof"), score: reviewsSummary.summary?.avgProfessionalism },
+                  ].map(({ label, score }) => {
+                    const pct = score != null ? Math.round((score / 5) * 100) : 0;
+                    return (
+                      <div key={label} className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground w-24 shrink-0">{label}</span>
+                        <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+                          <div className="h-full bg-amber-400 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-xs font-semibold w-8 text-end tabular-nums">{score?.toFixed(1) ?? "—"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </SectionCard>
+        )}
 
         {/* ── Financial Summary ── */}
         {s && (

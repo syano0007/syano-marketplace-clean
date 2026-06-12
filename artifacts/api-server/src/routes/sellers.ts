@@ -421,6 +421,58 @@ router.get("/sellers/:id/reviews", async (req, res): Promise<void> => {
   });
 });
 
+/* ── GET /sellers/:id/review-status ─────────────────────────── */
+router.get("/sellers/:id/review-status", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
+  const sellerId = parseInt(String(req.params.id), 10);
+  if (isNaN(sellerId)) { res.status(400).json({ error: "Invalid seller ID" }); return; }
+
+  const { userId, role } = req.user!;
+
+  if (role !== "customer" || userId === sellerId) {
+    res.json({ eligible: false, alreadyReviewed: false, deliveredOrderId: null, existingReview: null });
+    return;
+  }
+
+  const [[existing], [deliveredOrder]] = await Promise.all([
+    db
+      .select({
+        id: sellerReviewsTable.id,
+        communicationRating: sellerReviewsTable.communicationRating,
+        shippingRating: sellerReviewsTable.shippingRating,
+        professionalismRating: sellerReviewsTable.professionalismRating,
+        comment: sellerReviewsTable.comment,
+        createdAt: sellerReviewsTable.createdAt,
+      })
+      .from(sellerReviewsTable)
+      .where(and(eq(sellerReviewsTable.sellerId, sellerId), eq(sellerReviewsTable.customerId, userId))),
+
+    db
+      .select({ orderId: ordersTable.id })
+      .from(ordersTable)
+      .innerJoin(orderItemsTable, eq(orderItemsTable.orderId, ordersTable.id))
+      .where(
+        and(
+          eq(ordersTable.customerId, userId),
+          eq(ordersTable.status, "delivered"),
+          eq(orderItemsTable.sellerId, sellerId)
+        )
+      )
+      .limit(1),
+  ]);
+
+  const alreadyReviewed = !!existing;
+  const eligible = !!deliveredOrder && !alreadyReviewed;
+
+  res.json({
+    eligible,
+    alreadyReviewed,
+    deliveredOrderId: deliveredOrder?.orderId ?? null,
+    existingReview: existing
+      ? { ...existing, createdAt: (existing.createdAt as Date).toISOString() }
+      : null,
+  });
+});
+
 /* ── POST /sellers/:id/reviews ──────────────────────────────── */
 router.post("/sellers/:id/reviews", requireAuth, requireRole("customer"), requireActiveAccount, async (req, res): Promise<void> => {
   const sellerId = parseInt(String(req.params.id), 10);

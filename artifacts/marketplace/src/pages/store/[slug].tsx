@@ -38,6 +38,7 @@ import {
   useListProducts,
   type StoreProfile,
 } from "@workspace/api-client-react";
+import { SellerReviewPrompt } from "@/components/SellerReviewPrompt";
 import { useToast } from "@/hooks/use-toast";
 
 /* ── Types ───────────────────────────────────────────────────── */
@@ -476,9 +477,15 @@ function ReviewCard({ review }: { review: any }) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <RatingStars rating={Math.round(avg)} />
-          <span className="text-xs text-muted-foreground font-medium">{avg.toFixed(1)}</span>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <div className="flex items-center gap-1.5">
+            <RatingStars rating={Math.round(avg)} />
+            <span className="text-xs text-muted-foreground font-medium">{avg.toFixed(1)}</span>
+          </div>
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/30 rounded-full px-1.5 py-0.5">
+            <CheckCircle2 className="h-2.5 w-2.5 shrink-0" />
+            {t("store.verified_purchase")}
+          </span>
         </div>
       </div>
       {review.comment && <p className="text-sm text-foreground/80 leading-relaxed">{review.comment}</p>}
@@ -515,10 +522,12 @@ function RatingBar({ label, score, max = 5 }: { label: string; score: number | n
 
 function ReviewsTab({
   sellerId,
+  sellerName,
   reviewsData,
   reviewsLoading,
 }: {
   sellerId: number;
+  sellerName: string;
   reviewsData: any;
   reviewsLoading: boolean;
 }) {
@@ -531,19 +540,14 @@ function ReviewsTab({
       </div>
     );
 
-  if (!reviewsData || reviewsData.reviews.length === 0)
-    return (
-      <div className="text-center py-16 text-muted-foreground">
-        <Star className="h-12 w-12 mx-auto mb-3 opacity-30" />
-        <p className="font-medium">{t("store.no_reviews")}</p>
-        <p className="text-sm mt-1">{t("store.no_reviews_desc")}</p>
-      </div>
-    );
-
-  const { summary, reviews } = reviewsData;
+  const hasReviews = reviewsData && reviewsData.reviews.length > 0;
+  const { summary, reviews } = reviewsData ?? { summary: null, reviews: [] };
 
   return (
     <div className="space-y-5">
+      {/* Write review prompt for eligible customers */}
+      <SellerReviewPrompt sellerId={sellerId} sellerName={sellerName} />
+
       {/* Summary card */}
       {summary && summary.total > 0 && (
         <div className="p-5 border rounded-2xl bg-card">
@@ -571,12 +575,23 @@ function ReviewsTab({
         </div>
       )}
 
+      {/* Empty state (no reviews yet) */}
+      {!hasReviews && (
+        <div className="text-center py-16 text-muted-foreground">
+          <Star className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <p className="font-medium">{t("store.no_reviews")}</p>
+          <p className="text-sm mt-1">{t("store.no_reviews_desc")}</p>
+        </div>
+      )}
+
       {/* Review cards */}
-      <div className="space-y-3">
-        {reviews.map((r: any) => (
-          <ReviewCard key={r.id} review={r} />
-        ))}
-      </div>
+      {hasReviews && (
+        <div className="space-y-3">
+          {reviews.map((r: any) => (
+            <ReviewCard key={r.id} review={r} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1064,6 +1079,7 @@ export default function StorePage() {
           {activeTab === "reviews" && (
             <ReviewsTab
               sellerId={store.sellerId}
+              sellerName={(store as any).storeName ?? (store as any).name ?? ""}
               reviewsData={reviewsData}
               reviewsLoading={reviewsLoading}
             />
