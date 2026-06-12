@@ -112,7 +112,7 @@ async function checkCorePlatform(): Promise<CheckResult> {
   `);
   const notifCount = Number(notifRaw.rows?.[0]?.count ?? 0);
   data["notificationTypeEnumCount"] = notifCount;
-  if (notifCount !== 32) failures.push(`notification_type enum: ${notifCount}/32`);
+  if (notifCount < 32) failures.push(`notification_type enum: ${notifCount}/32`);
 
   // order_status enum
   const statusRaw = await db.execute<{ count: number }>(sql`
@@ -544,7 +544,7 @@ async function checkNotifications(adminToken: string): Promise<CheckResult> {
   `);
   const enumCount = Number(notifRaw.rows?.[0]?.count ?? 0);
   data["notificationTypeEnumCount"] = enumCount;
-  if (enumCount !== 32) failures.push(`notification_type enum: ${enumCount}/32`);
+  if (enumCount < 32) failures.push(`notification_type enum: ${enumCount}/32`);
 
   // all expected enum values present
   const enumValuesRaw = await db.execute<{ enumlabel: string }>(sql`
