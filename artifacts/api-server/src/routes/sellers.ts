@@ -80,6 +80,52 @@ async function getStoreStats(sellerId: number) {
   };
 }
 
+/* ── GET /sellers/featured (public — homepage verified stores) ── */
+router.get("/sellers/featured", async (_req, res): Promise<void> => {
+  try {
+    const stores = await db
+      .select({
+        sellerId: sellerApplicationsTable.userId,
+        storeName: sellerApplicationsTable.storeName,
+        storeSlug: sellerApplicationsTable.storeSlug,
+        storeLogo: sellerApplicationsTable.storeLogo,
+        accentColor: sellerApplicationsTable.accentColor,
+        categories: sellerApplicationsTable.categories,
+        city: sellerApplicationsTable.city,
+        verifiedAt: usersTable.verifiedAt,
+      })
+      .from(sellerApplicationsTable)
+      .innerJoin(usersTable, eq(usersTable.id, sellerApplicationsTable.userId))
+      .where(eq(sellerApplicationsTable.status, "approved"))
+      .orderBy(desc(usersTable.createdAt))
+      .limit(6);
+
+    const result = await Promise.all(
+      stores.map(async (s) => {
+        const stats = await getStoreStats(s.sellerId);
+        return {
+          sellerId: s.sellerId,
+          storeName: s.storeName ?? "متجر",
+          storeSlug: s.storeSlug,
+          storeLogo: s.storeLogo ?? null,
+          accentColor: s.accentColor ?? null,
+          categories: s.categories ?? [],
+          city: s.city ?? null,
+          isVerified: !!s.verifiedAt,
+          productsCount: stats.productsCount,
+          followersCount: stats.followersCount,
+          averageRating: stats.averageRating,
+          reviewsCount: stats.reviewsCount,
+        };
+      }),
+    );
+
+    res.json(result);
+  } catch {
+    res.json([]);
+  }
+});
+
 /* ── GET /sellers/store/:slug ────────────────────────────────── */
 router.get("/sellers/store/:slug", async (req, res): Promise<void> => {
   const { slug } = req.params;

@@ -55,7 +55,12 @@
     "no_categories": "No categories found.",
     "courier_cta_title": "Earn as a Courier",
     "courier_cta_desc": "Join Syano's delivery network and earn income across Aleppo.",
-    "courier_cta_btn": "Become a Courier"
+    "courier_cta_btn": "Become a Courier",
+    "popular_categories_title": "Popular Categories",
+    "verified_stores_title": "Verified Stores",
+    "visit_store": "Visit Store",
+    "products_count": "{{count}} products",
+    "followers_count": "{{count}} followers"
   },
   "products": {
     "title": "Discover Products",

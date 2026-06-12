@@ -55,7 +55,12 @@
     "no_categories": "لا توجد فئات.",
     "courier_cta_title": "اكسب كمندوب توصيل",
     "courier_cta_desc": "انضم إلى شبكة توصيل سيانو واكسب دخلاً في حلب.",
-    "courier_cta_btn": "أصبح مندوب توصيل"
+    "courier_cta_btn": "أصبح مندوب توصيل",
+    "popular_categories_title": "الفئات الأكثر شيوعاً",
+    "verified_stores_title": "متاجر موثوقة",
+    "visit_store": "زيارة المتجر",
+    "products_count": "{{count}} منتج",
+    "followers_count": "{{count}} متابع"
   },
   "products": {
     "title": "اكتشف المنتجات",
