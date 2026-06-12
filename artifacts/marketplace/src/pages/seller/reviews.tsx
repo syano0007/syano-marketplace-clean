@@ -245,10 +245,10 @@ export default function SellerReviewsPage() {
   const { user } = useAuth();
   const [filter, setFilter] = useState<"all" | "low">("all");
 
-  const { data: reviewsData, isLoading } = useGetSellerReviews(user?.userId ?? 0, {
+  const { data: reviewsData, isLoading } = useGetSellerReviews(user?.id ?? 0, {
     query: {
-      enabled: !!user?.userId,
-      queryKey: getSellerReviewsQueryKey(user?.userId ?? 0),
+      enabled: !!user?.id,
+      queryKey: getSellerReviewsQueryKey(user?.id ?? 0),
     },
   });
 
@@ -387,7 +387,7 @@ export default function SellerReviewsPage() {
           ) : (
             <div className="space-y-3">
               {reviews.map((r: any) => (
-                <ReviewCard key={r.id} review={r} sellerId={user?.userId ?? 0} />
+                <ReviewCard key={r.id} review={r} sellerId={user?.id ?? 0} />
               ))}
             </div>
           )}

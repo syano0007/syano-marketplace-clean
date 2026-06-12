@@ -695,6 +695,7 @@ router.get("/sellers/store/:slug/metrics", async (req, res): Promise<void> => {
 });
 
 /* ── PATCH /sellers/reviews/:reviewId/reply ─────────────────── */
+// DB columns: seller_reply (text), seller_reply_at (timestamp), seller_reply_updated_at (timestamp)
 router.patch("/sellers/reviews/:reviewId/reply", requireAuth, requireRole("seller"), requireActiveAccount, async (req, res): Promise<void> => {
   const sellerId = req.user!.userId;
   const reviewId = parseInt(String(req.params.reviewId), 10);
@@ -710,7 +711,7 @@ router.patch("/sellers/reviews/:reviewId/reply", requireAuth, requireRole("selle
   }
 
   const [existing] = await db
-    .select({ id: sellerReviewsTable.id, sellerId: sellerReviewsTable.sellerId, sellerReply: sellerReviewsTable.sellerReply })
+    .select({ id: sellerReviewsTable.id, sellerId: sellerReviewsTable.sellerId, sellerReply: sellerReviewsTable.sellerReply, sellerReplyAt: sellerReviewsTable.sellerReplyAt })
     .from(sellerReviewsTable)
     .where(eq(sellerReviewsTable.id, reviewId));
 

@@ -326,6 +326,17 @@ export async function runMigrations(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_users_verification_level ON users(verification_level);
       CREATE INDEX IF NOT EXISTS idx_users_trust_score        ON users(trust_score);
 
+      -- ── Seller review reply columns ───────────────────────────────────────────
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.tables WHERE table_name = 'seller_reviews'
+        ) THEN
+          ALTER TABLE seller_reviews ADD COLUMN IF NOT EXISTS seller_reply            TEXT;
+          ALTER TABLE seller_reviews ADD COLUMN IF NOT EXISTS seller_reply_at         TIMESTAMP;
+          ALTER TABLE seller_reviews ADD COLUMN IF NOT EXISTS seller_reply_updated_at TIMESTAMP;
+        END IF;
+      END $$;
+
       -- ── Seller verification audit log (admin approval/rejection history) ────────
       CREATE TABLE IF NOT EXISTS seller_verification_log (
         id          SERIAL PRIMARY KEY,

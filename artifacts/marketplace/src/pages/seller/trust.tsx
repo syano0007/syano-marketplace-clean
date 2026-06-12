@@ -7,7 +7,7 @@ import { SellerTrustBadge, TrustScoreBar, type VerificationLevel } from "@/compo
 import { Shield, ShieldCheck, Award, CheckCircle, XCircle, ChevronRight, TrendingDown, MessageCircle } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { useGetSellerReviews } from "@workspace/api-client-react";
+import { useGetSellerReviews, getSellerReviewsQueryKey } from "@workspace/api-client-react";
 
 function ScoreRow({ label, score, max, tip, isNegative }: { label: string; score: number; max: number; tip?: string; isNegative?: boolean }) {
   const display = isNegative ? Math.abs(score) : score;
@@ -52,7 +52,7 @@ export default function SellerTrustPage() {
   });
 
   const { data: reviewsData } = useGetSellerReviews(sellerId ?? 0, {
-    query: { enabled: !!sellerId },
+    query: { enabled: !!sellerId, queryKey: getSellerReviewsQueryKey(sellerId ?? 0) },
   });
 
   const level = (trustData?.verificationLevel ?? "none") as VerificationLevel;

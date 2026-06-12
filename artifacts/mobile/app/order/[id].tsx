@@ -136,15 +136,13 @@ export default function OrderDetailScreen() {
   });
 
   const postReview = usePostSellerReview(sellerId, {
-    mutation: {
-      onSuccess: () => {
-        setReviewModalOpen(false);
-        queryClient.invalidateQueries({ queryKey: getSellerReviewStatusQueryKey(sellerId) });
-        Alert.alert(t("orders.review_success_title"), t("orders.review_success_desc"));
-      },
-      onError: () => {
-        Alert.alert(t("common.error"), t("orders.review_error"));
-      },
+    onSuccess: () => {
+      setReviewModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: getSellerReviewStatusQueryKey(sellerId) });
+      Alert.alert(t("orders.review_success_title"), t("orders.review_success_desc"));
+    },
+    onError: () => {
+      Alert.alert(t("common.error"), t("orders.review_error"));
     },
   });
 
@@ -244,7 +242,6 @@ export default function OrderDetailScreen() {
   const isReturned = order.status === "returned";
 
   // V1 policy: customer may cancel until ready_for_pickup; blocked once courier_assigned or beyond
-  const isCustomer = !isSeller;
   const CUSTOMER_CANCEL_ALLOWED = ["pending", "confirmed", "preparing", "ready_for_pickup"];
   const canCustomerCancel = isCustomer && CUSTOMER_CANCEL_ALLOWED.includes(order.status);
 

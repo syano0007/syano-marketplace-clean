@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { useGetSellerReviews } from "@workspace/api-client-react";
+import { useGetSellerReviews, getSellerReviewsQueryKey } from "@workspace/api-client-react";
 import {
   TrendingUp, TrendingDown, Minus,
   DollarSign, ShoppingBag, Users, Star, Package,
@@ -460,8 +460,8 @@ export default function SellerAnalytics() {
 
   const insights = useMemo(() => s ? generateInsights(s, formatCurrency, t) : [], [s, formatCurrency, t]);
 
-  const { data: reviewsSummary } = useGetSellerReviews(user?.userId ?? 0, {
-    query: { enabled: !!user?.userId },
+  const { data: reviewsSummary } = useGetSellerReviews(user?.id ?? 0, {
+    query: { enabled: !!user?.id, queryKey: getSellerReviewsQueryKey(user?.id ?? 0) },
   });
 
   /* ── CSV export ── */

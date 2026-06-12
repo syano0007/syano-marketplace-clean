@@ -41,17 +41,15 @@ export function SellerReviewModal({
   const [submitted, setSubmitted] = useState(false);
 
   const postReview = usePostSellerReview(sellerId, {
-    mutation: {
-      onSuccess: () => {
-        setSubmitted(true);
-        queryClient.invalidateQueries({ queryKey: getSellerReviewStatusQueryKey(sellerId) });
-        queryClient.invalidateQueries({ queryKey: getSellerReviewsQueryKey(sellerId) });
-        onSuccess?.();
-      },
-      onError: (err: any) => {
-        const msg = (err?.response?.data as any)?.error ?? t("common.error");
-        toast({ title: t("common.error"), description: msg, variant: "destructive" });
-      },
+    onSuccess: () => {
+      setSubmitted(true);
+      queryClient.invalidateQueries({ queryKey: getSellerReviewStatusQueryKey(sellerId) });
+      queryClient.invalidateQueries({ queryKey: getSellerReviewsQueryKey(sellerId) });
+      onSuccess?.();
+    },
+    onError: (err: any) => {
+      const msg = (err?.response?.data as any)?.error ?? t("common.error");
+      toast({ title: t("common.error"), description: msg, variant: "destructive" });
     },
   });
 
