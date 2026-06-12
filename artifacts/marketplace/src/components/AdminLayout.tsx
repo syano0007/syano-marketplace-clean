@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard, Users, User, Package, ShoppingCart, Settings,
   LogOut, Shield, ChevronRight, ScrollText, Menu, Store,
-  Home as HomeIcon, BarChart2, Globe, Sun, Moon, DollarSign, Truck,
+  Home as HomeIcon, BarChart2, Globe, Sun, Moon, DollarSign, Truck, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -24,9 +24,10 @@ const navItems = [
   { href: "/admin/analytics",             icon: BarChart2,       labelKey: "admin.nav_analytics" },
   { href: "/admin/delivery",              icon: Truck,           labelKey: "delivery.nav" },
   { href: "/admin/courier-applications",  icon: User,            labelKey: "courier_applications.nav", badgeKey: "couriers" },
+  { href: "/admin/hero-banners",           icon: Sparkles,        labelKey: "admin.hero_banners.title" },
   { href: "/admin/verification",          icon: Shield,          labelKey: "admin.verification_title" },
   { href: "/admin/logs",                  icon: ScrollText,      labelKey: "admin.nav_logs" },
-  { href: "/admin/settings",              icon: Settings,        labelKey: "admin.nav_settings" },
+  { href: "/admin/settings",             icon: Settings,        labelKey: "admin.nav_settings" },
 ] as const;
 
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {

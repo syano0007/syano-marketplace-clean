@@ -318,6 +318,26 @@
    entirely off the main thread. Duration is tuned to 120 ms — about 1.5 frames
    at 120 Hz — just enough to feel smooth without introducing perceptible lag.
    ─────────────────────────────────────────────────────────────────────────── */
+/* ─── Hero Banner keyframes ─────────────────────────────────────────────────── */
+
+@keyframes hero-kenburns {
+  0%   { transform: scale(1.0) translate(0%, 0%); }
+  100% { transform: scale(1.08) translate(-0.8%, -0.6%); }
+}
+
+@keyframes hero-progress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.hero-kenburns {
+  animation: hero-kenburns 8s ease-in-out forwards;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 @keyframes page-enter {
   from { opacity: 0; }
   to   { opacity: 1; }
