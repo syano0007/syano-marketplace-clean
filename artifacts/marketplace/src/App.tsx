@@ -312,10 +312,8 @@ function Router() {
               <ProtectedRoute allowedRoles={["courier", "admin"]}><CourierDashboard /></ProtectedRoute>
             </Route>
 
-            {/* ── Wishlist ────────────────────────────────────────── */}
-            <Route path="/wishlist">
-              <ProtectedRoute allowedRoles={["customer"]}><WishlistPage /></ProtectedRoute>
-            </Route>
+            {/* ── Wishlist ─ open to guests (guest wishlist supported) ── */}
+            <Route path="/wishlist" component={WishlistPage} />
 
             {/* ── Info & Footer pages ──────────────────────────────── */}
             <Route path="/stores" component={StoresPage} />

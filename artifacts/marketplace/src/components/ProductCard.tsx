@@ -36,13 +36,6 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isAuthenticated) {
-      toast({
-        title: t("wishlist.login_title"),
-        description: t("wishlist.login_desc"),
-      });
-      return;
-    }
     toggleWishlist(product.id);
   };
 

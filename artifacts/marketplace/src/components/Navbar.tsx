@@ -258,7 +258,7 @@ export function Navbar() {
               </button>
             )}
             {isAuthenticated && <NotificationCenter />}
-            {isCustomer && (
+            {!isSeller && !isAdmin && !isCourier && (
               <Link href="/wishlist" className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
                 <Heart className="h-5 w-5" />
                 {wishlistCount > 0 && (
@@ -452,8 +452,8 @@ export function Navbar() {
           {/* ── COL 3 → renders on the LEFT in RTL: Actions + Auth buttons ──── */}
           <div className="flex items-center gap-1.5 shrink-0">
 
-            {/* Wishlist — customer only */}
-            {isCustomer && (
+            {/* Wishlist — customers and guests (not sellers/admins/couriers) */}
+            {!isSeller && !isAdmin && !isCourier && (
               <Link href="/wishlist"
                 className={`relative h-9 w-9 flex items-center justify-center rounded-lg ${navSettingsBtn} transition-all duration-200`}
                 aria-label={isRtl ? "قائمة الأمنيات" : "Wishlist"}>
