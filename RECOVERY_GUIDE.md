@@ -238,52 +238,47 @@ The endpoint runs 13 parallel checks covering:
 - **Courier flow:** `POST /admin/orders/:id/assign-courier` creates assignment + updates order status atomically
 - **Trust System:** `lib/trustScore.ts` — 0-100 score; `seller_verification_log` audit table; admin routes in `admin.ts` (lines 1356–1530)
 
-## Homepage V4 Architecture (June 2026)
+## Homepage V5 Architecture (June 2026)
 
-**Homepage version:** V4 — Commerce-first split hero (Option C: Hybrid Marketplace Layout)
+**Homepage version:** V5 — Approved hero banner image + commerce sections
 
 ### Section Order (top to bottom)
-1. `<HeroV4 />` — split hero, max 460px desktop, compact 260px mobile
-2. `<CategoryChipRow />` — 8 enhanced chip shortcuts (inline in home.tsx)
-3. Hot Deals — flash sale grid (conditional: hidden when 0 deals)
-4. Best Sellers — ranked by purchase volume (conditional: hidden when 0)
-5. New Arrivals — product list (always shown, empty state message)
-6. Recently Viewed — localStorage (conditional: hidden when no history)
-7. Category Gallery — 17 large photo cards with `id="categories"` anchor
-8. Bottom CTAs — Seller + Courier recruitment, side-by-side grid
+1. `<HeroV4 />` — full-width approved hero image (1717×916 px, aspect-ratio preserving)
+2. Popular Categories — 8 wide image tiles (~130 px), text below, no icon badge
+3. Hot Deals countdown — dark card-style boxes (conditional: hidden when 0 `isBestDeal` products)
+4. Combined section — Verified Stores (53%) + New Arrivals (47%), vertical divider
+5. Join Syano — delivery van + two CTAs (Open Store / Become Courier)
 
-### New Components (June 2026)
-- `artifacts/marketplace/src/components/HeroV4.tsx` — split hero container
-  - Left: `<BrandStatement />` (dark gradient, no stock photos) OR `<BannerCarousel />` (if banners exist)
-  - Right: `<HeroProductMosaic />` (desktop only)
-  - Bottom: `<TrustStrip />` (3 signals — replaces standalone TrustBar section)
-- `artifacts/marketplace/src/components/HeroProductMosaic.tsx` — 2×2 live product grid
-  - Primary: 4 products from `GET /api/products/best-sellers?limit=4`
-  - Fallback: 4 category tiles (gradient + icon, no photography) when 0 products
+### Hero Banner Asset
+**Source:** `attached_assets/ChatGPT_Image_Jun_13,_2026,_06_57_40_AM_1781323131642.png`  
+**Import path:** `@assets/ChatGPT_Image_Jun_13,_2026,_06_57_40_AM_1781323131642.png`  
+**Dimensions:** 1717 × 916 px (aspect ratio ≈ 1.875:1)  
+**Content:** Arabic headline + luxury product showcase + trust badge strip — all baked into the image.
 
-### Removed Components / Sections
-- `<StaticHero />` — replaced by `<BrandStatement />` inside `HeroV4.tsx`
-- Standalone `<TrustBar />` section — absorbed into `HeroV4` as `<TrustStrip />`
-- "Featured Products" standalone section — removed; `featured` flag shows badge on ProductCard
+`BrandStatement` in `HeroV4.tsx` renders this image as-is:
+- `object-cover` + `objectPosition: "left top"` → Arabic text always visible
+- Container: `aspectRatio: "1717/916"`, `maxHeight: 620px`, `minHeight: 200px`
+- No text overlays, no floating products, no gradients added on top
 
-### HeroBanner V3 — Enhancement Layer
-`HeroBanner.tsx` is preserved unchanged. When admin creates banner records in the DB, `HeroV4` automatically activates `<BannerCarousel />` on the left column (replaces `<BrandStatement />`). Right column product mosaic always renders. Zero banner records = homepage still looks complete.
+When admin creates banner records in DB → `BannerCarousel` activates instead (admin override).
+
+### Key Component
+- `artifacts/marketplace/src/components/HeroV4.tsx`
+  - `BrandStatement` — renders the approved hero PNG at natural proportions
+  - `BannerCarousel` — activates when `GET /api/banners` returns ≥1 banner (admin override)
 
 ### API Endpoints (homepage)
 | Endpoint | Consumer | Notes |
 |---|---|---|
-| `GET /api/banners` | `HeroV4.tsx` | Active banners only; drives carousel |
-| `GET /api/products/best-sellers?limit=4` | `HeroProductMosaic.tsx` | Hero mosaic + Best Sellers section |
+| `GET /api/banners` | `HeroV4.tsx` | Active banners; overrides approved image if ≥1 banner |
 | `GET /api/products` | `home.tsx` | New Arrivals + Hot Deals derived client-side |
-| `GET /api/settings` | `home.tsx` | Flash sale countdown end time |
+| `GET /api/sellers/featured` | `home.tsx` | Verified Stores carousel |
 
 ### Zero-Data Resilience
-The homepage renders premium at every data state:
-- 0 banners → brand statement renders (dark gradient, no stock photos)
-- 0 products → category tiles render in hero mosaic + "No products" in sections
-- 0 deals → Hot Deals section hidden (no empty state shown)
-- 0 best sellers → Best Sellers section hidden
-- no localStorage → Recently Viewed section hidden
+- 0 banners → approved hero image renders (always beautiful)
+- 0 `isBestDeal` products → Hot Deals section hidden
+- 0 products → New Arrivals column hidden in combined section
+- 0 featured sellers → Verified Stores section hidden
 
 ## Trust System API Reference
 

@@ -3,44 +3,18 @@ import React, { useEffect, useState, useCallback, memo } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, ArrowRight, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// Approved hero banner asset — exact image, no modifications.
+// 1717×916 px · aspect ratio 1.875:1
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore — vite handles PNG imports via vite/client types
+import heroBannerImg from "@assets/ChatGPT_Image_Jun_13,_2026,_06_57_40_AM_1781323131642.png";
+
 const BASE = import.meta.env.BASE_URL ?? "/";
 const BANNER_INTERVAL_MS = 6000;
-
-/* ── Product mosaic items ─────────────────────────────────────────── */
-const HERO_PRODUCTS = [
-  {
-    src: "https://images.pexels.com/photos/3394650/pexels-photo-3394650.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
-    style: { left: "20%", top: "8%", width: "200px", height: "155px", transform: "rotate(-8deg)", zIndex: 4 },
-  },
-  {
-    src: "https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=280&h=280&fit=crop",
-    style: { left: "47%", top: "4%", width: "118px", height: "118px", transform: "rotate(11deg)", zIndex: 3 },
-  },
-  {
-    src: "https://images.pexels.com/photos/965989/pexels-photo-965989.jpeg?auto=compress&cs=tinysrgb&w=220&h=300&fit=crop",
-    style: { left: "4%", top: "30%", width: "88px", height: "122px", transform: "rotate(-17deg)", zIndex: 2 },
-  },
-  {
-    src: "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=420&h=255&fit=crop",
-    style: { left: "17%", top: "60%", width: "200px", height: "122px", transform: "rotate(5deg)", zIndex: 5 },
-  },
-  {
-    src: "https://images.pexels.com/photos/243757/pexels-photo-243757.jpeg?auto=compress&cs=tinysrgb&w=320&h=240&fit=crop",
-    style: { left: "45%", top: "53%", width: "138px", height: "104px", transform: "rotate(-9deg)", zIndex: 3 },
-  },
-  {
-    src: "https://images.pexels.com/photos/2079438/pexels-photo-2079438.jpeg?auto=compress&cs=tinysrgb&w=280&h=210&fit=crop",
-    style: { left: "3%", top: "3%", width: "110px", height: "83px", transform: "rotate(19deg)", zIndex: 2 },
-  },
-  {
-    src: "https://images.pexels.com/photos/607812/pexels-photo-607812.jpeg?auto=compress&cs=tinysrgb&w=260&h=340&fit=crop",
-    style: { left: "39%", top: "30%", width: "82px", height: "108px", transform: "rotate(7deg)", zIndex: 4 },
-  },
-] as const;
 
 /* ── Interface ────────────────────────────────────────────────────── */
 interface Banner {
@@ -58,162 +32,35 @@ interface Banner {
   sortOrder: number;
 }
 
-/* ── Brand Statement (no banners) ─────────────────────────────────── */
+/* ── Brand Statement — approved hero image, no modifications ──────── */
+// The image already contains all visual content:
+//   • Arabic headline + subtitle + CTA button (left side)
+//   • Luxury product showcase (right side)
+//   • Trust-badge strip (bottom)
+// object-position: left top preserves Arabic text on mobile crops.
 const BrandStatement = memo(function BrandStatement() {
-  const { i18n } = useTranslation();
-  const lang = i18n.language;
-  const isRTL = i18n.dir() === "rtl";
-
   return (
-    <div className="relative h-full overflow-hidden bg-black">
-
-      {/* Product mosaic — hidden on mobile.
-          In RTL the products appear on the LEFT (image end = physical left).
-          In LTR we scaleX(-1) to mirror them to the RIGHT side. */}
-      <div
-        className="absolute inset-0 hidden md:block pointer-events-none"
-        style={isRTL ? undefined : { transform: "scaleX(-1)" }}
-      >
-        {HERO_PRODUCTS.map((p, i) => (
-          <img
-            key={i}
-            src={p.src}
-            alt=""
-            loading={i === 0 ? "eager" : "lazy"}
-            decoding="async"
-            className="absolute rounded-xl lg:rounded-2xl object-cover shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
-            style={p.style as React.CSSProperties}
-          />
-        ))}
-
-        {/* Green ambient glow */}
-        <div
-          className="absolute rounded-full blur-3xl pointer-events-none"
-          style={{
-            left: "25%",
-            top: "20%",
-            width: "250px",
-            height: "250px",
-            background: "radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)",
-          }}
-        />
-      </div>
-
-      {/* On mobile: dark gradient background */}
-      <div className="absolute inset-0 md:hidden bg-gradient-to-br from-slate-900 via-black to-emerald-950/30" />
-
-      {/* Gradient overlay: transparent on IMAGE side → near-black on TEXT side.
-          RTL: text is on RIGHT → dark from right.
-          LTR: text is on LEFT  → dark from left.  */}
-      <div
-        className="absolute inset-0 hidden md:block"
+    <div className="relative w-full h-full bg-black overflow-hidden">
+      <img
+        src={heroBannerImg as string}
+        alt="Syano — اكتشف آلاف المنتجات من المتاجر السورية"
+        loading="eager"
+        decoding="async"
+        // @ts-ignore fetchPriority not yet in all TS libs
+        fetchPriority="high"
+        className="w-full h-full object-cover"
         style={{
-          background: isRTL
-            ? "linear-gradient(to left, transparent 0%, rgba(0,0,0,0.45) 32%, rgba(0,0,0,0.95) 50%, rgba(0,0,0,0.99) 100%)"
-            : "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.45) 32%, rgba(0,0,0,0.95) 50%, rgba(0,0,0,0.99) 100%)",
+          // Anchor to top-left so the Arabic text area (left side) and
+          // the headline remain visible when the banner is cropped at
+          // smaller viewports or when max-height is reached.
+          objectPosition: "left top",
         }}
       />
-      {/* Mobile gradient */}
-      <div className="absolute inset-0 md:hidden" style={{ background: "rgba(0,0,0,0.55)" }} />
-
-      {/* Syano brand mark — always in the image area (the non-text side) */}
-      <div
-        className={cn(
-          "absolute top-5 hidden md:flex items-center gap-1.5 z-10",
-          isRTL ? "left-5" : "right-5",
-        )}
-      >
-        <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center shadow-lg shadow-primary/30">
-          <span className="text-xs font-black" style={{ color: "black" }}>S</span>
-        </div>
-        <span className="text-sm font-bold text-white/60">Syano</span>
-      </div>
-
-      {/* Navigation arrows */}
-      <button
-        aria-label="Previous"
-        className="absolute top-1/2 -translate-y-1/2 start-3 z-20 h-8 w-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
-      >
-        {isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-      </button>
-      <button
-        aria-label="Next"
-        className="absolute top-1/2 -translate-y-1/2 end-3 z-20 h-8 w-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
-      >
-        {isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-      </button>
-
-      {/* Dots */}
-      <div className="absolute bottom-4 inset-x-0 z-20 flex items-center justify-center gap-2">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className={cn(
-              "rounded-full transition-all",
-              i === 0 ? "w-6 h-[3.5px] bg-primary" : "w-[3.5px] h-[3.5px] bg-white/30",
-            )}
-          />
-        ))}
-      </div>
-
-      {/* ── Text content — positioned at RTL-start (right in Arabic) ── */}
-      <div
-        className={cn(
-          "absolute inset-y-0 flex flex-col justify-center z-10 px-5 sm:px-8 md:px-10 lg:px-14",
-          "w-full md:w-[52%]",
-          isRTL ? "right-0" : "left-0",
-        )}
-      >
-        <div className="space-y-3 sm:space-y-4 max-w-[420px]">
-          {/* Eyebrow badge */}
-          <div className="inline-flex items-center gap-1.5 bg-primary/20 border border-primary/40 text-primary px-3 py-1 rounded-full text-[11px] font-semibold w-fit">
-            <Zap className="h-3 w-3 shrink-0" />
-            {lang === "ar" ? "تجربة تسوق متكاملة" : "Syria's First Online Marketplace"}
-          </div>
-
-          {/* Headline */}
-          {lang === "ar" ? (
-            <h1 className="text-[2.5rem] sm:text-[3.2rem] lg:text-[3.8rem] font-black text-white leading-[1.03] tracking-tight drop-shadow-2xl">
-              اكتشف آلاف المنتجات
-              <br />
-              <span className="text-primary">من المتاجر السورية</span>
-            </h1>
-          ) : (
-            <h1 className="text-[2rem] sm:text-[2.8rem] lg:text-[3.2rem] font-black text-white leading-[1.05] tracking-tight drop-shadow-2xl">
-              Discover Thousands
-              <br />
-              <span className="text-primary">of Syrian Products.</span>
-            </h1>
-          )}
-
-          {/* Subtitle */}
-          <p className="text-xs sm:text-sm text-white/50 leading-relaxed max-w-[300px]">
-            {lang === "ar"
-              ? "منتجات متنوعة، متاجر موثوقة، وتجربة تسوق حديثة"
-              : "Diverse products, trusted sellers, and a modern shopping experience."}
-          </p>
-
-          {/* Single CTA */}
-          <div className="pt-1">
-            <Link href="/products">
-              <Button
-                size="lg"
-                className="h-11 sm:h-12 px-8 sm:px-10 text-sm font-bold rounded-xl shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all duration-200"
-              >
-                {lang === "ar" ? "تسوق الآن" : "Shop Now"}
-                <ArrowRight
-                  className={cn("h-4 w-4 shrink-0", isRTL ? "me-2 rotate-180" : "ms-2")}
-                />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
     </div>
   );
 });
 
-/* ── Banner Carousel (when API returns banners) ───────────────────── */
+/* ── Banner Carousel (when API returns admin-managed banners) ─────── */
 const BannerCarousel = memo(function BannerCarousel({ banners }: { banners: Banner[] }) {
   const { i18n } = useTranslation();
   const lang = i18n.language;
@@ -347,6 +194,10 @@ const BannerCarousel = memo(function BannerCarousel({ banners }: { banners: Bann
 });
 
 /* ── Main HeroV4 export ───────────────────────────────────────────── */
+// Container uses aspect-ratio 1717/916 (exact image dimensions) so the
+// banner renders at its natural proportions.
+// maxHeight: 620px caps height on ultra-wide screens.
+// minHeight: 200px keeps a reasonable floor on very narrow viewports.
 export function HeroV4() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -361,7 +212,18 @@ export function HeroV4() {
 
   return (
     <section className="border-b overflow-hidden bg-black">
-      <div className="h-[340px] sm:h-[400px] lg:h-[440px]">
+      {/* aspect-ratio drives height at every breakpoint.
+          1717÷916 ≈ 1.875 → same proportions as the source PNG.
+          On screens ≥ ~1312px the height would exceed 700px so we cap
+          at 620px; object-position:left-top keeps the text visible. */}
+      <div
+        className="relative w-full"
+        style={{
+          aspectRatio: "1717/916",
+          maxHeight: "620px",
+          minHeight: "200px",
+        }}
+      >
         {loaded && banners.length > 0 ? (
           <BannerCarousel banners={banners} />
         ) : (

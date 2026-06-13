@@ -1,6 +1,6 @@
 # SYANO — Current Project State
 **Last Updated:** June 13, 2026  
-**Updated By:** Homepage V5 pixel-perfect implementation
+**Updated By:** Homepage V5 — approved hero banner image integrated
 
 ---
 
