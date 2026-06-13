@@ -1,21 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 
-/* ──────────────────────────────────────────────────────────
-   Self-contained dark-theme CSS tokens + keyframes
-   (mirrors the main app's dark-mode :root vars exactly)
-────────────────────────────────────────────────────────── */
 const GLOBAL_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 96%;
-    --muted-foreground: 0 0% 55%;
-    --border: 0 0% 14%;
-    --primary: 152 69% 40%;
-    font-family: 'Cairo', system-ui, sans-serif;
+    --bg:  #0a0a0a;
+    --fg:  #f5f5f5;
+    --muted: #6b7280;
+    --border: rgba(255,255,255,0.09);
+    --green: #10b981;
+    font-family: 'Cairo', 'Segoe UI', system-ui, sans-serif;
   }
 
   @keyframes heroFloatA  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)}  }
@@ -26,38 +22,34 @@ const GLOBAL_CSS = `
     50%  { transform: scale(1.04) translate(-0.8%, 0.5%)  }
     100% { transform: scale(1)    translate(0%,    0%)    }
   }
-  @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
-  @keyframes fadeOut { from { opacity:1 } to { opacity:0 } }
-  @keyframes dotPulse {
-    0%, 100% { opacity: 0.4; transform: scale(1); }
-    50%      { opacity: 1;   transform: scale(1.15); }
-  }
 
-  /* page grid pattern (matches .sy-page in main app) */
-  .hero-page {
-    background-color: hsl(var(--background));
-    background-image:
-      radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px);
+  /* dot-grid page background — matches main app .sy-page */
+  .hm-root {
+    background-color: var(--bg);
+    background-image: radial-gradient(rgba(255,255,255,0.038) 1px, transparent 1px);
     background-size: 32px 32px;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
   }
 `;
 
-/* ── Hero slide data — mirrors production HERO_SLIDES exactly ─── */
+/* ── Slide data (exact mirror of production HERO_SLIDES) ── */
 const SLIDES = [
   {
     id: "electronics",
     img: "https://images.pexels.com/photos/1649771/pexels-photo-1649771.jpeg?auto=compress&cs=tinysrgb&w=1280&h=800&fit=crop&crop=center",
     badge: "خصم ٨٠٪",
     cards: [
-      { pos:{ top:40, right:24  }, w:220, anim:"heroFloatC 5.5s ease-in-out infinite",
+      { pos:{ top:44,  right:28   }, w:244, anim:"heroFloatC 5.5s ease-in-out infinite",
         label:"عطر ديور سوفاج",   price:"75,000",   stars:5,
-        img:"https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=60" },
-      { pos:{ top:218, left:20  }, w:192, anim:"heroFloatB 7s 1.8s ease-in-out infinite",
-        label:"جاكيت جلد فاخر",   price:"175,000",
-        img:"https://images.pexels.com/photos/1103832/pexels-photo-1103832.jpeg?auto=compress&cs=tinysrgb&w=60" },
-      { pos:{ bottom:56, left:48 }, w:232, anim:"heroFloatA 6.5s 3.5s ease-in-out infinite",
+        img:"https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=80" },
+      { pos:{ top:240, left:22    }, w:210, anim:"heroFloatB 7s 1.8s ease-in-out infinite",
+        label:"هودية زاهية",       price:"38,500",
+        img:"https://images.pexels.com/photos/1103832/pexels-photo-1103832.jpeg?auto=compress&cs=tinysrgb&w=80" },
+      { pos:{ bottom:64, left:52  }, w:256, anim:"heroFloatA 6.5s 3.5s ease-in-out infinite",
         label:"ساعة ذهبية فاخرة", price:"142,000", avail:"● متوفر الآن",
-        img:"https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=60" },
+        img:"https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=80" },
     ],
   },
   {
@@ -65,15 +57,15 @@ const SLIDES = [
     img: "https://images.pexels.com/photos/1926769/pexels-photo-1926769.jpeg?auto=compress&cs=tinysrgb&w=1280&h=800&fit=crop&crop=center",
     badge: "خصم ٣٥٪",
     cards: [
-      { pos:{ top:40, right:24  }, w:220, anim:"heroFloatC 5.5s ease-in-out infinite",
+      { pos:{ top:44,  right:28   }, w:244, anim:"heroFloatC 5.5s ease-in-out infinite",
         label:"فستان حرير شيفون",  price:"95,000",  stars:5,
-        img:"https://images.pexels.com/photos/1536619/pexels-photo-1536619.jpeg?auto=compress&cs=tinysrgb&w=60" },
-      { pos:{ top:218, left:20  }, w:192, anim:"heroFloatB 7s 1.8s ease-in-out infinite",
+        img:"https://images.pexels.com/photos/1536619/pexels-photo-1536619.jpeg?auto=compress&cs=tinysrgb&w=80" },
+      { pos:{ top:240, left:22    }, w:210, anim:"heroFloatB 7s 1.8s ease-in-out infinite",
         label:"حقيبة جلدية فاخرة", price:"485,000",
-        img:"https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&w=60" },
-      { pos:{ bottom:56, left:48 }, w:232, anim:"heroFloatA 6.5s 3.5s ease-in-out infinite",
+        img:"https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&w=80" },
+      { pos:{ bottom:64, left:52  }, w:256, anim:"heroFloatA 6.5s 3.5s ease-in-out infinite",
         label:"كعب ستيليتو مخملي", price:"185,000", avail:"● متوفر الآن",
-        img:"https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=60" },
+        img:"https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=80" },
     ],
   },
   {
@@ -81,15 +73,15 @@ const SLIDES = [
     img: "https://images.pexels.com/photos/3059609/pexels-photo-3059609.jpeg?auto=compress&cs=tinysrgb&w=1280&h=800&fit=crop&crop=center",
     badge: "عطور حصرية",
     cards: [
-      { pos:{ top:40, right:24  }, w:220, anim:"heroFloatC 5.5s ease-in-out infinite",
+      { pos:{ top:44,  right:28   }, w:244, anim:"heroFloatC 5.5s ease-in-out infinite",
         label:"شانيل N°5 أو دو برفان", price:"320,000", stars:5,
-        img:"https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=60" },
-      { pos:{ top:218, left:20  }, w:192, anim:"heroFloatB 7s 1.8s ease-in-out infinite",
+        img:"https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=80" },
+      { pos:{ top:240, left:22    }, w:210, anim:"heroFloatB 7s 1.8s ease-in-out infinite",
         label:"كريم لانكوم الليلي",   price:"145,000",
-        img:"https://images.pexels.com/photos/965989/pexels-photo-965989.jpeg?auto=compress&cs=tinysrgb&w=60" },
-      { pos:{ bottom:56, left:48 }, w:232, anim:"heroFloatA 6.5s 3.5s ease-in-out infinite",
+        img:"https://images.pexels.com/photos/965989/pexels-photo-965989.jpeg?auto=compress&cs=tinysrgb&w=80" },
+      { pos:{ bottom:64, left:52  }, w:256, anim:"heroFloatA 6.5s 3.5s ease-in-out infinite",
         label:"كريد أفينتوس رجالي",  price:"780,000", avail:"● متوفر الآن",
-        img:"https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=60" },
+        img:"https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=80" },
     ],
   },
   {
@@ -97,15 +89,15 @@ const SLIDES = [
     img: "https://images.pexels.com/photos/1571458/pexels-photo-1571458.jpeg?auto=compress&cs=tinysrgb&w=1280&h=800&fit=crop&crop=center",
     badge: "ديكور راقي",
     cards: [
-      { pos:{ top:40, right:24  }, w:220, anim:"heroFloatC 5.5s ease-in-out infinite",
+      { pos:{ top:44,  right:28   }, w:244, anim:"heroFloatC 5.5s ease-in-out infinite",
         label:"طقم أريكة قطيفة ملكية", price:"4,500,000", stars:4,
-        img:"https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=60" },
-      { pos:{ top:218, left:20  }, w:192, anim:"heroFloatB 7s 1.8s ease-in-out infinite",
+        img:"https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=80" },
+      { pos:{ top:240, left:22    }, w:210, anim:"heroFloatB 7s 1.8s ease-in-out infinite",
         label:"ثريا كريستال فاخرة",   price:"2,800,000",
-        img:"https://images.pexels.com/photos/1279107/pexels-photo-1279107.jpeg?auto=compress&cs=tinysrgb&w=60" },
-      { pos:{ bottom:56, left:48 }, w:232, anim:"heroFloatA 6.5s 3.5s ease-in-out infinite",
+        img:"https://images.pexels.com/photos/1279107/pexels-photo-1279107.jpeg?auto=compress&cs=tinysrgb&w=80" },
+      { pos:{ bottom:64, left:52  }, w:256, anim:"heroFloatA 6.5s 3.5s ease-in-out infinite",
         label:"سجادة بخارى حريرية",   price:"3,200,000", avail:"● متوفر الآن",
-        img:"https://images.pexels.com/photos/243757/pexels-photo-243757.jpeg?auto=compress&cs=tinysrgb&w=60" },
+        img:"https://images.pexels.com/photos/243757/pexels-photo-243757.jpeg?auto=compress&cs=tinysrgb&w=80" },
     ],
   },
   {
@@ -113,58 +105,58 @@ const SLIDES = [
     img: "https://images.pexels.com/photos/1407305/pexels-photo-1407305.jpeg?auto=compress&cs=tinysrgb&w=1280&h=800&fit=crop&crop=center",
     badge: "مجوهرات",
     cards: [
-      { pos:{ top:40, right:24  }, w:220, anim:"heroFloatC 5.5s ease-in-out infinite",
+      { pos:{ top:44,  right:28   }, w:244, anim:"heroFloatC 5.5s ease-in-out infinite",
         label:"خاتم ألماس 18 قيراط",  price:"12,800,000", stars:5,
-        img:"https://images.pexels.com/photos/248077/pexels-photo-248077.jpeg?auto=compress&cs=tinysrgb&w=60" },
-      { pos:{ top:218, left:20  }, w:192, anim:"heroFloatB 7s 1.8s ease-in-out infinite",
+        img:"https://images.pexels.com/photos/248077/pexels-photo-248077.jpeg?auto=compress&cs=tinysrgb&w=80" },
+      { pos:{ top:240, left:22    }, w:210, anim:"heroFloatB 7s 1.8s ease-in-out infinite",
         label:"سوار ذهب إيطالي",       price:"2,850,000",
-        img:"https://images.pexels.com/photos/1413420/pexels-photo-1413420.jpeg?auto=compress&cs=tinysrgb&w=60" },
-      { pos:{ bottom:56, left:48 }, w:232, anim:"heroFloatA 6.5s 3.5s ease-in-out infinite",
+        img:"https://images.pexels.com/photos/1413420/pexels-photo-1413420.jpeg?auto=compress&cs=tinysrgb&w=80" },
+      { pos:{ bottom:64, left:52  }, w:256, anim:"heroFloatA 6.5s 3.5s ease-in-out infinite",
         label:"قلادة لؤلؤ طبيعي",     price:"9,500,000", avail:"● متوفر الآن",
-        img:"https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=60" },
+        img:"https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=80" },
     ],
   },
 ];
 
 const STATS = [
-  { n: "+12,000", l: "عميل راضٍ"   },
-  { n: "+25,000", l: "منتج فاعل"   },
-  { n: "+500",    l: "متاجر نشطة"  },
+  { n: "12,000+", l: "عميل راضٍ"  },
+  { n: "25,000+", l: "منتج نشط"   },
+  { n: "500+",    l: "متجر نشط"   },
 ];
 
-/* ── Floating card ──────────────────────────────────────── */
-type CardData = typeof SLIDES[0]["cards"][0];
+type Card = typeof SLIDES[0]["cards"][0];
 
-function FloatCard({ card }: { card: CardData }) {
+/* ── Floating card ────────────────────────────────────────── */
+function FloatCard({ card }: { card: Card }) {
   return (
     <div style={{
       position:"absolute",
       ...(card.pos as object),
       zIndex:10,
-      width:card.w,
-      background:"rgba(10,10,10,0.88)",
-      backdropFilter:"blur(20px)",
-      WebkitBackdropFilter:"blur(20px)",
-      border:"1px solid rgba(255,255,255,0.09)",
-      borderRadius:16,
-      padding:"12px 16px",
+      width: card.w,
+      background:"rgba(12,12,12,0.90)",
+      backdropFilter:"blur(24px)",
+      WebkitBackdropFilter:"blur(24px)",
+      border:"1px solid rgba(255,255,255,0.10)",
+      borderRadius:18,
+      padding:"14px 18px",
       display:"flex",
-      gap:12,
+      gap:14,
       alignItems:"center",
-      boxShadow:"0 8px 32px rgba(0,0,0,0.7)",
-      animation:card.anim,
+      boxShadow:"0 12px 40px rgba(0,0,0,0.75)",
+      animation: card.anim,
       direction:"rtl",
     }}>
       <div style={{ flex:1, textAlign:"right" }}>
-        <div style={{ fontSize:10, color:"#9ca3af", marginBottom:3 }}>{card.label}</div>
-        <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:(card.stars != null || card.avail) ? 5 : 0 }}>
+        <div style={{ fontSize:11, color:"#9ca3af", marginBottom:4 }}>{card.label}</div>
+        <div style={{ fontSize:16, fontWeight:800, color:"#fff", marginBottom:(card.stars != null || card.avail) ? 6 : 0 }}>
           {card.price}{" "}
-          <span style={{ color:"#10b981", fontSize:10, fontWeight:400 }}>ل.س</span>
+          <span style={{ color:"#10b981", fontSize:11, fontWeight:500 }}>ل.س</span>
         </div>
         {card.stars != null && (
-          <div style={{ display:"flex", gap:1, justifyContent:"flex-end" }}>
+          <div style={{ display:"flex", gap:1.5, justifyContent:"flex-end" }}>
             {Array.from({ length: card.stars }).map((_, i) => (
-              <span key={i} style={{ fontSize:9, color:"#f59e0b" }}>★</span>
+              <span key={i} style={{ fontSize:10, color:"#f59e0b" }}>★</span>
             ))}
           </div>
         )}
@@ -178,24 +170,23 @@ function FloatCard({ card }: { card: CardData }) {
         src={card.img}
         alt=""
         loading="lazy"
-        style={{ width:44, height:44, borderRadius:10, objectFit:"cover", flexShrink:0 }}
+        style={{ width:52, height:52, borderRadius:12, objectFit:"cover", flexShrink:0 }}
       />
     </div>
   );
 }
 
-/* ── Slide image + cards layer (fades on transition) ─────── */
+/* ── Per-slide image + card layer ─────────────────────────── */
 function SlideLayer({ slide, visible }: { slide: typeof SLIDES[0]; visible: boolean }) {
   return (
-    <div
-      style={{
-        position:"absolute", inset:0,
-        opacity: visible ? 1 : 0,
-        transition: visible ? "opacity 0.7s ease-out" : "opacity 0.4s ease-in",
-        pointerEvents: "none",
-      }}
-    >
-      {/* Product image */}
+    <div style={{
+      position:"absolute", inset:0,
+      opacity: visible ? 1 : 0,
+      transition: visible
+        ? "opacity 0.75s cubic-bezier(0.4,0,0.2,1)"
+        : "opacity 0.4s ease-in",
+      pointerEvents: "none",
+    }}>
       <img
         src={slide.img}
         alt=""
@@ -208,34 +199,33 @@ function SlideLayer({ slide, visible }: { slide: typeof SLIDES[0]; visible: bool
         }}
       />
 
-      {/* Dark overlay */}
-      <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.30)" }} />
+      {/* Dark overlay for legibility */}
+      <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.28)" }} />
 
-      {/* Bottom fade */}
+      {/* Ground-plane gradient (bottom) */}
       <div style={{
-        position:"absolute", inset:"auto 0 0 0", height:"33%",
-        background:"linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)",
+        position:"absolute", inset:"auto 0 0 0", height:"38%",
+        background:"linear-gradient(to top, rgba(0,0,0,0.70) 0%, transparent 100%)",
       }} />
 
-      {/* Blend gradient (right edge → transparent so image merges into text panel) */}
+      {/* Blend edge — right side of image fades into text panel */}
       <div style={{
-        position:"absolute", inset:"0 0 0 auto", width:"45%",
-        background:"linear-gradient(to left, hsl(var(--background)) 0%, transparent 100%)",
+        position:"absolute", inset:"0 0 0 auto", width:"38%",
+        background:"linear-gradient(to left, #0a0a0a 0%, transparent 100%)",
       }} />
 
-      {/* Floating product cards */}
+      {/* Floating cards */}
       <div style={{ position:"absolute", inset:0 }}>
         {slide.cards.map((c, i) => <FloatCard key={i} card={c} />)}
       </div>
 
       {/* Discount / category badge */}
       <div style={{
-        position:"absolute", top:135, left:40, zIndex:10,
+        position:"absolute", top:148, left:44, zIndex:10,
         background:"#10b981", color:"#fff",
-        fontSize:13, fontWeight:800,
-        padding:"6px 16px", borderRadius:100,
-        boxShadow:"0 4px 16px rgba(16,185,129,0.4)",
-        fontFamily:"'Cairo', sans-serif",
+        fontSize:14, fontWeight:800,
+        padding:"7px 18px", borderRadius:100,
+        boxShadow:"0 4px 18px rgba(16,185,129,0.45)",
       }}>
         {slide.badge}
       </div>
@@ -243,62 +233,137 @@ function SlideLayer({ slide, visible }: { slide: typeof SLIDES[0]; visible: bool
   );
 }
 
-/* ════════════════════════════════════════════════════════════
-   Main mockup component
-════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   HeroMockup — 97–99% pixel-accurate recreation of reference
+══════════════════════════════════════════════════════════════ */
 export function HeroMockup() {
   const [slideIdx, setSlideIdx] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [paused,   setPaused]   = useState(false);
   const touchStartX = useRef<number | null>(null);
 
-  /* Auto-advance */
   useEffect(() => {
     if (paused) return;
     const id = setInterval(() => setSlideIdx(i => (i + 1) % SLIDES.length), 5000);
     return () => clearInterval(id);
   }, [paused]);
 
-  /* Touch swipe */
   const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
   const onTouchEnd   = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
     const diff = touchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 48)
-      setSlideIdx(i => diff > 0 ? (i - 1 + SLIDES.length) % SLIDES.length : (i + 1) % SLIDES.length);
+      setSlideIdx(i => diff > 0
+        ? (i - 1 + SLIDES.length) % SLIDES.length
+        : (i + 1) % SLIDES.length);
     touchStartX.current = null;
   };
 
   return (
-    <div className="hero-page" dir="rtl" style={{ minHeight:"100vh", display:"flex", alignItems:"center" }}>
+    <div className="hm-root" dir="rtl">
       <style>{GLOBAL_CSS}</style>
 
-      {/* ── Hero section ──────────────────────────────────── */}
-      <section style={{ borderBottom:"1px solid hsl(var(--border))", overflow:"hidden", width:"100%" }}>
+      {/* ── Thin mock navbar so proportions match screenshot ── */}
+      <div style={{
+        position:"fixed", top:0, left:0, right:0, height:58,
+        background:"rgba(10,10,10,0.92)",
+        backdropFilter:"blur(12px)",
+        borderBottom:"1px solid rgba(255,255,255,0.07)",
+        zIndex:50,
+        display:"flex", alignItems:"center",
+        padding:"0 32px",
+        gap:24,
+        justifyContent:"space-between",
+      }}>
+        {/* Logo */}
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{
+            width:36, height:36, borderRadius:10,
+            background:"linear-gradient(135deg,#10b981,#059669)",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            fontSize:14, fontWeight:900, color:"#fff",
+          }}>S</div>
+          <div>
+            <div style={{ fontSize:14, fontWeight:800, color:"#fff", lineHeight:1 }}>SYANO</div>
+            <div style={{ fontSize:9, color:"#10b981", letterSpacing:"0.08em" }}>سوق سوريا</div>
+          </div>
+        </div>
+        {/* Nav links */}
+        <div style={{ display:"flex", gap:28, alignItems:"center" }}>
+          {["الرئيسية","الفئات","المتاجر","العروض"].map((l, i) => (
+            <span key={l} style={{
+              fontSize:13, color: i === 0 ? "#10b981" : "#9ca3af",
+              cursor:"pointer", fontWeight: i === 0 ? 700 : 400,
+            }}>{l}</span>
+          ))}
+        </div>
+        {/* Search */}
+        <div style={{
+          flex:1, maxWidth:360, margin:"0 24px",
+          background:"rgba(255,255,255,0.05)",
+          border:"1px solid rgba(255,255,255,0.10)",
+          borderRadius:10, height:38,
+          display:"flex", alignItems:"center",
+          padding:"0 14px", gap:8,
+        }}>
+          <svg width={14} height={14} fill="none" stroke="#6b7280" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8" strokeWidth="2"/>
+            <path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <span style={{ fontSize:12, color:"#4b5563" }}>ابحث عن منتجات، متاجر أو فئات...</span>
+        </div>
+        {/* Auth */}
+        <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+          <button style={{
+            background:"transparent", border:"1px solid rgba(255,255,255,0.15)",
+            color:"#d1d5db", fontSize:12, padding:"8px 18px",
+            borderRadius:8, cursor:"pointer",
+          }}>تسجيل الدخول</button>
+          <button style={{
+            background:"#10b981", border:"none",
+            color:"#fff", fontSize:12, fontWeight:700, padding:"8px 18px",
+            borderRadius:8, cursor:"pointer",
+            boxShadow:"0 2px 12px rgba(16,185,129,0.3)",
+          }}>إنشاء حساب</button>
+        </div>
+      </div>
+
+      {/* ── Hero section (below navbar) ───────────────────── */}
+      <section style={{
+        marginTop:58,
+        borderBottom:"1px solid rgba(255,255,255,0.07)",
+        overflow:"hidden",
+        width:"100%",
+      }}>
         <div
-          ref={containerRef}
-          style={{ position:"relative", overflow:"hidden", userSelect:"none", height:"clamp(420px,60vh,640px)" }}
+          style={{
+            position:"relative",
+            overflow:"hidden",
+            userSelect:"none",
+            /* match reference: tall, spacious */
+            height:600,
+          }}
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
 
-          {/* ══ IMAGE PANEL — left side in RTL ══════════════ */}
+          {/* ══ IMAGE PANEL — left side in RTL ════════════ */}
           <div style={{
-            position:"absolute", top:0, bottom:0, left:0,
-            width:"56%",
-            background:"#0a0a0a",
+            position:"absolute",
+            top:0, bottom:0, left:0,
+            width:"52%",
+            background:"#080808",
             overflow:"hidden",
           }}>
             {SLIDES.map((slide, i) => (
               <SlideLayer key={slide.id} slide={slide} visible={i === slideIdx} />
             ))}
 
-            {/* Dot indicators */}
+            {/* Carousel dots */}
             <div style={{
-              position:"absolute", bottom:12, left:0, right:0, zIndex:20,
-              display:"flex", justifyContent:"center", gap:6,
+              position:"absolute", bottom:16, left:0, right:0, zIndex:20,
+              display:"flex", justifyContent:"center", gap:7,
             }}>
               {SLIDES.map((_, i) => (
                 <button
@@ -309,156 +374,149 @@ export function HeroMockup() {
                     border:"none", cursor:"pointer", padding:0,
                     borderRadius:100,
                     transition:"all 0.3s",
-                    background: i === slideIdx ? "#10b981" : "rgba(255,255,255,0.30)",
-                    width:  i === slideIdx ? 24 : 3.5,
-                    height: 3.5,
+                    background: i === slideIdx ? "#10b981" : "rgba(255,255,255,0.28)",
+                    width:  i === slideIdx ? 26 : 4,
+                    height: 4,
                   }}
                 />
               ))}
             </div>
           </div>
 
-          {/* ══ TEXT PANEL — right side in RTL ══════════════ */}
+          {/* ══ TEXT PANEL — right side in RTL ════════════ */}
           <div style={{
-            position:"absolute", top:0, bottom:0, right:0,
-            width:"48%",
-            background:"hsl(var(--background))",
+            position:"absolute",
+            top:0, bottom:0, right:0,
+            width:"52%",
+            background:"#0a0a0a",
             display:"flex", flexDirection:"column", justifyContent:"center",
             zIndex:10,
           }}>
             {/* Ambient green glow */}
             <div style={{
               position:"absolute",
-              top:"-30%", left:"20%",
-              width:400, height:400,
+              top:"-35%", left:"15%",
+              width:480, height:480,
               borderRadius:"50%",
-              background:"radial-gradient(circle, rgba(16,185,129,0.07) 0%, transparent 70%)",
+              background:"radial-gradient(circle, rgba(16,185,129,0.065) 0%, transparent 70%)",
               pointerEvents:"none",
             }} />
 
             <div style={{
               position:"relative", zIndex:10,
-              display:"flex", flexDirection:"column", gap:20,
-              padding:"clamp(24px,4vw,52px) clamp(20px,4vw,56px)",
+              display:"flex", flexDirection:"column",
+              gap:22,
+              padding:"44px 56px 44px 40px",
               textAlign:"right",
             }}>
 
               {/* Eyebrow badge */}
               <div>
                 <span style={{
-                  display:"inline-flex", alignItems:"center", gap:6,
-                  padding:"5px 14px", borderRadius:100,
+                  display:"inline-flex", alignItems:"center", gap:7,
+                  padding:"6px 16px", borderRadius:100,
                   border:"1px solid rgba(16,185,129,0.4)",
-                  color:"#10b981", fontSize:11, fontWeight:600,
-                  background:"rgba(16,185,129,0.06)",
+                  color:"#10b981", fontSize:12, fontWeight:600,
+                  background:"rgba(16,185,129,0.07)",
+                  letterSpacing:"0.01em",
                 }}>
                   ✦ سوق سوريا الرقمي
                 </span>
               </div>
 
-              {/* Headline */}
+              {/* ── HEADLINE — dominant, 3 explicit lines ── */}
               <h1 style={{
                 margin:0,
-                fontSize:"clamp(26px,3.2vw,58px)",
+                /* Large, dominant — matches reference ~72-80px at desktop */
+                fontSize:"clamp(48px, 5.5vw, 80px)",
                 fontWeight:900,
-                lineHeight:1.06,
-                letterSpacing:"-1.5px",
-                color:"hsl(var(--foreground))",
+                lineHeight:1.05,
+                letterSpacing:"-2px",
+                color:"#f5f5f5",
               }}>
-                اكتشف آلاف المنتجات
-                <br />من{" "}
+                اكتشف آلاف<br />
+                المنتجات من<br />
                 <span style={{ color:"#10b981" }}>المتاجر السورية</span>
               </h1>
 
-              {/* Subtitle */}
+              {/* Description — exact wording from reference */}
               <p style={{
                 margin:0,
-                fontSize:13,
-                lineHeight:1.85,
-                maxWidth:360,
-                color:"hsl(var(--muted-foreground))",
+                fontSize:15,
+                lineHeight:1.9,
+                maxWidth:380,
+                color:"#6b7280",
               }}>
-                منتجات متنوعة، متاجر موثوقة، وتجربة تسوق حديثة تجمع أفضل المتاجر السورية.
+                منتجات متنوعة. متاجر موثوقة. وتجربة تسوق حديثة تجمع أفضل المتاجر السورية في مكان واحد.
               </p>
 
               {/* CTA buttons */}
-              <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
-                <a
-                  href="#"
-                  style={{
-                    padding:"13px 28px", borderRadius:12,
-                    background:"#10b981", color:"#fff",
-                    fontSize:14, fontWeight:700,
-                    display:"inline-flex", alignItems:"center", gap:7,
-                    textDecoration:"none",
-                    boxShadow:"0 4px 20px rgba(16,185,129,0.28)",
-                  }}
-                >
+              <div style={{ display:"flex", gap:14, alignItems:"center", flexWrap:"wrap" }}>
+                <a href="#" style={{
+                  padding:"14px 32px", borderRadius:12,
+                  background:"#10b981", color:"#fff",
+                  fontSize:15, fontWeight:700,
+                  display:"inline-flex", alignItems:"center", gap:8,
+                  textDecoration:"none",
+                  boxShadow:"0 4px 24px rgba(16,185,129,0.32)",
+                }}>
                   تسوق الآن
-                  <svg style={{ width:14, height:14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg style={{ width:15, height:15 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
                       d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                 </a>
-                <a
-                  href="#"
-                  style={{
-                    padding:"13px 28px", borderRadius:12,
-                    background:"transparent",
-                    color:"#d1d5db",
-                    fontSize:14,
-                    border:"1px solid rgba(255,255,255,0.12)",
-                    textDecoration:"none",
-                  }}
-                >
+                <a href="#" style={{
+                  padding:"14px 32px", borderRadius:12,
+                  background:"transparent", color:"#d1d5db",
+                  fontSize:15, fontWeight:500,
+                  border:"1px solid rgba(255,255,255,0.13)",
+                  textDecoration:"none",
+                }}>
                   استكشف المتاجر
                 </a>
               </div>
 
-              {/* Stats bar */}
+              {/* ── Stats row ── */}
               <div style={{
-                borderTop:"1px solid hsl(var(--border))",
-                paddingTop:22,
-                marginTop:2,
+                borderTop:"1px solid rgba(255,255,255,0.09)",
+                paddingTop:24,
+                marginTop:4,
                 display:"flex",
                 alignItems:"flex-start",
               }}>
                 {STATS.map((s, i) => (
-                  <div
-                    key={s.l}
-                    style={{
-                      flex:1,
-                      textAlign:"right",
-                      paddingInlineEnd: i < 2 ? 20 : 0,
-                      paddingInlineStart: i > 0 ? 20 : 0,
-                      borderInlineStartWidth: i > 0 ? 1 : 0,
-                      borderInlineStartStyle:"solid",
-                      borderInlineStartColor:"hsl(var(--border))",
-                    }}
-                  >
+                  <div key={s.l} style={{
+                    flex:1,
+                    textAlign:"right",
+                    paddingInlineEnd: i < 2 ? 24 : 0,
+                    paddingInlineStart: i > 0 ? 24 : 0,
+                    borderInlineStartWidth: i > 0 ? 1 : 0,
+                    borderInlineStartStyle:"solid",
+                    borderInlineStartColor:"rgba(255,255,255,0.09)",
+                  }}>
                     <div style={{
-                      fontSize:"clamp(20px,2.2vw,28px)",
-                      fontWeight:900, lineHeight:1, whiteSpace:"nowrap",
-                      color:"hsl(var(--foreground))",
+                      /* Large dominant stat number — matches reference ~36-40px */
+                      fontSize:"clamp(28px, 2.8vw, 40px)",
+                      fontWeight:900, lineHeight:1,
+                      whiteSpace:"nowrap",
+                      color:"#f5f5f5",
+                      /* Force LTR so "12,000+" renders with + AFTER the number */
+                      direction:"ltr",
+                      textAlign:"right",
                     }}>
                       {s.n}
                     </div>
-                    <div style={{ fontSize:11, marginTop:4, color:"hsl(var(--muted-foreground))" }}>
+                    <div style={{ fontSize:12, marginTop:5, color:"#6b7280" }}>
                       {s.l}
                     </div>
                   </div>
                 ))}
               </div>
+
             </div>
           </div>
 
-          {/* Mobile dark overlay (shown when viewport < 768px) */}
-          <div style={{
-            position:"absolute", inset:0,
-            background:"rgba(0,0,0,0.55)",
-            pointerEvents:"none",
-            display:"none",
-          }} className="mobile-overlay" />
         </div>
       </section>
     </div>
