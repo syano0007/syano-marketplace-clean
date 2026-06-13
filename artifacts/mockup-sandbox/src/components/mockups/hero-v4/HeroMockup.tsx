@@ -227,7 +227,7 @@ export function HeroMockup() {
         backdropFilter:"blur(16px)",
         borderBottom:"1px solid rgba(255,255,255,0.06)",
         display:"flex", alignItems:"center",
-        padding:"0 32px", gap:20,
+        padding:"0 28px", gap:20,
         justifyContent:"space-between",
       }}>
         {/* Logo — CIRCLE (confirmed from reference) */}
@@ -247,21 +247,21 @@ export function HeroMockup() {
         {/* Nav links */}
         <nav style={{ display:"flex", gap:22, alignItems:"center", flexShrink:0 }}>
           {["الرئيسية","الفئات ▾","المتاجر","العروض"].map((l,i) => (
-            <span key={l} style={{ fontSize:12.5, color:i===0?"#f3f3f3":"#5a626e",
+            <span key={l} style={{ fontSize:12, color:i===0?"#f3f3f3":"#5a626e",
               cursor:"pointer", fontWeight:i===0?700:400 }}>{l}</span>
           ))}
         </nav>
 
-        {/* Search bar — ref: narrower (276px), shorter (34px), less dominant */}
+        {/* Search bar — ref: 276px wide × 34px tall, icon 12×12, placeholder #6b7280 */}
         <div style={{ flex:1, maxWidth:276, margin:"0 16px",
-          background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)",
+          background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.10)",
           borderRadius:8, height:34,
-          display:"flex", alignItems:"center", padding:"0 12px", gap:7 }}>
-          <svg width={13} height={13} fill="none" stroke="#4b5563" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8" strokeWidth="2"/>
-            <path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round"/>
+          display:"flex", alignItems:"center", padding:"0 11px", gap:7 }}>
+          <svg width={12} height={12} fill="none" stroke="#6b7280" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8" strokeWidth="1.75"/>
+            <path d="M21 21l-4.35-4.35" strokeWidth="1.75" strokeLinecap="round"/>
           </svg>
-          <span style={{ fontSize:11.5, color:"#374151" }}>ابحث عن منتجات، متاجر أو فئات...</span>
+          <span style={{ fontSize:11.5, color:"#6b7280" }}>ابحث عن منتجات، متاجر أو فئات...</span>
         </div>
 
         {/* Auth buttons — PILL shape (confirmed from reference) */}
@@ -422,7 +422,7 @@ export function HeroMockup() {
 
               {/* Description */}
               <p style={{ margin:0, fontSize:13.5, lineHeight:1.75,
-                maxWidth:390, color:"#4b5563" }}>
+                maxWidth:390, color:"#8b9aac" }}>
                 منتجات متنوعة. متاجر موثوقة. وتجربة تسوق حديثة تجمع أفضل
                 المتاجر السورية في مكان واحد.
               </p>
@@ -433,10 +433,10 @@ export function HeroMockup() {
                   Secondary: ghost with faint border */}
               <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
                 <a href="#" style={{
-                  padding:"12px 24px", borderRadius:10,
+                  padding:"12px 24px", borderRadius:8,
                   background:"#10b981",
                   color:"#000000",
-                  fontSize:13.5, fontWeight:700,
+                  fontSize:13.5, fontWeight:800,
                   display:"inline-flex", alignItems:"center", gap:6,
                   textDecoration:"none",
                   boxShadow:"0 4px 24px rgba(16,185,129,0.40), 0 2px 8px rgba(16,185,129,0.24)",
@@ -449,10 +449,10 @@ export function HeroMockup() {
                   </svg>
                 </a>
                 <a href="#" style={{
-                  padding:"12px 24px", borderRadius:10,
-                  background:"transparent", color:"#9ca3af",
+                  padding:"12px 24px", borderRadius:8,
+                  background:"transparent", color:"#b0b8c4",
                   fontSize:13.5, fontWeight:500,
-                  border:"1px solid rgba(255,255,255,0.09)",
+                  border:"1px solid rgba(255,255,255,0.14)",
                   textDecoration:"none",
                 }}>
                   استكشف المتاجر
