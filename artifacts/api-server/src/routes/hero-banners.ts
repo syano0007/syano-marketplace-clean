@@ -149,7 +149,7 @@ const bannerBodySchema = z.object({
 /** Create banner */
 router.post("/admin/banners", async (req, res) => {
   const parsed = bannerBodySchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
   try {
     const d = parsed.data;
@@ -170,10 +170,10 @@ router.post("/admin/banners", async (req, res) => {
 /** Update banner (partial) */
 router.patch("/admin/banners/:id", async (req, res) => {
   const id = parseInt(String(req.params["id"]));
-  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const parsed = bannerBodySchema.partial().safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
 
   try {
     const d = parsed.data;
@@ -187,7 +187,7 @@ router.patch("/admin/banners/:id", async (req, res) => {
       .where(eq(heroBannersTable.id, id))
       .returning();
 
-    if (!updated) return res.status(404).json({ error: "Banner not found" });
+    if (!updated) { res.status(404).json({ error: "Banner not found" }); return; }
     res.json(updated);
   } catch {
     res.status(500).json({ error: "Failed to update banner" });
@@ -197,7 +197,7 @@ router.patch("/admin/banners/:id", async (req, res) => {
 /** Delete banner */
 router.delete("/admin/banners/:id", async (req, res) => {
   const id = parseInt(String(req.params["id"]));
-  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   try {
     await db.delete(heroBannersTable).where(eq(heroBannersTable.id, id));

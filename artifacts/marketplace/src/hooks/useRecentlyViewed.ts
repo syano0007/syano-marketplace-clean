@@ -5,10 +5,12 @@ import type { Product } from "@workspace/api-client-react";
 const STORAGE_KEY = "syano_recently_viewed";
 const MAX_ITEMS = 10;
 
-type RecentProduct = Pick<
+export type RecentlyViewedProduct = Pick<
   Product,
   "id" | "name" | "price" | "discountPercent" | "imageUrl" | "imageUrls" | "category" | "storeName" | "stock" | "isBestDeal"
 > & { hasVariants?: boolean };
+
+type RecentProduct = RecentlyViewedProduct;
 
 function readFromStorage(): RecentProduct[] {
   try {

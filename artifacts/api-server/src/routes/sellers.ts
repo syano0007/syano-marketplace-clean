@@ -114,10 +114,10 @@ router.get("/sellers/featured", async (_req, res): Promise<void> => {
           categories: s.categories ?? [],
           city: s.city ?? null,
           isVerified: !!s.verifiedAt,
-          productsCount: stats.productsCount,
-          followersCount: stats.followersCount,
+          productsCount: stats.totalProducts,
+          followersCount: stats.followerCount,
           averageRating: stats.averageRating,
-          reviewsCount: stats.reviewsCount,
+          reviewsCount: stats.reviewCount,
         };
       }),
     );
