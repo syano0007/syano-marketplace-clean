@@ -1,5 +1,5 @@
 # SYANO — Recovery Guide
-**Last Updated:** June 13, 2026 (Recovery Session 3 — full environment restore + wishlist TS fix)
+**Last Updated:** June 13, 2026 (Recovery Session 5 — demo marketplace data self-healing)
 
 This guide restores the project to a fully working state from scratch.
 
@@ -48,18 +48,23 @@ psql "$DATABASE_URL" -c "SELECT count(*) FROM information_schema.tables WHERE ta
 
 ---
 
-## Step 3: Start API Server (Enums Auto-Patched on Startup)
+## Step 3: Start API Server (Enums + Demo Data Auto-Bootstrapped)
 
-Start the API server workflow. `run-migrations.ts` runs automatically on startup and handles ALL enum extensions:
-- `role` enum: adds `courier`
-- `order_status` enum: adds 9 delivery workflow statuses
-- `notification_type` enum: adds 14 courier/delivery/trust notification types (was previously manual Step 3)
+Start the API server workflow. On startup it automatically runs **in order**:
+
+1. `runMigrations()` — schema extensions, enum patches, delivery zones, all new tables
+2. `runSearchStartup()` — search index warmup
+3. `bootstrapRootAdmin()` — admin account (delewatiamer7)
+4. `bootstrapTestAccounts()` — seller + courier permanent accounts (delewatiamer8/9)
+5. **`bootstrapDemoMarketplaceData()`** — 4 stores, 4 customers, 42 products, 15 orders, reviews, wishlists, follows
+
+> **No manual seed step is needed.** The demo marketplace recreates itself automatically on every fresh database.
 
 After the API starts, verify enums are complete:
 
 ```bash
 psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM unnest(enum_range(NULL::notification_type));"
-# Expected: 32 (verified June 13, 2026 — was 31 in prior docs)
+# Expected: 32 (verified June 13, 2026)
 
 psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM unnest(enum_range(NULL::order_status));"
 # Expected: 15
@@ -147,6 +152,34 @@ Files: `artifacts/api-server/src/lib/bootstrap-admin.ts`, `bootstrap-test-accoun
 
 ---
 
+## Step 8: Verify Demo Marketplace Data
+
+Demo marketplace data is self-healing and auto-created by `bootstrapDemoMarketplaceData()` on every startup:
+
+```bash
+curl http://localhost:8080/api/products | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Products: {len(d[\"products\"] if isinstance(d,dict) else d)}')"
+# Expected: 42+ products
+
+curl http://localhost:8080/api/sellers/store/ahmad-electronics | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('storeName','NOT FOUND'))"
+# Expected: Ahmad Electronics
+```
+
+**What is bootstrapped automatically:**
+| Data | Count | Notes |
+|---|---|---|
+| Demo stores | 4 | Ahmad Electronics, Nour Fashion, Beit Al-Nour, Hana Beauty |
+| Demo customers | 4 | Mohammed, Sara, Omar, Layla |
+| Products | 42 | Real Pexels images, 8 categories |
+| Orders | 14 | Various statuses: delivered/shipped/processing/confirmed/pending/cancelled |
+| Product reviews | 40 | Arabic reviews, ratings 3–5 |
+| Seller reviews | 8 | Per-store reputation data |
+| Wishlist items | 12 | Across demo customers |
+| Store follows | 8 | Customer → seller follow relationships |
+
+**Idempotency:** If products already exist (`COUNT(*) >= 42`), the entire bootstrap is skipped. No duplicates ever created.
+
+---
+
 ## Verification Checklist
 
 ```
@@ -162,14 +195,16 @@ Files: `artifacts/api-server/src/lib/bootstrap-admin.ts`, `bootstrap-test-accoun
 [ ] Permanent courier login works (delewatiamer9, role=courier)
 [ ] delewatiamer8 has approved seller_application (storeSlug=syano-test-store)
 [ ] delewatiamer9 has approved couriers profile (active=true)
+[ ] GET /api/products returns 42+ products (demo data self-healed)
+[ ] GET /api/sellers/store/ahmad-electronics returns store data
 [ ] Marketplace loads
 [ ] Mobile builds
-[ ] GET /api/admin/recovery-check → confidenceScore >= 97
+[ ] GET /api/admin/recovery-check → confidenceScore >= 95
 ```
 
 ---
 
-## Step 8: Run Automated Recovery Verification
+## Step 9: Run Automated Recovery Verification
 
 After all services are running, run the full platform integrity check:
 
@@ -187,7 +222,7 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/admin/recove
 
 **Expected:** `"confidenceScore": 95, "failures": ["home.tsx does not use HeroBanner component"]`
 
-> **Recovery Session 3 Note (June 13, 2026):** `wishlist.ts` had 4 TypeScript errors (`user.id` → `user.userId`) introduced when the wishlist system was built. Fixed during recovery session 3. All 6 artifacts now compile at 0 errors.
+> **Recovery Session 5 Note (June 13, 2026):** `bootstrapDemoMarketplaceData()` added to `index.ts`. Demo marketplace (42 products, 4 stores, 14 orders, 40 reviews, 12 wishlists, 8 follows) now auto-recreates on any fresh database. No manual seed step required.
 
 > **Note:** The `heroBannerSystem` failure is a **known false negative**. Homepage V4 uses `HeroV4.tsx` which activates `BannerCarousel` when DB banners exist — `HeroBanner.tsx` is no longer directly imported in `home.tsx`. All 20 other modules pass. 95/100 is the correct expected score.
 
@@ -223,12 +258,13 @@ The endpoint runs 13 parallel checks covering:
 | Seller apply bounces back after submit | TanStack Query `isLoading` is false during refetch — guard must also check `!isFetching`; apply page must seed cache with `setQueryData` before navigating |
 | `verification_audit_log` name clash | The admin audit table is `seller_verification_log` — NOT `verification_audit_log` (that's the OTP log in base schema) |
 | `wishlist.ts` TS errors on recovery | `req.user.id` does not exist — use `req.user!.userId` (all 4 occurrences); fixed in Recovery Session 3 |
-| `GET /api/reviews?productId=X` returns 404 | Expected on fresh DB — no products seeded; reviews endpoint works once products exist |
+| `GET /api/reviews?productId=X` returns 404 on old DB | Expected on fresh DB without demo data — `bootstrapDemoMarketplaceData()` now seeds products automatically |
 | SSE endpoint path | SSE stream is `/api/notifications/stream` (not `/api/notifications/sse`) |
 | Root owner login returns 401 | Use `role:"admin"` not `role:"customer"` for admin account |
 | Trust score shows `isVerified: null` | Server restart needed — tsx watch sometimes doesn't hot-reload route changes |
 | Seller application returns 400 "already an approved seller" | The test seller was registered with `role:"seller"` — reset to `role:"customer"` via SQL before applying: `UPDATE users SET role='customer', seller_status=null WHERE email='seller@syano.test'` |
 | Unverify returns "Invalid level" | Send `{"action":"unverify"}` OR `{"level":"none"}` — both accepted after June 2026 fix |
+| Demo products missing after recovery | `bootstrapDemoMarketplaceData()` now runs automatically — just restart the API server |
 
 ---
 
@@ -242,6 +278,19 @@ The endpoint runs 13 parallel checks covering:
 - **Notifications:** SSE stream + push (VAPID), `notification_type` Postgres enum
 - **Courier flow:** `POST /admin/orders/:id/assign-courier` creates assignment + updates order status atomically
 - **Trust System:** `lib/trustScore.ts` — 0-100 score; `seller_verification_log` audit table; admin routes in `admin.ts` (lines 1356–1530)
+- **Demo Data:** `lib/bootstrap-demo-data.ts` — self-healing, idempotent, runs on every startup
+
+## Bootstrap Startup Sequence
+
+```
+Server start
+  └─ runMigrations()              ← schema extensions, enums, new tables
+  └─ runSearchStartup()           ← search warmup
+  └─ bootstrapRootAdmin()         ← delewatiamer7 (admin)
+  └─ bootstrapTestAccounts()      ← delewatiamer8 (seller) + delewatiamer9 (courier)
+  └─ bootstrapDemoMarketplaceData() ← 4 stores, 42 products, 14 orders, reviews...
+  └─ app.listen()                 ← server ready
+```
 
 ## Homepage V6 Architecture (June 2026)
 
@@ -255,84 +304,8 @@ The endpoint runs 13 parallel checks covering:
 5. Recently Viewed Products — horizontal scroll, conditional (hidden when empty)
 6. Join Syano — delivery van + two CTAs (Open Store / Become Courier)
 
-> **Note (section order change):** Recently Viewed now appears **before** Join Syano. Previously it was after.
-
-### Hero Split-Panel Layout (V6)
-
-The hero uses a **fixed split** — no full-width image. This is the Amazon/Noon/Trendyol pattern.
-
-**LEFT panel (48% width in LTR — text is always fixed, never rotates):**
-- Brand badge: "Syria's Premier Marketplace ✦"
-- Headline: title white + green line 2 (locale-aware: AR/EN)
-- Subtitle paragraph
-- Two CTA buttons: "Browse Stores" (outline) + "→ Shop Now" (green solid)
-- Stats bar: 500+ Active Stores | 25,000+ Active Products | 12,000+ Happy Customers
-
-**RIGHT panel (56% width in LTR — rotating banners):**
-- Full-height banner image (objectFit:cover), Ken Burns scale animation
-- Ken Burns CSS keyframe (`@keyframes heroKenBurns`) on each image
-- **Floating product cards** (3 cards, absolutely positioned on the image panel):
-  - Top-right: product card 1 (عطر ديور سوفاج, 75,000 ل.س, 5-star rating)
-  - Middle-left: product card 2 (جاكيت جلد فاخر, 175,000 ل.س)
-  - Bottom-left: product card 3 (رولكس سابمارينر, 142,000 ل.س, ● متوفر الآن)
-  - Float animations: `heroFloatA/B/C` keyframes, staggered timing
-- Discount badge: `خصم ٨٠٪` (green pill, top-left of image panel)
-- Dot progress indicators (bottom of image panel)
-- Prev arrow: `left: calc(44% + 10px)` (junction of text/image panels in LTR)
-- Next arrow: `right: 12px` (far edge of image panel in LTR)
-- All positions RTL-aware (flipped when `i18n.language === "ar"`)
-
-**RTL flip:** `isRTL = i18n.language === "ar"`. Text panel: `[isRTL?"right":"left"]:0`. Image panel: `[isRTL?"left":"right"]:0`.
-
-**TrustStrip** (always rendered, below hero content):
-- 4 items: Fast Support / Trusted Sellers / Secure Payment / Fast Delivery
-- `grid-cols-2 sm:grid-cols-4`, emerald icon squares
-- NOT duplicated anywhere else on the homepage
-
-**BannerCarousel data source:** `GET /api/banners` → array of banners used as image slides.  
-Falls back to 3 hardcoded static banner objects (tech workspace, fashion, luxury) when DB returns 0.
-
-### Categories — Real Data (V6)
-
-`CategoriesSection` now accepts `products` prop from `home.tsx` (all products from `/api/products`).  
-It derives real images and counts from DB data, not hardcoded values.
-
-```ts
-// home.tsx passes: <CategoriesSection products={products} />
-// CategoriesSection groups by product.category, picks first imageUrl, counts per category
-```
-
 ### Key Component
 - `artifacts/marketplace/src/components/HeroV4.tsx`
-  - Split-panel layout (text panel + image panel)
-  - Floating product cards with float animations
-  - Dot indicators, prev/next arrows (RTL-aware)
-  - `TrustStrip` — 4-item row at hero bottom
-  - `// @refresh reset` at top (required for HMR stability)
-
-### API Endpoints (homepage)
-| Endpoint | Consumer | Notes |
-|---|---|---|
-| `GET /api/banners` | `HeroV4.tsx` | Banner images for rotating right panel; fallback to static if 0 |
-| `POST /api/banners/:id/impression` | `HeroV4.tsx` | Fire-and-forget; always 200 |
-| `POST /api/banners/:id/click` | `HeroV4.tsx` | Fire-and-forget; always 200 |
-| `GET /api/products` | `home.tsx` | Passed to CategoriesSection + Deals + Trending + New Arrivals |
-| `GET /api/sellers/featured` | `home.tsx` | Verified Stores carousel |
-
-### Zero-Data Resilience
-- 0 banners → 3 hardcoded static slides (always beautiful, no external image dependency)
-- 0 `isBestDeal` products → Hot Deals section hidden
-- 0 products → New Arrivals column hidden; Categories shows empty state
-- 0 featured sellers → Verified Stores section hidden
-
-### Currency System Audit (V6)
-| Component | Uses useCurrency | Notes |
-|---|---|---|
-| ProductCard | ✅ `format(product.price)` | All price displays |
-| Cart | ✅ `format(price)` | Item prices + subtotal + total |
-| Checkout | ✅ `format(price)` | Order totals + delivery fee |
-| ProductDetail | ✅ `format(price)` | Final + compare-at prices |
-| Home custom sections (Deals/Trending) | ⚠️ Hardcoded `ل.س` | Inline style sections don't use context — known limitation |
 
 ## Trust System API Reference
 

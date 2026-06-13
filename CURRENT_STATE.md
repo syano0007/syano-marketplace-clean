@@ -1,6 +1,6 @@
 # SYANO — Current Project State
-**Last Updated:** June 13, 2026 (Recovery Session 4)  
-**Updated By:** Full environment recovery — fresh env, 1131 packages, 29 tables, 0 TS errors, 95/100 recovery score, all 3 services running
+**Last Updated:** June 13, 2026 (Recovery Session 5)  
+**Updated By:** Demo marketplace data integrated into self-healing bootstrap — 42 products, 4 stores, 14 orders, 40 reviews auto-seeded on fresh database
 
 ---
 
@@ -9,6 +9,16 @@
 All services running. All features validated end-to-end with real API calls.
 
 ---
+
+## Migration Note (June 13, 2026 — Session 5)
+
+Demo marketplace data integrated into self-healing bootstrap:
+- `bootstrapDemoMarketplaceData()` added to `artifacts/api-server/src/lib/bootstrap-demo-data.ts`
+- Wired into `index.ts` as step 5 of the startup sequence (after `bootstrapTestAccounts()`)
+- Idempotent: skips entirely if `COUNT(products) >= 42`
+- On fresh database automatically creates: 4 sellers + applications, 4 customers, 42 products (real Pexels images), 14 orders + items + status history, 40 product reviews, 8 seller reviews, 12 wishlist items, 8 store follows
+- Verified: restart log shows `"Demo marketplace data already present — skipping bootstrap" products: 42`
+- No manual seed step ever needed again
 
 ## Migration Note (June 13, 2026 — Session 4)
 

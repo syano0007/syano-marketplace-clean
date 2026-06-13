@@ -4,6 +4,7 @@ import { runSearchStartup } from "./lib/search-startup";
 import { runMigrations } from "./lib/run-migrations";
 import { bootstrapRootAdmin } from "./lib/bootstrap-admin";
 import { bootstrapTestAccounts } from "./lib/bootstrap-test-accounts";
+import { bootstrapDemoMarketplaceData } from "./lib/bootstrap-demo-data";
 
 const rawPort = process.env["PORT"];
 
@@ -24,6 +25,7 @@ if (Number.isNaN(port) || port <= 0) {
   await runSearchStartup();
   await bootstrapRootAdmin();
   await bootstrapTestAccounts();
+  await bootstrapDemoMarketplaceData();
 
   app.listen(port, (err) => {
     if (err) {
