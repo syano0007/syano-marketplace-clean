@@ -154,12 +154,12 @@
   --app-font-mono: Menlo, monospace;
   --radius: .5rem;
 
-  /* ── Light Theme: image brightness (lighter overlays for readability) ── */
-  --img-dim-hero:     0.72;
-  --img-dim-category: 0.62;
-  --img-dim-product:  0.92;
-  --img-dim-store:    0.70;
-  --img-dim-arrival:  0.68;
+  /* ── Light Theme: image brightness — near-full brightness, image-first ── */
+  --img-dim-hero:     0.97;
+  --img-dim-category: 0.93;
+  --img-dim-product:  1.0;
+  --img-dim-store:    0.95;
+  --img-dim-arrival:  0.95;
 
   /* ── Light Theme: card elevation ───────────────────────────────────── */
   --shadow-card:       0 1px 3px 0 rgba(0,0,0,0.07), 0 1px 2px -1px rgba(0,0,0,0.05);
@@ -805,12 +805,12 @@
    Light mode uses softer overlays so photo detail is preserved.
    Dark mode uses heavier overlays for dramatic contrast. */
 
-/* Category photo-cards — strongest overlay, readable labels */
+/* Category photo-cards — readable labels, light-theme-first */
 .sy-overlay-category {
   background: linear-gradient(to top,
-    rgba(0,0,0,0.72) 0%,
-    rgba(0,0,0,0.18) 55%,
-    transparent 100%);
+    rgba(0,0,0,0.50) 0%,
+    rgba(0,0,0,0.14) 48%,
+    transparent 78%);
 }
 .dark .sy-overlay-category {
   background: linear-gradient(to top,
@@ -819,11 +819,11 @@
     transparent 100%);
 }
 
-/* Store/arrival hero-size images — heavy label overlay */
+/* Store/arrival hero-size images — soft label gradient */
 .sy-overlay-heavy {
   background: linear-gradient(to top,
-    rgba(0,0,0,0.60) 0%,
-    rgba(0,0,0,0.12) 55%,
+    rgba(0,0,0,0.40) 0%,
+    rgba(0,0,0,0.08) 50%,
     transparent 100%);
 }
 .dark .sy-overlay-heavy {
@@ -833,12 +833,11 @@
     transparent 100%);
 }
 
-/* Deal/product card bottom-fade — medium overlay */
+/* Deal/product card bottom-fade — very light in light mode */
 .sy-overlay-medium {
   background: linear-gradient(to top,
-    rgba(0,0,0,0.42) 0%,
-    rgba(0,0,0,0.05) 50%,
-    transparent 100%);
+    rgba(0,0,0,0.18) 0%,
+    transparent 55%);
 }
 .dark .sy-overlay-medium {
   background: linear-gradient(to top,
@@ -847,16 +846,24 @@
     transparent 100%);
 }
 
-/* Trending product cards — lightest overlay */
+/* Trending product cards — barely-there in light mode */
 .sy-overlay-light {
   background: linear-gradient(to top,
-    rgba(0,0,0,0.28) 0%,
-    transparent 40%);
+    rgba(0,0,0,0.08) 0%,
+    transparent 35%);
 }
 .dark .sy-overlay-light {
   background: linear-gradient(to top,
     rgba(0,0,0,0.54) 0%,
     transparent 40%);
+}
+
+/* Hero section vignette — very subtle in light, deeper in dark */
+.sy-hero-overlay {
+  background: linear-gradient(to top right, hsl(var(--background) / 0.15), transparent);
+}
+.dark .sy-hero-overlay {
+  background: linear-gradient(to top right, hsl(var(--background) / 0.65), transparent);
 }
 
 /* ── Alt section background ───────────────────────────────────────

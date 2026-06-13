@@ -53,11 +53,43 @@ export function Navbar() {
   const [location, navigate] = useLocation();
   const { user, logout, isAuthenticated, isCustomer, isSeller, isAdmin, isCourier } = useAuth();
   const { count: wishlistCount } = useWishlist();
-  const { setTheme, theme } = useTheme();
+  const { setTheme, theme, resolvedTheme } = useTheme();
   const { currency, setCurrency } = useCurrency();
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const isRtl = lang === "ar";
+  const isDark = resolvedTheme === "dark";
+
+  /* ── Theme-aware nav tokens ──────────────────────────────────────────── */
+  const navFg         = isDark ? "text-white"          : "text-foreground";
+  const navFgMuted    = isDark ? "text-white/50"        : "text-foreground/55";
+  const navFgSub      = isDark ? "text-white/45"        : "text-foreground/50";
+  const navHoverFg    = isDark ? "hover:text-white"     : "hover:text-foreground";
+  const navHoverFgMid = isDark ? "hover:text-white/80"  : "hover:text-foreground/80";
+  const navHoverBg    = isDark ? "hover:bg-white/[0.05]" : "hover:bg-foreground/[0.05]";
+  const navDivider    = isDark ? "bg-white/[0.08]"      : "bg-foreground/[0.1]";
+  const navBorder     = isDark ? "border-white/[0.08]"  : "border-foreground/[0.09]";
+  const navBorderHov  = isDark ? "hover:border-white/[0.14]" : "hover:border-foreground/[0.16]";
+  const navInputColor = isDark ? "rgba(255,255,255,0.75)" : "rgba(17,24,39,0.72)";
+  const navSearchBg   = isDark
+    ? "bg-white/[0.06] hover:bg-white/[0.08] focus-within:bg-white/[0.08] border border-white/[0.08] focus-within:border-white/[0.14]"
+    : "bg-foreground/[0.04] hover:bg-foreground/[0.06] focus-within:bg-foreground/[0.06] border border-foreground/[0.09] focus-within:border-foreground/[0.16]";
+  const navSearchIcon  = isDark ? "text-white/30"  : "text-foreground/35";
+  const navXBtn        = isDark ? "text-white/30 hover:text-white/60"  : "text-foreground/35 hover:text-foreground/60";
+  const navDropBg      = isDark ? "bg-[#111] border-white/[0.1]"       : "bg-popover border-border";
+  const navDropText    = isDark ? "text-white/90"  : "text-foreground/90";
+  const navDropSub     = isDark ? "text-white/35"  : "text-muted-foreground";
+  const navDropMeta    = isDark ? "text-white/30"  : "text-foreground/30";
+  const navDropRecent  = isDark ? "text-white/60"  : "text-foreground/65";
+  const navSettingsBtn = isDark
+    ? "text-white/50 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.14]"
+    : "text-foreground/55 hover:text-foreground hover:bg-foreground/[0.05] border border-foreground/[0.09] hover:border-foreground/[0.16]";
+  const navUserBtn     = isDark
+    ? "bg-white/[0.06] border border-white/[0.1] hover:bg-white/[0.09] hover:border-white/[0.15]"
+    : "bg-foreground/[0.04] border border-foreground/[0.1] hover:bg-foreground/[0.07] hover:border-foreground/[0.15]";
+  const navLoginLink   = isDark
+    ? "text-white/60 hover:text-white hover:bg-white/[0.06]"
+    : "text-foreground/60 hover:text-foreground hover:bg-foreground/[0.05]";
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -167,15 +199,24 @@ export function Navbar() {
     { href: "/orders", icon: ClipboardList, label: t("nav.orders") },
   ], [t]);
 
-  /* ── Header style: glassmorphism dark always ─────────────────────────────── */
-  const headerStyle: React.CSSProperties = {
-    background: scrolled ? "rgba(8,8,8,0.88)" : "rgba(8,8,8,0.75)",
-    backdropFilter: "blur(20px)",
-    WebkitBackdropFilter: "blur(20px)",
-    borderBottom: scrolled ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(255,255,255,0.04)",
-    transition: "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
-    boxShadow: scrolled ? "0 4px 40px rgba(0,0,0,0.5)" : "none",
-  };
+  /* ── Header style: theme-aware glassmorphism ─────────────────────────────── */
+  const headerStyle: React.CSSProperties = isDark
+    ? {
+        background: scrolled ? "rgba(8,8,8,0.90)" : "rgba(8,8,8,0.78)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderBottom: scrolled ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(255,255,255,0.04)",
+        transition: "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
+        boxShadow: scrolled ? "0 4px 40px rgba(0,0,0,0.5)" : "none",
+      }
+    : {
+        background: scrolled ? "rgba(255,255,255,0.97)" : "rgba(255,255,255,0.92)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderBottom: "1px solid rgba(0,0,0,0.07)",
+        transition: "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
+        boxShadow: scrolled ? "0 2px 20px rgba(0,0,0,0.08), 0 1px 0 rgba(0,0,0,0.04)" : "0 1px 0 rgba(0,0,0,0.05)",
+      };
 
   const navLinks = isRtl
     ? [
@@ -206,19 +247,19 @@ export function Navbar() {
           <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="Syano home">
             <img src="/syano-logo.png" alt="" width={30} height={30}
               className="h-[30px] w-[30px] object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]" loading="eager" />
-            <span style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "16px" }} className="text-white uppercase">SYANO</span>
+            <span style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "16px" }} className={`${navFg} uppercase`}>SYANO</span>
           </Link>
 
           <div className="flex items-center gap-1 shrink-0">
             {!isAuthPage && (
               <button onClick={() => setSearchOpen(!searchOpen)}
-                className="h-10 w-10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
+                className={`h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
                 <Search className="h-[1.1rem] w-[1.1rem]" />
               </button>
             )}
             {isAuthenticated && <NotificationCenter />}
             {isCustomer && (
-              <Link href="/wishlist" className="relative h-10 w-10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
+              <Link href="/wishlist" className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
                 <Heart className="h-5 w-5" />
                 {wishlistCount > 0 && (
                   <span className="absolute -top-0.5 -end-0.5 flex h-[16px] w-[16px] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
@@ -228,7 +269,7 @@ export function Navbar() {
               </Link>
             )}
             {!isSeller && !isAdmin && !isCourier && (
-              <Link href="/cart" className="relative h-10 w-10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
+              <Link href="/cart" className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
                 <ShoppingCart className="h-5 w-5" />
                 {visibleCartCount > 0 && (
                   <span className="absolute -top-0.5 -end-0.5 flex h-[16px] w-[16px] items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-black">
@@ -238,7 +279,7 @@ export function Navbar() {
               </Link>
             )}
             <SheetTrigger asChild>
-              <button className="h-10 w-10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
+              <button className={`h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Open menu</span>
               </button>
@@ -250,30 +291,30 @@ export function Navbar() {
         {searchOpen && !isAuthPage && (
           <div className="md:hidden px-4 pb-3">
             <div ref={searchRef} className="relative">
-              <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 bg-white/[0.07] border border-white/[0.12] rounded-xl px-3 h-10">
-                <Search className="w-4 h-4 text-white/30 shrink-0" />
+              <form onSubmit={handleSearchSubmit} className={`flex items-center gap-2 ${isDark ? "bg-white/[0.07] border-white/[0.12]" : "bg-foreground/[0.05] border-foreground/[0.12]"} border rounded-xl px-3 h-10`}>
+                <Search className={`w-4 h-4 ${navSearchIcon} shrink-0`} />
                 <input
                   ref={inputRef}
                   value={searchQuery}
                   onChange={e => { setSearchQuery(e.target.value); }}
                   placeholder={isRtl ? "ابحث عن منتجات..." : "Search products..."}
-                  style={{ fontFamily: "'Cairo', sans-serif", fontSize: "14px", background: "transparent", outline: "none", border: "none", color: "rgba(255,255,255,0.8)", flex: 1 }}
+                  style={{ fontFamily: "'Cairo', sans-serif", fontSize: "14px", background: "transparent", outline: "none", border: "none", color: navInputColor, flex: 1 }}
                 />
                 {searchQuery && (
-                  <button type="button" onClick={() => setSearchQuery("")} className="text-white/30 hover:text-white/60">
+                  <button type="button" onClick={() => setSearchQuery("")} className={navXBtn}>
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </form>
               {searchOpen && debouncedSearch.length >= 2 && suggestions.length > 0 && (
-                <div className="absolute top-full mt-1 left-0 right-0 bg-[#141414] border border-white/[0.1] rounded-xl shadow-2xl z-50 overflow-hidden">
+                <div className={`absolute top-full mt-1 left-0 right-0 ${navDropBg} rounded-xl shadow-2xl z-50 overflow-hidden`}>
                   {suggestions.slice(0, 5).map(p => (
                     <button key={p.id} onClick={() => handleSuggestionClick(p.id, p.name)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.05] text-start">
-                      {p.imageUrl && <img src={p.imageUrl} alt="" className="h-8 w-8 rounded-lg object-cover border border-white/[0.08]" />}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 ${navHoverBg} text-start`}>
+                      {p.imageUrl && <img src={p.imageUrl} alt="" className={`h-8 w-8 rounded-lg object-cover border ${navBorder}`} />}
                       <div className="flex-1 min-w-0">
-                        <div style={{ fontSize: "13px", fontWeight: 600 }} className="text-white truncate">{p.name}</div>
-                        <div style={{ fontSize: "11px" }} className="text-white/35">{p.category}</div>
+                        <div style={{ fontSize: "13px", fontWeight: 600 }} className={`${navDropText} truncate`}>{p.name}</div>
+                        <div style={{ fontSize: "11px" }} className={navDropSub}>{p.category}</div>
                       </div>
                     </button>
                   ))}
@@ -298,13 +339,13 @@ export function Navbar() {
               <img src="/syano-logo.png" alt="Syano" width={30} height={30}
                 className="h-[30px] w-[30px] object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.75)] group-hover:drop-shadow-[0_0_18px_rgba(16,185,129,1)] transition-[filter] duration-200" loading="eager" />
               <div>
-                <div style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "15px", lineHeight: 1 }} className="text-white uppercase">SYANO</div>
+                <div style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "15px", lineHeight: 1 }} className={`${navFg} uppercase`}>SYANO</div>
                 <div style={{ fontWeight: 400, fontSize: "8px", letterSpacing: "0.16em" }} className="text-emerald-400/60 uppercase">سوق سوريا</div>
               </div>
             </Link>
 
             {/* Divider */}
-            <div className="h-5 w-px bg-white/[0.08] mx-1" />
+            <div className={`h-5 w-px ${navDivider} mx-1`} />
 
             {/* Nav links — immediately left of logo in RTL */}
             <nav className="flex items-center gap-0.5">
@@ -315,7 +356,7 @@ export function Navbar() {
                     style={{ fontWeight: isActive ? 700 : 500, fontSize: "13px" }}
                     className={cn(
                       "px-3 py-2 rounded-lg transition-colors duration-150 whitespace-nowrap",
-                      isActive ? "text-emerald-400 bg-emerald-500/[0.08]" : "text-white/45 hover:text-white/80 hover:bg-white/[0.05]"
+                      isActive ? "text-emerald-400 bg-emerald-500/[0.08]" : `${navFgSub} ${navHoverFgMid} ${navHoverBg}`
                     )}>
                     {link.label}
                   </Link>
@@ -329,18 +370,18 @@ export function Navbar() {
             <div ref={searchRef} className="relative flex justify-center">
               <div className="relative w-full max-w-[300px]">
                 <form onSubmit={handleSearchSubmit}>
-                  <div className="flex items-center gap-2 bg-white/[0.06] hover:bg-white/[0.08] focus-within:bg-white/[0.08] border border-white/[0.08] focus-within:border-white/[0.14] rounded-full h-9 px-3.5 transition-all duration-200">
-                    <Search className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                  <div className={`flex items-center gap-2 ${navSearchBg} rounded-full h-9 px-3.5 transition-all duration-200`}>
+                    <Search className={`w-3.5 h-3.5 ${navSearchIcon} shrink-0`} />
                     <input
                       ref={inputRef}
                       value={searchQuery}
                       onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
                       onFocus={() => setSearchOpen(true)}
                       placeholder={isRtl ? "ابحث عن منتجات..." : "Search products..."}
-                      style={{ fontFamily: "'Cairo', sans-serif", fontSize: "13px", background: "transparent", outline: "none", border: "none", color: "rgba(255,255,255,0.75)", flex: 1, minWidth: 0 }}
+                      style={{ fontFamily: "'Cairo', sans-serif", fontSize: "13px", background: "transparent", outline: "none", border: "none", color: navInputColor, flex: 1, minWidth: 0 }}
                     />
                     {searchQuery && (
-                      <button type="button" onClick={() => { setSearchQuery(""); setSearchOpen(false); }} className="text-white/30 hover:text-white/60 shrink-0">
+                      <button type="button" onClick={() => { setSearchQuery(""); setSearchOpen(false); }} className={`${navXBtn} shrink-0`}>
                         <X className="w-3 h-3" />
                       </button>
                     )}
@@ -348,30 +389,30 @@ export function Navbar() {
                 </form>
 
                 {searchOpen && (debouncedSearch.length >= 2 || recentSearches.length > 0) && (
-                  <div className="absolute top-full mt-2 left-0 right-0 bg-[#111] border border-white/[0.1] rounded-2xl shadow-2xl z-50 overflow-hidden">
+                  <div className={`absolute top-full mt-2 left-0 right-0 ${navDropBg} rounded-2xl shadow-2xl z-50 overflow-hidden`}>
                     {debouncedSearch.length >= 2 ? (
                       searchLoading && suggestions.length === 0 ? (
-                        <div className="p-4 text-sm text-white/40 text-center flex items-center justify-center gap-2">
+                        <div className={`p-4 text-sm ${navDropMeta} text-center flex items-center justify-center gap-2`}>
                           <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
                           {isRtl ? "جاري البحث..." : "Searching..."}
                         </div>
                       ) : !suggestions || suggestions.length === 0 ? (
-                        <div className="p-4 text-sm text-white/40 text-center">{isRtl ? "لا توجد نتائج" : "No results found"}</div>
+                        <div className={`p-4 text-sm ${navDropMeta} text-center`}>{isRtl ? "لا توجد نتائج" : "No results found"}</div>
                       ) : (
                         <div className="py-1.5 max-h-72 overflow-y-auto">
                           {suggestions.slice(0, 6).map(p => (
                             <button key={p.id} onClick={() => handleSuggestionClick(p.id, p.name)}
-                              className="w-full flex items-center gap-3 px-3.5 py-2.5 hover:bg-white/[0.05] transition-colors" style={{ textAlign: isRtl ? "right" : "left" }}>
-                              {p.imageUrl && <img src={p.imageUrl} alt="" className="h-9 w-9 rounded-lg object-cover border border-white/[0.08] shrink-0" />}
+                              className={`w-full flex items-center gap-3 px-3.5 py-2.5 ${navHoverBg} transition-colors`} style={{ textAlign: isRtl ? "right" : "left" }}>
+                              {p.imageUrl && <img src={p.imageUrl} alt="" className={`h-9 w-9 rounded-lg object-cover border ${navBorder} shrink-0`} />}
                               <div className="flex-1 min-w-0">
-                                <div style={{ fontSize: "13px", fontWeight: 600 }} className="text-white/90 truncate">{p.name}</div>
-                                <div style={{ fontSize: "11px" }} className="text-white/35">{p.category}</div>
+                                <div style={{ fontSize: "13px", fontWeight: 600 }} className={`${navDropText} truncate`}>{p.name}</div>
+                                <div style={{ fontSize: "11px" }} className={navDropSub}>{p.category}</div>
                               </div>
                               <div style={{ fontSize: "13px", fontWeight: 700 }} className="text-emerald-400 shrink-0">{p.finalPrice.toLocaleString()} ل.س</div>
                             </button>
                           ))}
                           <button onClick={handleSearchSubmit as any}
-                            className="w-full px-3.5 py-2.5 text-sm text-emerald-400 font-semibold hover:bg-white/[0.04] transition-colors border-t border-white/[0.06] flex items-center gap-2">
+                            className={`w-full px-3.5 py-2.5 text-sm text-emerald-400 font-semibold ${navHoverBg} transition-colors border-t ${navBorder} flex items-center gap-2`}>
                             <Search className="h-3.5 w-3.5" />
                             {isRtl ? `بحث عن "${debouncedSearch}"` : `Search for "${debouncedSearch}"`}
                           </button>
@@ -380,22 +421,22 @@ export function Navbar() {
                     ) : recentSearches.length > 0 ? (
                       <div className="py-1.5">
                         <div className="flex items-center justify-between px-3.5 pt-2 pb-1">
-                          <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-white/30 uppercase flex items-center gap-1.5">
+                          <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className={`${navDropMeta} uppercase flex items-center gap-1.5`}>
                             <Clock className="h-3 w-3" /> {isRtl ? "البحث السابق" : "Recent"}
                           </span>
-                          <button onClick={clearRecentSearches} style={{ fontSize: "11px" }} className="text-white/30 hover:text-white/60 transition-colors">
+                          <button onClick={clearRecentSearches} style={{ fontSize: "11px" }} className={`${navXBtn} transition-colors`}>
                             {isRtl ? "مسح الكل" : "Clear all"}
                           </button>
                         </div>
                         {recentSearches.map(s => (
                           <div key={s} className="flex items-center group">
                             <button onClick={() => { setSearchQuery(s); setSearchOpen(true); }}
-                              className="flex-1 flex items-center gap-2.5 px-3.5 py-2 hover:bg-white/[0.04] transition-colors">
-                              <Clock className="h-3.5 w-3.5 text-white/20 shrink-0" />
-                              <span style={{ fontSize: "13px" }} className="text-white/60 truncate">{s}</span>
+                              className={`flex-1 flex items-center gap-2.5 px-3.5 py-2 ${navHoverBg} transition-colors`}>
+                              <Clock className={`h-3.5 w-3.5 ${navDropMeta} shrink-0`} />
+                              <span style={{ fontSize: "13px" }} className={`${navDropRecent} truncate`}>{s}</span>
                             </button>
                             <button onClick={() => removeRecentSearch(s)}
-                              className="px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity text-white/30 hover:text-white/60">
+                              className={`px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity ${navXBtn}`}>
                               <X className="h-3 w-3" />
                             </button>
                           </div>
@@ -415,7 +456,7 @@ export function Navbar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="h-9 px-3 flex items-center gap-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.14] transition-all duration-200"
+                  className={`h-9 px-3 flex items-center gap-1.5 rounded-lg ${navSettingsBtn} transition-all duration-200`}
                   aria-label={isRtl ? "الإعدادات" : "Settings"}
                 >
                   <Settings className="h-4 w-4" />
@@ -509,14 +550,14 @@ export function Navbar() {
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 h-9 ps-2 pe-3 rounded-full bg-white/[0.06] border border-white/[0.1] hover:bg-white/[0.09] hover:border-white/[0.15] transition-all duration-200">
+                  <button className={`flex items-center gap-2 h-9 ps-2 pe-3 rounded-full ${navUserBtn} transition-all duration-200`}>
                     <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
                       <span style={{ fontSize: "11px", fontWeight: 800 }} className="text-emerald-400">
                         {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
                       </span>
                     </div>
-                    <span style={{ fontSize: "13px", fontWeight: 600, maxWidth: 80 }} className="text-white/75 truncate">{user?.name}</span>
-                    <ChevronDown className="h-3 w-3 text-white/30" />
+                    <span style={{ fontSize: "13px", fontWeight: 600, maxWidth: 80 }} className={`${navFgMuted} truncate`}>{user?.name}</span>
+                    <ChevronDown className={`h-3 w-3 ${navDropMeta}`} />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-popover border-border shadow-xl shadow-black/10 w-52">
@@ -547,7 +588,7 @@ export function Navbar() {
               <>
                 <Link href="/login"
                   style={{ fontSize: "13px", fontWeight: 600 }}
-                  className="h-9 px-4 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors whitespace-nowrap">
+                  className={`h-9 px-4 rounded-lg ${navLoginLink} transition-colors whitespace-nowrap`}>
                   {t("nav.login")}
                 </Link>
                 <Link href="/register"

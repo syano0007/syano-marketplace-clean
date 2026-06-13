@@ -63,7 +63,7 @@ export function PopularCategories() {
                   <h3 style={{ fontWeight: 700, fontSize: "17px" }} className="text-white mb-1 transition-transform duration-300 group-hover:-translate-y-0.5">
                     {t(cat.nameKey)}
                   </h3>
-                  <p style={{ fontWeight: 400, fontSize: "13px" }} className="text-white/50">{t(cat.countKey)}</p>
+                  <p style={{ fontWeight: 400, fontSize: "13px" }} className="text-white/70">{t(cat.countKey)}</p>
                 </div>
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-white/[0.03] to-transparent" />
               </Link>
