@@ -878,3 +878,57 @@
 .sy-section-alt {
   background-color: hsl(var(--section-alt));
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   DESIGN SYSTEM V2 — GLOBAL UTILITIES
+   Adds ambient glow, premium empty states, and auth-page atmosphere
+   to match the Homepage V7 visual language across all pages.
+══════════════════════════════════════════════════════════════════════ */
+
+/* ── Auth pages: ambient emerald radial glow ──────────────────────────
+   Wraps login / register pages for homepage-quality atmosphere.
+─────────────────────────────────────────────────────────────────────── */
+.sy-auth-bg {
+  position: relative;
+  overflow: hidden;
+}
+.sy-auth-bg::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(800px, 150vw);
+  height: min(600px, 100vw);
+  background: radial-gradient(ellipse, rgba(5,150,105,.08) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+.sy-auth-bg::after {
+  content: '';
+  position: absolute;
+  bottom: -15%;
+  right: -5%;
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(ellipse, rgba(5,150,105,.05) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Premium empty state ──────────────────────────────────────────────
+   Replaces bare dashed-border empty states.
+─────────────────────────────────────────────────────────────────────── */
+.sy-empty-state {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-card);
+  padding: 5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1.25rem;
+}

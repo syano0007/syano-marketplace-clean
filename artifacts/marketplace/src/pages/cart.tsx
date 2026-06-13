@@ -294,14 +294,16 @@ function GuestCart() {
         <h1 className="heading-section mb-6 md:mb-8">{t("cart.title")}</h1>
 
         {isEmpty ? (
-          <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center bg-muted/20 rounded-2xl border border-dashed">
-            <div className="h-16 w-16 sm:h-20 sm:w-20 bg-primary/10 rounded-full flex items-center justify-center mb-5">
-              <ShoppingBag className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+          <div className="sy-empty-state">
+            <div className="h-20 w-20 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center">
+              <ShoppingBag className="h-10 w-10 text-primary" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold mb-2">{t("cart.empty")}</h2>
-            <p className="text-muted-foreground mb-8 max-w-md leading-relaxed text-sm sm:text-base px-4">
-              {t("cart.empty_desc")}
-            </p>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">{t("cart.empty")}</h2>
+              <p className="text-muted-foreground max-w-sm leading-relaxed text-sm sm:text-base">
+                {t("cart.empty_desc")}
+              </p>
+            </div>
             <Link href="/products">
               <Button size="lg" className="h-12 px-8">{t("cart.start_shopping")}</Button>
             </Link>
@@ -416,14 +418,16 @@ function ServerCart() {
         <h1 className="heading-section mb-6 md:mb-8">{t("cart.title")}</h1>
 
         {isEmpty ? (
-          <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center bg-muted/20 rounded-2xl border border-dashed">
-            <div className="h-16 w-16 sm:h-20 sm:w-20 bg-primary/10 rounded-full flex items-center justify-center mb-5">
-              <ShoppingBag className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+          <div className="sy-empty-state">
+            <div className="h-20 w-20 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center">
+              <ShoppingBag className="h-10 w-10 text-primary" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold mb-2">{t("cart.empty")}</h2>
-            <p className="text-muted-foreground mb-8 max-w-md leading-relaxed text-sm sm:text-base px-4">
-              {t("cart.empty_desc")}
-            </p>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">{t("cart.empty")}</h2>
+              <p className="text-muted-foreground max-w-sm leading-relaxed text-sm sm:text-base">
+                {t("cart.empty_desc")}
+              </p>
+            </div>
             <Link href="/products">
               <Button size="lg" className="h-12 px-8">{t("cart.start_shopping")}</Button>
             </Link>

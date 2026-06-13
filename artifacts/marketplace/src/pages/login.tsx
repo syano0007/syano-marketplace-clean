@@ -124,9 +124,15 @@ export default function Login() {
 
   return (
     <Layout>
-      <div className="container flex-1 flex items-center justify-center py-12 md:py-16">
-        <div className="w-full max-w-md bg-card border border-border p-7 md:p-8 rounded-2xl shadow-sm">
+      <div className="flex-1 sy-auth-bg flex items-center justify-center py-12 md:py-16">
+        <div className="container relative z-10">
+        <div className="w-full max-w-md mx-auto bg-card border border-border p-7 md:p-8 rounded-2xl shadow-lg">
           <div className="text-center mb-7">
+            <div className="flex justify-center mb-4">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                <span style={{ fontFamily: "'Cairo', sans-serif", fontWeight: 800, fontSize: 16 }} className="text-black">S</span>
+              </div>
+            </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{t("auth.welcome_back")}</h1>
             <p className="text-muted-foreground mt-2 leading-relaxed">{t("auth.login_subtitle")}</p>
           </div>
@@ -194,6 +200,7 @@ export default function Login() {
               {t("auth.signup_link")}
             </Link>
           </div>
+        </div>
         </div>
       </div>
     </Layout>
