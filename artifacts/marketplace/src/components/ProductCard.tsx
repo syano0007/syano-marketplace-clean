@@ -199,7 +199,7 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
         {flashSaleEndsIn && (
           <div className="absolute bottom-0 inset-x-0 flex items-center justify-center gap-1 bg-rose-600 text-white text-[10px] font-bold px-2 py-1 tabular-nums">
             <Timer className="h-2.5 w-2.5 shrink-0" />
-            <span className="opacity-80">{t("home.flash_sale_ends_in")}</span>
+            <span className="opacity-80">{t("home.deals.ends_in")}</span>
             <span dir="ltr">{flashSaleEndsIn}</span>
           </div>
         )}

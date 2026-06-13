@@ -594,9 +594,7 @@ export default function Products() {
                 </div>
                 {!isLoading && products && (
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {lang === "ar"
-                      ? `${products.length} منتج بخصم`
-                      : `${products.length} product${products.length !== 1 ? "s" : ""} on sale`}
+                    {t("products.count", { count: products.length })}
                   </p>
                 )}
               </div>
@@ -604,7 +602,7 @@ export default function Products() {
             <div className="flex items-center gap-2 shrink-0">
               <span className="inline-flex items-center gap-1.5 bg-rose-600 text-white text-xs font-bold px-2.5 py-1 rounded-full tabular-nums">
                 <Timer className="h-3 w-3 shrink-0" />
-                <span className="opacity-80">{t("flash_sale_ends_in")}</span>
+                <span className="opacity-80">{t("home.deals.ends_in")}</span>
                 <span dir="ltr">{flashSaleFormatted}</span>
               </span>
             </div>

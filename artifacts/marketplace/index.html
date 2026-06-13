@@ -83,21 +83,8 @@
       crossorigin
     />
 
-    <!-- ── LCP hero image preload ─────────────────────────────────────────
-         Tells the browser to fetch the hero image immediately — before React
-         has parsed, executed, and rendered — eliminating the fetch waterfall
-         that normally hides the hero behind JS parse + render time.
-         Using imagesrcset/imagesizes for responsive preloading so mobile
-         devices get the smallest appropriate size.
-         ──────────────────────────────────────────────────────────────── -->
-    <link
-      rel="preload"
-      as="image"
-      href="https://images.pexels.com/photos/7317590/pexels-photo-7317590.jpeg?auto=compress&cs=tinysrgb&w=1280&h=800&fit=crop&crop=center"
-      imagesrcset="https://images.pexels.com/photos/7317590/pexels-photo-7317590.jpeg?auto=compress&cs=tinysrgb&w=768&h=600&fit=crop&crop=center 768w, https://images.pexels.com/photos/7317590/pexels-photo-7317590.jpeg?auto=compress&cs=tinysrgb&w=1280&h=800&fit=crop&crop=center 1280w, https://images.pexels.com/photos/7317590/pexels-photo-7317590.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop&crop=center 1920w"
-      imagesizes="100vw"
-      fetchpriority="high"
-    />
+    <!-- LCP hero image preload removed: the V7 HeroSection uses a CSS grid
+         background (no static photo), so there is no fixed LCP image to preload. -->
 
     <!-- Google Fonts removed — Inter is now self-hosted at /fonts/inter-latin.woff2.
          @font-face declaration lives in index.css (processed by Vite/Tailwind). -->

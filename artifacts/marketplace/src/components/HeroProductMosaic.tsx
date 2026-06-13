@@ -202,7 +202,7 @@ const ProductTile = memo(function ProductTile({
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export const HeroProductMosaic = memo(function HeroProductMosaic() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const lang = i18n.language;
 
   const { data: products, isLoading } = useGetBestSellers(4, {
@@ -248,7 +248,7 @@ export const HeroProductMosaic = memo(function HeroProductMosaic() {
         className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-primary hover:underline py-0.5 shrink-0"
       >
         <ArrowRight className="h-3 w-3 rtl:rotate-180" />
-        {lang === "ar" ? "تصفح جميع المنتجات" : "Browse all products"}
+        {t("home.footer.link_all_products")}
       </Link>
     </div>
   );

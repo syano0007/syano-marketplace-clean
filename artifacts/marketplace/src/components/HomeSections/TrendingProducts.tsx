@@ -41,7 +41,7 @@ function TrendingCard({ product, i }: { product: ProductData; i: number }) {
   const { format } = useCurrency();
   const { isAuthenticated, isCustomer, isSeller, isAdmin, isCourier } = useAuth();
   const { addGuestItem } = useGuestCart();
-  const { toggleWishlist, isInWishlist } = useWishlist();
+  const { toggle: toggleWishlist, isInWishlist } = useWishlist();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [adding, setAdding] = useState(false);

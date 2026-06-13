@@ -153,18 +153,18 @@ function StaticHero() {
           <div className="max-w-2xl lg:max-w-3xl space-y-5 sm:space-y-6">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white border border-white/20 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide">
               <Zap className="h-3.5 w-3.5 text-primary" />
-              {t("home.hero_badge")}
+              {t("home.hero.badge")}
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight text-white drop-shadow-2xl">
-              {t("home.hero_title")}
+              {t("home.hero.line1")} {t("home.hero.line2")} {t("home.hero.line3")}
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-white/80 leading-relaxed max-w-xl drop-shadow">
-              {t("home.hero_desc")}
+              {t("home.hero.subtext")}
             </p>
             <div className="flex flex-col sm:flex-row items-start gap-3 pt-1">
               <Link href="/products">
                 <Button size="lg" className="h-12 px-8 text-base font-bold shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-0.5 hover:ring-2 hover:ring-primary/40 transition-all duration-200">
-                  {t("home.shop_all")}
+                  {t("home.hero.shop_now")}
                   <ArrowRight className={cn("h-5 w-5 shrink-0", isRTL ? "me-2 rotate-180" : "ms-2")} />
                 </Button>
               </Link>
@@ -188,11 +188,11 @@ const FlashSaleRibbon = memo(function FlashSaleRibbon({ endDate }: { endDate: st
     <div className="absolute top-0 inset-x-0 z-30 pointer-events-none">
       <div className="flex items-center justify-center gap-2 bg-gradient-to-r from-rose-600 via-rose-500 to-orange-500 text-white text-xs sm:text-sm font-bold py-2 px-4">
         <Zap className="h-3.5 w-3.5 animate-pulse shrink-0" />
-        <span>{t("home.deals_badge")}</span>
+        <span>{t("home.deals.eyebrow")}</span>
         <span className="opacity-80 font-normal hidden sm:inline">—</span>
         <span className="inline-flex items-center gap-1 hidden sm:inline-flex">
           <Timer className="h-3.5 w-3.5 shrink-0" />
-          <span>{t("home.flash_sale_ends_in")}</span>
+          <span>{t("home.deals.ends_in")}</span>
         </span>
         <span dir="ltr" className="tabular-nums bg-black/20 rounded px-1.5 py-0.5 text-xs font-mono tracking-wider">
           {formatted}
@@ -345,14 +345,14 @@ const DealsPanel = memo(function DealsPanel() {
               <ShoppingCart className="h-3.5 w-3.5 text-primary" />
             </div>
             <span className="text-sm font-bold text-foreground">
-              {lang === "ar" ? "أبرز المنتجات" : "Today's Picks"}
+              {t("home.deals.title")}
             </span>
           </div>
           <Link
             href="/products?sort=best_sellers"
             className="text-[11px] text-primary hover:underline font-medium flex items-center gap-0.5"
           >
-            {t("home.view_all")}
+            {t("home.deals.see_all")}
             <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
@@ -637,7 +637,7 @@ function Slide({
               ) : (
                 <Link href="/products">
                   <Button size="lg" className="h-11 sm:h-12 px-7 text-sm sm:text-base font-bold shadow-2xl shadow-primary/30 hover:shadow-primary/55 hover:-translate-y-0.5 hover:ring-2 hover:ring-primary/45 transition-all duration-200">
-                    {t("home.shop_all")}
+                    {t("home.hero.shop_now")}
                     <ArrowRight className={cn("h-4 w-4 shrink-0", isRTL ? "me-2 rotate-180" : "ms-2")} />
                   </Button>
                 </Link>

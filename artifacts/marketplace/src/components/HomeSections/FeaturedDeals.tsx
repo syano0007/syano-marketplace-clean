@@ -171,7 +171,7 @@ export function FeaturedDeals({ hotDeals }: { hotDeals?: Product[] }) {
   const deals: DealCardData[] = hotDeals && hotDeals.length > 0
     ? hotDeals.slice(0, 4).map((p, i) => {
         const imgs = (p as any).imageUrls as string[] | undefined;
-        const orig = p.compareAtPrice ? Number(p.compareAtPrice) : null;
+        const orig = (p as any).compareAtPrice ? Number((p as any).compareAtPrice) : null;
         const curr = Number(p.price);
         const disc = orig ? Math.round((1 - curr / orig) * 100) : STATIC_DEALS[i % 4].discount;
         const s = STATIC_DEALS[i % 4];
