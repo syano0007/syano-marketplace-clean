@@ -135,12 +135,12 @@ function WishlistItemCard({
           className={`w-full flex items-center justify-center gap-2 h-9 rounded-lg text-[13px] transition-all duration-150 ${
             outOfStock
               ? "bg-muted text-muted-foreground cursor-not-allowed"
-              : "bg-emerald-500 hover:bg-emerald-400 active:scale-[0.97] text-black"
+              : "bg-emerald-500 hover:bg-emerald-400 active:scale-[0.97] text-white"
           }`}
           style={{ fontWeight: 700 }}
         >
           {isMoving ? (
-            <div className="h-4 w-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />
+            <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
           ) : (
             <ShoppingCart className="h-4 w-4" />
           )}
@@ -323,11 +323,11 @@ export default function WishlistPage() {
                   onClick={moveAllToCart}
                   disabled={movingAll}
                   size="sm"
-                  className="gap-2 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.97] text-black transition-all"
+                  className="gap-2 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.97] text-white transition-all"
                   style={{ fontWeight: 700 }}
                 >
                   {movingAll ? (
-                    <div className="h-3.5 w-3.5 rounded-full border-2 border-black/30 border-t-black animate-spin" />
+                    <div className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                   ) : (
                     <ShoppingCart className="h-3.5 w-3.5" />
                   )}

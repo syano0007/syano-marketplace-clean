@@ -92,7 +92,12 @@ export default function OrderHistory() {
     <Layout>
       <div className="container py-8 md:py-12 max-w-5xl">
         <div className="flex items-center justify-between mb-5 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t("orders.title")}</h1>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+              <Package className="h-5 w-5 text-primary" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t("orders.title")}</h1>
+          </div>
         </div>
 
         {/* Status filter tabs */}

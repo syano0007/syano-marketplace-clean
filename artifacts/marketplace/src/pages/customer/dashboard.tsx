@@ -42,9 +42,9 @@ export default function CustomerDashboard() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "pending":    return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200 shrink-0">{t("orders.status_pending")}</Badge>;
-      case "processing": return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 shrink-0">{t("orders.status_processing")}</Badge>;
-      case "shipped":    return <Badge variant="outline" className="bg-indigo-100 text-indigo-800 border-indigo-200 shrink-0">{t("orders.status_shipped")}</Badge>;
+      case "pending":    return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800 shrink-0">{t("orders.status_pending")}</Badge>;
+      case "processing": return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 shrink-0">{t("orders.status_processing")}</Badge>;
+      case "shipped":    return <Badge variant="outline" className="bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 shrink-0">{t("orders.status_shipped")}</Badge>;
       case "delivered":  return <Badge className="bg-primary hover:bg-primary text-primary-foreground shrink-0">{t("orders.status_delivered")}</Badge>;
       case "cancelled":  return <Badge variant="destructive" className="shrink-0">{t("orders.status_cancelled")}</Badge>;
       default:           return <Badge variant="secondary" className="shrink-0">{status}</Badge>;
@@ -54,9 +54,14 @@ export default function CustomerDashboard() {
   return (
     <Layout>
       <div className="container py-8 md:py-12 max-w-6xl">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-5 sm:mb-8">
-          {t("customer_dashboard.title")}
-        </h1>
+        <div className="flex items-center gap-3 mb-5 sm:mb-8">
+          <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+            <ShoppingBag className="h-5 w-5 text-primary" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            {t("customer_dashboard.title")}
+          </h1>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 mb-5 sm:mb-8">

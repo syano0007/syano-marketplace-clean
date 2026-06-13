@@ -508,7 +508,7 @@ export default function SellerAnalytics() {
 
         {/* ── No-data banner for selected period ── */}
         {hasNoData && (
-          <div className="flex items-start gap-3 bg-muted/40 border border-dashed rounded-xl p-5 text-sm text-muted-foreground">
+          <div className="flex items-start gap-3 bg-primary/5 border border-primary/15 rounded-xl p-5 text-sm text-muted-foreground">
             <BarChart2 className="h-5 w-5 shrink-0 mt-0.5 text-primary/60" />
             <div>
               <p className="font-semibold text-foreground text-sm">{t("seller_analytics.no_data")}</p>

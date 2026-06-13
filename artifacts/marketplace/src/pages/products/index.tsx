@@ -625,7 +625,7 @@ export default function Products() {
             ))}
           </div>
         ) : products?.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 sm:py-24 text-center bg-muted/20 rounded-xl border border-dashed">
+          <div className="sy-empty-state flex flex-col items-center justify-center py-16 sm:py-24 text-center">
             <Search className="h-10 w-10 text-muted-foreground mb-4 opacity-40" />
             <h3 className="text-lg font-semibold mb-2">{t("products.no_found")}</h3>
             <p className="text-muted-foreground max-w-sm mb-6 text-sm px-4">{t("products.no_found_desc")}</p>
