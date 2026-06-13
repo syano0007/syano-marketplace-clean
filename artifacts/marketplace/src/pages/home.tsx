@@ -16,8 +16,6 @@ import {
   Zap,
   Store,
   TrendingUp,
-  Timer,
-  Flame,
   Clock,
   Cpu,
   Shirt,
@@ -30,6 +28,7 @@ import {
   BadgeCheck,
   Star,
   ShieldCheck,
+  Flame,
 } from "lucide-react";
 import { useCountdown } from "@/hooks/use-countdown";
 import { ProductCard } from "@/components/ProductCard";
@@ -40,7 +39,7 @@ import { useCourierOnboarding } from "@/hooks/useCourierOnboarding";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { HeroV4 } from "@/components/HeroV4";
 
-/* ── Popular category cards ──────────────────────────────────────── */
+/* ── Popular category data ───────────────────────────────────────── */
 
 const POPULAR_CATEGORIES = [
   {
@@ -49,7 +48,7 @@ const POPULAR_CATEGORIES = [
     ar: "الإلكترونيات",
     Icon: Cpu,
     iconBg: "bg-blue-500",
-    img: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80&auto=format&fit=crop",
+    img: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=300&q=80&auto=format&fit=crop",
   },
   {
     slug: "Fashion",
@@ -57,7 +56,7 @@ const POPULAR_CATEGORIES = [
     ar: "الأزياء",
     Icon: Shirt,
     iconBg: "bg-pink-500",
-    img: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200&q=80&auto=format&fit=crop",
+    img: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=300&q=80&auto=format&fit=crop",
   },
   {
     slug: "Home & Kitchen",
@@ -65,7 +64,7 @@ const POPULAR_CATEGORIES = [
     ar: "المنزل",
     Icon: HomeIcon,
     iconBg: "bg-amber-500",
-    img: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&q=80&auto=format&fit=crop",
+    img: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&q=80&auto=format&fit=crop",
   },
   {
     slug: "Beauty & Personal Care",
@@ -73,7 +72,7 @@ const POPULAR_CATEGORIES = [
     ar: "الجمال",
     Icon: Sparkles,
     iconBg: "bg-rose-500",
-    img: "https://images.pexels.com/photos/3685530/pexels-photo-3685530.jpeg?auto=compress&cs=tinysrgb&w=200",
+    img: "https://images.pexels.com/photos/3685530/pexels-photo-3685530.jpeg?auto=compress&cs=tinysrgb&w=300",
   },
   {
     slug: "Sports & Fitness",
@@ -81,7 +80,7 @@ const POPULAR_CATEGORIES = [
     ar: "الرياضة",
     Icon: Dumbbell,
     iconBg: "bg-green-500",
-    img: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=200&q=80&auto=format&fit=crop",
+    img: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=300&q=80&auto=format&fit=crop",
   },
   {
     slug: "Gaming & Entertainment",
@@ -89,7 +88,7 @@ const POPULAR_CATEGORIES = [
     ar: "الألعاب",
     Icon: Gamepad2,
     iconBg: "bg-violet-500",
-    img: "https://images.pexels.com/photos/4317157/pexels-photo-4317157.jpeg?auto=compress&cs=tinysrgb&w=200",
+    img: "https://images.pexels.com/photos/4317157/pexels-photo-4317157.jpeg?auto=compress&cs=tinysrgb&w=300",
   },
   {
     slug: "Supermarket & Grocery",
@@ -97,7 +96,7 @@ const POPULAR_CATEGORIES = [
     ar: "البقالة",
     Icon: ShoppingBasket,
     iconBg: "bg-emerald-500",
-    img: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=200&q=80&auto=format&fit=crop",
+    img: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=300&q=80&auto=format&fit=crop",
   },
   {
     slug: "Automotive",
@@ -105,20 +104,20 @@ const POPULAR_CATEGORIES = [
     ar: "السيارات",
     Icon: Car,
     iconBg: "bg-slate-500",
-    img: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=200&q=80&auto=format&fit=crop",
+    img: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=300&q=80&auto=format&fit=crop",
   },
 ] as const;
 
-/* ── Popular categories row ─────────────────────────────────────── */
+/* ── Popular categories section ─────────────────────────────────── */
 
 function PopularCategoriesSection() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   return (
     <div id="categories" className="border-b bg-background">
-      <div className="container px-4 py-5 sm:py-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-foreground">
+      <div className="container px-4 py-6 sm:py-8">
+        <div className="flex items-center justify-between mb-4 sm:mb-5">
+          <h2 className="text-sm sm:text-[15px] font-bold text-foreground">
             {t("home.popular_categories_title")}
           </h2>
           <Link
@@ -136,15 +135,16 @@ function PopularCategoriesSection() {
               href={`/products?category=${encodeURIComponent(slug)}`}
               className="shrink-0"
             >
-              <div className="flex flex-col items-center gap-2 w-[72px] sm:w-20 group cursor-pointer">
-                <div className="relative w-full aspect-square rounded-2xl overflow-hidden border border-border/40 group-hover:border-primary/40 transition-colors shadow-sm">
+              <div className="flex flex-col items-center gap-2 w-[84px] sm:w-[96px] group cursor-pointer">
+                {/* Card tile */}
+                <div className="relative w-full h-[84px] sm:h-[96px] rounded-2xl overflow-hidden border border-border/40 group-hover:border-primary/50 transition-all duration-200 shadow-sm group-hover:shadow-md">
                   {img ? (
                     <img
                       src={img}
                       alt={lang === "ar" ? ar : en}
                       loading="lazy"
                       decoding="async"
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-400"
                       onError={(e) => {
                         const target = e.currentTarget as HTMLImageElement;
                         target.style.display = "none";
@@ -156,11 +156,20 @@ function PopularCategoriesSection() {
                     <div
                       className={`absolute inset-0 ${iconBg} flex items-center justify-center`}
                     >
-                      <Icon className="h-6 w-6 text-white" />
+                      <Icon className="h-7 w-7 text-white" />
                     </div>
                   )}
+                  {/* Dark gradient overlay at bottom */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  {/* Icon bottom-center */}
+                  <div className="absolute bottom-1.5 inset-x-0 flex justify-center">
+                    <div className={`h-5 w-5 rounded-md ${iconBg} flex items-center justify-center shadow-sm`}>
+                      <Icon className="h-2.5 w-2.5 text-white" />
+                    </div>
+                  </div>
                 </div>
-                <span className="text-[10px] sm:text-xs font-semibold text-foreground/80 group-hover:text-foreground transition-colors text-center leading-tight line-clamp-2">
+                {/* Label below */}
+                <span className="text-[11px] sm:text-xs font-semibold text-foreground/80 group-hover:text-primary transition-colors text-center leading-tight line-clamp-2 w-full px-1">
                   {lang === "ar" ? ar : en}
                 </span>
               </div>
@@ -172,16 +181,36 @@ function PopularCategoriesSection() {
   );
 }
 
-/* ── Flash Sale countdown badge ─────────────────────────────────── */
+/* ── Flash Sale segmented countdown ─────────────────────────────── */
 
-function FlashSaleTimerBadge({ formatted }: { formatted: string }) {
-  const { t } = useTranslation();
+function FlashSaleCountdown({ formatted }: { formatted: string }) {
+  const { i18n } = useTranslation();
+  const lang = i18n.language;
+  const parts = formatted.split(":");
+  const h = parts[0] ?? "00";
+  const m = parts[1] ?? "00";
+  const s = parts[2] ?? "00";
+
+  const segments = [
+    { value: h, label: lang === "ar" ? "ساعة" : "hrs" },
+    { value: m, label: lang === "ar" ? "دقيقة" : "min" },
+    { value: s, label: lang === "ar" ? "ثانية" : "sec" },
+  ];
+
   return (
-    <span className="inline-flex items-center gap-1 sm:gap-1.5 bg-rose-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full tabular-nums">
-      <Timer className="h-3 w-3 shrink-0" />
-      <span className="opacity-80">{t("home.flash_sale_ends_in")}</span>
-      <span dir="ltr">{formatted}</span>
-    </span>
+    <div className="inline-flex items-center gap-1 sm:gap-1.5" dir="ltr">
+      {segments.map(({ value, label }, i) => (
+        <React.Fragment key={label}>
+          {i > 0 && (
+            <span className="text-rose-400 font-black text-base leading-none mb-2">:</span>
+          )}
+          <div className="flex flex-col items-center bg-rose-600 text-white rounded-lg px-2 sm:px-2.5 py-1 min-w-[34px] sm:min-w-[40px] tabular-nums shadow-sm">
+            <span className="text-sm sm:text-base font-black leading-none tracking-tight">{value}</span>
+            <span className="text-[8px] sm:text-[9px] opacity-80 mt-0.5 font-medium">{label}</span>
+          </div>
+        </React.Fragment>
+      ))}
+    </div>
   );
 }
 
@@ -196,21 +225,29 @@ const HotDealsSection = React.memo(function HotDealsSection({
   isLoadingProducts: boolean;
   getFlashSaleTarget: () => Date;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const { formatted: flashSaleFormatted } = useCountdown(getFlashSaleTarget);
 
   return (
-    <section className="py-10 md:py-14 border-b bg-gradient-to-br from-rose-950/20 via-background to-background cv-section">
+    <section className="py-8 sm:py-10 md:py-12 border-b bg-gradient-to-br from-rose-950/15 via-background to-background">
       <div className="container px-4">
-        <div className="flex items-center justify-between mb-5 md:mb-7">
+        <div className="flex items-center justify-between mb-5 md:mb-6 gap-3 flex-wrap">
           <div className="flex items-center gap-2.5 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-lg bg-rose-500/15 flex items-center justify-center shrink-0">
                 <Flame className="h-3.5 w-3.5 text-rose-500" />
               </div>
-              <h2 className="heading-section">{t("home.deals_title")}</h2>
+              <h2 className="text-sm sm:text-[15px] font-bold text-foreground">
+                {t("home.deals_title")}
+              </h2>
             </div>
-            <FlashSaleTimerBadge formatted={flashSaleFormatted} />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">
+                {lang === "ar" ? "عروض خلال:" : "Ends in:"}
+              </span>
+              <FlashSaleCountdown formatted={flashSaleFormatted} />
+            </div>
           </div>
           <Link
             href="/products?hasDiscount=true"
@@ -220,17 +257,23 @@ const HotDealsSection = React.memo(function HotDealsSection({
             <ArrowRight className="h-3 w-3 rtl:rotate-180" />
           </Link>
         </div>
-        <div className="product-grid">
+        {/* Horizontal scroll on mobile / grid on desktop */}
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:overflow-visible sm:pb-0 sm:gap-4">
           {isLoadingProducts
             ? Array(4)
                 .fill(0)
-                .map((_, i) => <ProductSkeleton key={i} />)
+                .map((_, i) => (
+                  <div key={i} className="shrink-0 w-[180px] sm:w-auto">
+                    <ProductSkeleton />
+                  </div>
+                ))
             : hotDeals.map((p) => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  flashSaleEndsIn={flashSaleFormatted}
-                />
+                <div key={p.id} className="shrink-0 w-[180px] sm:w-auto">
+                  <ProductCard
+                    product={p}
+                    flashSaleEndsIn={flashSaleFormatted}
+                  />
+                </div>
               ))}
         </div>
       </div>
@@ -252,10 +295,10 @@ function SectionHeader({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between mb-5 md:mb-7">
+    <div className="flex items-center justify-between mb-5 md:mb-6">
       <div className="flex items-center gap-2">
         {icon}
-        <h2 className="heading-section">{title}</h2>
+        <h2 className="text-sm sm:text-[15px] font-bold text-foreground">{title}</h2>
       </div>
       <Link
         href={viewAllHref}
@@ -281,7 +324,7 @@ function ProductSkeleton() {
   );
 }
 
-/* ── Trusted Stores section (premium cards) ─────────────────────── */
+/* ── Store card ──────────────────────────────────────────────────── */
 
 interface FeaturedStore {
   sellerId: number;
@@ -299,10 +342,15 @@ interface FeaturedStore {
   reviewsCount: number;
 }
 
+function formatFollowers(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
+
 function StoreSkeleton() {
   return (
-    <div className="w-[168px] sm:w-[185px] flex-shrink-0 rounded-2xl border border-border/50 bg-card overflow-hidden animate-pulse">
-      <div className="h-[92px] bg-muted" />
+    <div className="w-[185px] sm:w-[200px] flex-shrink-0 rounded-2xl border border-border/50 bg-card overflow-hidden animate-pulse">
+      <div className="h-[100px] bg-muted" />
       <div className="p-3 space-y-2.5">
         <div className="h-3 bg-muted rounded w-2/3" />
         <div className="h-2.5 bg-muted rounded w-1/2" />
@@ -321,9 +369,9 @@ function StoreCard({ s, lang }: { s: FeaturedStore; lang: string }) {
       href={s.storeSlug ? `/store/${s.storeSlug}` : "/products"}
       className="shrink-0"
     >
-      <div className="w-[168px] sm:w-[185px] rounded-2xl border border-border/50 bg-card overflow-hidden hover:border-primary/40 hover:shadow-md transition-all duration-200 group cursor-pointer">
+      <div className="w-[185px] sm:w-[200px] rounded-2xl border border-border/50 bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-200 group cursor-pointer">
         {/* Cover image */}
-        <div className="relative h-[88px] overflow-hidden">
+        <div className="relative h-[100px] overflow-hidden">
           {s.storeBanner ? (
             <img
               src={s.storeBanner}
@@ -338,24 +386,23 @@ function StoreCard({ s, lang }: { s: FeaturedStore; lang: string }) {
           ) : (
             <div className="h-full w-full" style={{ background: coverBg }} />
           )}
-          {/* Subtle bottom fade */}
-          <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/25 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/30 to-transparent" />
         </div>
 
         {/* Logo overlapping cover */}
-        <div className="px-3 -mt-4 relative z-10">
+        <div className="px-3 -mt-5 relative z-10">
           {s.storeLogo ? (
             <img
               src={s.storeLogo}
               alt={s.storeName}
-              className="h-9 w-9 rounded-xl object-cover border-2 border-background shadow-md"
+              className="h-10 w-10 rounded-xl object-cover border-2 border-background shadow-md"
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = "none";
               }}
             />
           ) : (
             <div
-              className="h-9 w-9 rounded-xl border-2 border-background shadow-md flex items-center justify-center text-white font-black text-sm"
+              className="h-10 w-10 rounded-xl border-2 border-background shadow-md flex items-center justify-center text-white font-black text-sm"
               style={{ background: `linear-gradient(135deg, ${accent}, ${accent}cc)` }}
             >
               {s.storeName.charAt(0)}
@@ -375,7 +422,7 @@ function StoreCard({ s, lang }: { s: FeaturedStore; lang: string }) {
           </div>
 
           {/* Stats row */}
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground">
             {s.averageRating > 0 && (
               <span className="flex items-center gap-0.5">
                 <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
@@ -384,8 +431,13 @@ function StoreCard({ s, lang }: { s: FeaturedStore; lang: string }) {
                 </span>
               </span>
             )}
+            {s.followersCount > 0 && (
+              <span className="flex items-center gap-0.5">
+                <span>{formatFollowers(s.followersCount)}</span>
+              </span>
+            )}
             {s.productsCount > 0 && (
-              <span className="text-muted-foreground/70">
+              <span className="text-muted-foreground/65">
                 {lang === "ar" ? `${s.productsCount} منتج` : `${s.productsCount} items`}
               </span>
             )}
@@ -413,7 +465,7 @@ function VerifiedStoresSection() {
     fetch(`${import.meta.env.BASE_URL}api/sellers/featured`)
       .then((r) => (r.ok ? r.json() : []))
       .then((d: FeaturedStore[]) =>
-        setStores(Array.isArray(d) ? d.slice(0, 6) : []),
+        setStores(Array.isArray(d) ? d.slice(0, 8) : []),
       )
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -422,14 +474,14 @@ function VerifiedStoresSection() {
   if (!loading && stores.length === 0) return null;
 
   return (
-    <section className="py-10 md:py-14 border-b bg-background cv-section">
+    <section className="py-8 sm:py-10 md:py-12 border-b bg-background">
       <div className="container px-4">
-        <div className="flex items-center justify-between mb-5 md:mb-7">
+        <div className="flex items-center justify-between mb-5 md:mb-6">
           <div className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <BadgeCheck className="h-3.5 w-3.5 text-primary" />
             </div>
-            <h2 className="heading-section">
+            <h2 className="text-sm sm:text-[15px] font-bold text-foreground">
               {t("home.verified_stores_title")}
             </h2>
           </div>
@@ -442,7 +494,6 @@ function VerifiedStoresSection() {
           </Link>
         </div>
 
-        {/* Horizontal scroll — all breakpoints */}
         <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
           {loading
             ? Array(4)
@@ -457,7 +508,7 @@ function VerifiedStoresSection() {
   );
 }
 
-/* ── Trust strip (appears ONCE — in the join section) ───────────── */
+/* ── Trust items ─────────────────────────────────────────────────── */
 
 const TRUST_ITEMS = [
   {
@@ -555,19 +606,13 @@ export default function Home() {
     <Layout>
       <div className="w-full">
 
-        {/* ────────────────────────────────────────────────────
-            1. HERO — cinematic full-width
-        ──────────────────────────────────────────────────── */}
+        {/* ── 1. HERO ──────────────────────────────────────────── */}
         <HeroV4 />
 
-        {/* ────────────────────────────────────────────────────
-            2. POPULAR CATEGORIES — horizontal chip scroll
-        ──────────────────────────────────────────────────── */}
+        {/* ── 2. POPULAR CATEGORIES ────────────────────────────── */}
         <PopularCategoriesSection />
 
-        {/* ────────────────────────────────────────────────────
-            3. HOT DEALS — flash sale products
-        ──────────────────────────────────────────────────── */}
+        {/* ── 3. HOT DEALS ─────────────────────────────────────── */}
         {(isLoadingProducts || hotDeals.length > 0) && (
           <HotDealsSection
             hotDeals={hotDeals}
@@ -576,16 +621,12 @@ export default function Home() {
           />
         )}
 
-        {/* ────────────────────────────────────────────────────
-            4. VERIFIED STORES — premium horizontal scroll
-        ──────────────────────────────────────────────────── */}
+        {/* ── 4. VERIFIED STORES ───────────────────────────────── */}
         <VerifiedStoresSection />
 
-        {/* ────────────────────────────────────────────────────
-            5. BEST SELLERS — ranked by purchase volume
-        ──────────────────────────────────────────────────── */}
+        {/* ── 5. BEST SELLERS ──────────────────────────────────── */}
         {(isLoadingBestSellers || bestSellers.length > 0) && (
-          <section className="py-10 md:py-14 border-b bg-muted/10 cv-section">
+          <section className="py-8 sm:py-10 md:py-12 border-b bg-muted/10">
             <div className="container px-4">
               <SectionHeader
                 title={t("home.bestsellers_title")}
@@ -610,10 +651,8 @@ export default function Home() {
           </section>
         )}
 
-        {/* ────────────────────────────────────────────────────
-            6. NEW ARRIVALS — most recently listed
-        ──────────────────────────────────────────────────── */}
-        <section className="py-10 md:py-14 border-b cv-section">
+        {/* ── 6. NEW ARRIVALS ──────────────────────────────────── */}
+        <section className="py-8 sm:py-10 md:py-12 border-b">
           <div className="container px-4">
             <SectionHeader
               title={t("home.arrivals_title")}
@@ -638,16 +677,14 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ────────────────────────────────────────────────────
-            7. RECENTLY VIEWED — personalised, localStorage
-        ──────────────────────────────────────────────────── */}
+        {/* ── 7. RECENTLY VIEWED ───────────────────────────────── */}
         {recentlyViewed.length > 0 && (
-          <section className="py-10 md:py-14 border-b cv-section">
+          <section className="py-8 sm:py-10 md:py-12 border-b">
             <div className="container px-4">
-              <div className="flex items-center justify-between mb-5 md:mb-7">
+              <div className="flex items-center justify-between mb-5 md:mb-6">
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
-                  <h2 className="heading-section">
+                  <h2 className="text-sm sm:text-[15px] font-bold text-foreground">
                     {t("home.recently_viewed_title")}
                   </h2>
                 </div>
@@ -667,94 +704,100 @@ export default function Home() {
           </section>
         )}
 
-        {/* ────────────────────────────────────────────────────
-            8. JOIN SYANO — seller + courier recruitment
-               Trust strip appears HERE — the single place
-               where marketplace promises are displayed.
-        ──────────────────────────────────────────────────── */}
-        <section className="py-12 md:py-16 bg-muted/10 border-b">
-          <div className="container px-4 space-y-8">
+        {/* ── 8. JOIN SYANO — dark premium section ─────────────── */}
+        <section className="relative overflow-hidden bg-[#0a1628] text-white">
+          {/* Subtle grid texture */}
+          <div
+            className="absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
+              backgroundSize: "40px 40px",
+            }}
+          />
+          {/* Green glow accent */}
+          <div className="absolute -top-32 -start-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-32 -end-32 w-96 h-96 bg-primary/8 rounded-full blur-3xl pointer-events-none" />
 
-            {/* Heading */}
-            <div className="text-center space-y-1.5">
-              <h2 className="text-lg sm:text-xl font-bold">
-                {lang === "ar"
-                  ? "انضم إلى منظومة سيانو"
-                  : "Join the Syano Ecosystem"}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {lang === "ar"
-                  ? "ابدأ البيع أو كن مندوب توصيل وحقق المزيد من الأرباح"
-                  : "Start selling or become a courier and grow your income"}
-              </p>
-            </div>
+          <div className="relative container px-4 py-14 md:py-20">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
 
-            {/* CTA cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Seller */}
-              <div className="flex flex-col justify-between gap-4 bg-card border rounded-2xl p-5 md:p-6 shadow-sm">
-                <div className="flex items-start gap-3.5">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <Store className="h-5 w-5 text-primary" />
+              {/* Left col: delivery truck visual */}
+              <div className="relative order-2 md:order-1 rounded-2xl overflow-hidden aspect-[4/3] md:aspect-auto md:h-64 lg:h-72">
+                <img
+                  src="https://images.pexels.com/photos/4391470/pexels-photo-4391470.jpeg?auto=compress&cs=tinysrgb&w=800"
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover rounded-2xl"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a1628]/70 via-transparent to-transparent rounded-2xl" />
+                {/* Syano brand tag */}
+                <div className="absolute bottom-4 start-4 flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/10">
+                  <div className="h-6 w-6 bg-primary rounded-md flex items-center justify-center">
+                    <span className="text-[10px] font-black text-white">S</span>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold">{t("home.sell_cta_title")}</h3>
-                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                      {t("home.sell_cta_desc")}
-                    </p>
-                  </div>
+                  <span className="text-xs font-bold text-white">Syano</span>
                 </div>
-                <Button
-                  className="h-9 px-5 text-sm font-semibold w-full"
-                  onClick={handleOpenYourStore}
-                >
-                  {t("home.sell_cta_btn")}
-                  <ArrowRight className="ms-2 h-3.5 w-3.5 rtl:rotate-180" />
-                </Button>
               </div>
 
-              {/* Courier */}
-              <div className="flex flex-col justify-between gap-4 bg-card border rounded-2xl p-5 md:p-6 shadow-sm">
-                <div className="flex items-start gap-3.5">
-                  <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center shrink-0 mt-0.5">
-                    <Truck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              {/* Right col: text + CTAs */}
+              <div className="order-1 md:order-2 space-y-6">
+                <div className="space-y-3">
+                  <div className="inline-flex items-center gap-1.5 bg-primary/20 border border-primary/30 text-primary px-3 py-1 rounded-full text-[11px] font-semibold">
+                    <Zap className="h-3 w-3" />
+                    {lang === "ar" ? "انضم إلى المنظومة" : "Join the Ecosystem"}
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold">
-                      {t("home.courier_cta_title")}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                      {t("home.courier_cta_desc")}
-                    </p>
-                  </div>
+                  <h2 className="text-2xl sm:text-3xl lg:text-[2rem] font-black leading-tight">
+                    {lang === "ar"
+                      ? "انضم إلى منظومة سيانو"
+                      : "Join the Syano Ecosystem"}
+                  </h2>
+                  <p className="text-sm sm:text-[15px] text-white/60 leading-relaxed">
+                    {lang === "ar"
+                      ? "ابدأ البيع أو كن مندوب توصيل وحقق المزيد من الأرباح"
+                      : "Start selling or become a courier and grow your income"}
+                  </p>
                 </div>
-                <Button
-                  variant="outline"
-                  className="h-9 px-5 text-sm font-semibold w-full"
-                  onClick={handleBecomeCourier}
-                >
-                  {t("home.courier_cta_btn")}
-                  <ArrowRight className="ms-2 h-3.5 w-3.5 rtl:rotate-180" />
-                </Button>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    size="lg"
+                    className="h-11 px-7 text-sm font-bold rounded-xl shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all duration-200"
+                    onClick={handleOpenYourStore}
+                  >
+                    <Store className="h-4 w-4 me-2" />
+                    {t("home.sell_cta_btn")}
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="h-11 px-7 text-sm font-semibold rounded-xl border-white/20 text-white hover:bg-white/10 hover:border-white/35 bg-transparent transition-all duration-200"
+                    onClick={handleBecomeCourier}
+                  >
+                    <Truck className="h-4 w-4 me-2" />
+                    {t("home.courier_cta_btn")}
+                  </Button>
+                </div>
               </div>
             </div>
 
-            {/* Trust strip — the ONE location for marketplace promises */}
-            <div className="border-t pt-7">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+            {/* Trust strip */}
+            <div className="mt-12 pt-10 border-t border-white/10">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 sm:gap-8">
                 {TRUST_ITEMS.map(({ Icon, ar, en, subAr, subEn }) => (
                   <div
                     key={en}
-                    className="flex flex-col items-center text-center gap-2"
+                    className="flex flex-col items-center text-center gap-2.5"
                   >
-                    <div className="h-9 w-9 rounded-xl bg-primary/8 border border-primary/15 flex items-center justify-center">
-                      <Icon className="h-4 w-4 text-primary" />
+                    <div className="h-10 w-10 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center">
+                      <Icon className="h-4.5 w-4.5 text-primary" style={{ height: "1.125rem", width: "1.125rem" }} />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-foreground">
+                      <p className="text-xs font-bold text-white">
                         {lang === "ar" ? ar : en}
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                      <p className="text-[11px] text-white/45 mt-0.5">
                         {lang === "ar" ? subAr : subEn}
                       </p>
                     </div>
@@ -762,7 +805,6 @@ export default function Home() {
                 ))}
               </div>
             </div>
-
           </div>
         </section>
 

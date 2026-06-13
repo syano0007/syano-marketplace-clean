@@ -1,17 +1,4 @@
 // @refresh reset
-/**
- * HeroV4 — Full-width cinematic hero (Homepage V4 refined, premium pass)
- *
- * Hero is intentionally minimal:
- *   eyebrow → headline → subtext → 2 CTAs
- *
- * No search bar (navbar has search).
- * No trust bullets (trust strip lives in the bottom CTA section — one location only).
- *
- * Banner enhancement layer:
- *   0 banners  → BrandStatement (cinematic background image cascade)
- *   Banners    → BannerCarousel (full-width, same dimensions)
- */
 import React, { useEffect, useState, useCallback, memo } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -23,14 +10,11 @@ import { cn } from "@/lib/utils";
 const BASE = import.meta.env.BASE_URL ?? "/";
 const BANNER_INTERVAL_MS = 6000;
 
-// Hero background cascade — first to load wins; CSS gradient is final fallback
 const HERO_BACKGROUNDS = [
   "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&q=80&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1920&q=80&auto=format&fit=crop",
   "https://images.pexels.com/photos/3617500/pexels-photo-3617500.jpeg?auto=compress&cs=tinysrgb&w=1920&h=600&fit=crop",
 ];
-
-// ─── Banner type ──────────────────────────────────────────────────────────────
 
 interface Banner {
   id: number;
@@ -47,17 +31,14 @@ interface Banner {
   sortOrder: number;
 }
 
-// ─── Brand statement (minimal cinematic) ─────────────────────────────────────
-
 const BrandStatement = memo(function BrandStatement() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const lang = i18n.language;
   const isRTL = i18n.dir() === "rtl";
   const [bgIndex, setBgIndex] = useState(0);
 
   return (
     <div className="relative h-full overflow-hidden select-none">
-      {/* Background image cascade */}
       {bgIndex < HERO_BACKGROUNDS.length ? (
         <img
           src={HERO_BACKGROUNDS[bgIndex]}
@@ -71,17 +52,17 @@ const BrandStatement = memo(function BrandStatement() {
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950" />
       )}
 
-      {/* Directional gradient overlay — content side is darkest */}
+      {/* Deep cinematic overlay */}
+      <div className="absolute inset-0 bg-black/55" />
       <div
         className="absolute inset-0"
         style={{
           background: isRTL
-            ? "linear-gradient(to left, rgba(5,15,30,0.92) 0%, rgba(5,15,30,0.78) 36%, rgba(5,15,30,0.28) 62%, rgba(5,15,30,0.06) 100%)"
-            : "linear-gradient(to right, rgba(5,15,30,0.92) 0%, rgba(5,15,30,0.78) 36%, rgba(5,15,30,0.28) 62%, rgba(5,15,30,0.06) 100%)",
+            ? "linear-gradient(to left, rgba(3,10,20,0.95) 0%, rgba(3,10,20,0.82) 38%, rgba(3,10,20,0.35) 65%, rgba(3,10,20,0.08) 100%)"
+            : "linear-gradient(to right, rgba(3,10,20,0.95) 0%, rgba(3,10,20,0.82) 38%, rgba(3,10,20,0.35) 65%, rgba(3,10,20,0.08) 100%)",
         }}
       />
-      {/* Bottom depth scrim */}
-      <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/60 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent" />
 
       {/* Content */}
       <div
@@ -90,46 +71,45 @@ const BrandStatement = memo(function BrandStatement() {
           "px-6 sm:px-10 lg:px-16",
         )}
       >
-        <div className="space-y-4 sm:space-y-5 max-w-[400px]">
+        <div className="space-y-4 sm:space-y-5 max-w-[460px]">
           {/* Eyebrow badge */}
-          <div className="inline-flex items-center gap-1.5 bg-primary/20 border border-primary/40 text-primary px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold">
+          <div className="inline-flex items-center gap-1.5 bg-primary/20 border border-primary/40 text-primary px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold w-fit">
             <Zap className="h-3 w-3 shrink-0" />
             {lang === "ar"
-              ? "أول سوق إلكتروني في سوريا"
+              ? "تجربة تسوق متكاملة"
               : "Syria's First Online Marketplace"}
           </div>
 
           {/* Headline */}
           {lang === "ar" ? (
-            <h1 className="text-[2.1rem] sm:text-4xl lg:text-[2.8rem] font-black text-white leading-[1.1] tracking-tight drop-shadow-lg">
-              سوق <span className="text-primary">سوريا</span>
+            <h1 className="text-[2.2rem] sm:text-[2.8rem] lg:text-[3.2rem] font-black text-white leading-[1.08] tracking-tight drop-shadow-2xl">
+              اكتشف آلاف المنتجات
               <br />
-              كل ما تحتاجه
-              <br />
-              في مكان واحد
+              <span className="text-primary">من المتاجر السورية</span>
             </h1>
           ) : (
-            <h1 className="text-[2rem] sm:text-4xl lg:text-[2.75rem] font-black text-white leading-[1.08] tracking-tight drop-shadow-lg">
-              Everything in{" "}
-              <span className="text-primary">Aleppo.</span>
+            <h1 className="text-[2rem] sm:text-4xl lg:text-[2.8rem] font-black text-white leading-[1.08] tracking-tight drop-shadow-2xl">
+              Discover Thousands of
+              <br />
+              <span className="text-primary">Syrian Products.</span>
             </h1>
           )}
 
           {/* Supporting text */}
-          <p className="text-sm sm:text-[15px] text-white/65 leading-relaxed max-w-[320px]">
+          <p className="text-sm sm:text-[15px] text-white/60 leading-relaxed max-w-[340px]">
             {lang === "ar"
-              ? "آلاف المنتجات من متاجر موثوقة في جميع أنحاء سوريا"
-              : "Thousands of products from trusted sellers across Syria."}
+              ? "منتجات متنوعة، متاجر موثوقة، وتجربة تسوق حديثة"
+              : "Diverse products, trusted sellers, and a modern shopping experience."}
           </p>
 
           {/* CTA row */}
-          <div className="flex flex-row items-center gap-2.5 flex-wrap pt-1">
+          <div className="flex flex-row items-center gap-3 flex-wrap pt-1">
             <Link href="/products">
               <Button
                 size="lg"
-                className="h-10 sm:h-11 px-6 text-sm font-bold shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all duration-200"
+                className="h-11 px-7 text-sm font-bold shadow-lg shadow-primary/30 hover:-translate-y-0.5 transition-all duration-200 rounded-xl"
               >
-                {t("home.shop_all")}
+                {lang === "ar" ? "تسوق الآن" : "Shop Now"}
                 <ArrowRight
                   className={cn(
                     "h-4 w-4 shrink-0",
@@ -142,7 +122,7 @@ const BrandStatement = memo(function BrandStatement() {
               <Button
                 size="lg"
                 variant="outline"
-                className="h-10 sm:h-11 px-5 text-sm font-semibold border-white/30 text-white hover:bg-white/10 hover:border-white/50 hover:-translate-y-0.5 transition-all duration-200 bg-transparent"
+                className="h-11 px-6 text-sm font-semibold border-white/25 text-white hover:bg-white/10 hover:border-white/40 hover:-translate-y-0.5 transition-all duration-200 bg-transparent rounded-xl"
               >
                 {lang === "ar" ? "الفئات" : "Browse"}
               </Button>
@@ -153,8 +133,6 @@ const BrandStatement = memo(function BrandStatement() {
     </div>
   );
 });
-
-// ─── Banner carousel ──────────────────────────────────────────────────────────
 
 const BannerCarousel = memo(function BannerCarousel({
   banners,
@@ -233,19 +211,19 @@ const BannerCarousel = memo(function BannerCarousel({
           <div
             className="absolute inset-0"
             style={{
-              background: `linear-gradient(${isRTL ? "to left" : "to right"}, ${bgColor}e0 0%, ${bgColor}a0 38%, ${bgColor}55 60%, transparent 100%)`,
+              background: `linear-gradient(${isRTL ? "to left" : "to right"}, ${bgColor}e8 0%, ${bgColor}b0 38%, ${bgColor}60 60%, transparent 100%)`,
             }}
           />
-          <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/55 to-transparent" />
         </motion.div>
       </AnimatePresence>
 
       <div
-        className="absolute inset-0 flex flex-col justify-center px-6 sm:px-10 lg:px-16 z-10 space-y-3"
+        className="absolute inset-0 flex flex-col justify-center px-6 sm:px-10 lg:px-16 z-10 space-y-4"
         style={{ color: textColor }}
       >
         {subtitle && (
-          <p className="text-[11px] font-semibold uppercase tracking-widest opacity-70">
+          <p className="text-[11px] font-semibold uppercase tracking-widest opacity-65">
             {subtitle}
           </p>
         )}
@@ -260,7 +238,7 @@ const BannerCarousel = memo(function BannerCarousel({
             <Link href={banner.ctaUrl}>
               <Button
                 size="lg"
-                className="h-10 px-6 text-sm font-bold shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                className="h-11 px-7 text-sm font-bold shadow-lg hover:-translate-y-0.5 transition-all duration-200 rounded-xl"
                 onClick={() =>
                   fetch(`${BASE}api/banners/${banner.id}/click`, {
                     method: "POST",
@@ -285,7 +263,7 @@ const BannerCarousel = memo(function BannerCarousel({
           <button
             onClick={goPrev}
             aria-label="Previous slide"
-            className="absolute top-1/2 -translate-y-1/2 start-3 z-20 h-8 w-8 rounded-full bg-black/25 backdrop-blur-sm border border-white/15 text-white flex items-center justify-center hover:bg-black/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+            className="absolute top-1/2 -translate-y-1/2 start-4 z-20 h-9 w-9 rounded-full bg-black/30 backdrop-blur-sm border border-white/15 text-white flex items-center justify-center hover:bg-black/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
           >
             {isRTL ? (
               <ChevronRight className="h-4 w-4" />
@@ -296,7 +274,7 @@ const BannerCarousel = memo(function BannerCarousel({
           <button
             onClick={goNext}
             aria-label="Next slide"
-            className="absolute top-1/2 -translate-y-1/2 end-3 z-20 h-8 w-8 rounded-full bg-black/25 backdrop-blur-sm border border-white/15 text-white flex items-center justify-center hover:bg-black/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+            className="absolute top-1/2 -translate-y-1/2 end-4 z-20 h-9 w-9 rounded-full bg-black/30 backdrop-blur-sm border border-white/15 text-white flex items-center justify-center hover:bg-black/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
           >
             {isRTL ? (
               <ChevronLeft className="h-4 w-4" />
@@ -308,7 +286,7 @@ const BannerCarousel = memo(function BannerCarousel({
       )}
 
       {banners.length > 1 && (
-        <div className="absolute bottom-4 inset-x-0 z-20 flex items-center justify-center gap-1.5">
+        <div className="absolute bottom-5 inset-x-0 z-20 flex items-center justify-center gap-2">
           {banners.map((_, i) => (
             <button
               key={i}
@@ -317,8 +295,8 @@ const BannerCarousel = memo(function BannerCarousel({
               className={cn(
                 "rounded-full transition-all duration-300 focus-visible:outline-none",
                 i === current
-                  ? "w-5 h-[4px] bg-white/80"
-                  : "w-[4px] h-[4px] bg-white/30 hover:bg-white/50",
+                  ? "w-6 h-[4px] bg-white/90"
+                  : "w-[4px] h-[4px] bg-white/30 hover:bg-white/55",
               )}
             />
           ))}
@@ -327,8 +305,6 @@ const BannerCarousel = memo(function BannerCarousel({
     </div>
   );
 });
-
-// ─── Main HeroV4 ─────────────────────────────────────────────────────────────
 
 export function HeroV4() {
   const [banners, setBanners] = useState<Banner[]>([]);
@@ -346,7 +322,7 @@ export function HeroV4() {
 
   return (
     <section className="border-b overflow-hidden">
-      <div className="h-[360px] sm:h-[440px] lg:h-[520px]">
+      <div className="h-[380px] sm:h-[460px] lg:h-[540px]">
         {hasBanners ? (
           <BannerCarousel banners={banners} />
         ) : (
