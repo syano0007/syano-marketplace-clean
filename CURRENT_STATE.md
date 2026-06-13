@@ -1,6 +1,6 @@
 # SYANO — Current Project State
-**Last Updated:** June 13, 2026 (Recovery Session 3)  
-**Updated By:** Full environment recovery — dependencies restored, DB seeded, all services running, wishlist TS fix applied
+**Last Updated:** June 13, 2026 (Recovery Session 4)  
+**Updated By:** Full environment recovery — fresh env, 1131 packages, 29 tables, 0 TS errors, 95/100 recovery score, all 3 services running
 
 ---
 
@@ -9,6 +9,18 @@
 All services running. All features validated end-to-end with real API calls.
 
 ---
+
+## Migration Note (June 13, 2026 — Session 4)
+
+Full recovery performed from empty environment:
+- `pnpm install --force` → 1,131 packages installed
+- `psql "$DATABASE_URL" -f schema.sql` → 21 base tables created
+- Shared libs built: `npx tsc --build lib/db lib/api-zod lib/api-client-react` → clean
+- API server started → `run-migrations.ts` added 8 additional tables + all enum values
+- All 3 test accounts auto-bootstrapped by startup code
+- Translation keys: EN=2,636 / AR=2,636 (perfectly balanced — up from 2,592 in Session 3)
+- TypeScript: 0 errors across all 6 artifacts
+- Recovery check: **95/100** (heroBannerSystem false negative is known/expected — see Known Issues)
 
 ## Migration Note (June 13, 2026 — Session 3)
 
