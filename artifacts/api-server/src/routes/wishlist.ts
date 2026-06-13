@@ -16,13 +16,13 @@ const router: IRouter = Router();
 
 // GET /wishlist — full product objects for current user
 router.get("/wishlist", requireAuth, async (req, res): Promise<void> => {
-  const user = req.user!;
+  const userId = req.user!.userId;
   try {
     const rows = await db
       .select({ product: productsTable })
       .from(wishlistsTable)
       .innerJoin(productsTable, eq(wishlistsTable.productId, productsTable.id))
-      .where(eq(wishlistsTable.userId, user.id))
+      .where(eq(wishlistsTable.userId, userId))
       .orderBy(desc(wishlistsTable.createdAt));
     res.json(rows.map((r) => r.product));
   } catch {
@@ -32,12 +32,12 @@ router.get("/wishlist", requireAuth, async (req, res): Promise<void> => {
 
 // GET /wishlist/ids — lightweight: just product IDs (for heart toggle state)
 router.get("/wishlist/ids", requireAuth, async (req, res): Promise<void> => {
-  const user = req.user!;
+  const userId = req.user!.userId;
   try {
     const rows = await db
       .select({ productId: wishlistsTable.productId })
       .from(wishlistsTable)
-      .where(eq(wishlistsTable.userId, user.id));
+      .where(eq(wishlistsTable.userId, userId));
     res.json(rows.map((r) => r.productId));
   } catch {
     res.status(500).json({ error: "Failed to fetch wishlist IDs" });
@@ -46,7 +46,7 @@ router.get("/wishlist/ids", requireAuth, async (req, res): Promise<void> => {
 
 // POST /wishlist — add a product
 router.post("/wishlist", requireAuth, async (req, res): Promise<void> => {
-  const user = req.user!;
+  const userId = req.user!.userId;
   const productId = Number(req.body?.productId);
   if (!productId || isNaN(productId)) {
     res.status(400).json({ error: "productId required" });
@@ -55,7 +55,7 @@ router.post("/wishlist", requireAuth, async (req, res): Promise<void> => {
   try {
     await db
       .insert(wishlistsTable)
-      .values({ userId: user.id, productId })
+      .values({ userId, productId })
       .onConflictDoNothing();
     res.json({ ok: true });
   } catch {
@@ -65,7 +65,7 @@ router.post("/wishlist", requireAuth, async (req, res): Promise<void> => {
 
 // DELETE /wishlist/:productId — remove a product
 router.delete("/wishlist/:productId", requireAuth, async (req, res): Promise<void> => {
-  const user = req.user!;
+  const userId = req.user!.userId;
   const productId = parseInt(String(req.params.productId), 10);
   if (isNaN(productId)) {
     res.status(400).json({ error: "Invalid productId" });
@@ -74,7 +74,7 @@ router.delete("/wishlist/:productId", requireAuth, async (req, res): Promise<voi
   try {
     await db
       .delete(wishlistsTable)
-      .where(and(eq(wishlistsTable.userId, user.id), eq(wishlistsTable.productId, productId)));
+      .where(and(eq(wishlistsTable.userId, userId), eq(wishlistsTable.productId, productId)));
     res.json({ ok: true });
   } catch {
     res.status(500).json({ error: "Failed to remove from wishlist" });

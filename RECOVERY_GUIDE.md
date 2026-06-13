@@ -1,5 +1,5 @@
 # SYANO — Recovery Guide
-**Last Updated:** June 13, 2026 (Recovery Session 2 — new Replit environment)
+**Last Updated:** June 13, 2026 (Recovery Session 3 — full environment restore + wishlist TS fix)
 
 This guide restores the project to a fully working state from scratch.
 
@@ -187,6 +187,8 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/admin/recove
 
 **Expected:** `"confidenceScore": 95, "failures": ["home.tsx does not use HeroBanner component"]`
 
+> **Recovery Session 3 Note (June 13, 2026):** `wishlist.ts` had 4 TypeScript errors (`user.id` → `user.userId`) introduced when the wishlist system was built. Fixed during recovery session 3. All 6 artifacts now compile at 0 errors.
+
 > **Note:** The `heroBannerSystem` failure is a **known false negative**. Homepage V4 uses `HeroV4.tsx` which activates `BannerCarousel` when DB banners exist — `HeroBanner.tsx` is no longer directly imported in `home.tsx`. All 20 other modules pass. 95/100 is the correct expected score.
 
 The endpoint runs 13 parallel checks covering:
@@ -220,6 +222,9 @@ The endpoint runs 13 parallel checks covering:
 | `drizzle-kit push` hangs | Requires TTY — use `psql -f schema.sql` instead for base schema |
 | Seller apply bounces back after submit | TanStack Query `isLoading` is false during refetch — guard must also check `!isFetching`; apply page must seed cache with `setQueryData` before navigating |
 | `verification_audit_log` name clash | The admin audit table is `seller_verification_log` — NOT `verification_audit_log` (that's the OTP log in base schema) |
+| `wishlist.ts` TS errors on recovery | `req.user.id` does not exist — use `req.user!.userId` (all 4 occurrences); fixed in Recovery Session 3 |
+| `GET /api/reviews?productId=X` returns 404 | Expected on fresh DB — no products seeded; reviews endpoint works once products exist |
+| SSE endpoint path | SSE stream is `/api/notifications/stream` (not `/api/notifications/sse`) |
 | Root owner login returns 401 | Use `role:"admin"` not `role:"customer"` for admin account |
 | Trust score shows `isVerified: null` | Server restart needed — tsx watch sometimes doesn't hot-reload route changes |
 | Seller application returns 400 "already an approved seller" | The test seller was registered with `role:"seller"` — reset to `role:"customer"` via SQL before applying: `UPDATE users SET role='customer', seller_status=null WHERE email='seller@syano.test'` |
