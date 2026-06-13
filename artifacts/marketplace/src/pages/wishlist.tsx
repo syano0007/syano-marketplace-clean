@@ -50,7 +50,7 @@ interface WishlistItemCardProps {
 function WishlistItemCard({
   product, isAr, onMoveToCart, onRemove, movingId, removingId,
 }: WishlistItemCardProps) {
-  const { formatPrice } = useCurrency();
+  const { format: formatPrice } = useCurrency();
   const isMoving = movingId === product.id;
   const isRemoving = removingId === product.id;
   const isBusy = isMoving || isRemoving;
