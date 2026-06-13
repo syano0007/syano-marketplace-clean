@@ -394,9 +394,14 @@ export async function runMigrations(): Promise<void> {
         UNIQUE (user_id, product_id)
       );
       CREATE INDEX IF NOT EXISTS idx_wishlists_user_id ON wishlists(user_id);
+
+      -- ── User Settings Preferences ────────────────────────────────────────────
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_theme    VARCHAR(10) DEFAULT 'dark';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(5)  DEFAULT 'ar';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_currency VARCHAR(3)  DEFAULT 'SYP';
     `);
 
-    logger.info("Migrations complete: delivery system tables, courier enums, order delivery columns ready");
+    logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings columns ready");
   } catch (err) {
     logger.error({ err }, "Migration error — server cannot start safely");
     throw err;

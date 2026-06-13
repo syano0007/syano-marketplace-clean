@@ -10,15 +10,45 @@ All services running. All features validated end-to-end with real API calls.
 
 ---
 
-## Migration Note (June 13, 2026 — Session 8)
+## Migration Note (June 13, 2026 — Session 8 — Settings System)
 
-Navbar geometry fixes + Settings button:
+Global Settings System — full backend + frontend + mobile implementation:
 
-### Changes Applied
-- **Floating hero icon removed**: `ShoppingBag` icon that floated above the hero image was deleted from `HeroSection.tsx`
-- **RTL layout corrected**: Desktop navbar rebuilt as 3-column CSS Grid with `dir="rtl"` — COL 1 (Logo+Nav, renders RIGHT in RTL), COL 2 (Search, CENTER), COL 3 (Settings+Auth, renders LEFT in RTL)
-- **Settings button added**: ⚙ Settings dropdown placed in COL 3 immediately beside Login/Register — contains Theme (Light/Dark/Auto), Language (العربية/English), Currency (SYP/USD) — all functional with SYANO design system styling
-- **All existing navbar items preserved**: الرئيسية, المنتجات, المتاجر, العروض, Search bar, Login, Sign up — all untouched
+### Changes Applied — Session 8
+
+**Navbar (prior sub-session):**
+- Floating ShoppingBag icon removed from HeroSection
+- Desktop navbar rebuilt as 3-column CSS Grid (RTL-aware)
+- ⚙ Settings dropdown added with Theme/Language/Currency controls
+
+**Settings System (this sub-session):**
+
+#### Backend
+- `DB columns added` (via run-migrations.ts): `preferred_theme`, `preferred_language`, `preferred_currency` on `users` table (VARCHAR, defaulting to dark/ar/SYP)
+- `GET /api/user/settings` — returns `{ theme, language, currency }` for authenticated users
+- `PATCH /api/user/settings` — updates one or more settings fields in the DB
+- Both routes live in `artifacts/api-server/src/routes/auth.ts`, auth-gated via `requireAuth`
+
+#### Marketplace Frontend
+- `src/hooks/useSettingsSync.ts` — new hook, mounted as `<SettingsSyncEffect />` in `App.tsx`:
+  - On login / page-load with stored token: fetches server settings and applies to theme/language/currency
+  - While authenticated: debounces (900ms) settings changes and PATCHes to server
+  - `hasLoadedRef` prevents saving local state before server response arrives
+- `HeroSection.tsx` — floating card prices now use `format(priceUsd)` from `useCurrency` (consistent with ProductCard)
+
+#### Mobile
+- `contexts/SettingsContext.tsx` — new context: theme/language/currency with AsyncStorage persistence; `isDark` computed from theme + device colorScheme; `formatPrice(usdAmount)` with exchange rate
+- `app/_layout.tsx` — `<SettingsProvider>` now wraps the whole app tree (outermost wrapper after SafeAreaProvider)
+- `hooks/useColors.ts` — now reads `isDark` from `SettingsContext` instead of `useColorScheme()`, so in-app theme choice overrides device setting
+
+#### Persistence Flow
+| Scenario | Result |
+|---|---|
+| Guest changes theme/lang/currency | Saved to localStorage immediately |
+| Guest logs in | Server settings fetched and applied |
+| Authenticated user changes setting | Debounced 900ms → PATCH /api/user/settings |
+| Page refresh (authenticated) | localStorage applied first, then server settings override |
+| Logout | localStorage settings remain (no reset) |
 
 ---
 

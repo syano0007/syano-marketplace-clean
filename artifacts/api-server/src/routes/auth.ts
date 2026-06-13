@@ -649,4 +649,43 @@ router.post("/auth/reset-password", async (req, res): Promise<void> => {
   res.json({ message: "Password reset successfully." });
 });
 
+// ─── GET /user/settings ───────────────────────────────────────────────────────
+
+router.get("/user/settings", requireAuth, async (req, res): Promise<void> => {
+  const rawResult = await db.execute(sql`
+    SELECT preferred_theme, preferred_language, preferred_currency
+    FROM users WHERE id = ${req.user!.userId}
+  `);
+  const row = (rawResult.rows?.[0] ?? (rawResult as any)[0]) as Record<string, unknown> | undefined;
+  if (!row) { res.status(401).json({ error: "User not found" }); return; }
+  res.json({
+    theme:    (row.preferred_theme    as string | null) ?? "dark",
+    language: (row.preferred_language as string | null) ?? "ar",
+    currency: (row.preferred_currency as string | null) ?? "SYP",
+  });
+});
+
+// ─── PATCH /user/settings ─────────────────────────────────────────────────────
+
+router.patch("/user/settings", requireAuth, async (req, res): Promise<void> => {
+  const { theme, language, currency } = req.body as {
+    theme?: unknown; language?: unknown; currency?: unknown;
+  };
+  let updated = false;
+  if (typeof theme === "string" && ["light", "dark", "system"].includes(theme)) {
+    await db.execute(sql`UPDATE users SET preferred_theme = ${theme} WHERE id = ${req.user!.userId}`);
+    updated = true;
+  }
+  if (typeof language === "string" && ["ar", "en"].includes(language)) {
+    await db.execute(sql`UPDATE users SET preferred_language = ${language} WHERE id = ${req.user!.userId}`);
+    updated = true;
+  }
+  if (typeof currency === "string" && ["SYP", "USD"].includes(currency)) {
+    await db.execute(sql`UPDATE users SET preferred_currency = ${currency} WHERE id = ${req.user!.userId}`);
+    updated = true;
+  }
+  if (!updated) { res.status(400).json({ error: "No valid settings provided" }); return; }
+  res.json({ ok: true });
+});
+
 export default router;

@@ -1,5 +1,6 @@
 import "@/i18n";
 import { lazy, Suspense, useEffect } from "react";
+import { useSettingsSync } from "@/hooks/useSettingsSync";
 // Home is imported EAGERLY — it is the primary landing page and lazy-loading it
 // creates an extra async chunk waterfall that directly delays LCP. All other
 // pages remain lazy since they are not in the critical first-render path.
@@ -350,12 +351,18 @@ function Router() {
   );
 }
 
+function SettingsSyncEffect() {
+  useSettingsSync();
+  return null;
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" attribute="class">
       <QueryClientProvider client={queryClient}>
         <CurrencyProvider>
           <AuthProvider>
+            <SettingsSyncEffect />
             <GuestCartProvider>
             <WishlistProvider>
             <NotificationProvider>

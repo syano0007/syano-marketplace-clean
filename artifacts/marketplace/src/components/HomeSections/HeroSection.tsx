@@ -3,21 +3,23 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import type { Product } from "@workspace/api-client-react";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const FALLBACK_CARDS = [
-  { id: 0, name: "عطر دبور سوفاج", price: "75,000", img: "https://images.unsplash.com/photo-1760860992203-85ca32536788?w=280&h=280&fit=crop&auto=format&q=90", available: true },
-  { id: 0, name: "ساعة ذهبية فاخرة", price: "142,000", img: "https://images.unsplash.com/photo-1772949399808-7020b02896b9?w=280&h=280&fit=crop&auto=format&q=90", available: true },
-  { id: 0, name: "موضة راقية", price: "38,500", img: "https://images.unsplash.com/photo-1704775986112-281c826c3ebd?w=280&h=280&fit=crop&auto=format&q=90", available: true },
+  { id: 0, name: "عطر دبور سوفاج", priceUsd: 5.17, img: "https://images.unsplash.com/photo-1760860992203-85ca32536788?w=280&h=280&fit=crop&auto=format&q=90", available: true },
+  { id: 0, name: "ساعة ذهبية فاخرة", priceUsd: 9.79, img: "https://images.unsplash.com/photo-1772949399808-7020b02896b9?w=280&h=280&fit=crop&auto=format&q=90", available: true },
+  { id: 0, name: "موضة راقية", priceUsd: 2.66, img: "https://images.unsplash.com/photo-1704775986112-281c826c3ebd?w=280&h=280&fit=crop&auto=format&q=90", available: true },
 ];
 
 const HERO_MAIN_IMG = "https://images.unsplash.com/photo-1741851547702-cac24b2a0d13?w=900&h=900&fit=crop&auto=format&q=90";
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
-interface CardData { id: number; name: string; price: string; img: string; available: boolean; }
+interface CardData { id: number; name: string; priceUsd: number; img: string; available: boolean; }
 
 export function HeroSection({ products }: { products: Product[] }) {
   const [activeCard, setActiveCard] = useState(0);
+  const { format } = useCurrency();
 
   const cards: CardData[] = products.length >= 3
     ? products.slice(0, 3).map(p => {
@@ -25,7 +27,7 @@ export function HeroSection({ products }: { products: Product[] }) {
         return {
           id: p.id,
           name: p.name,
-          price: Number(p.price).toLocaleString(),
+          priceUsd: Number(p.price),
           img: imgs?.[0] ?? FALLBACK_CARDS[0].img,
           available: ((p as any).stock ?? 1) > 0,
         };
@@ -159,7 +161,7 @@ export function HeroSection({ products }: { products: Product[] }) {
                   <img src={cards[activeCard].img} alt={cards[activeCard].name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.08] shrink-0" />
                   <div className="min-w-0">
                     <p style={{ fontWeight: 600, fontSize: "11px", lineHeight: 1.3 }} className="text-white/80 truncate">{cards[activeCard].name}</p>
-                    <p style={{ fontWeight: 800, fontSize: "12px" }} className="text-emerald-400 mt-0.5">{cards[activeCard].price} <span style={{ fontWeight: 400, fontSize: "10px" }}>ل.س</span></p>
+                    <p style={{ fontWeight: 800, fontSize: "12px" }} className="text-emerald-400 mt-0.5" translate="no">{format(cards[activeCard].priceUsd)}</p>
                   </div>
                 </motion.div>
               </AnimatePresence>
@@ -184,7 +186,7 @@ export function HeroSection({ products }: { products: Product[] }) {
                 <img src={cards[1]?.img ?? FALLBACK_CARDS[1].img} alt="" className="w-10 h-10 rounded-lg object-cover border border-white/[0.08] shrink-0" />
                 <div className="min-w-0">
                   <p style={{ fontWeight: 500, fontSize: "10px" }} className="text-white/40 truncate">موضة راقية</p>
-                  <p style={{ fontWeight: 800, fontSize: "12px" }} className="text-emerald-400">{cards[1]?.price ?? FALLBACK_CARDS[1].price} <span style={{ fontSize: "10px", fontWeight: 400 }}>ل.س</span></p>
+                  <p style={{ fontWeight: 800, fontSize: "12px" }} className="text-emerald-400" translate="no">{format(cards[1]?.priceUsd ?? FALLBACK_CARDS[1].priceUsd)}</p>
                 </div>
               </div>
             </Link>
@@ -201,7 +203,7 @@ export function HeroSection({ products }: { products: Product[] }) {
                 <img src={cards[2]?.img ?? FALLBACK_CARDS[2].img} alt="" className="w-10 h-10 rounded-lg object-cover border border-white/[0.08] shrink-0" />
                 <div className="min-w-0">
                   <p style={{ fontWeight: 500, fontSize: "10px" }} className="text-white/40 truncate">ساعة ذهبية</p>
-                  <p style={{ fontWeight: 800, fontSize: "12px" }} className="text-emerald-400">{cards[2]?.price ?? FALLBACK_CARDS[2].price} <span style={{ fontSize: "10px", fontWeight: 400 }}>ل.س</span></p>
+                  <p style={{ fontWeight: 800, fontSize: "12px" }} className="text-emerald-400" translate="no">{format(cards[2]?.priceUsd ?? FALLBACK_CARDS[2].priceUsd)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 mt-1.5">
