@@ -30,19 +30,19 @@ export function HomeFooter() {
       links: [
         { labelKey: "home.footer.link_open_store", href: "/seller/apply" },
         { labelKey: "home.footer.link_seller_dashboard", href: "/seller/dashboard" },
-        { labelKey: "home.footer.link_commission", href: "/seller/apply" },
-        { labelKey: "home.footer.link_returns", href: "/" },
-        { labelKey: "home.footer.link_help", href: "/" },
+        { labelKey: "home.footer.link_commission", href: "/seller/commission" },
+        { labelKey: "home.footer.link_returns", href: "/returns-policy" },
+        { labelKey: "home.footer.link_help", href: "/help" },
       ],
     },
     company: {
       titleKey: "home.footer.company_title",
       links: [
-        { labelKey: "home.footer.link_about", href: "/" },
-        { labelKey: "home.footer.link_shipping", href: "/" },
-        { labelKey: "home.footer.link_privacy", href: "/" },
-        { labelKey: "home.footer.link_terms_page", href: "/" },
-        { labelKey: "home.footer.link_contact", href: "/" },
+        { labelKey: "home.footer.link_about", href: "/about" },
+        { labelKey: "home.footer.link_shipping", href: "/shipping" },
+        { labelKey: "home.footer.link_privacy", href: "/privacy-policy" },
+        { labelKey: "home.footer.link_terms_page", href: "/terms-of-use" },
+        { labelKey: "home.footer.link_contact", href: "/contact" },
       ],
     },
   };
@@ -117,9 +117,9 @@ export function HomeFooter() {
             ))}
           </div>
           <div className="flex items-center gap-5">
-            <a href="#" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.privacy")}</a>
-            <a href="#" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.terms")}</a>
-            <a href="#" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.cookies")}</a>
+            <Link href="/privacy-policy" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.privacy")}</Link>
+            <Link href="/terms-of-use" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.terms")}</Link>
+            <Link href="/cookies" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.cookies")}</Link>
           </div>
         </div>
       </div>

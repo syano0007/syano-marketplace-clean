@@ -315,8 +315,9 @@ function Router() {
             {/* ── Wishlist ─ open to guests (guest wishlist supported) ── */}
             <Route path="/wishlist" component={WishlistPage} />
 
-            {/* ── Info & Footer pages ──────────────────────────────── */}
+            {/* ── Stores directory ─ two canonical paths ───────────── */}
             <Route path="/stores" component={StoresPage} />
+            <Route path="/sellers/directory" component={StoresPage} />
 
             <Route path="/about" component={AboutPage} />
             <Route path="/about/story" component={StoryPage} />
