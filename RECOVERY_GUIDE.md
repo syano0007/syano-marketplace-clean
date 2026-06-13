@@ -255,10 +255,17 @@ The endpoint runs 13 parallel checks covering:
 **Dimensions:** 1717 × 916 px (aspect ratio ≈ 1.875:1)  
 **Content:** Arabic headline + luxury product showcase + trust badge strip — all baked into the image.
 
-`BrandStatement` in `HeroV4.tsx` renders this image as-is:
-- `object-cover` + `objectPosition: "left top"` → Arabic text always visible
-- Container: `aspectRatio: "1717/916"`, `maxHeight: 620px`, `minHeight: 200px`
+`BrandStatement` in `HeroV4.tsx` renders this image plus a transparent CTA overlay:
+- `objectFit: "fill"` — no cropping since container has identical 1717/916 aspect ratio
+- Container: `aspectRatio: "1717/916"` (no maxHeight, no minHeight — pure proportional)
 - No text overlays, no floating products, no gradients added on top
+
+**Transparent CTA overlay** — the "تسوق الآن ←" button baked in the image is NOT clickable by itself. A transparent `<Link href="/products">` is positioned exactly on top of it:
+- Pixel-scanned from source PNG: green fill at x=101–369, y=510–567
+- CSS: `left:5.5%, top:55.5%, width:16.5%, height:8%, borderRadius:10px`
+- `minHeight:44px, minWidth:100px` → WCAG touch target on mobile
+- `background:transparent` — invisible to sighted users; image IS the visual
+- `focus-visible:ring-2 focus-visible:ring-primary/70` — keyboard accessible
 
 When admin creates banner records in DB → `BannerCarousel` activates instead (admin override).
 

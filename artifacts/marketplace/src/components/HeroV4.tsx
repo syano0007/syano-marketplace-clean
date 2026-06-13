@@ -32,15 +32,27 @@ interface Banner {
   sortOrder: number;
 }
 
-/* ── Brand Statement — approved hero image, no modifications ──────── */
-// The image already contains all visual content:
-//   • Arabic headline + subtitle + CTA button (left side)
+/* ── Brand Statement — approved hero image + transparent CTA overlay ─ */
+// The image (1717×916 px) already contains all visual content baked in:
+//   • Arabic headline, subtitle, badge (left side)
 //   • Luxury product showcase (right side)
 //   • Trust-badge strip (bottom)
-// object-position: left top preserves Arabic text on mobile crops.
+//   • "تسوق الآن ←" CTA button — visible but NOT interactive
+//
+// This component adds a transparent, keyboard-accessible <Link> positioned
+// EXACTLY over the printed button so users can click it.
+//
+// Pixel scan of the source PNG detected the green button fill at:
+//   x = 101–369  →  left=5.88%  width=15.6%
+//   y = 510–567  →  top=55.7%   height=6.2%
+// Comfortable padding (+0.5%) added to cover anti-aliased button edges.
+//
+// The outer container uses aspectRatio:"1717/916" (no maxHeight) so these
+// CSS percentages map 1:1 to the image regardless of viewport width.
 const BrandStatement = memo(function BrandStatement() {
   return (
-    <div className="relative w-full h-full bg-black overflow-hidden">
+    <div className="relative w-full h-full bg-black">
+      {/* Exact approved image — zero visual modifications */}
       <img
         src={heroBannerImg as string}
         alt="Syano — اكتشف آلاف المنتجات من المتاجر السورية"
@@ -48,14 +60,40 @@ const BrandStatement = memo(function BrandStatement() {
         decoding="async"
         // @ts-ignore fetchPriority not yet in all TS libs
         fetchPriority="high"
-        className="w-full h-full object-cover"
-        style={{
-          // Anchor to top-left so the Arabic text area (left side) and
-          // the headline remain visible when the banner is cropped at
-          // smaller viewports or when max-height is reached.
-          objectPosition: "left top",
-        }}
+        className="absolute inset-0 w-full h-full"
+        style={{ objectFit: "fill" }}
       />
+
+      {/* ── Transparent CTA overlay ────────────────────────────────────
+          Covers the "تسوق الآن ←" button printed in the image.
+          Invisible to sighted users — the image button IS the visual.
+          Provides real interactivity, keyboard focus ring, and touch target.
+
+          Position derivation (1717×916 source image):
+            left  = 101 / 1717 = 5.88% → using 5.5% (slight inset for comfort)
+            top   = 510 / 916  = 55.7% → using 55.5%
+            width = 268 / 1717 = 15.6% → using 16.5% (adds ~15px each side)
+            height = 57 / 916  = 6.2%  → using 8%   (adds padding zone)
+
+          minHeight/minWidth enforce a 44px WCAG touch target on mobile
+          where 8% of a ~200px banner would be too small to tap. ──────── */}
+      <Link
+        href="/products"
+        aria-label="تسوق الآن — Shop Now"
+        className="absolute cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-0"
+        style={{
+          left: "5.5%",
+          top: "55.5%",
+          width: "16.5%",
+          height: "8%",
+          minHeight: "44px",
+          minWidth: "100px",
+          background: "transparent",
+          borderRadius: "10px",
+        }}
+      >
+        <span className="sr-only">تسوق الآن</span>
+      </Link>
     </div>
   );
 });
@@ -212,17 +250,13 @@ export function HeroV4() {
 
   return (
     <section className="border-b overflow-hidden bg-black">
-      {/* aspect-ratio drives height at every breakpoint.
-          1717÷916 ≈ 1.875 → same proportions as the source PNG.
-          On screens ≥ ~1312px the height would exceed 700px so we cap
-          at 620px; object-position:left-top keeps the text visible. */}
+      {/* Pure aspect-ratio container — NO maxHeight, NO minHeight.
+          The container always has width:100% and height = width × (916/1717).
+          This guarantees the CTA overlay percentages map 1:1 to the source image
+          at every viewport width, so the invisible button never drifts. */}
       <div
         className="relative w-full"
-        style={{
-          aspectRatio: "1717/916",
-          maxHeight: "620px",
-          minHeight: "200px",
-        }}
+        style={{ aspectRatio: "1717/916" }}
       >
         {loaded && banners.length > 0 ? (
           <BannerCarousel banners={banners} />
