@@ -59,22 +59,15 @@ const PAGE_CSS = `
   .dark .sy-cta-btn { background:#111 !important; border-color:rgba(255,255,255,0.06) !important; }
   .sy-cta-btn:hover { border-color:rgba(16,185,129,0.3) !important; background:rgba(16,185,129,0.04) !important; }
 
-  /* ── Add to cart buttons ───────────────────────────────────────── */
-  .sy-add-dark { background:rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.12); color:#374151; transition:background 0.22s,color 0.22s,border-color 0.22s; }
-  .dark .sy-add-dark { background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.1); color:#9ca3af; }
-  .sy-add-dark:hover { background:#10b981 !important; color:#fff !important; border-color:#10b981 !important; }
-
-  .sy-add-green { background:#10b981; border:none; color:#fff; transition:background 0.22s; }
-  .sy-add-green:hover { background:#059669 !important; }
-
-  /* ── Wishlist heart ────────────────────────────────────────────── */
-  .sy-heart { background:rgba(10,10,10,0.75); backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,0.09); color:#6b7280; transition:color 0.2s,background 0.2s; }
-  .sy-heart:hover { color:#f87171 !important; background:rgba(248,113,113,0.12) !important; }
 
   /* ── Category hover ────────────────────────────────────────────── */
   .sy-cat { cursor:pointer; overflow:hidden; transition:transform 0.3s cubic-bezier(0.22,1,0.36,1); }
   .sy-cat:hover { transform:scale(1.028); }
-  .sy-cat:hover img { filter:brightness(0.45) contrast(1.1) !important; }
+  .sy-cat img { filter:brightness(0.68) contrast(1.05); transition:filter 0.3s; }
+  .dark .sy-cat img { filter:brightness(0.34) contrast(1.1); }
+  .sy-cat:hover img { filter:brightness(0.50) contrast(1.08) !important; }
+  .sy-cat-overlay { background:linear-gradient(to top,rgba(0,0,0,0.72) 0%,rgba(0,0,0,0.02) 55%,transparent 100%); }
+  .dark .sy-cat-overlay { background:linear-gradient(to top,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0.08) 55%,transparent 100%); }
 
   /* ── View all link ─────────────────────────────────────────────── */
   .sy-view-all { color:#6b7280; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; transition:color 0.2s; padding-bottom:8px; flex-shrink:0; }
@@ -106,15 +99,12 @@ const PAGE_CSS = `
   @media (max-width: 900px) {
     .sy-hero-img  { display:none !important; }
     .sy-hero-text { width:100% !important; }
-    .sy-deals-grid  { grid-template-columns:repeat(2,1fr) !important; }
     .sy-stores-grid { grid-template-columns:1fr !important; }
-    .sy-trend-grid  { grid-template-columns:1fr !important; }
     .sy-arrivals-grid { grid-template-columns:1fr !important; }
     .sy-cta-grid    { grid-template-columns:1fr !important; }
   }
   @media (max-width: 600px) {
     .sy-cat-grid    { grid-template-columns:repeat(2,1fr) !important; }
-    .sy-deals-grid  { grid-template-columns:1fr !important; }
   }
 `;
 
@@ -126,15 +116,6 @@ const SEC_PB = 80;
 const TITLE_STYLE: React.CSSProperties = { margin:0, fontSize:"clamp(32px,3.5vw,52px)", fontWeight:800, color:"inherit", letterSpacing:"-0.8px", lineHeight:1.08 };
 const SUP_STYLE: React.CSSProperties = { display:"block", fontSize:12, fontWeight:600, color:"#10b981", letterSpacing:"0.05em", marginBottom:10 };
 
-/* ─────────────────────────────────────────────────────────
-   BADGE COLOR MAP
-   ───────────────────────────────────────────────────────── */
-const BADGE_COLORS: Record<string,{bg:string;color:string;border:string}> = {
-  "حصري":          { bg:"rgba(109,40,217,0.85)",  color:"#e9d5ff", border:"rgba(139,92,246,0.4)"  },
-  "جديد":           { bg:"rgba(30,64,175,0.85)",   color:"#bfdbfe", border:"rgba(59,130,246,0.4)"  },
-  "عرض محدود":     { bg:"rgba(31,41,55,0.90)",    color:"#d1d5db", border:"rgba(107,114,128,0.4)" },
-  "الأكثر مبيعاً": { bg:"rgba(120,53,15,0.88)",  color:"#fde68a", border:"rgba(217,119,6,0.45)"  },
-};
 
 /* ─────────────────────────────────────────────────────────
    STATIC FALLBACK DATA
@@ -150,12 +131,6 @@ const CATS = [
   { nameAr:"حواسيب ولابتوب", slug:"Electronics",            count:"3,470",  img:"https://images.pexels.com/photos/2047905/pexels-photo-2047905.jpeg?auto=compress&cs=tinysrgb&w=600" },
 ] as const;
 
-const STATIC_DEALS = [
-  { id:"s1", nameAr:"ساعة كلاسيكية ذهبية",  cat:"ساعات فاخرة",  price:"142,500", orig:"237,000", disc:40, badge:"الأكثر مبيعاً", rating:4.9, rev:284, img:"https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=500" },
-  { id:"s2", nameAr:"حذاء نايكي رياضي",      cat:"رياضة وأحذية", price:"58,000",  orig:"82,000",  disc:29, badge:"عرض محدود",     rating:4.7, rev:512, img:"https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=500" },
-  { id:"s3", nameAr:"مجموعة تقنية متكاملة",  cat:"إلكترونيات",   price:"385,000", orig:"550,000", disc:30, badge:"جديد",           rating:4.8, rev:196, img:"https://images.pexels.com/photos/577769/pexels-photo-577769.jpeg?auto=compress&cs=tinysrgb&w=500" },
-  { id:"s4", nameAr:"عطر أوبسيديان إلكسير",  cat:"عطور وجمال",   price:"96,000",  orig:"148,000", disc:35, badge:"حصري",           rating:4.6, rev:89,  img:"https://images.pexels.com/photos/3059609/pexels-photo-3059609.jpeg?auto=compress&cs=tinysrgb&w=500" },
-];
 
 const STATIC_STORES = [
   { name:"تك ستور سوريا", desc:"أحدث الإلكترونيات والأجهزة الذكية",  cat:"إلكترونيات",  cnt:"3,240", letter:"ت", bg:"#0f4c81", rating:4.9, rev:1840, img:"https://images.pexels.com/photos/577769/pexels-photo-577769.jpeg?auto=compress&cs=tinysrgb&w=600",    slug:"/products", isVerified:true },
@@ -163,11 +138,6 @@ const STATIC_STORES = [
   { name:"بيت الديكور",   desc:"أثاث عصري وإكسسوارات منزلية راقية",  cat:"منزل وديكور", cnt:"2,140", letter:"ب", bg:"#7c3aed", rating:4.7, rev:956,  img:"https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=600",  slug:"/products", isVerified:true },
 ];
 
-const STATIC_TRENDING = [
-  { id:"t1", nameAr:"ساعة كرونوغراف سيلفر", cat:"ساعات الفخامة", seller:"دار الأناقة",   rating:4.9, rev:341, price:"198,000", img:"https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=600",  hot:true,  href:"/products" },
-  { id:"t2", nameAr:"هاتف بريميوم Pro Max",  cat:"هواتف ذكية",   seller:"تك ستور سوريا", rating:4.8, rev:892, price:"850,000", img:"https://images.pexels.com/photos/1647976/pexels-photo-1647976.jpeg?auto=compress&cs=tinysrgb&w=600", hot:true,  href:"/products" },
-  { id:"t3", nameAr:"لاب توب بلاك إيشن",    cat:"حواسيب",       seller:"تك ستور سوريا", rating:4.7, rev:213, price:"720,000", img:"https://images.pexels.com/photos/2047905/pexels-photo-2047905.jpeg?auto=compress&cs=tinysrgb&w=600",  hot:false, href:"/products" },
-];
 
 /* ─────────────────────────────────────────────────────────
    FEATURED STORE TYPE
@@ -317,8 +287,8 @@ function CategoriesSection({ products }: { products?: import("@workspace/api-cli
               <Link key={c.nameAr} href={`/products?category=${encodeURIComponent(c.slug)}`} style={{ textDecoration:"none" }}>
                 <div className="sy-cat" style={{ position:"relative", height:168, borderRadius:12, overflow:"hidden" }}>
                   <img src={imgSrc} alt={c.nameAr} loading="lazy" decoding="async"
-                    style={{ width:"100%", height:"100%", objectFit:"cover", filter:"brightness(0.34) contrast(1.1)", display:"block", transition:"filter 0.3s" }} />
-                  <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0.08) 55%,transparent 100%)" }} />
+                    style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+                  <div className="sy-cat-overlay" style={{ position:"absolute", inset:0 }} />
                   <div style={{ position:"absolute", bottom:0, right:0, padding:"0 14px 13px", textAlign:"right" }}>
                     <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:2 }}>{c.nameAr}</div>
                     <div style={{ fontSize:11, color:"#9ca3af" }}>{count} منتج</div>
@@ -336,77 +306,6 @@ function CategoriesSection({ products }: { products?: import("@workspace/api-cli
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    SECTION 3 — FEATURED DEALS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-type DealCardData = {
-  id: string | number;
-  nameAr: string;
-  cat: string;
-  price: string;
-  orig: string;
-  disc: number;
-  badge: string;
-  rating: number;
-  rev: number;
-  img: string;
-  href: string;
-};
-
-function apiProductToDeal(p: import("@workspace/api-client-react").Product): DealCardData {
-  const pr = p.price;
-  const or = (p as any).compareAtPrice ?? pr;
-  const discFromCompare = or > pr ? Math.round((1 - pr / or) * 100) : 0;
-  const disc = discFromCompare > 0 ? discFromCompare : ((p as any).discountPercent ?? 0);
-  const img = (p as any).imageUrls?.[0] ?? "";
-  const badge = p.isBestDeal ? "الأكثر مبيعاً" : disc >= 30 ? "حصري" : "عرض محدود";
-  return {
-    id: p.id,
-    nameAr: (p as any).nameAr ?? p.name,
-    cat: p.category ?? "منتجات",
-    price: pr.toLocaleString(),
-    orig: or.toLocaleString(),
-    disc,
-    badge,
-    rating: Math.round(((p as any).averageRating ?? 4.5) * 10) / 10,
-    rev: (p as any).reviewsCount ?? 0,
-    img,
-    href: `/products/${p.id}`,
-  };
-}
-
-function DealCardItem({ d }: { d: DealCardData }) {
-  const bc = BADGE_COLORS[d.badge] ?? BADGE_COLORS["عرض محدود"];
-  return (
-    <Link href={d.href} style={{ textDecoration:"none", display:"flex", flexDirection:"column", height:"100%" }}>
-      <div className="sy-card sy-card-bg" style={{ borderRadius:16, overflow:"hidden", border:"1px solid", display:"flex", flexDirection:"column", height:"100%" }}>
-        <div style={{ position:"relative", height:260, flexShrink:0 }}>
-          {d.img
-            ? <img src={d.img} alt={d.nameAr} loading="lazy" decoding="async" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
-            : <div style={{ width:"100%", height:"100%", background:"#161616", display:"flex", alignItems:"center", justifyContent:"center", fontSize:40 }}>🛍</div>
-          }
-          <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(11,11,11,0.55) 0%,transparent 52%)" }} />
-          {d.disc > 0 && <span style={{ position:"absolute", top:12, left:12, background:"#10b981", color:"#fff", fontSize:11, fontWeight:800, padding:"3px 10px", borderRadius:100 }}>-{d.disc}%</span>}
-          <span style={{ position:"absolute", top:12, right:12, background:bc.bg, color:bc.color, fontSize:10, fontWeight:700, padding:"3px 9px", borderRadius:5, border:`1px solid ${bc.border}`, backdropFilter:"blur(8px)" }}>{d.badge}</span>
-          <button className="sy-heart" style={{ position:"absolute", bottom:12, left:12, width:30, height:30, borderRadius:"50%", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }} onClick={e => { e.preventDefault(); e.stopPropagation(); }}>♡</button>
-        </div>
-        <div style={{ padding:"13px 16px 16px", flex:1, display:"flex", flexDirection:"column" }}>
-          <div className="sy-card-muted" style={{ fontSize:10, textAlign:"right", marginBottom:4, fontWeight:500, letterSpacing:"0.03em" }}>{d.cat}</div>
-          <div className="sy-card-name" style={{ fontSize:17, fontWeight:800, textAlign:"right", lineHeight:1.35, marginBottom:9, flex:1 }}>{d.nameAr}</div>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", marginBottom:13 }}>
-            <CompactRating rating={d.rating} rev={d.rev} />
-          </div>
-          {/* Bottom row: Price (visual RIGHT) · أضف (visual LEFT) in RTL */}
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
-            <div style={{ textAlign:"right" }}>
-              <div style={{ fontSize:18, fontWeight:900, color:"#10b981", lineHeight:1 }}>{d.price} <span style={{ fontSize:10, color:"#6b7280", fontWeight:400 }}>ل.س</span></div>
-              {d.disc > 0 && <div style={{ fontSize:10, color:"#6b7280", textDecoration:"line-through", marginTop:2 }}>{d.orig} ل.س</div>}
-            </div>
-            <button className="sy-add-dark" style={{ borderRadius:8, padding:"8px 18px", fontSize:12, fontWeight:700, cursor:"pointer", flexShrink:0 }}>أضف</button>
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
 function DealsSection({ hotDeals, isLoading, flashFormatted }: {
   hotDeals: import("@workspace/api-client-react").Product[];
   isLoading: boolean;
@@ -415,12 +314,7 @@ function DealsSection({ hotDeals, isLoading, flashFormatted }: {
   const revealHeader = useReveal();
   const dealsGrid = useStagger(4, 100);
 
-  const dealCards: DealCardData[] = hotDeals.length >= 4
-    ? hotDeals.slice(0, 4).map(apiProductToDeal)
-    : [
-        ...hotDeals.map(apiProductToDeal),
-        ...STATIC_DEALS.slice(hotDeals.length, 4).map(d => ({ ...d, href:"/products" })),
-      ];
+  if (!isLoading && hotDeals.length === 0) return null;
 
   return (
     <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB }}>
@@ -434,7 +328,6 @@ function DealsSection({ hotDeals, isLoading, flashFormatted }: {
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:10, alignItems:"flex-start", paddingBottom:8 }}>
             <Link href="/products?hasDiscount=true" className="sy-view-all" style={{ paddingBottom:0 }}>← كل العروض</Link>
-            {/* Real flash-sale countdown */}
             <div style={{ display:"flex", alignItems:"center", gap:6, color:"#9ca3af" }}>
               <svg style={{ width:12, height:12, color:"#10b981", flexShrink:0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               <span style={{ whiteSpace:"nowrap", fontSize:11 }}>تنتهي خلال</span>
@@ -450,19 +343,19 @@ function DealsSection({ hotDeals, isLoading, flashFormatted }: {
           </div>
         </div>
 
-        <div ref={dealsGrid} className="sy-deals-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 }}>
+        <div ref={dealsGrid} className="product-grid">
           {isLoading
-            ? STATIC_DEALS.map(d => (
-                <div key={d.id} style={{ background:"#0b0b0b", borderRadius:16, border:"1px solid rgba(255,255,255,0.06)", overflow:"hidden" }}>
-                  <div style={{ height:260, background:"#111" }} />
-                  <div style={{ padding:"13px 16px" }}>
-                    <div style={{ height:8, background:"#161616", borderRadius:4, width:"40%", marginBottom:10 }} />
-                    <div style={{ height:14, background:"#161616", borderRadius:4, width:"85%", marginBottom:8 }} />
-                    <div style={{ height:8, background:"#161616", borderRadius:4, width:"55%" }} />
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} style={{ background:"var(--card)", borderRadius:12, border:"1px solid var(--border)", overflow:"hidden" }}>
+                  <div style={{ aspectRatio:"1", background:"var(--secondary)" }} />
+                  <div style={{ padding:"12px 16px", display:"flex", flexDirection:"column", gap:8 }}>
+                    <div style={{ height:8, background:"var(--secondary)", borderRadius:4, width:"40%" }} />
+                    <div style={{ height:14, background:"var(--secondary)", borderRadius:4, width:"85%" }} />
+                    <div style={{ height:8, background:"var(--secondary)", borderRadius:4, width:"55%" }} />
                   </div>
                 </div>
               ))
-            : dealCards.map((d, i) => <DealCardItem key={String(d.id ?? i)} d={d} />)
+            : hotDeals.map(p => <ProductCard key={p.id} product={p} flashSaleEndsIn={flashFormatted} />)
           }
         </div>
       </div>
@@ -586,71 +479,17 @@ function StoresSection() {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    SECTION 5 — TRENDING PRODUCTS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-type TrendCardData = {
-  id: string | number;
-  nameAr: string; cat: string; seller: string;
-  rating: number; rev: number; price: string;
-  img: string; hot: boolean; href: string;
-};
-
-function apiProductToTrend(p: import("@workspace/api-client-react").Product, idx: number): TrendCardData {
-  return {
-    id: p.id,
-    nameAr: (p as any).nameAr ?? p.name,
-    cat: p.category ?? "منتجات",
-    seller: (p as any).storeName ?? "متجر سيانو",
-    rating: Math.round(((p as any).averageRating ?? 4.5) * 10) / 10,
-    rev: (p as any).reviewsCount ?? 0,
-    price: p.price.toLocaleString(),
-    img: (p as any).imageUrls?.[0] ?? "",
-    hot: idx < 2,
-    href: `/products/${p.id}`,
-  };
-}
-
 function TrendingSection({ products }: { products: import("@workspace/api-client-react").Product[] }) {
   const trendGrid = useStagger(3, 115);
 
-  const cards: TrendCardData[] = products.length >= 3
-    ? products.slice(0, 3).map(apiProductToTrend)
-    : [...products.map(apiProductToTrend), ...STATIC_TRENDING.slice(products.length, 3)];
+  if (products.length === 0) return null;
 
   return (
     <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB }}>
       <div style={MAX_W}>
         <SectionHeader sup="الأعلى تقييماً هذا الأسبوع" title="المنتجات الرائجة" href="/products" />
-        <div ref={trendGrid} className="sy-trend-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
-          {cards.map((p, i) => (
-            <Link key={String(p.id ?? i)} href={p.href} style={{ textDecoration:"none" }}>
-              <div className="sy-card sy-card-bg" style={{ borderRadius:16, overflow:"hidden", border:"1px solid" }}>
-                <div style={{ position:"relative", height:310 }}>
-                  {p.img
-                    ? <img src={p.img} alt={p.nameAr} loading="lazy" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", filter:"brightness(0.62)" }} />
-                    : <div style={{ width:"100%", height:"100%", background:"#161616" }} />
-                  }
-                  <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(11,11,11,0.97) 0%,rgba(11,11,11,0.1) 48%,transparent 70%)" }} />
-                  {p.hot && <span style={{ position:"absolute", top:12, left:12, background:"#10b981", color:"#fff", fontSize:10, fontWeight:700, padding:"3px 11px", borderRadius:100 }}>↑ رائج</span>}
-                  <button className="sy-heart" style={{ position:"absolute", top:12, right:12, width:30, height:30, borderRadius:"50%", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }} onClick={e => { e.preventDefault(); e.stopPropagation(); }}>♡</button>
-                  <div style={{ position:"absolute", bottom:0, right:0, left:0, padding:"0 16px 14px", textAlign:"right" }}>
-                    <div style={{ fontSize:10, color:"#9ca3af", marginBottom:4 }}>{p.cat} · {p.seller}</div>
-                    <div style={{ fontSize:16, fontWeight:700, color:"#fff", marginBottom:10, lineHeight:1.3 }}>{p.nameAr}</div>
-                    {/* Stars (visual RIGHT) · Price (visual LEFT) in RTL */}
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-                        <Stars n={Math.floor(p.rating)} size={13} />
-                        <span style={{ fontSize:10, color:"#9ca3af" }}>({p.rev})</span>
-                      </div>
-                      <span style={{ fontSize:18, fontWeight:900, color:"#fff" }}>{p.price} <span style={{ fontSize:10, color:"#9ca3af", fontWeight:400 }}>ل.س</span></span>
-                    </div>
-                  </div>
-                </div>
-                {/* GREEN "أضف للسلة" — ref 243 */}
-                <div style={{ padding:"10px 14px 14px" }}>
-                  <button className="sy-add-green" style={{ width:"100%", fontSize:12, fontWeight:700, padding:"10px", borderRadius:8, cursor:"pointer" }}>أضف للسلة</button>
-                </div>
-              </div>
-            </Link>
-          ))}
+        <div ref={trendGrid} className="product-grid">
+          {products.map(p => <ProductCard key={p.id} product={p} />)}
         </div>
       </div>
     </section>
@@ -679,8 +518,8 @@ function NewArrivalsSection({ newArrivals }: { newArrivals: import("@workspace/a
   const largeName  = large ? ((large as any).nameAr ?? large.name) : "مجموعة تقنية بريميوم 2025";
   const largeCat   = large?.category ?? "إلكترونيات";
   const largePrice = large ? large.price.toLocaleString() : "435,000";
-  const largeRev   = (large as any)?.reviewsCount ?? 12;
-  const largeRating = ((large as any)?.averageRating ?? 4.8).toFixed(1);
+  const largeRev   = (large as any)?.reviewsCount ?? 0;
+  const largeRating = ((large as any)?.averageRating ?? 0).toFixed(1);
 
   const smalls: SmallArrivalCard[] = newArrivals.slice(1, 3).length >= 2
     ? newArrivals.slice(1, 3).map(p => ({
@@ -708,11 +547,13 @@ function NewArrivalsSection({ newArrivals }: { newArrivals: import("@workspace/a
               <div style={{ position:"absolute", bottom:0, right:0, left:0, padding:"0 28px 28px", textAlign:"right" }}>
                 <div style={{ fontSize:11, color:"#9ca3af", marginBottom:7 }}>{largeCat}</div>
                 <div style={{ fontSize:26, fontWeight:800, color:"#fff", marginBottom:11, lineHeight:1.2 }}>{largeName}</div>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:6, marginBottom:10 }}>
-                  <span style={{ fontSize:11, color:"#9ca3af" }}>({largeRev} تقييم)</span>
-                  <span style={{ fontSize:12, fontWeight:600, color:"#fff" }}>{largeRating}</span>
-                  <Stars n={5} size={12} />
-                </div>
+                {parseFloat(largeRating) > 0 && (
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:6, marginBottom:10 }}>
+                    {largeRev > 0 && <span style={{ fontSize:11, color:"#9ca3af" }}>({largeRev} تقييم)</span>}
+                    <span style={{ fontSize:12, fontWeight:600, color:"#fff" }}>{largeRating}</span>
+                    <Stars n={Math.round(parseFloat(largeRating))} size={12} />
+                  </div>
+                )}
                 <div style={{ fontSize:26, fontWeight:900, color:"#10b981" }}>{largePrice} <span style={{ fontSize:13, fontWeight:400, color:"#9ca3af" }}>ل.س</span></div>
               </div>
             </div>

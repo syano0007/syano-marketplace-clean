@@ -3,14 +3,7 @@ import React, { useEffect, useState, useCallback, memo, useRef } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Headphones,
-  ShieldCheck,
-  CreditCard,
-  Truck,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
@@ -28,14 +21,6 @@ interface Banner {
   backgroundColor?: string | null;
   ctaUrl?: string | null;
 }
-
-/* ── Trust strip data ────────────────────────────────────────────── */
-const TRUST_ITEMS = [
-  { Icon: Truck,       ar: { label: "توصيل سريع", desc: "لكافة المناطق السورية" },   en: { label: "Fast Delivery",   desc: "Across all Syria"        } },
-  { Icon: CreditCard,  ar: { label: "دفع آمن",     desc: "طرق دفع آمنة ومتعددة" },  en: { label: "Secure Payment",  desc: "Multiple secure methods" } },
-  { Icon: ShieldCheck, ar: { label: "تاجر موثوق",  desc: "متاجر موثقة ومضمونة" },   en: { label: "Trusted Sellers", desc: "Verified & certified"    } },
-  { Icon: Headphones,  ar: { label: "دعم سريع",    desc: "خدمة عملاء متاحة دائماً" }, en: { label: "Fast Support",    desc: "Always available"        } },
-] as const;
 
 /* ── Product mosaic images — fallback when no banner images ──────── */
 const MOSAIC_PRODUCTS = [
@@ -98,34 +83,6 @@ const FLOAT_CARDS = [
     animDur: "6.5s",
   },
 ] as const;
-
-/* ── TrustStrip ──────────────────────────────────────────────────── */
-const TrustStrip = memo(function TrustStrip() {
-  const { i18n } = useTranslation();
-  const lang = i18n.language;
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-white/5 bg-card/40">
-      {TRUST_ITEMS.map(({ Icon, ar, en }) => (
-        <div
-          key={ar.label}
-          className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b sm:border-b-0 border-white/5 sm:border-s sm:first:border-s-0"
-        >
-          <div className="h-9 w-9 shrink-0 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center">
-            <Icon className="h-4 w-4 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[12px] sm:text-[13px] font-semibold text-foreground leading-tight">
-              {lang === "ar" ? ar.label : en.label}
-            </p>
-            <p className="text-[10px] sm:text-[11px] text-muted-foreground/70 leading-tight mt-0.5 truncate">
-              {lang === "ar" ? ar.desc : en.desc}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-});
 
 /* ── ProductMosaic — fallback visual panel ───────────────────────── */
 const ProductMosaic = memo(function ProductMosaic({ isRTL }: { isRTL: boolean }) {
@@ -561,8 +518,6 @@ export function HeroV4() {
 
       </div>
 
-      {/* Trust strip */}
-      <TrustStrip />
     </section>
   );
 }

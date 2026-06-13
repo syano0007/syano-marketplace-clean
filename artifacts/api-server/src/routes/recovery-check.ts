@@ -1853,6 +1853,40 @@ async function checkHeroBannerSystem(adminToken: string): Promise<CheckResult> {
   return { ok: failures.length === 0, data, failures, warnings };
 }
 
+async function checkWishlistSystem(): Promise<CheckResult> {
+  const failures: string[] = [];
+  const warnings: string[] = [];
+  const data: Record<string, unknown> = {};
+
+  // #1 wishlists table accessible
+  try {
+    const raw = await db.execute<{ count: number }>(
+      sql`SELECT COUNT(*)::int AS count FROM wishlists`
+    );
+    data["wishlistsTableAccessible"] = true;
+    data["wishlistCount"] = Number(raw.rows?.[0]?.count ?? 0);
+  } catch {
+    data["wishlistsTableAccessible"] = false;
+    failures.push("wishlists table not accessible — run migrations");
+  }
+
+  // #2 GET /wishlist/ids requires auth (no token → 401)
+  const noTokenCheck = await internalGet("/wishlist/ids");
+  data["idsEndpointProtected"] = noTokenCheck.status === 401;
+  if (noTokenCheck.status !== 401) {
+    failures.push(`GET /wishlist/ids should return 401 without token, got ${noTokenCheck.status}`);
+  }
+
+  // #3 GET /wishlist requires auth (no token → 401)
+  const getCheck = await internalGet("/wishlist");
+  data["getEndpointProtected"] = getCheck.status === 401;
+  if (getCheck.status !== 401) {
+    failures.push(`GET /wishlist should return 401 without token, got ${getCheck.status}`);
+  }
+
+  return { ok: failures.length === 0, data, failures, warnings };
+}
+
 // ─── Confidence scoring ───────────────────────────────────────────────────────
 
 interface SectionWeight {
@@ -1883,6 +1917,7 @@ const WEIGHTS = {
   auditFixes: 0,      // audit fix verification — warnings + failures only, no score deduction
   reviewSystem: 5,    // store review submission UX — customer-facing review lifecycle
   heroBannerSystem: 5, // hero banner CRUD, scheduling, analytics, homepage integration
+  wishlistSystem: 3,  // wishlists table, wishlist routes, heart toggle in ProductCard
 } as const;
 
 function computeScore(results: Record<string, CheckResult>): {
@@ -1984,6 +2019,7 @@ router.get(
       auditFixes,
       reviewSystem,
       heroBannerSystem,
+      wishlistSystem,
     ] = await Promise.all([
       checkCorePlatform(),
       checkBootstrapAccounts(),
@@ -2006,6 +2042,7 @@ router.get(
       checkAuditFixes(),
       checkReviewSystem(),
       checkHeroBannerSystem(adminToken),
+      checkWishlistSystem(),
     ]);
 
     const checkResults: Record<string, CheckResult> = {
@@ -2030,6 +2067,7 @@ router.get(
       auditFixes,
       reviewSystem,
       heroBannerSystem,
+      wishlistSystem,
     };
 
     const { score, modules, allFailures, allWarnings, deductions, recommendations } =
@@ -2194,6 +2232,13 @@ router.get(
           warnings: heroBannerSystem.warnings,
           weight: WEIGHTS.heroBannerSystem,
         },
+        wishlistSystem: {
+          ok: wishlistSystem.ok,
+          data: wishlistSystem.data,
+          failures: wishlistSystem.failures,
+          warnings: wishlistSystem.warnings,
+          weight: WEIGHTS.wishlistSystem,
+        },
       },
 
       failures: allFailures,
@@ -2219,6 +2264,7 @@ router.get(
         "Critical Logic & Trust Audit V1": auditFixes.ok ? "✅ COMPLETE + VALIDATED" : "⚠️ AUDIT ISSUES — see auditFixes section",
         "Store Review System V2": reviewSystem.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS — see reviewSystem section",
         "Hero Banner System V1": heroBannerSystem.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS — see heroBannerSystem section",
+        "Wishlist System V1": wishlistSystem.ok ? "✅ COMPLETE + VALIDATED" : "⏳ IN PROGRESS — see wishlistSystem section",
         next: "⏳ TBD",
       },
 

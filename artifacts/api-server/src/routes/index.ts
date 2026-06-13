@@ -18,6 +18,7 @@ import couriersRouter from "./couriers";
 import deliveryZonesRouter from "./delivery-zones";
 import recoveryCheckRouter from "./recovery-check";
 import heroBannersRouter from "./hero-banners";
+import wishlistRouter from "./wishlist";
 
 const router: IRouter = Router();
 
@@ -39,6 +40,7 @@ router.use(messagingRouter);
 router.use(couriersRouter);
 router.use(deliveryZonesRouter);
 router.use(heroBannersRouter);
+router.use(wishlistRouter);
 router.use(recoveryCheckRouter);
 
 export default router;

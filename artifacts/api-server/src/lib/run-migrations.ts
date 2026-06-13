@@ -384,6 +384,16 @@ export async function runMigrations(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS hero_banners_active_idx     ON hero_banners(active);
       CREATE INDEX IF NOT EXISTS hero_banners_sort_order_idx ON hero_banners(sort_order);
+
+      -- ── Wishlists ─────────────────────────────────────────────────────────────
+      CREATE TABLE IF NOT EXISTS wishlists (
+        id          SERIAL PRIMARY KEY,
+        user_id     INTEGER NOT NULL,
+        product_id  INTEGER NOT NULL,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (user_id, product_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_wishlists_user_id ON wishlists(user_id);
     `);
 
     logger.info("Migrations complete: delivery system tables, courier enums, order delivery columns ready");

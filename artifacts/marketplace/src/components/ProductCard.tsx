@@ -6,7 +6,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAddToCart, getGetCartQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Timer, Star } from "lucide-react";
+import { ShoppingCart, Timer, Star, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
@@ -15,6 +15,7 @@ import { StarRating } from "@/components/StarRating";
 import { cn } from "@/lib/utils";
 import { useGuestCart } from "@/contexts/GuestCartContext";
 import { calculateDiscountPercent } from "@/lib/pricing";
+import { useWishlist } from "@/contexts/WishlistContext";
 
 interface ProductCardProps {
   product: Product;
@@ -29,6 +30,21 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const { addGuestItem } = useGuestCart();
+  const { isInWishlist, toggle: toggleWishlist } = useWishlist();
+  const isWishlisted = isInWishlist(product.id);
+
+  const handleWishlistToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      toast({
+        title: "يرجى تسجيل الدخول",
+        description: "سجّل دخولك لحفظ منتجاتك المفضلة",
+      });
+      return;
+    }
+    toggleWishlist(product.id);
+  };
 
   const cardRef = React.useRef<HTMLDivElement>(null);
   const prefetchedRef = React.useRef(false);
@@ -141,6 +157,24 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
           -{discPct}%
         </Badge>
       )}
+
+      {/* ── Wishlist heart ──────────────────────────────── */}
+      <button
+        className={cn(
+          "absolute top-2 start-2 z-10 h-7 w-7 rounded-full flex items-center justify-center",
+          "bg-background/80 backdrop-blur-sm border border-border/50",
+          "hover:scale-110 hover:border-rose-400/50 transition-all duration-150",
+          "opacity-0 group-hover:opacity-100 focus:opacity-100",
+          isWishlisted && "opacity-100 border-rose-400/50"
+        )}
+        onClick={handleWishlistToggle}
+        aria-label={isWishlisted ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
+      >
+        <Heart className={cn(
+          "h-3.5 w-3.5 transition-colors",
+          isWishlisted ? "fill-rose-500 text-rose-500" : "text-muted-foreground"
+        )} />
+      </button>
 
       {/* ── Product image ───────────────────────────────────── */}
       <div className="relative shrink-0">

@@ -23,6 +23,7 @@ import { PageLoader } from "@/components/PageLoader";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { NotificationProvider } from "@/providers/NotificationProvider";
 import { GuestCartProvider } from "@/contexts/GuestCartContext";
+import { WishlistProvider } from "@/contexts/WishlistContext";
 import { NotificationToasts } from "@/components/NotificationToasts";
 import { PushPermissionPrompt } from "@/components/PushPermissionPrompt";
 import { NavigationProgress } from "@/components/NavigationProgress";
@@ -70,6 +71,7 @@ const AdminCourierApplicationDetail  = lazy(() => import("@/pages/admin/courier-
 const AdminVerification              = lazy(() => import("@/pages/admin/verification"));
 const SellerTrustPage                = lazy(() => import("@/pages/seller/trust"));
 const CourierDashboard               = lazy(() => import("@/pages/courier/dashboard"));
+const WishlistPage                   = lazy(() => import("@/pages/wishlist"));
 /* ── Footer / Info pages ─────────────────────────────────────── */
 const AboutPage           = lazy(() => import("@/pages/about/index"));
 const StoryPage           = lazy(() => import("@/pages/about/story"));
@@ -308,6 +310,11 @@ function Router() {
               <ProtectedRoute allowedRoles={["courier", "admin"]}><CourierDashboard /></ProtectedRoute>
             </Route>
 
+            {/* ── Wishlist ────────────────────────────────────────── */}
+            <Route path="/wishlist">
+              <ProtectedRoute allowedRoles={["customer"]}><WishlistPage /></ProtectedRoute>
+            </Route>
+
             {/* ── Info & Footer pages ──────────────────────────────── */}
             <Route path="/about" component={AboutPage} />
             <Route path="/about/story" component={StoryPage} />
@@ -347,6 +354,7 @@ function App() {
         <CurrencyProvider>
           <AuthProvider>
             <GuestCartProvider>
+            <WishlistProvider>
             <NotificationProvider>
               <TooltipProvider>
                 <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
@@ -358,6 +366,7 @@ function App() {
                 <Toaster />
               </TooltipProvider>
             </NotificationProvider>
+            </WishlistProvider>
             </GuestCartProvider>
           </AuthProvider>
         </CurrencyProvider>

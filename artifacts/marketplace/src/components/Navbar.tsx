@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import {
   ShoppingCart, LogOut, LayoutDashboard, Search, X, Globe, Sun, Moon, DollarSign,
   Menu, Home, Package, ClipboardList, Warehouse, Clock, MessageCircle,
-  Users, Store, BarChart2, ScrollText, Settings,
+  Users, Store, BarChart2, ScrollText, Settings, Heart,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
@@ -21,6 +21,7 @@ import {
   getGetCartQueryKey,
 } from "@workspace/api-client-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { useWishlist } from "@/contexts/WishlistContext";
 import { useTranslation } from "react-i18next";
 import { applyDirection } from "@/i18n";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -68,6 +69,7 @@ const MobileNavLink = React.memo(function MobileNavLink({
 export function Navbar() {
   const [location, navigate] = useLocation();
   const { user, logout, isAuthenticated, isCustomer, isSeller, isAdmin, isCourier, isSellerApplicant } = useAuth();
+  const { count: wishlistCount } = useWishlist();
   const { setTheme, theme } = useTheme();
   const { currency, setCurrency, symbol } = useCurrency();
   const { t, i18n } = useTranslation();
@@ -250,6 +252,19 @@ export function Navbar() {
             )}
 
             {isAuthenticated && <NotificationCenter />}
+
+            {isCustomer && (
+              <Link href="/wishlist">
+                <Button variant="ghost" size="icon" className="relative h-11 w-11">
+                  <Heart className="h-5 w-5" />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1 -end-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                      {wishlistCount > 99 ? "99+" : wishlistCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            )}
 
             {!isSeller && !isAdmin && !isCourier && (
               <Link href="/cart">
