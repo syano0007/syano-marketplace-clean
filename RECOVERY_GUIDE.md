@@ -243,46 +243,65 @@ The endpoint runs 13 parallel checks covering:
 **Homepage version:** V5 — Approved hero banner image + commerce sections
 
 ### Section Order (top to bottom)
-1. `<HeroV4 />` — full-width approved hero image (1717×916 px, aspect-ratio preserving)
+1. `<HeroV4 />` — fully dynamic hero (BrandStatement or BannerCarousel) + TrustStrip
 2. Popular Categories — 8 wide image tiles (~130 px), text below, no icon badge
 3. Hot Deals countdown — dark card-style boxes (conditional: hidden when 0 `isBestDeal` products)
 4. Combined section — Verified Stores (53%) + New Arrivals (47%), vertical divider
-5. Join Syano — delivery van + two CTAs (Open Store / Become Courier)
+5. Recently Viewed Products — horizontal scroll, conditional (hidden when empty)
+6. Join Syano — delivery van + two CTAs (Open Store / Become Courier)
 
-### Hero Banner Asset
-**Source:** `attached_assets/ChatGPT_Image_Jun_13,_2026,_06_57_40_AM_1781323131642.png`  
-**Import path:** `@assets/ChatGPT_Image_Jun_13,_2026,_06_57_40_AM_1781323131642.png`  
-**Dimensions:** 1717 × 916 px (aspect ratio ≈ 1.875:1)  
-**Content:** Arabic headline + luxury product showcase + trust badge strip — all baked into the image.
+### Hero Banner System V3 (fully dynamic)
 
-`BrandStatement` in `HeroV4.tsx` renders this image plus a transparent CTA overlay:
-- `objectFit: "fill"` — no cropping since container has identical 1717/916 aspect ratio
-- Container: `aspectRatio: "1717/916"` (no maxHeight, no minHeight — pure proportional)
-- No text overlays, no floating products, no gradients added on top
+The hero has **NO static image**. It is built entirely from React components.
 
-**Transparent CTA overlay** — the "تسوق الآن ←" button baked in the image is NOT clickable by itself. A transparent `<Link href="/products">` is positioned exactly on top of it:
-- Pixel-scanned from source PNG: green fill at x=101–369, y=510–567
-- CSS: `left:5.5%, top:55.5%, width:16.5%, height:8%, borderRadius:10px`
-- `minHeight:44px, minWidth:100px` → WCAG touch target on mobile
-- `background:transparent` — invisible to sighted users; image IS the visual
-- `focus-visible:ring-2 focus-visible:ring-primary/70` — keyboard accessible
+**BrandStatement** (default — renders when `GET /api/banners` returns 0 results):
+- Dark luxury background: CSS gradient + vertical stripe pattern (58px repeating-linear-gradient)
+- Green ambient glow (radial-gradient, 8% opacity) and warm amber glow in opposite corner
+- Product mosaic (md+ only): 6 Pexels product images scattered at absolute positions within the visual area
+  - Visual area: left 55% in RTL, right 55% in LTR
+  - For LTR: outer div `scaleX(-1)` + each image counter `scaleX(-1)` (keeps images unmirrored)
+  - Products have per-image `brightness`/`contrast`/`saturate` filters to blend with dark bg
+  - Gradient blend from visual side to text side for readability
+- Text column (right in RTL, left in LTR): badge → headline (white + green line 2) → subtitle → Shop Now CTA
+- Container height: `h-[310px] sm:h-[370px] md:h-[450px] lg:h-[510px]` (NOT aspect-ratio based)
 
-When admin creates banner records in DB → `BannerCarousel` activates instead (admin override).
+**BannerCarousel** (activates when `GET /api/banners` returns ≥1 banner):
+- Background: admin-uploaded image + directional gradient overlay using banner's `backgroundColor`
+- Text from banner data: `titleAr/En`, `subtitleAr/En`, `ctaLabelAr/En`, `ctaUrl`
+- Secondary CTA: `ctaLabelArSecondary/EnSecondary` + `ctaUrlSecondary`
+- `textColor` override supported per-banner
+- Autoplay: 6 000 ms, pauses on mouseenter
+- Prev/Next arrows (start/end, RTL-aware chevron direction)
+- Dot/pill progress indicators (pill=active, dot=inactive)
+- **Swipe**: touchstart/touchend with 48 px threshold, RTL-aware direction
+- **Keyboard**: ArrowLeft/Right whilst hover, RTL-aware
+- **Impression tracking**: `POST /api/banners/:id/impression` on slide change + mount
+- **Click tracking**: `POST /api/banners/:id/click` on CTA button click
+- AnimatePresence fade transition between slides (0.55 s in / 0.38 s out)
+
+**TrustStrip** (always rendered, below hero content):
+- 4 items: دعم سريع / تاجر موثوق / دفع آمن / توصيل سريع
+- `grid-cols-2 sm:grid-cols-4`, emerald icon squares, bilingual
+- NOT duplicated anywhere else on the homepage
 
 ### Key Component
 - `artifacts/marketplace/src/components/HeroV4.tsx`
-  - `BrandStatement` — renders the approved hero PNG at natural proportions
-  - `BannerCarousel` — activates when `GET /api/banners` returns ≥1 banner (admin override)
+  - `BrandStatement` — default dynamic hero (CSS + React text + product mosaic)
+  - `BannerCarousel` — admin-controlled carousel with full analytics
+  - `ProductMosaic` — 6 product images; LTR mirror logic
+  - `TrustStrip` — 4-item row at hero bottom
 
 ### API Endpoints (homepage)
 | Endpoint | Consumer | Notes |
 |---|---|---|
-| `GET /api/banners` | `HeroV4.tsx` | Active banners; overrides approved image if ≥1 banner |
+| `GET /api/banners` | `HeroV4.tsx` | Active banners; triggers BannerCarousel if ≥1 |
+| `POST /api/banners/:id/impression` | `BannerCarousel` | Fire-and-forget; always 200 |
+| `POST /api/banners/:id/click` | `BannerCarousel` | Fire-and-forget; always 200 |
 | `GET /api/products` | `home.tsx` | New Arrivals + Hot Deals derived client-side |
 | `GET /api/sellers/featured` | `home.tsx` | Verified Stores carousel |
 
 ### Zero-Data Resilience
-- 0 banners → approved hero image renders (always beautiful)
+- 0 banners → BrandStatement renders (always beautiful, no external image dependency)
 - 0 `isBestDeal` products → Hot Deals section hidden
 - 0 products → New Arrivals column hidden in combined section
 - 0 featured sellers → Verified Stores section hidden

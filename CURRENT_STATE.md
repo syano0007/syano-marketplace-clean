@@ -1,6 +1,6 @@
 # SYANO — Current Project State
 **Last Updated:** June 13, 2026  
-**Updated By:** Homepage V5 — approved hero banner + transparent CTA overlay
+**Updated By:** Hero Banner V3 — fully dynamic rebuild (no static image; product mosaic + BannerCarousel)
 
 ---
 
