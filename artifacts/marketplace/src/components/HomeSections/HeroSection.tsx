@@ -6,13 +6,61 @@ import { useTranslation } from "react-i18next";
 import type { Product } from "@workspace/api-client-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
+/* ── Hero carousel slides ─────────────────────────────────────────────
+   Future-ready: same shape as hero_banners table row.
+   When DB banners are available, swap HERO_SLIDES for the API response.
+──────────────────────────────────────────────────────────────────────── */
+interface HeroSlide {
+  id: string;
+  image: string;
+  category: string;
+}
+
+const HERO_SLIDES: HeroSlide[] = [
+  {
+    id: "electronics",
+    image: "https://images.unsplash.com/photo-1741851547702-cac24b2a0d13?w=900&h=900&fit=crop&auto=format&q=90",
+    category: "electronics",
+  },
+  {
+    id: "fashion",
+    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&h=900&fit=crop&auto=format&q=90",
+    category: "fashion",
+  },
+  {
+    id: "home",
+    image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=900&h=900&fit=crop&auto=format&q=90",
+    category: "home",
+  },
+  {
+    id: "beauty",
+    image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=900&h=900&fit=crop&auto=format&q=90",
+    category: "beauty",
+  },
+  {
+    id: "grocery",
+    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=900&h=900&fit=crop&auto=format&q=90",
+    category: "grocery",
+  },
+  {
+    id: "sports",
+    image: "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=900&h=900&fit=crop&auto=format&q=90",
+    category: "sports",
+  },
+  {
+    id: "automotive",
+    image: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=900&h=900&fit=crop&auto=format&q=90",
+    category: "automotive",
+  },
+];
+
+const CAROUSEL_INTERVAL = 5000;
+
 const FALLBACK_CARDS = [
   { id: 0, name: "عطر دبور سوفاج", priceUsd: 5.17, img: "https://images.unsplash.com/photo-1760860992203-85ca32536788?w=280&h=280&fit=crop&auto=format&q=90", available: true },
   { id: 0, name: "ساعة ذهبية فاخرة", priceUsd: 9.79, img: "https://images.unsplash.com/photo-1772949399808-7020b02896b9?w=280&h=280&fit=crop&auto=format&q=90", available: true },
   { id: 0, name: "موضة راقية", priceUsd: 2.66, img: "https://images.unsplash.com/photo-1704775986112-281c826c3ebd?w=280&h=280&fit=crop&auto=format&q=90", available: true },
 ];
-
-const HERO_MAIN_IMG = "https://images.unsplash.com/photo-1741851547702-cac24b2a0d13?w=900&h=900&fit=crop&auto=format&q=90";
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
@@ -20,6 +68,7 @@ interface CardData { id: number; name: string; priceUsd: number; img: string; av
 
 export function HeroSection({ products }: { products: Product[] }) {
   const [activeCard, setActiveCard] = useState(0);
+  const [slideIndex, setSlideIndex] = useState(0);
   const { format } = useCurrency();
   const { t, i18n } = useTranslation();
 
@@ -36,10 +85,20 @@ export function HeroSection({ products }: { products: Product[] }) {
       })
     : FALLBACK_CARDS;
 
+  /* Auto-rotate floating product cards */
   useEffect(() => {
     const timer = setInterval(() => setActiveCard(c => (c + 1) % cards.length), 3200);
     return () => clearInterval(timer);
   }, [cards.length]);
+
+  /* Auto-rotate hero background carousel */
+  useEffect(() => {
+    const timer = setInterval(
+      () => setSlideIndex(i => (i + 1) % HERO_SLIDES.length),
+      CAROUSEL_INTERVAL
+    );
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <section
@@ -135,17 +194,52 @@ export function HeroSection({ products }: { products: Product[] }) {
           transition={{ duration: 0.9, delay: 0.15, ease }}
           className="flex-1 relative h-[600px] flex items-center justify-center"
         >
+          {/* ── Hero image carousel ─────────────────────────────────── */}
           <div className="relative w-[500px] h-[520px] rounded-3xl overflow-hidden border border-border shadow-2xl shadow-black/40">
-            <img src={HERO_MAIN_IMG} alt="Products" className="w-full h-full object-cover" style={{ filter: "brightness(var(--img-dim-hero)) contrast(1.1)" }} />
-            <div className="absolute inset-0 sy-hero-overlay" />
 
-            <div className="absolute top-6 start-6">
+            {/* Carousel images — fade + subtle zoom transition */}
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={HERO_SLIDES[slideIndex].id}
+                src={HERO_SLIDES[slideIndex].image}
+                alt={HERO_SLIDES[slideIndex].category}
+                initial={{ opacity: 0, scale: 1.06 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.9, ease: "easeInOut" }}
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ filter: "brightness(var(--img-dim-hero)) contrast(1.1)" }}
+              />
+            </AnimatePresence>
+
+            {/* Overlay — always on top of carousel */}
+            <div className="absolute inset-0 sy-hero-overlay pointer-events-none" />
+
+            {/* Discount badge */}
+            <div className="absolute top-6 start-6 z-10">
               <div style={{ fontWeight: 800, fontSize: "14px" }} className="bg-emerald-500 text-black px-3 py-1.5 rounded-full shadow-lg shadow-emerald-500/30">
                 {t("home.hero.discount_badge")}
               </div>
             </div>
 
-            <div className="absolute top-6 end-6 w-[170px] bg-card/80 backdrop-blur-md border border-border rounded-2xl p-3">
+            {/* Carousel progress dots */}
+            <div className="absolute bottom-5 start-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+              {HERO_SLIDES.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSlideIndex(i)}
+                  aria-label={`Slide ${i + 1}`}
+                  className={`h-1 rounded-full transition-all duration-400 ${
+                    i === slideIndex
+                      ? "bg-emerald-400 w-5"
+                      : "bg-white/30 w-1.5 hover:bg-white/50"
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Floating product card — top right */}
+            <div className="absolute top-6 end-6 w-[170px] bg-card/80 backdrop-blur-md border border-border rounded-2xl p-3 z-10">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeCard}
@@ -171,6 +265,7 @@ export function HeroSection({ products }: { products: Product[] }) {
             </div>
           </div>
 
+          {/* Floating bottom-left card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -188,6 +283,7 @@ export function HeroSection({ products }: { products: Product[] }) {
             </Link>
           </motion.div>
 
+          {/* Floating bottom-right card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -202,11 +298,11 @@ export function HeroSection({ products }: { products: Product[] }) {
                   <p style={{ fontWeight: 800, fontSize: "12px" }} className="text-emerald-400" translate="no">{format(cards[2]?.priceUsd ?? FALLBACK_CARDS[2].priceUsd)}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1 mt-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span style={{ fontSize: "10px", fontWeight: 500 }} className="text-emerald-400/70">{t("home.hero.card_available")}</span>
-              </div>
             </Link>
+            <div className="flex items-center gap-1 mt-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span style={{ fontSize: "10px", fontWeight: 500 }} className="text-emerald-400/70">{t("home.hero.card_available")}</span>
+            </div>
           </motion.div>
         </motion.div>
       </div>

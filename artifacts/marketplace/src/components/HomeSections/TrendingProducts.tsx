@@ -75,9 +75,8 @@ function TrendingCard({ product, i }: { product: ProductData; i: number }) {
     e.preventDefault();
     e.stopPropagation();
     if (product.id === 0) return;
-    if (!isAuthenticated) { navigate("/login"); return; }
     toggleWishlist(product.id);
-  }, [product.id, isAuthenticated, toggleWishlist, navigate]);
+  }, [product.id, toggleWishlist]);
 
   const href = product.id > 0 ? `/products/${product.id}` : "/products";
 
