@@ -290,62 +290,41 @@ export function Navbar() {
           dir={isRtl ? "rtl" : "ltr"}
         >
 
-          {/* ── COL 1: Auth buttons (left in LTR / left in RTL) ─────────────── */}
-          <div className="flex items-center gap-2 shrink-0">
-            {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 h-9 ps-2 pe-3 rounded-full bg-white/[0.06] border border-white/[0.1] hover:bg-white/[0.09] hover:border-white/[0.15] transition-all duration-200">
-                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                      <span style={{ fontSize: "11px", fontWeight: 800 }} className="text-emerald-400">
-                        {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: "13px", fontWeight: 600, maxWidth: 80 }} className="text-white/75 truncate">{user?.name}</span>
-                    <ChevronDown className="h-3 w-3 text-white/30" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="bg-[#111] border-white/[0.1] w-52">
-                  <div className="px-3 py-2.5 border-b border-white/[0.07]">
-                    <p style={{ fontSize: "13px", fontWeight: 700 }} className="text-white">{user?.name}</p>
-                    <p style={{ fontSize: "11px" }} className="text-white/35 truncate" translate="no">{user?.email}</p>
-                  </div>
-                  <DropdownMenuItem asChild className="text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer mt-1">
-                    <Link href={isAdmin ? "/admin" : isSeller ? "/seller/dashboard" : isCourier ? "/courier/dashboard" : "/customer/dashboard"}
-                      className="flex items-center gap-2">
-                      <LayoutDashboard className="h-4 w-4" /> {t("nav.dashboard")}
-                    </Link>
-                  </DropdownMenuItem>
-                  {isCustomer && (
-                    <DropdownMenuItem asChild className="text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer">
-                      <Link href="/orders" className="flex items-center gap-2">
-                        <ClipboardList className="h-4 w-4" /> {t("nav.orders")}
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator className="bg-white/[0.07]" />
-                  <DropdownMenuItem onClick={logout} className="text-rose-400 focus:text-rose-300 focus:bg-rose-500/[0.08] cursor-pointer">
-                    <LogOut className="me-2 h-4 w-4" /> {t("nav.logout")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <>
-                <Link href="/login"
-                  style={{ fontSize: "13px", fontWeight: 600 }}
-                  className="h-9 px-4 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors whitespace-nowrap">
-                  {t("nav.login")}
-                </Link>
-                <Link href="/register"
-                  style={{ fontSize: "13px", fontWeight: 700 }}
-                  className="h-9 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black transition-colors shadow-lg shadow-emerald-500/20 whitespace-nowrap">
-                  {t("nav.signup")}
-                </Link>
-              </>
-            )}
+          {/* ── COL 1 → renders on the RIGHT in RTL: Logo + Nav links ─────────── */}
+          <div className="flex items-center gap-1 shrink-0">
+
+            {/* Logo — far right in RTL (first in DOM = rightmost in RTL flow) */}
+            <Link href="/" className="flex items-center gap-2 shrink-0 group">
+              <img src="/syano-logo.png" alt="Syano" width={30} height={30}
+                className="h-[30px] w-[30px] object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.75)] group-hover:drop-shadow-[0_0_18px_rgba(16,185,129,1)] transition-[filter] duration-200" loading="eager" />
+              <div>
+                <div style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "15px", lineHeight: 1 }} className="text-white uppercase">SYANO</div>
+                <div style={{ fontWeight: 400, fontSize: "8px", letterSpacing: "0.16em" }} className="text-emerald-400/60 uppercase">سوق سوريا</div>
+              </div>
+            </Link>
+
+            {/* Divider */}
+            <div className="h-5 w-px bg-white/[0.08] mx-1" />
+
+            {/* Nav links — immediately left of logo in RTL */}
+            <nav className="flex items-center gap-0.5">
+              {navLinks.map(link => {
+                const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href.split("?")[0]));
+                return (
+                  <Link key={link.href} href={link.href}
+                    style={{ fontWeight: isActive ? 700 : 500, fontSize: "13px" }}
+                    className={cn(
+                      "px-3 py-2 rounded-lg transition-colors duration-150 whitespace-nowrap",
+                      isActive ? "text-emerald-400 bg-emerald-500/[0.08]" : "text-white/45 hover:text-white/80 hover:bg-white/[0.05]"
+                    )}>
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
 
-          {/* ── COL 2: Search bar (center) ───────────────────────────────────── */}
+          {/* ── COL 2 → CENTER: Search bar ───────────────────────────────────── */}
           {!isAuthPage ? (
             <div ref={searchRef} className="relative flex justify-center">
               <div className="relative w-full max-w-[300px]">
@@ -429,38 +408,59 @@ export function Navbar() {
             </div>
           ) : <div />}
 
-          {/* ── COL 3: Nav links + Logo (right in LTR, right in RTL) ─────────── */}
-          <div className="flex items-center gap-1 shrink-0">
-
-            {/* Nav links */}
-            <nav className="flex items-center gap-0.5">
-              {navLinks.map(link => {
-                const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href.split("?")[0]));
-                return (
-                  <Link key={link.href} href={link.href}
-                    style={{ fontWeight: isActive ? 700 : 500, fontSize: "13px" }}
-                    className={cn(
-                      "px-3 py-2 rounded-lg transition-colors duration-150 whitespace-nowrap",
-                      isActive ? "text-emerald-400 bg-emerald-500/[0.08]" : "text-white/45 hover:text-white/80 hover:bg-white/[0.05]"
-                    )}>
-                    {link.label}
-                  </Link>
-                );
-              })}
-            </nav>
-
-            {/* Divider */}
-            <div className="h-5 w-px bg-white/[0.08] mx-1" />
-
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 shrink-0 group">
-              <img src="/syano-logo.png" alt="Syano" width={30} height={30}
-                className="h-[30px] w-[30px] object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.75)] group-hover:drop-shadow-[0_0_18px_rgba(16,185,129,1)] transition-[filter] duration-200" loading="eager" />
-              <div>
-                <div style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "15px", lineHeight: 1 }} className="text-white uppercase">SYANO</div>
-                <div style={{ fontWeight: 400, fontSize: "8px", letterSpacing: "0.16em" }} className="text-emerald-400/60 uppercase">سوق سوريا</div>
-              </div>
-            </Link>
+          {/* ── COL 3 → renders on the LEFT in RTL: Auth buttons ─────────────── */}
+          <div className="flex items-center gap-2 shrink-0">
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 h-9 ps-2 pe-3 rounded-full bg-white/[0.06] border border-white/[0.1] hover:bg-white/[0.09] hover:border-white/[0.15] transition-all duration-200">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                      <span style={{ fontSize: "11px", fontWeight: 800 }} className="text-emerald-400">
+                        {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: "13px", fontWeight: 600, maxWidth: 80 }} className="text-white/75 truncate">{user?.name}</span>
+                    <ChevronDown className="h-3 w-3 text-white/30" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-[#111] border-white/[0.1] w-52">
+                  <div className="px-3 py-2.5 border-b border-white/[0.07]">
+                    <p style={{ fontSize: "13px", fontWeight: 700 }} className="text-white">{user?.name}</p>
+                    <p style={{ fontSize: "11px" }} className="text-white/35 truncate" translate="no">{user?.email}</p>
+                  </div>
+                  <DropdownMenuItem asChild className="text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer mt-1">
+                    <Link href={isAdmin ? "/admin" : isSeller ? "/seller/dashboard" : isCourier ? "/courier/dashboard" : "/customer/dashboard"}
+                      className="flex items-center gap-2">
+                      <LayoutDashboard className="h-4 w-4" /> {t("nav.dashboard")}
+                    </Link>
+                  </DropdownMenuItem>
+                  {isCustomer && (
+                    <DropdownMenuItem asChild className="text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer">
+                      <Link href="/orders" className="flex items-center gap-2">
+                        <ClipboardList className="h-4 w-4" /> {t("nav.orders")}
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator className="bg-white/[0.07]" />
+                  <DropdownMenuItem onClick={logout} className="text-rose-400 focus:text-rose-300 focus:bg-rose-500/[0.08] cursor-pointer">
+                    <LogOut className="me-2 h-4 w-4" /> {t("nav.logout")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link href="/login"
+                  style={{ fontSize: "13px", fontWeight: 600 }}
+                  className="h-9 px-4 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors whitespace-nowrap">
+                  {t("nav.login")}
+                </Link>
+                <Link href="/register"
+                  style={{ fontSize: "13px", fontWeight: 700 }}
+                  className="h-9 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black transition-colors shadow-lg shadow-emerald-500/20 whitespace-nowrap">
+                  {t("nav.signup")}
+                </Link>
+              </>
+            )}
           </div>
 
         </div>
