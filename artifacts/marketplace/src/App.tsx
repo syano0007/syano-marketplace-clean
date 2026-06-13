@@ -342,7 +342,7 @@ function Router() {
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="system" attribute="class">
+    <ThemeProvider defaultTheme="dark" attribute="class">
       <QueryClientProvider client={queryClient}>
         <CurrencyProvider>
           <AuthProvider>

@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback, memo } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, ArrowRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,12 +10,39 @@ import { cn } from "@/lib/utils";
 const BASE = import.meta.env.BASE_URL ?? "/";
 const BANNER_INTERVAL_MS = 6000;
 
-const HERO_BACKGROUNDS = [
-  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&q=80&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1920&q=80&auto=format&fit=crop",
-  "https://images.pexels.com/photos/3617500/pexels-photo-3617500.jpeg?auto=compress&cs=tinysrgb&w=1920&h=600&fit=crop",
-];
+/* ── Product mosaic items ─────────────────────────────────────────── */
+const HERO_PRODUCTS = [
+  {
+    src: "https://images.pexels.com/photos/3394650/pexels-photo-3394650.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+    style: { left: "20%", top: "8%", width: "200px", height: "155px", transform: "rotate(-8deg)", zIndex: 4 },
+  },
+  {
+    src: "https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=280&h=280&fit=crop",
+    style: { left: "47%", top: "4%", width: "118px", height: "118px", transform: "rotate(11deg)", zIndex: 3 },
+  },
+  {
+    src: "https://images.pexels.com/photos/965989/pexels-photo-965989.jpeg?auto=compress&cs=tinysrgb&w=220&h=300&fit=crop",
+    style: { left: "4%", top: "30%", width: "88px", height: "122px", transform: "rotate(-17deg)", zIndex: 2 },
+  },
+  {
+    src: "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=420&h=255&fit=crop",
+    style: { left: "17%", top: "60%", width: "200px", height: "122px", transform: "rotate(5deg)", zIndex: 5 },
+  },
+  {
+    src: "https://images.pexels.com/photos/243757/pexels-photo-243757.jpeg?auto=compress&cs=tinysrgb&w=320&h=240&fit=crop",
+    style: { left: "45%", top: "53%", width: "138px", height: "104px", transform: "rotate(-9deg)", zIndex: 3 },
+  },
+  {
+    src: "https://images.pexels.com/photos/2079438/pexels-photo-2079438.jpeg?auto=compress&cs=tinysrgb&w=280&h=210&fit=crop",
+    style: { left: "3%", top: "3%", width: "110px", height: "83px", transform: "rotate(19deg)", zIndex: 2 },
+  },
+  {
+    src: "https://images.pexels.com/photos/607812/pexels-photo-607812.jpeg?auto=compress&cs=tinysrgb&w=260&h=340&fit=crop",
+    style: { left: "39%", top: "30%", width: "82px", height: "108px", transform: "rotate(7deg)", zIndex: 4 },
+  },
+] as const;
 
+/* ── Interface ────────────────────────────────────────────────────── */
 interface Banner {
   id: number;
   titleAr: string;
@@ -31,102 +58,154 @@ interface Banner {
   sortOrder: number;
 }
 
+/* ── Brand Statement (no banners) ─────────────────────────────────── */
 const BrandStatement = memo(function BrandStatement() {
   const { i18n } = useTranslation();
   const lang = i18n.language;
   const isRTL = i18n.dir() === "rtl";
-  const [bgIndex, setBgIndex] = useState(0);
 
   return (
-    <div className="relative h-full overflow-hidden select-none">
-      {bgIndex < HERO_BACKGROUNDS.length ? (
-        <img
-          src={HERO_BACKGROUNDS[bgIndex]}
-          alt=""
-          loading="eager"
-          decoding="async"
-          onError={() => setBgIndex((i) => i + 1)}
-          className="absolute inset-0 h-full w-full object-cover hero-kenburns"
-        />
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950" />
-      )}
+    <div className="relative h-full overflow-hidden bg-black">
 
-      {/* Deep cinematic overlay */}
-      <div className="absolute inset-0 bg-black/55" />
+      {/* Product mosaic — hidden on mobile.
+          In RTL the products appear on the LEFT (image end = physical left).
+          In LTR we scaleX(-1) to mirror them to the RIGHT side. */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 hidden md:block pointer-events-none"
+        style={isRTL ? undefined : { transform: "scaleX(-1)" }}
+      >
+        {HERO_PRODUCTS.map((p, i) => (
+          <img
+            key={i}
+            src={p.src}
+            alt=""
+            loading={i === 0 ? "eager" : "lazy"}
+            decoding="async"
+            className="absolute rounded-xl lg:rounded-2xl object-cover shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
+            style={p.style as React.CSSProperties}
+          />
+        ))}
+
+        {/* Green ambient glow */}
+        <div
+          className="absolute rounded-full blur-3xl pointer-events-none"
+          style={{
+            left: "25%",
+            top: "20%",
+            width: "250px",
+            height: "250px",
+            background: "radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)",
+          }}
+        />
+      </div>
+
+      {/* On mobile: dark gradient background */}
+      <div className="absolute inset-0 md:hidden bg-gradient-to-br from-slate-900 via-black to-emerald-950/30" />
+
+      {/* Gradient overlay: transparent on IMAGE side → near-black on TEXT side.
+          RTL: text is on RIGHT → dark from right.
+          LTR: text is on LEFT  → dark from left.  */}
+      <div
+        className="absolute inset-0 hidden md:block"
         style={{
           background: isRTL
-            ? "linear-gradient(to left, rgba(3,10,20,0.95) 0%, rgba(3,10,20,0.82) 38%, rgba(3,10,20,0.35) 65%, rgba(3,10,20,0.08) 100%)"
-            : "linear-gradient(to right, rgba(3,10,20,0.95) 0%, rgba(3,10,20,0.82) 38%, rgba(3,10,20,0.35) 65%, rgba(3,10,20,0.08) 100%)",
+            ? "linear-gradient(to left, transparent 0%, rgba(0,0,0,0.45) 32%, rgba(0,0,0,0.95) 50%, rgba(0,0,0,0.99) 100%)"
+            : "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.45) 32%, rgba(0,0,0,0.95) 50%, rgba(0,0,0,0.99) 100%)",
         }}
       />
-      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent" />
+      {/* Mobile gradient */}
+      <div className="absolute inset-0 md:hidden" style={{ background: "rgba(0,0,0,0.55)" }} />
 
-      {/* Content */}
+      {/* Syano brand mark — always in the image area (the non-text side) */}
       <div
         className={cn(
-          "absolute inset-0 flex flex-col justify-center z-10",
-          "px-6 sm:px-10 lg:px-16",
+          "absolute top-5 hidden md:flex items-center gap-1.5 z-10",
+          isRTL ? "left-5" : "right-5",
         )}
       >
-        <div className="space-y-4 sm:space-y-5 max-w-[460px]">
+        <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center shadow-lg shadow-primary/30">
+          <span className="text-xs font-black" style={{ color: "black" }}>S</span>
+        </div>
+        <span className="text-sm font-bold text-white/60">Syano</span>
+      </div>
+
+      {/* Navigation arrows */}
+      <button
+        aria-label="Previous"
+        className="absolute top-1/2 -translate-y-1/2 start-3 z-20 h-8 w-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
+      >
+        {isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+      </button>
+      <button
+        aria-label="Next"
+        className="absolute top-1/2 -translate-y-1/2 end-3 z-20 h-8 w-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
+      >
+        {isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+      </button>
+
+      {/* Dots */}
+      <div className="absolute bottom-4 inset-x-0 z-20 flex items-center justify-center gap-2">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className={cn(
+              "rounded-full transition-all",
+              i === 0 ? "w-6 h-[3.5px] bg-primary" : "w-[3.5px] h-[3.5px] bg-white/30",
+            )}
+          />
+        ))}
+      </div>
+
+      {/* ── Text content — positioned at RTL-start (right in Arabic) ── */}
+      <div
+        className={cn(
+          "absolute inset-y-0 flex flex-col justify-center z-10 px-5 sm:px-8 md:px-10 lg:px-14",
+          "w-full md:w-[52%]",
+          isRTL ? "right-0" : "left-0",
+        )}
+      >
+        <div className="space-y-3 sm:space-y-4 max-w-[420px]">
           {/* Eyebrow badge */}
-          <div className="inline-flex items-center gap-1.5 bg-primary/20 border border-primary/40 text-primary px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold w-fit">
+          <div className="inline-flex items-center gap-1.5 bg-primary/20 border border-primary/40 text-primary px-3 py-1 rounded-full text-[11px] font-semibold w-fit">
             <Zap className="h-3 w-3 shrink-0" />
-            {lang === "ar"
-              ? "تجربة تسوق متكاملة"
-              : "Syria's First Online Marketplace"}
+            {lang === "ar" ? "تجربة تسوق متكاملة" : "Syria's First Online Marketplace"}
           </div>
 
           {/* Headline */}
           {lang === "ar" ? (
-            <h1 className="text-[2.2rem] sm:text-[2.8rem] lg:text-[3.2rem] font-black text-white leading-[1.08] tracking-tight drop-shadow-2xl">
+            <h1 className="text-[2.5rem] sm:text-[3.2rem] lg:text-[3.8rem] font-black text-white leading-[1.03] tracking-tight drop-shadow-2xl">
               اكتشف آلاف المنتجات
               <br />
               <span className="text-primary">من المتاجر السورية</span>
             </h1>
           ) : (
-            <h1 className="text-[2rem] sm:text-4xl lg:text-[2.8rem] font-black text-white leading-[1.08] tracking-tight drop-shadow-2xl">
-              Discover Thousands of
+            <h1 className="text-[2rem] sm:text-[2.8rem] lg:text-[3.2rem] font-black text-white leading-[1.05] tracking-tight drop-shadow-2xl">
+              Discover Thousands
               <br />
-              <span className="text-primary">Syrian Products.</span>
+              <span className="text-primary">of Syrian Products.</span>
             </h1>
           )}
 
-          {/* Supporting text */}
-          <p className="text-sm sm:text-[15px] text-white/60 leading-relaxed max-w-[340px]">
+          {/* Subtitle */}
+          <p className="text-xs sm:text-sm text-white/50 leading-relaxed max-w-[300px]">
             {lang === "ar"
               ? "منتجات متنوعة، متاجر موثوقة، وتجربة تسوق حديثة"
               : "Diverse products, trusted sellers, and a modern shopping experience."}
           </p>
 
-          {/* CTA row */}
-          <div className="flex flex-row items-center gap-3 flex-wrap pt-1">
+          {/* Single CTA */}
+          <div className="pt-1">
             <Link href="/products">
               <Button
                 size="lg"
-                className="h-11 px-7 text-sm font-bold shadow-lg shadow-primary/30 hover:-translate-y-0.5 transition-all duration-200 rounded-xl"
+                className="h-11 sm:h-12 px-8 sm:px-10 text-sm font-bold rounded-xl shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all duration-200"
               >
                 {lang === "ar" ? "تسوق الآن" : "Shop Now"}
                 <ArrowRight
-                  className={cn(
-                    "h-4 w-4 shrink-0",
-                    isRTL ? "me-2 rotate-180" : "ms-2",
-                  )}
+                  className={cn("h-4 w-4 shrink-0", isRTL ? "me-2 rotate-180" : "ms-2")}
                 />
               </Button>
             </Link>
-            <a href="#categories">
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-11 px-6 text-sm font-semibold border-white/25 text-white hover:bg-white/10 hover:border-white/40 hover:-translate-y-0.5 transition-all duration-200 bg-transparent rounded-xl"
-              >
-                {lang === "ar" ? "الفئات" : "Browse"}
-              </Button>
-            </a>
           </div>
         </div>
       </div>
@@ -134,18 +213,14 @@ const BrandStatement = memo(function BrandStatement() {
   );
 });
 
-const BannerCarousel = memo(function BannerCarousel({
-  banners,
-}: {
-  banners: Banner[];
-}) {
+/* ── Banner Carousel (when API returns banners) ───────────────────── */
+const BannerCarousel = memo(function BannerCarousel({ banners }: { banners: Banner[] }) {
   const { i18n } = useTranslation();
   const lang = i18n.language;
   const isRTL = i18n.dir() === "rtl";
-  const reducedMotion = useReducedMotion();
   const [current, setCurrent] = useState(0);
-  const [resetKey, setResetKey] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
 
   const goTo = useCallback(
     (idx: number) => {
@@ -156,23 +231,14 @@ const BannerCarousel = memo(function BannerCarousel({
     [banners.length],
   );
 
-  const goPrev = useCallback(
-    () => goTo(current - (isRTL ? -1 : 1)),
-    [current, goTo, isRTL],
-  );
-  const goNext = useCallback(
-    () => goTo(current + (isRTL ? -1 : 1)),
-    [current, goTo, isRTL],
-  );
+  const goPrev = useCallback(() => goTo(current - (isRTL ? -1 : 1)), [current, goTo, isRTL]);
+  const goNext = useCallback(() => goTo(current + (isRTL ? -1 : 1)), [current, goTo, isRTL]);
 
   useEffect(() => {
-    if (banners.length <= 1 || paused || reducedMotion) return;
-    const id = setInterval(
-      () => setCurrent((i) => (i + 1) % banners.length),
-      BANNER_INTERVAL_MS,
-    );
+    if (banners.length <= 1 || paused) return;
+    const id = setInterval(() => setCurrent((i) => (i + 1) % banners.length), BANNER_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [banners.length, paused, reducedMotion, resetKey]);
+  }, [banners.length, paused, resetKey]);
 
   const banner = banners[current];
   if (!banner) return <BrandStatement />;
@@ -180,12 +246,12 @@ const BannerCarousel = memo(function BannerCarousel({
   const title = lang === "ar" ? banner.titleAr : banner.titleEn;
   const subtitle = lang === "ar" ? banner.subtitleAr : banner.subtitleEn;
   const ctaLabel = lang === "ar" ? banner.ctaLabelAr : banner.ctaLabelEn;
-  const bgColor = banner.backgroundColor ?? "#050f1e";
+  const bgColor = banner.backgroundColor ?? "#000000";
   const textColor = banner.textColor ?? "#ffffff";
 
   return (
     <div
-      className="relative h-full overflow-hidden select-none"
+      className="relative h-full overflow-hidden select-none bg-black"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -194,67 +260,52 @@ const BannerCarousel = memo(function BannerCarousel({
           key={current}
           className="absolute inset-0"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: { duration: 0.75 } }}
-          exit={{ opacity: 0, transition: { duration: 0.45 } }}
+          animate={{ opacity: 1, transition: { duration: 0.6 } }}
+          exit={{ opacity: 0, transition: { duration: 0.4 } }}
         >
           <img
-            key={`img-${banner.id}`}
             src={banner.desktopImage}
             alt=""
             loading="eager"
             decoding="async"
-            className={cn(
-              "absolute inset-0 h-full w-full object-cover",
-              !reducedMotion && "hero-kenburns",
-            )}
+            className="absolute inset-0 h-full w-full object-cover"
           />
           <div
             className="absolute inset-0"
             style={{
-              background: `linear-gradient(${isRTL ? "to left" : "to right"}, ${bgColor}e8 0%, ${bgColor}b0 38%, ${bgColor}60 60%, transparent 100%)`,
+              background: `linear-gradient(${isRTL ? "to left" : "to right"}, ${bgColor}e0 0%, ${bgColor}a0 38%, ${bgColor}50 60%, transparent 100%)`,
             }}
           />
-          <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/55 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/60 to-transparent" />
         </motion.div>
       </AnimatePresence>
 
       <div
-        className="absolute inset-0 flex flex-col justify-center px-6 sm:px-10 lg:px-16 z-10 space-y-4"
+        className="absolute inset-0 flex flex-col justify-center px-6 sm:px-10 lg:px-14 z-10 space-y-3"
         style={{ color: textColor }}
       >
         {subtitle && (
-          <p className="text-[11px] font-semibold uppercase tracking-widest opacity-65">
-            {subtitle}
-          </p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest opacity-60">{subtitle}</p>
         )}
         <h2
-          className="text-2xl sm:text-3xl lg:text-[2.6rem] font-black leading-[1.1] tracking-tight drop-shadow-lg max-w-sm"
+          className="text-2xl sm:text-3xl lg:text-[2.8rem] font-black leading-[1.05] tracking-tight drop-shadow-lg max-w-sm"
           style={{ color: textColor }}
         >
           {title}
         </h2>
         {ctaLabel && banner.ctaUrl && (
-          <div className="pt-1">
-            <Link href={banner.ctaUrl}>
-              <Button
-                size="lg"
-                className="h-11 px-7 text-sm font-bold shadow-lg hover:-translate-y-0.5 transition-all duration-200 rounded-xl"
-                onClick={() =>
-                  fetch(`${BASE}api/banners/${banner.id}/click`, {
-                    method: "POST",
-                  }).catch(() => {})
-                }
-              >
-                {ctaLabel}
-                <ArrowRight
-                  className={cn(
-                    "h-4 w-4 shrink-0",
-                    isRTL ? "me-2 rotate-180" : "ms-2",
-                  )}
-                />
-              </Button>
-            </Link>
-          </div>
+          <Link href={banner.ctaUrl}>
+            <Button
+              size="lg"
+              className="h-11 px-8 text-sm font-bold rounded-xl mt-1 hover:-translate-y-0.5 transition-all duration-200"
+              onClick={() =>
+                fetch(`${BASE}api/banners/${banner.id}/click`, { method: "POST" }).catch(() => {})
+              }
+            >
+              {ctaLabel}
+              <ArrowRight className={cn("h-4 w-4 shrink-0", isRTL ? "me-2 rotate-180" : "ms-2")} />
+            </Button>
+          </Link>
         )}
       </div>
 
@@ -262,68 +313,56 @@ const BannerCarousel = memo(function BannerCarousel({
         <>
           <button
             onClick={goPrev}
-            aria-label="Previous slide"
-            className="absolute top-1/2 -translate-y-1/2 start-4 z-20 h-9 w-9 rounded-full bg-black/30 backdrop-blur-sm border border-white/15 text-white flex items-center justify-center hover:bg-black/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+            aria-label="Previous"
+            className="absolute top-1/2 -translate-y-1/2 start-3 z-20 h-8 w-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
           >
-            {isRTL ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
+            {isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
           <button
             onClick={goNext}
-            aria-label="Next slide"
-            className="absolute top-1/2 -translate-y-1/2 end-4 z-20 h-9 w-9 rounded-full bg-black/30 backdrop-blur-sm border border-white/15 text-white flex items-center justify-center hover:bg-black/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+            aria-label="Next"
+            className="absolute top-1/2 -translate-y-1/2 end-3 z-20 h-8 w-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/60 transition-colors"
           >
-            {isRTL ? (
-              <ChevronLeft className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
+            {isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </button>
+          <div className="absolute bottom-4 inset-x-0 z-20 flex justify-center gap-2">
+            {banners.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goTo(i)}
+                aria-label={`Slide ${i + 1}`}
+                className={cn(
+                  "rounded-full transition-all",
+                  i === current
+                    ? "w-6 h-[3.5px] bg-primary"
+                    : "w-[3.5px] h-[3.5px] bg-white/30 hover:bg-white/55",
+                )}
+              />
+            ))}
+          </div>
         </>
-      )}
-
-      {banners.length > 1 && (
-        <div className="absolute bottom-5 inset-x-0 z-20 flex items-center justify-center gap-2">
-          {banners.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goTo(i)}
-              aria-label={`Go to slide ${i + 1}`}
-              className={cn(
-                "rounded-full transition-all duration-300 focus-visible:outline-none",
-                i === current
-                  ? "w-6 h-[4px] bg-white/90"
-                  : "w-[4px] h-[4px] bg-white/30 hover:bg-white/55",
-              )}
-            />
-          ))}
-        </div>
       )}
     </div>
   );
 });
 
+/* ── Main HeroV4 export ───────────────────────────────────────────── */
 export function HeroV4() {
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [bannerLoading, setBannerLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetch(`${BASE}api/banners`)
       .then((r) => (r.ok ? r.json() : []))
       .then((d: Banner[]) => setBanners(Array.isArray(d) ? d : []))
       .catch(() => {})
-      .finally(() => setBannerLoading(false));
+      .finally(() => setLoaded(true));
   }, []);
 
-  const hasBanners = !bannerLoading && banners.length > 0;
-
   return (
-    <section className="border-b overflow-hidden">
-      <div className="h-[380px] sm:h-[460px] lg:h-[540px]">
-        {hasBanners ? (
+    <section className="border-b overflow-hidden bg-black">
+      <div className="h-[340px] sm:h-[400px] lg:h-[440px]">
+        {loaded && banners.length > 0 ? (
           <BannerCarousel banners={banners} />
         ) : (
           <BrandStatement />
