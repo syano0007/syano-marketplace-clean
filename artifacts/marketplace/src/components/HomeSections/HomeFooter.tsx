@@ -1,38 +1,6 @@
 import { Instagram, Twitter, Facebook, Youtube, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
-
-const footerLinks = {
-  marketplace: {
-    title: "السوق",
-    links: [
-      { label: "جميع المنتجات", href: "/products" },
-      { label: "العروض والتخفيضات", href: "/products?hasDiscount=true" },
-      { label: "المتاجر الموثوقة", href: "/sellers/directory" },
-      { label: "المنتجات الجديدة", href: "/products" },
-      { label: "الأكثر مبيعاً", href: "/products" },
-    ],
-  },
-  seller: {
-    title: "للبائعين",
-    links: [
-      { label: "افتح متجرك", href: "/seller/apply" },
-      { label: "لوحة التاجر", href: "/seller/dashboard" },
-      { label: "خطط العمولة", href: "/seller/apply" },
-      { label: "سياسة المرتجعات", href: "/" },
-      { label: "مركز المساعدة", href: "/" },
-    ],
-  },
-  company: {
-    title: "الشركة",
-    links: [
-      { label: "من نحن", href: "/" },
-      { label: "التوصيل والشحن", href: "/" },
-      { label: "سياسة الخصوصية", href: "/" },
-      { label: "الشروط والأحكام", href: "/" },
-      { label: "تواصل معنا", href: "/" },
-    ],
-  },
-};
+import { useTranslation } from "react-i18next";
 
 const socialLinks = [
   { icon: Instagram, label: "Instagram", href: "#" },
@@ -44,8 +12,43 @@ const socialLinks = [
 const paymentMethods = ["VISA", "MasterCard", "PayPal", "SyriaTel Cash"];
 
 export function HomeFooter() {
+  const { t, i18n } = useTranslation();
+
+  const footerLinks = {
+    marketplace: {
+      titleKey: "home.footer.marketplace_title",
+      links: [
+        { labelKey: "home.footer.link_all_products", href: "/products" },
+        { labelKey: "home.footer.link_deals", href: "/products?hasDiscount=true" },
+        { labelKey: "home.footer.link_trusted_stores", href: "/sellers/directory" },
+        { labelKey: "home.footer.link_new_products", href: "/products" },
+        { labelKey: "home.footer.link_bestsellers", href: "/products" },
+      ],
+    },
+    seller: {
+      titleKey: "home.footer.sellers_title",
+      links: [
+        { labelKey: "home.footer.link_open_store", href: "/seller/apply" },
+        { labelKey: "home.footer.link_seller_dashboard", href: "/seller/dashboard" },
+        { labelKey: "home.footer.link_commission", href: "/seller/apply" },
+        { labelKey: "home.footer.link_returns", href: "/" },
+        { labelKey: "home.footer.link_help", href: "/" },
+      ],
+    },
+    company: {
+      titleKey: "home.footer.company_title",
+      links: [
+        { labelKey: "home.footer.link_about", href: "/" },
+        { labelKey: "home.footer.link_shipping", href: "/" },
+        { labelKey: "home.footer.link_privacy", href: "/" },
+        { labelKey: "home.footer.link_terms_page", href: "/" },
+        { labelKey: "home.footer.link_contact", href: "/" },
+      ],
+    },
+  };
+
   return (
-    <footer style={{ direction: "rtl", fontFamily: "'Cairo', sans-serif" }} className="bg-[#080808] border-t border-white/[0.06]">
+    <footer dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="bg-background border-t border-border">
       <div className="max-w-[1400px] mx-auto px-10">
         <div className="py-16 grid grid-cols-12 gap-10">
           <div className="col-span-4">
@@ -54,16 +57,16 @@ export function HomeFooter() {
                 <span style={{ fontFamily: "'Cairo', sans-serif", fontWeight: 800 }} className="text-black text-sm">S</span>
               </div>
               <div>
-                <div style={{ fontWeight: 800, letterSpacing: "0.08em" }} className="text-white text-lg">SYANO</div>
+                <div style={{ fontWeight: 800, letterSpacing: "0.08em" }} className="text-foreground text-lg">SYANO</div>
                 <div style={{ fontWeight: 400, fontSize: "10px" }} className="text-emerald-400/70 tracking-widest">سوق سوريا</div>
               </div>
             </div>
-            <p style={{ fontWeight: 400, fontSize: "14px", lineHeight: 1.8 }} className="text-white/35 mb-8 max-w-[280px]">
-              منصة التجارة الإلكترونية السورية الأولى التي تجمع أفضل المتاجر والمنتجات في مكان واحد.
+            <p style={{ fontWeight: 400, fontSize: "14px", lineHeight: 1.8 }} className="text-muted-foreground mb-8 max-w-[280px]">
+              {t("home.footer.tagline")}
             </p>
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => (
-                <a key={social.label} href={social.href} aria-label={social.label} className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.07] flex items-center justify-center text-white/30 hover:text-white/70 hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-200">
+                <a key={social.label} href={social.href} aria-label={social.label} className="w-9 h-9 rounded-xl bg-muted/40 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground/70 hover:bg-muted/80 hover:border-border transition-all duration-200">
                   <social.icon className="w-4 h-4" />
                 </a>
               ))}
@@ -74,12 +77,12 @@ export function HomeFooter() {
 
           {Object.entries(footerLinks).map(([key, section]) => (
             <div key={key} className="col-span-2">
-              <h4 style={{ fontWeight: 700, fontSize: "14px", letterSpacing: "0.02em" }} className="text-white mb-5">{section.title}</h4>
+              <h4 style={{ fontWeight: 700, fontSize: "14px", letterSpacing: "0.02em" }} className="text-foreground mb-5">{t(section.titleKey)}</h4>
               <ul className="flex flex-col gap-3">
                 {section.links.map((link) => (
-                  <li key={link.label}>
-                    <Link href={link.href} style={{ fontWeight: 400, fontSize: "13px" }} className="text-white/35 hover:text-white/65 transition-colors duration-200">
-                      {link.label}
+                  <li key={link.labelKey}>
+                    <Link href={link.href} style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground hover:text-foreground/65 transition-colors duration-200">
+                      {t(link.labelKey)}
                     </Link>
                   </li>
                 ))}
@@ -88,35 +91,35 @@ export function HomeFooter() {
           ))}
 
           <div className="col-span-3">
-            <h4 style={{ fontWeight: 700, fontSize: "14px" }} className="text-white mb-2">اشترك في النشرة البريدية</h4>
-            <p style={{ fontWeight: 400, fontSize: "13px" }} className="text-white/35 mb-4 leading-relaxed">أحدث العروض والمنتجات مباشرة إلى بريدك.</p>
+            <h4 style={{ fontWeight: 700, fontSize: "14px" }} className="text-foreground mb-2">{t("home.footer.newsletter_title")}</h4>
+            <p style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground mb-4 leading-relaxed">{t("home.footer.newsletter_desc")}</p>
             <div className="flex flex-col gap-2">
               <input
                 type="email"
-                placeholder="بريدك الإلكتروني..."
-                style={{ direction: "rtl", fontFamily: "'Cairo', sans-serif", fontWeight: 400, fontSize: "13px" }}
-                className="w-full bg-white/[0.04] border border-white/[0.08] focus:border-emerald-500/40 rounded-xl px-4 py-3 text-white/70 placeholder-white/25 outline-none transition-colors"
+                placeholder={t("home.footer.newsletter_placeholder")}
+                style={{ fontFamily: "'Cairo', sans-serif", fontWeight: 400, fontSize: "13px" }}
+                className="w-full bg-muted/40 border border-border focus:border-emerald-500/40 rounded-xl px-4 py-3 text-foreground/70 placeholder:text-muted-foreground/50 outline-none transition-colors"
               />
               <button style={{ fontWeight: 700, fontSize: "13px" }} className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black w-full py-3 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-emerald-500/20">
-                اشتراك <ArrowLeft className="w-3.5 h-3.5" />
+                {t("home.footer.subscribe")} <ArrowLeft className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
         </div>
 
-        <div className="py-6 border-t border-white/[0.05] flex items-center justify-between">
-          <p style={{ fontWeight: 400, fontSize: "13px" }} className="text-white/25">© 2025 SYANO — جميع الحقوق محفوظة</p>
+        <div className="py-6 border-t border-border flex items-center justify-between">
+          <p style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground/60">{t("home.footer.copyright")}</p>
           <div className="flex items-center gap-4">
             {paymentMethods.map((method) => (
-              <div key={method} style={{ fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em" }} className="px-2.5 py-1 bg-white/[0.04] border border-white/[0.07] text-white/25 rounded-md">
+              <div key={method} style={{ fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em" }} className="px-2.5 py-1 bg-muted/40 border border-border text-muted-foreground/60 rounded-md">
                 {method}
               </div>
             ))}
           </div>
           <div className="flex items-center gap-5">
-            <a href="#" style={{ fontWeight: 400, fontSize: "12px" }} className="text-white/25 hover:text-white/50 transition-colors">الخصوصية</a>
-            <a href="#" style={{ fontWeight: 400, fontSize: "12px" }} className="text-white/25 hover:text-white/50 transition-colors">الشروط</a>
-            <a href="#" style={{ fontWeight: 400, fontSize: "12px" }} className="text-white/25 hover:text-white/50 transition-colors">الكوكيز</a>
+            <a href="#" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.privacy")}</a>
+            <a href="#" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.terms")}</a>
+            <a href="#" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.cookies")}</a>
           </div>
         </div>
       </div>

@@ -49,14 +49,14 @@ export default function Home() {
 
   return (
     <div
-      className="min-h-screen bg-[#080808]"
-      style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.08) transparent" }}
+      className="min-h-screen bg-background"
+      style={{ scrollbarWidth: "thin", scrollbarColor: "hsl(var(--border)) transparent" }}
     >
       <style>{`
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+        ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.3); }
       `}</style>
 
       <Navbar />

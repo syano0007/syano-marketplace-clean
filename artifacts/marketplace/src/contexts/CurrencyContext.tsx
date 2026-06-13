@@ -39,7 +39,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         const syp = usdAmount * exchangeRate;
         return `${syp.toLocaleString("en-US", { maximumFractionDigits: 0 })} ل.س`;
       }
-      return `$${usdAmount.toFixed(2)}`;
+      return `$${usdAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     },
     [currency, exchangeRate]
   );
