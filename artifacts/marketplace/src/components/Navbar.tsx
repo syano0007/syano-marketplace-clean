@@ -284,255 +284,19 @@ export function Navbar() {
         )}
 
         {/* ══ DESKTOP NAV (≥ md) ═════════════════════════════════════════════ */}
-        <div className="container hidden md:flex h-[72px] items-center justify-between gap-4" dir={isRtl ? "rtl" : "ltr"}>
+        <div
+          className="container hidden md:grid h-[64px] items-center gap-3"
+          style={{ gridTemplateColumns: "auto 1fr auto" }}
+          dir={isRtl ? "rtl" : "ltr"}
+        >
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
-            <img src="/syano-logo.png" alt="Syano" width={32} height={32}
-              className="h-8 w-8 object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.75)] group-hover:drop-shadow-[0_0_18px_rgba(16,185,129,1)] transition-[filter] duration-200" loading="eager" />
-            <div>
-              <div style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "17px", lineHeight: 1 }} className="text-white uppercase">SYANO</div>
-              <div style={{ fontWeight: 400, fontSize: "9px", letterSpacing: "0.16em" }} className="text-emerald-400/60 uppercase">سوق سوريا</div>
-            </div>
-          </Link>
-
-          {/* Nav links */}
-          <nav className="flex items-center gap-1">
-            {navLinks.map(link => {
-              const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href.split("?")[0]));
-              return (
-                <Link key={link.href} href={link.href}
-                  style={{ fontWeight: isActive ? 700 : 500, fontSize: "14px" }}
-                  className={cn(
-                    "px-3.5 py-2 rounded-lg transition-colors duration-150",
-                    isActive ? "text-emerald-400 bg-emerald-500/[0.08]" : "text-white/45 hover:text-white/80 hover:bg-white/[0.05]"
-                  )}>
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Search pill */}
-          {!isAuthPage && (
-            <div ref={searchRef} className="relative flex-1 max-w-[420px]">
-              <form onSubmit={handleSearchSubmit}>
-                <div className="flex items-center gap-2.5 bg-white/[0.06] hover:bg-white/[0.08] focus-within:bg-white/[0.08] border border-white/[0.08] focus-within:border-white/[0.14] rounded-full h-10 px-4 transition-all duration-200">
-                  <Search className="w-3.5 h-3.5 text-white/30 shrink-0" />
-                  <input
-                    ref={inputRef}
-                    value={searchQuery}
-                    onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
-                    onFocus={() => setSearchOpen(true)}
-                    placeholder={isRtl ? "ابحث عن منتجات، متاجر..." : "Search products, stores..."}
-                    style={{ fontFamily: "'Cairo', sans-serif", fontSize: "13px", background: "transparent", outline: "none", border: "none", color: "rgba(255,255,255,0.75)", flex: 1, minWidth: 0 }}
-                  />
-                  {searchQuery && (
-                    <button type="button" onClick={() => { setSearchQuery(""); setSearchOpen(false); }} className="text-white/30 hover:text-white/60 shrink-0">
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              </form>
-
-              {/* Dropdown */}
-              {searchOpen && (debouncedSearch.length >= 2 || recentSearches.length > 0) && (
-                <div className="absolute top-full mt-2 left-0 right-0 bg-[#111] border border-white/[0.1] rounded-2xl shadow-2xl z-50 overflow-hidden">
-                  {debouncedSearch.length >= 2 ? (
-                    searchLoading && suggestions.length === 0 ? (
-                      <div className="p-4 text-sm text-white/40 text-center flex items-center justify-center gap-2">
-                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-                        {isRtl ? "جاري البحث..." : "Searching..."}
-                      </div>
-                    ) : !suggestions || suggestions.length === 0 ? (
-                      <div className="p-4 text-sm text-white/40 text-center">{isRtl ? "لا توجد نتائج" : "No results found"}</div>
-                    ) : (
-                      <div className="py-1.5 max-h-72 overflow-y-auto">
-                        {suggestions.slice(0, 6).map(p => (
-                          <button key={p.id} onClick={() => handleSuggestionClick(p.id, p.name)}
-                            className="w-full flex items-center gap-3 px-3.5 py-2.5 hover:bg-white/[0.05] transition-colors" style={{ textAlign: isRtl ? "right" : "left" }}>
-                            {p.imageUrl && <img src={p.imageUrl} alt="" className="h-9 w-9 rounded-lg object-cover border border-white/[0.08] shrink-0" />}
-                            <div className="flex-1 min-w-0">
-                              <div style={{ fontSize: "13px", fontWeight: 600 }} className="text-white/90 truncate">{p.name}</div>
-                              <div style={{ fontSize: "11px" }} className="text-white/35">{p.category}</div>
-                            </div>
-                            <div style={{ fontSize: "13px", fontWeight: 700 }} className="text-emerald-400 shrink-0">{p.finalPrice.toLocaleString()} ل.س</div>
-                          </button>
-                        ))}
-                        <button onClick={handleSearchSubmit as any}
-                          className="w-full px-3.5 py-2.5 text-sm text-emerald-400 font-semibold hover:bg-white/[0.04] transition-colors border-t border-white/[0.06] flex items-center gap-2">
-                          <Search className="h-3.5 w-3.5" />
-                          {isRtl ? `بحث عن "${debouncedSearch}"` : `Search for "${debouncedSearch}"`}
-                        </button>
-                      </div>
-                    )
-                  ) : recentSearches.length > 0 ? (
-                    <div className="py-1.5">
-                      <div className="flex items-center justify-between px-3.5 pt-2 pb-1">
-                        <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-white/30 uppercase flex items-center gap-1.5">
-                          <Clock className="h-3 w-3" /> {isRtl ? "البحث السابق" : "Recent"}
-                        </span>
-                        <button onClick={clearRecentSearches} style={{ fontSize: "11px" }} className="text-white/30 hover:text-white/60 transition-colors">
-                          {isRtl ? "مسح الكل" : "Clear all"}
-                        </button>
-                      </div>
-                      {recentSearches.map(s => (
-                        <div key={s} className="flex items-center group">
-                          <button onClick={() => { setSearchQuery(s); setSearchOpen(true); }}
-                            className="flex-1 flex items-center gap-2.5 px-3.5 py-2 hover:bg-white/[0.04] transition-colors">
-                            <Clock className="h-3.5 w-3.5 text-white/20 shrink-0" />
-                            <span style={{ fontSize: "13px" }} className="text-white/60 truncate">{s}</span>
-                          </button>
-                          <button onClick={() => removeRecentSearch(s)}
-                            className="px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity text-white/30 hover:text-white/60">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Right controls */}
-          <div className="flex items-center gap-1 shrink-0">
-
-            {/* Language */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1 h-9 px-2.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.05] transition-colors">
-                  <Globe className="h-4 w-4" />
-                  <span style={{ fontSize: "11px", fontWeight: 700 }}>{lang.toUpperCase()}</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-[#111] border-white/[0.1] min-w-[120px]">
-                <DropdownMenuItem onClick={() => switchLanguage("en")} className={cn("text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer", lang === "en" && "text-emerald-400 font-semibold")}>
-                  🇬🇧 English
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => switchLanguage("ar")} className={cn("text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer", lang === "ar" && "text-emerald-400 font-semibold")}>
-                  🇸🇦 العربية
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Currency */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1 h-9 px-2.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.05] transition-colors">
-                  <span style={{ fontSize: "11px", fontWeight: 700 }} translate="no">{currency === "SYP" ? "ل.س" : "$"} {currency}</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-[#111] border-white/[0.1] min-w-[130px]">
-                <DropdownMenuItem onClick={() => setCurrency("SYP")} className={cn("text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer", currency === "SYP" && "text-emerald-400 font-semibold")}>
-                  ل.س السوري
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setCurrency("USD")} className={cn("text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer", currency === "USD" && "text-emerald-400 font-semibold")}>
-                  $ دولار
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Theme */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="h-9 w-9 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.05] transition-colors">
-                  <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                  <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-[#111] border-white/[0.1]">
-                <DropdownMenuItem onClick={() => setTheme("light")} className="text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer">{t("theme.light")}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("dark")} className="text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer">{t("theme.dark")}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("system")} className="text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer">{t("theme.system")}</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Notifications */}
-            {isAuthenticated && <NotificationCenter />}
-
-            {/* Wishlist */}
-            {isCustomer && (
-              <Link href="/wishlist" className="relative h-9 w-9 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.05] transition-colors">
-                <Heart className="h-4 w-4" />
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
-                    {wishlistCount > 99 ? "99+" : wishlistCount}
-                  </span>
-                )}
-              </Link>
-            )}
-
-            {/* Cart */}
-            {!isSeller && !isAdmin && !isCourier && (
-              <Link href="/cart" className="relative h-9 w-9 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.05] transition-colors">
-                <ShoppingCart className="h-4 w-4" />
-                {visibleCartCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-black">
-                    {visibleCartCount}
-                  </span>
-                )}
-              </Link>
-            )}
-
-            {/* Role shortcuts */}
-            {isSeller && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-emerald-500/[0.1] border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/[0.15] transition-colors">
-                    <Store className="h-3.5 w-3.5" />
-                    <span style={{ fontSize: "12px", fontWeight: 700 }}>{isRtl ? "متجري" : "Store"}</span>
-                    <ChevronDown className="h-3 w-3 opacity-60" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#111] border-white/[0.1] w-48">
-                  {sellerLinks.map(l => (
-                    <DropdownMenuItem key={l.href} asChild className="text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer">
-                      <Link href={l.href} className="flex items-center gap-2">
-                        <l.icon className="h-4 w-4" /> {l.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-
-            {isCourier && (
-              <Link href="/courier/dashboard"
-                className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-blue-500/[0.1] border border-blue-500/20 text-blue-400 hover:bg-blue-500/[0.15] transition-colors">
-                <Bike className="h-3.5 w-3.5" />
-                <span style={{ fontSize: "12px", fontWeight: 700 }}>{isRtl ? "توصيلاتي" : "Deliveries"}</span>
-              </Link>
-            )}
-
-            {isAdmin && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-purple-500/[0.1] border border-purple-500/20 text-purple-400 hover:bg-purple-500/[0.15] transition-colors">
-                    <Settings className="h-3.5 w-3.5" />
-                    <span style={{ fontSize: "12px", fontWeight: 700 }}>Admin</span>
-                    <ChevronDown className="h-3 w-3 opacity-60" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#111] border-white/[0.1] w-48">
-                  {adminLinks.map(l => (
-                    <DropdownMenuItem key={l.href} asChild className="text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer">
-                      <Link href={l.href} className="flex items-center gap-2">
-                        <l.icon className="h-4 w-4" /> {l.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-
-            {/* Auth */}
+          {/* ── COL 1: Auth buttons (left in LTR / left in RTL) ─────────────── */}
+          <div className="flex items-center gap-2 shrink-0">
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 h-9 ps-2 pe-3 rounded-full bg-white/[0.06] border border-white/[0.1] hover:bg-white/[0.09] hover:border-white/[0.15] transition-all duration-200">
-                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
                       <span style={{ fontSize: "11px", fontWeight: 800 }} className="text-emerald-400">
                         {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
                       </span>
@@ -541,7 +305,7 @@ export function Navbar() {
                     <ChevronDown className="h-3 w-3 text-white/30" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#111] border-white/[0.1] w-52">
+                <DropdownMenuContent align="start" className="bg-[#111] border-white/[0.1] w-52">
                   <div className="px-3 py-2.5 border-b border-white/[0.07]">
                     <p style={{ fontSize: "13px", fontWeight: 700 }} className="text-white">{user?.name}</p>
                     <p style={{ fontSize: "11px" }} className="text-white/35 truncate" translate="no">{user?.email}</p>
@@ -566,20 +330,139 @@ export function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <div className="flex items-center gap-2 ms-1">
+              <>
                 <Link href="/login"
                   style={{ fontSize: "13px", fontWeight: 600 }}
-                  className="h-9 px-4 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors">
+                  className="h-9 px-4 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors whitespace-nowrap">
                   {t("nav.login")}
                 </Link>
                 <Link href="/register"
                   style={{ fontSize: "13px", fontWeight: 700 }}
-                  className="h-9 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black transition-colors shadow-lg shadow-emerald-500/20">
+                  className="h-9 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black transition-colors shadow-lg shadow-emerald-500/20 whitespace-nowrap">
                   {t("nav.signup")}
                 </Link>
-              </div>
+              </>
             )}
           </div>
+
+          {/* ── COL 2: Search bar (center) ───────────────────────────────────── */}
+          {!isAuthPage ? (
+            <div ref={searchRef} className="relative flex justify-center">
+              <div className="relative w-full max-w-[300px]">
+                <form onSubmit={handleSearchSubmit}>
+                  <div className="flex items-center gap-2 bg-white/[0.06] hover:bg-white/[0.08] focus-within:bg-white/[0.08] border border-white/[0.08] focus-within:border-white/[0.14] rounded-full h-9 px-3.5 transition-all duration-200">
+                    <Search className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                    <input
+                      ref={inputRef}
+                      value={searchQuery}
+                      onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
+                      onFocus={() => setSearchOpen(true)}
+                      placeholder={isRtl ? "ابحث عن منتجات..." : "Search products..."}
+                      style={{ fontFamily: "'Cairo', sans-serif", fontSize: "13px", background: "transparent", outline: "none", border: "none", color: "rgba(255,255,255,0.75)", flex: 1, minWidth: 0 }}
+                    />
+                    {searchQuery && (
+                      <button type="button" onClick={() => { setSearchQuery(""); setSearchOpen(false); }} className="text-white/30 hover:text-white/60 shrink-0">
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </form>
+
+                {searchOpen && (debouncedSearch.length >= 2 || recentSearches.length > 0) && (
+                  <div className="absolute top-full mt-2 left-0 right-0 bg-[#111] border border-white/[0.1] rounded-2xl shadow-2xl z-50 overflow-hidden">
+                    {debouncedSearch.length >= 2 ? (
+                      searchLoading && suggestions.length === 0 ? (
+                        <div className="p-4 text-sm text-white/40 text-center flex items-center justify-center gap-2">
+                          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+                          {isRtl ? "جاري البحث..." : "Searching..."}
+                        </div>
+                      ) : !suggestions || suggestions.length === 0 ? (
+                        <div className="p-4 text-sm text-white/40 text-center">{isRtl ? "لا توجد نتائج" : "No results found"}</div>
+                      ) : (
+                        <div className="py-1.5 max-h-72 overflow-y-auto">
+                          {suggestions.slice(0, 6).map(p => (
+                            <button key={p.id} onClick={() => handleSuggestionClick(p.id, p.name)}
+                              className="w-full flex items-center gap-3 px-3.5 py-2.5 hover:bg-white/[0.05] transition-colors" style={{ textAlign: isRtl ? "right" : "left" }}>
+                              {p.imageUrl && <img src={p.imageUrl} alt="" className="h-9 w-9 rounded-lg object-cover border border-white/[0.08] shrink-0" />}
+                              <div className="flex-1 min-w-0">
+                                <div style={{ fontSize: "13px", fontWeight: 600 }} className="text-white/90 truncate">{p.name}</div>
+                                <div style={{ fontSize: "11px" }} className="text-white/35">{p.category}</div>
+                              </div>
+                              <div style={{ fontSize: "13px", fontWeight: 700 }} className="text-emerald-400 shrink-0">{p.finalPrice.toLocaleString()} ل.س</div>
+                            </button>
+                          ))}
+                          <button onClick={handleSearchSubmit as any}
+                            className="w-full px-3.5 py-2.5 text-sm text-emerald-400 font-semibold hover:bg-white/[0.04] transition-colors border-t border-white/[0.06] flex items-center gap-2">
+                            <Search className="h-3.5 w-3.5" />
+                            {isRtl ? `بحث عن "${debouncedSearch}"` : `Search for "${debouncedSearch}"`}
+                          </button>
+                        </div>
+                      )
+                    ) : recentSearches.length > 0 ? (
+                      <div className="py-1.5">
+                        <div className="flex items-center justify-between px-3.5 pt-2 pb-1">
+                          <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-white/30 uppercase flex items-center gap-1.5">
+                            <Clock className="h-3 w-3" /> {isRtl ? "البحث السابق" : "Recent"}
+                          </span>
+                          <button onClick={clearRecentSearches} style={{ fontSize: "11px" }} className="text-white/30 hover:text-white/60 transition-colors">
+                            {isRtl ? "مسح الكل" : "Clear all"}
+                          </button>
+                        </div>
+                        {recentSearches.map(s => (
+                          <div key={s} className="flex items-center group">
+                            <button onClick={() => { setSearchQuery(s); setSearchOpen(true); }}
+                              className="flex-1 flex items-center gap-2.5 px-3.5 py-2 hover:bg-white/[0.04] transition-colors">
+                              <Clock className="h-3.5 w-3.5 text-white/20 shrink-0" />
+                              <span style={{ fontSize: "13px" }} className="text-white/60 truncate">{s}</span>
+                            </button>
+                            <button onClick={() => removeRecentSearch(s)}
+                              className="px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity text-white/30 hover:text-white/60">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : <div />}
+
+          {/* ── COL 3: Nav links + Logo (right in LTR, right in RTL) ─────────── */}
+          <div className="flex items-center gap-1 shrink-0">
+
+            {/* Nav links */}
+            <nav className="flex items-center gap-0.5">
+              {navLinks.map(link => {
+                const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href.split("?")[0]));
+                return (
+                  <Link key={link.href} href={link.href}
+                    style={{ fontWeight: isActive ? 700 : 500, fontSize: "13px" }}
+                    className={cn(
+                      "px-3 py-2 rounded-lg transition-colors duration-150 whitespace-nowrap",
+                      isActive ? "text-emerald-400 bg-emerald-500/[0.08]" : "text-white/45 hover:text-white/80 hover:bg-white/[0.05]"
+                    )}>
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Divider */}
+            <div className="h-5 w-px bg-white/[0.08] mx-1" />
+
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2 shrink-0 group">
+              <img src="/syano-logo.png" alt="Syano" width={30} height={30}
+                className="h-[30px] w-[30px] object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.75)] group-hover:drop-shadow-[0_0_18px_rgba(16,185,129,1)] transition-[filter] duration-200" loading="eager" />
+              <div>
+                <div style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "15px", lineHeight: 1 }} className="text-white uppercase">SYANO</div>
+                <div style={{ fontWeight: 400, fontSize: "8px", letterSpacing: "0.16em" }} className="text-emerald-400/60 uppercase">سوق سوريا</div>
+              </div>
+            </Link>
+          </div>
+
         </div>
 
         {/* ══ MOBILE DRAWER ════════════════════════════════════════════════════ */}

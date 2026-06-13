@@ -1,4 +1,4 @@
-import { ArrowLeft, Sparkles, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
@@ -211,15 +211,6 @@ export function HeroSection({ products }: { products: Product[] }) {
             </Link>
           </motion.div>
 
-          {/* Shop icon badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.7, ease }}
-            className="absolute top-8 start-6 w-12 h-12 bg-emerald-500/15 border border-emerald-500/30 rounded-2xl flex items-center justify-center backdrop-blur-sm"
-          >
-            <ShoppingBag className="w-5 h-5 text-emerald-400" />
-          </motion.div>
         </motion.div>
       </div>
     </section>
