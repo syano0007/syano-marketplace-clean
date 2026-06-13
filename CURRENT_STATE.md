@@ -1,6 +1,6 @@
 # SYANO — Current Project State
-**Last Updated:** June 13, 2026  
-**Updated By:** Hero Banner V3 — fully dynamic rebuild (no static image; product mosaic + BannerCarousel)
+**Last Updated:** June 13, 2026 (Recovery Session 2)  
+**Updated By:** Full environment recovery — new Replit account, dependencies + DB restored, all services running
 
 ---
 

@@ -1,5 +1,5 @@
 # SYANO — Recovery Guide
-**Last Updated:** June 13, 2026
+**Last Updated:** June 13, 2026 (Recovery Session 2 — new Replit environment)
 
 This guide restores the project to a fully working state from scratch.
 
