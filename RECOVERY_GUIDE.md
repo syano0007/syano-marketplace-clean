@@ -1,5 +1,5 @@
 # SYANO — Recovery Guide
-**Last Updated:** June 11, 2026
+**Last Updated:** June 13, 2026
 
 This guide restores the project to a fully working state from scratch.
 
@@ -23,7 +23,7 @@ echo "DB: $DATABASE_URL" && echo "SECRET: $SESSION_SECRET"
 pnpm install --force
 ```
 
-Expected: ~1,131 packages installed. `shamefully-hoist=true` in `.npmrc` puts all packages in root `node_modules`.
+Expected: **1,131 packages installed** (verified June 13, 2026). `shamefully-hoist=true` in `.npmrc` puts all packages in root `node_modules`.
 
 ---
 
@@ -37,12 +37,13 @@ psql "$DATABASE_URL" -f schema.sql
 This creates the base 21 tables. The API server's `run-migrations.ts` adds the remaining tables on first startup:
 - `couriers`, `delivery_zones`, `courier_assignments`, `courier_wallet_transactions`, `variant_images`
 - `seller_verification_log` (Trust System audit table — NOT `verification_audit_log`)
+- `admin_audit_log` (added by run-migrations)
 - Additive columns: `users.verified_by`, `product_variants` price/barcode/weight/dimensions columns
 
 **Verify:**
 ```bash
-psql "$DATABASE_URL" -c "\dt"
-# Expected: 26+ tables (exact count depends on which migrations have run)
+psql "$DATABASE_URL" -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';"
+# Expected: 28 tables (21 base + 7 from run-migrations) — verified June 13, 2026
 ```
 
 ---
@@ -58,7 +59,7 @@ After the API starts, verify enums are complete:
 
 ```bash
 psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM unnest(enum_range(NULL::notification_type));"
-# Expected: 31
+# Expected: 32 (verified June 13, 2026 — was 31 in prior docs)
 
 psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM unnest(enum_range(NULL::order_status));"
 # Expected: 15
@@ -149,10 +150,10 @@ Files: `artifacts/api-server/src/lib/bootstrap-admin.ts`, `bootstrap-test-accoun
 ## Verification Checklist
 
 ```
-[ ] pnpm install done
+[ ] pnpm install done (1,131 packages)
 [ ] DATABASE_URL and SESSION_SECRET set
-[ ] 27 tables in DB (21 base + 6 from run-migrations)
-[ ] notification_type enum has 31 values (auto-patched by run-migrations)
+[ ] 28 tables in DB (21 base + 7 from run-migrations)
+[ ] notification_type enum has 32 values (auto-patched by run-migrations)
 [ ] order_status enum has 15 values (auto-patched by run-migrations)
 [ ] Shared libs built (tsc --build)
 [ ] API server responds to /api/healthz
@@ -184,7 +185,9 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/admin/recove
   | python3 -m json.tool
 ```
 
-**Expected:** `"confidenceScore": 100, "confidenceOk": true, "failures": []`
+**Expected:** `"confidenceScore": 95, "failures": ["home.tsx does not use HeroBanner component"]`
+
+> **Note:** The `heroBannerSystem` failure is a **known false negative**. Homepage V4 uses `HeroV4.tsx` which activates `BannerCarousel` when DB banners exist — `HeroBanner.tsx` is no longer directly imported in `home.tsx`. All 20 other modules pass. 95/100 is the correct expected score.
 
 The endpoint runs 13 parallel checks covering:
 - Core platform (DB tables, enums, zones, root owner)

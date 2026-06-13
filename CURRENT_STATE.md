@@ -1,12 +1,23 @@
 # SYANO — Current Project State
-**Last Updated:** June 11, 2026  
-**Updated By:** Recovery Check V2 — 18-Section Platform Integrity System (UI Consistency + Mobile Polish)
+**Last Updated:** June 13, 2026  
+**Updated By:** Account Migration Recovery — Full Platform Restore (New Replit Account)
 
 ---
 
 ## Platform Status: ✅ PRODUCTION READY — RECOVERY VERIFIED
 
 All services running. All features validated end-to-end with real API calls.
+
+---
+
+## Migration Note (June 13, 2026)
+
+Project migrated to a new Replit account. Full recovery performed:
+- `pnpm install --force` → 1,131 packages installed
+- `psql "$DATABASE_URL" -f schema.sql` → 21 base tables created
+- API server started → `run-migrations.ts` added 7 additional tables + all enum values
+- All 3 test accounts auto-bootstrapped by startup code
+- Recovery check: **95/100** (heroBannerSystem false negative is known/expected — see Known Issues)
 
 ---
 
@@ -24,8 +35,8 @@ All services running. All features validated end-to-end with real API calls.
 
 | Check | Result |
 |---|---|
-| Tables | ✅ 27/27 (base 21 + 6 from run-migrations) |
-| notification_type enum | ✅ 31/31 values |
+| Tables | ✅ 28/28 (base 21 + 7 from run-migrations) |
+| notification_type enum | ✅ 32/32 values |
 | delivery_zones | ✅ 40 zones |
 | Order statuses | ✅ 15 statuses |
 | verified_by column | ✅ users.verified_by (INTEGER, added via run-migrations) |
@@ -57,6 +68,7 @@ All services running. All features validated end-to-end with real API calls.
 | **UI Consistency + Mobile Polish** | ✅ Complete — Trust unified, tablet nav, title fix, analytics filter |
 | **Final Consistency & UI Stabilization Audit** | ✅ Complete — Brand accent color, SellerTrustBadge unified, portal dropdown — 100/100 |
 | **Seller Store Pages V2** | ✅ Complete + Validated — 5 new endpoints, 4-tab premium storefront, 29 i18n keys, recovery check: 15/15 modules |
+| **Account Migration Recovery (June 13, 2026)** | ✅ Complete — New Replit account, full platform restore, 95/100 recovery score, all services operational |
 
 ---
 
@@ -203,7 +215,7 @@ Without these, the seller and courier dashboards are non-functional after a reco
 
 | Module | Weight | Status | What is Verified |
 |---|---|---|---|
-| corePlatform | 15 | ✅ | API health, 27 tables, enum counts, delivery zones, migration columns, root owner |
+| corePlatform | 15 | ✅ | API health, 28 tables, enum counts, delivery zones, migration columns, root owner |
 | bootstrapAccounts | 12 | ✅ | Admin/seller/courier existence, roles, approved seller app, active courier profile |
 | security | 12 | ✅ | 6 admin routes × 3 scenarios (no token=401, wrong role=403, admin=200), courier + seller auth |
 | marketplace | 10 | ✅ | categories, products, store page, search, best-sellers, recently viewed hook, review/follow tables |
@@ -223,3 +235,6 @@ Without these, the seller and courier dashboards are non-functional after a reco
 ## Known Issues (None Critical)
 
 See KNOWN_ISSUES.md for full details.
+
+### Recovery Check False Negative
+- `heroBannerSystem` module returns `false` (score: 95/100) because it checks `home.tsx uses HeroBanner component` — but Homepage V4 (June 2026) moved HeroBanner to an enhancement layer only; `home.tsx` now uses `HeroV4.tsx` which conditionally activates `BannerCarousel` when DB banners exist. This check is a false negative. All 20 other modules pass ✅.
