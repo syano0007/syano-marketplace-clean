@@ -2,32 +2,35 @@ import { useEffect, useRef, useState } from "react";
 
 /* ─────────────────────────────────────────────────────────────────
    REFERENCE GEOMETRY — pixel-measured from screenshot at 1024×576
-   display scale ≈ 0.67× (design is 1440px, shown zoomed to ~980px)
+   display scale ≈ 0.711× (design is 1440px canvas, shown at 1024px)
 
-   Actual design values at 1440px:
-   • Left margin    : ~180px
-   • Image width    : ~590px  (41% of 1440)
-   • Gap            :  ~32px
-   • Text panel     : ~640px
-   • Right margin   :  ~38px
-   • Total          : 180+590+32+640+38 = 1480 ≈ 1440 (≈ok)
+   Measured from reference screenshot (1024px viewport):
+   • Left margin    : ~100px  → paddingLeft 100px
+   • Image width    : ~513px  (50% of 1280px inner)
+   • Gap            :  ~24px
+   • Text panel     : ~543px
+   • Right margin   :  ~20px
+   • Total          : 100+513+24+543+20 = 1200 ≈ 1280 (inner) ✓
 
-   Implementation (1440px mockup):
-   • Section padding: 36px top, 40px right, 28px bottom, 120px left
-     → inner width = 1440 − 120 − 40 = 1280px
-   • Image  : flex 0 0 46% → 589px
-   • Gap    : 32px
-   • Text   : flex 1 → 659px
-   • Headline: clamp(52px, 6.5vw, 94px) → 93.6px at 1440px
-     At this size Cairo-900 Arabic fits in 659px ✓
+   Implementation at 1440px:
+   • Section padding: 32px top, 32px right, 24px bottom, 100px left
+     → inner width = 1440 − 100 − 32 = 1308px
+   • Image  : flex 0 0 50% → 654px
+   • Gap    : 24px
+   • Text   : flex 1 → 630px
 
    CONFIRMED FROM REFERENCE:
-   • CTA text color : #000000  (black on green)
-   • Logo shape     : circle   (border-radius 50%)
-   • Card thumbnail : circle   (border-radius 50%)
-   • Auth buttons   : pill     (border-radius 100)
-   • Grid dots      : rgba(255,255,255,0.016) — barely perceptible
-   • Stats numbers  : #ffffff, clamp(36px, 4vw, 56px)
+   • CTA text color     : #000000 (black on green)
+   • Logo shape         : circle  (border-radius 50%)
+   • Card thumbnail     : circle  (border-radius 50%)
+   • Auth buttons       : pill    (border-radius 100)
+   • Grid dots          : rgba(255,255,255,0.009) — barely perceptible
+   • Stats numbers      : ~32px, weight 700, color #ffffff
+   • Stats labels       : ~12px, color #5a626e
+   • Navbar height      : 56px
+   • Nav gap            : 22px
+   • Search maxWidth    : 276px, height 34px
+   • Background         : #040404
 ───────────────────────────────────────────────────────────────── */
 const GLOBAL_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
@@ -44,8 +47,8 @@ const GLOBAL_CSS = `
   }
 
   .hm-page {
-    background-color: #080808;
-    background-image: radial-gradient(rgba(255,255,255,0.016) 1px, transparent 1px);
+    background-color: #040404;
+    background-image: radial-gradient(rgba(255,255,255,0.009) 1px, transparent 1px);
     background-size: 32px 32px;
     min-height: 100vh;
     display: flex;
@@ -214,76 +217,83 @@ export function HeroMockup() {
     <div className="hm-page" dir="rtl">
       <style>{GLOBAL_CSS}</style>
 
-      {/* ═══ NAVBAR ════════════════════════════════════════ */}
+      {/* ═══ NAVBAR ════════════════════════════════════════
+          Height: 56px (ref measured ~56px at 1024px screenshot)
+          Nav gap: 22px (ref measured ~22px)
+          Search: maxWidth 276px, height 34px (ref: narrower/shorter) */}
       <header style={{
-        height:58, flexShrink:0,
-        background:"rgba(6,6,6,0.97)",
+        height:56, flexShrink:0,
+        background:"rgba(4,4,4,0.97)",
         backdropFilter:"blur(16px)",
         borderBottom:"1px solid rgba(255,255,255,0.06)",
         display:"flex", alignItems:"center",
-        padding:"0 36px", gap:24,
+        padding:"0 32px", gap:20,
         justifyContent:"space-between",
       }}>
         {/* Logo — CIRCLE (confirmed from reference) */}
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
           <div style={{
-            width:36, height:36, borderRadius:"50%",
+            width:34, height:34, borderRadius:"50%",
             background:"linear-gradient(135deg,#10b981,#059669)",
             display:"flex", alignItems:"center", justifyContent:"center",
-            fontSize:14, fontWeight:900, color:"#fff",
+            fontSize:13, fontWeight:900, color:"#fff",
           }}>S</div>
           <div>
-            <div style={{ fontSize:14, fontWeight:800, color:"#f3f3f3", lineHeight:1 }}>SYANO</div>
-            <div style={{ fontSize:9, color:"#10b981", letterSpacing:"0.08em" }}>سوق سوريا</div>
+            <div style={{ fontSize:13, fontWeight:800, color:"#f3f3f3", lineHeight:1 }}>SYANO</div>
+            <div style={{ fontSize:8.5, color:"#10b981", letterSpacing:"0.08em" }}>سوق سوريا</div>
           </div>
         </div>
-        <nav style={{ display:"flex", gap:28, alignItems:"center" }}>
-          {["الرئيسية","الفئات","المتاجر","العروض"].map((l,i) => (
-            <span key={l} style={{ fontSize:13, color:i===0?"#f3f3f3":"#5a626e",
+
+        {/* Nav links */}
+        <nav style={{ display:"flex", gap:22, alignItems:"center", flexShrink:0 }}>
+          {["الرئيسية","الفئات ▾","المتاجر","العروض"].map((l,i) => (
+            <span key={l} style={{ fontSize:12.5, color:i===0?"#f3f3f3":"#5a626e",
               cursor:"pointer", fontWeight:i===0?700:400 }}>{l}</span>
           ))}
         </nav>
-        <div style={{ flex:1, maxWidth:360, margin:"0 24px",
-          background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)",
-          borderRadius:10, height:38,
-          display:"flex", alignItems:"center", padding:"0 14px", gap:8 }}>
-          <svg width={14} height={14} fill="none" stroke="#5a626e" viewBox="0 0 24 24">
+
+        {/* Search bar — ref: narrower (276px), shorter (34px), less dominant */}
+        <div style={{ flex:1, maxWidth:276, margin:"0 16px",
+          background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)",
+          borderRadius:8, height:34,
+          display:"flex", alignItems:"center", padding:"0 12px", gap:7 }}>
+          <svg width={13} height={13} fill="none" stroke="#4b5563" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8" strokeWidth="2"/>
             <path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round"/>
           </svg>
-          <span style={{ fontSize:12, color:"#3d454e" }}>ابحث عن منتجات، متاجر أو فئات...</span>
+          <span style={{ fontSize:11.5, color:"#374151" }}>ابحث عن منتجات، متاجر أو فئات...</span>
         </div>
-        {/* Auth — PILL shape (confirmed from reference) */}
-        <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-          <button style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.14)",
-            color:"#9ca3af", fontSize:12, padding:"8px 20px",
+
+        {/* Auth buttons — PILL shape (confirmed from reference) */}
+        <div style={{ display:"flex", gap:8, alignItems:"center", flexShrink:0 }}>
+          <button style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.13)",
+            color:"#9ca3af", fontSize:11.5, padding:"7px 18px",
             borderRadius:100, cursor:"pointer" }}>
             تسجيل الدخول
           </button>
           <button style={{ background:"#10b981", border:"none",
-            color:"#fff", fontSize:12, fontWeight:700,
-            padding:"8px 20px", borderRadius:100, cursor:"pointer",
-            boxShadow:"0 2px 14px rgba(16,185,129,0.38)" }}>
+            color:"#fff", fontSize:11.5, fontWeight:700,
+            padding:"7px 18px", borderRadius:100, cursor:"pointer",
+            boxShadow:"0 2px 12px rgba(16,185,129,0.36)" }}>
             إنشاء حساب
           </button>
         </div>
       </header>
 
       {/* ═══ HERO SECTION ══════════════════════════════════
-          Asymmetric padding: 120px left creates the visible
-          left gap seen in the reference (not a centered container).
-          Inner width at 1440px: 1440 - 120 - 40 = 1280px.
-          Image 46% = 589px | gap 32px | text = 659px. */}
+          Padding: 32px top/bottom, 100px left, 32px right
+          Inner width at 1440px: 1440 − 100 − 32 = 1308px
+          Image 50% = 654px | gap 24px | text = 630px */}
       <section style={{
-        borderBottom:"1px solid rgba(255,255,255,0.07)",
-        paddingTop:36, paddingBottom:28,
-        paddingLeft:120, paddingRight:40,
+        borderBottom:"1px solid rgba(255,255,255,0.06)",
+        paddingTop:32, paddingBottom:24,
+        paddingLeft:100, paddingRight:32,
       }}>
         <div
           style={{
-            display:"flex", gap:32, alignItems:"stretch",
-            direction:"ltr",    /* LTR: image is first=left, text is second=right */
-            height:560,
+            display:"flex", gap:24, alignItems:"stretch",
+            direction:"ltr",
+            height:552,
           }}
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
@@ -292,13 +302,13 @@ export function HeroMockup() {
         >
 
           {/* ══ IMAGE CARD ═══════════════════════════════
-              46% of 1280px = 589px. Wider than previous 475px.
-              Image panel dominates the visual balance. */}
+              50% of 1308px = 654px.
+              Image panel dominates left side of the hero. */}
           <div style={{
-            flex:"0 0 46%",
-            borderRadius:20, overflow:"hidden",
-            position:"relative", background:"#060606",
-            boxShadow:"0 24px 80px rgba(0,0,0,0.65), 0 4px 24px rgba(0,0,0,0.50)",
+            flex:"0 0 50%",
+            borderRadius:18, overflow:"hidden",
+            position:"relative", background:"#030303",
+            boxShadow:"0 24px 80px rgba(0,0,0,0.70), 0 4px 24px rgba(0,0,0,0.55)",
           }}>
             {SLIDES.map((sl, i) => (
               <div key={sl.id} style={{
@@ -311,16 +321,16 @@ export function HeroMockup() {
                 <img src={sl.img} alt="" loading={sl.id==="electronics"?"eager":"lazy"}
                   style={{ position:"absolute", inset:0, width:"100%", height:"100%",
                     objectFit:"cover", animation:"heroKenBurns 28s ease-in-out infinite" }} />
-                <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.35)" }} />
+                <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.32)" }} />
                 <div style={{ position:"absolute", inset:"auto 0 0 0", height:"38%",
-                  background:"linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 100%)" }} />
+                  background:"linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 100%)" }} />
               </div>
             ))}
 
-            {/* Right edge blend → seamless transition to #080808 text panel */}
+            {/* Right edge blend → seamless transition to background */}
             <div style={{
-              position:"absolute", inset:"0 0 0 auto", width:"26%", zIndex:15,
-              background:"linear-gradient(to left, #080808 0%, transparent 100%)",
+              position:"absolute", inset:"0 0 0 auto", width:"22%", zIndex:15,
+              background:"linear-gradient(to left, #040404 0%, transparent 100%)",
               pointerEvents:"none",
             }} />
 
@@ -331,10 +341,10 @@ export function HeroMockup() {
 
             {/* Discount badge */}
             <div style={{
-              position:"absolute", top:124, left:30, zIndex:20,
+              position:"absolute", top:120, left:28, zIndex:20,
               background:"#10b981", color:"#fff",
-              fontSize:13, fontWeight:800,
-              padding:"6px 16px", borderRadius:100,
+              fontSize:12.5, fontWeight:800,
+              padding:"5px 14px", borderRadius:100,
               boxShadow:"0 4px 20px rgba(16,185,129,0.55), 0 2px 8px rgba(16,185,129,0.35)",
             }}>
               {slide.badge}
@@ -359,8 +369,8 @@ export function HeroMockup() {
           </div>
 
           {/* ══ TEXT PANEL ════════════════════════════════
-              flex:1 → 659px at 1280px inner.
-              overflow:hidden prevents any clipping at viewport edge. */}
+              flex:1 → 630px at 1308px inner.
+              direction:rtl for Arabic text alignment. */}
           <div style={{
             flex:1, overflow:"hidden",
             display:"flex", flexDirection:"column", justifyContent:"center",
@@ -369,8 +379,8 @@ export function HeroMockup() {
             {/* Ambient glow */}
             <div style={{
               position:"absolute", top:"-20%", left:"5%",
-              width:380, height:380, borderRadius:"50%",
-              background:"radial-gradient(circle, rgba(16,185,129,0.05) 0%, transparent 70%)",
+              width:360, height:360, borderRadius:"50%",
+              background:"radial-gradient(circle, rgba(16,185,129,0.045) 0%, transparent 70%)",
               pointerEvents:"none",
             }} />
 
@@ -384,62 +394,64 @@ export function HeroMockup() {
               <div>
                 <span style={{
                   display:"inline-flex", alignItems:"center", gap:7,
-                  padding:"5px 14px", borderRadius:100,
-                  border:"1px solid rgba(16,185,129,0.40)",
-                  color:"#10b981", fontSize:11.5, fontWeight:600,
+                  padding:"4px 13px", borderRadius:100,
+                  border:"1px solid rgba(16,185,129,0.38)",
+                  color:"#10b981", fontSize:11, fontWeight:600,
                   background:"rgba(16,185,129,0.07)",
                 }}>
                   ✦ سوق سوريا الرقمي
                 </span>
               </div>
 
-              {/* ── HEADLINE ─────────────────────────────────
+              {/* ── HEADLINE ──────────────────────────────────
+                  Reference: 3-line Arabic, Cairo 900
                   clamp(52px, 6.5vw, 94px) → 93.6px at 1440px
-                  lineHeight 1.0 → lines nearly touching, very dominant
-                  Each Arabic line ≈ 560-600px wide → fits in 659px ✓ */}
+                  letterSpacing -1.5px, lineHeight 1.02 */}
               <h1 style={{
                 margin:0,
                 fontSize:"clamp(52px, 6.5vw, 94px)",
                 fontWeight:900,
-                lineHeight:1.0,
-                letterSpacing:"-2px",
-                color:"#f3f3f3",
+                lineHeight:1.02,
+                letterSpacing:"-1.5px",
+                color:"#f0f0f0",
               }}>
                 اكتشف آلاف<br />
                 المنتجات من<br />
                 <span style={{ color:"#10b981" }}>المتاجر السورية</span>
               </h1>
 
-              {/* Description — tighter gap (12px) after headline matches reference */}
-              <p style={{ margin:0, fontSize:14, lineHeight:1.75,
-                maxWidth:400, color:"#5a626e" }}>
+              {/* Description */}
+              <p style={{ margin:0, fontSize:13.5, lineHeight:1.75,
+                maxWidth:390, color:"#4b5563" }}>
                 منتجات متنوعة. متاجر موثوقة. وتجربة تسوق حديثة تجمع أفضل
                 المتاجر السورية في مكان واحد.
               </p>
 
-              {/* CTAs — CTA TEXT IS BLACK (confirmed from reference) */}
-              <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
+              {/* ── CTA BUTTONS ──────────────────────────────
+                  Reference: rounded-rect ~10px radius, height ~44px
+                  Primary: green bg, black text
+                  Secondary: ghost with faint border */}
+              <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
                 <a href="#" style={{
-                  padding:"13px 28px", borderRadius:10,
+                  padding:"12px 24px", borderRadius:10,
                   background:"#10b981",
                   color:"#000000",
-                  fontSize:14, fontWeight:700,
-                  display:"inline-flex", alignItems:"center", gap:7,
+                  fontSize:13.5, fontWeight:700,
+                  display:"inline-flex", alignItems:"center", gap:6,
                   textDecoration:"none",
-                  boxShadow:"0 4px 28px rgba(16,185,129,0.42), 0 2px 10px rgba(16,185,129,0.28)",
+                  boxShadow:"0 4px 24px rgba(16,185,129,0.40), 0 2px 8px rgba(16,185,129,0.24)",
                 }}>
                   تسوق الآن
-                  <svg style={{ width:14, height:14 }} fill="none"
+                  <svg style={{ width:13, height:13 }} fill="none"
                     stroke="#000000" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
                       d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                 </a>
-                {/* Ghost button — very faint border like reference */}
                 <a href="#" style={{
-                  padding:"13px 28px", borderRadius:10,
+                  padding:"12px 24px", borderRadius:10,
                   background:"transparent", color:"#9ca3af",
-                  fontSize:14, fontWeight:500,
+                  fontSize:13.5, fontWeight:500,
                   border:"1px solid rgba(255,255,255,0.09)",
                   textDecoration:"none",
                 }}>
@@ -448,11 +460,12 @@ export function HeroMockup() {
               </div>
 
               {/* ── STATS ────────────────────────────────────
-                  Numbers: clamp(36px, 4vw, 56px) → 57.6px at 1440px
-                  Color: pure #ffffff (brighter/more dominant than #f3f3f3) */}
+                  Reference: numbers ~32px weight 700 (NOT 900 — more elegant)
+                  Measured from screenshot: numbers are compact, not dominant
+                  Labels: 12px, color #5a626e */}
               <div style={{
-                borderTop:"1px solid rgba(255,255,255,0.075)",
-                paddingTop:20, marginTop:2,
+                borderTop:"1px solid rgba(255,255,255,0.07)",
+                paddingTop:18, marginTop:2,
                 display:"flex", alignItems:"flex-start",
               }}>
                 {STATS.map((s,i) => (
@@ -462,16 +475,16 @@ export function HeroMockup() {
                     paddingInlineStart: i > 0 ? 16 : 0,
                     borderInlineStartWidth: i > 0 ? 1 : 0,
                     borderInlineStartStyle:"solid",
-                    borderInlineStartColor:"rgba(255,255,255,0.075)",
+                    borderInlineStartColor:"rgba(255,255,255,0.07)",
                   }}>
-                    {/* Numbers: measured ~44-46px at design size (from reference pixel measurement) */}
+                    {/* Numbers: ref measured ~32px at 1440px, weight 700 */}
                     <div style={{
-                      fontSize:"clamp(32px, 3.2vw, 46px)",
-                      fontWeight:900, lineHeight:1,
+                      fontSize:"clamp(22px, 2.4vw, 32px)",
+                      fontWeight:700, lineHeight:1,
                       color:"#ffffff",
                       direction:"ltr", textAlign:"right",
                     }}>{s.n}</div>
-                    <div style={{ fontSize:11.5, marginTop:5, color:"#5a626e" }}>{s.l}</div>
+                    <div style={{ fontSize:12, marginTop:4, color:"#5a626e" }}>{s.l}</div>
                   </div>
                 ))}
               </div>
