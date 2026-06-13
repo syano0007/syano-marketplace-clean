@@ -27,88 +27,20 @@ import {
   Dumbbell,
   Car,
   Gamepad2,
-  BookOpen,
-  PawPrint,
-  Download,
-  Palette,
-  Gem,
-  Baby,
-  Wrench,
-  TreePine,
-  Gift,
   BadgeCheck,
   Star,
+  ShieldCheck,
 } from "lucide-react";
 import { useCountdown } from "@/hooks/use-countdown";
 import { ProductCard } from "@/components/ProductCard";
 import { useTranslation } from "react-i18next";
-import { CATEGORIES } from "@/lib/categories";
 import { useSEO } from "@/hooks/useSEO";
 import { useSellerOnboarding } from "@/hooks/useSellerOnboarding";
 import { useCourierOnboarding } from "@/hooks/useCourierOnboarding";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { HeroV4 } from "@/components/HeroV4";
 
-/* ── Icon map (keyed by icon name string in category data) ───── */
-const ICON_MAP: Record<string, React.ElementType> = {
-  Cpu,
-  Shirt,
-  Sparkles,
-  Home: HomeIcon,
-  ShoppingBasket,
-  Dumbbell,
-  Car,
-  Gamepad2,
-  BookOpen,
-  PawPrint,
-  Download,
-  Palette,
-  Gem,
-  Baby,
-  Wrench,
-  TreePine,
-  Gift,
-};
-
-/* ── Category photo map — verified Unsplash & Pexels URLs ───── */
-const CATEGORY_IMAGES: Record<string, string> = {
-  Electronics:
-    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&q=80&auto=format&fit=crop",
-  Fashion:
-    "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&q=80&auto=format&fit=crop",
-  "Beauty & Personal Care":
-    "https://images.pexels.com/photos/3685530/pexels-photo-3685530.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1",
-  "Home & Kitchen":
-    "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&q=80&auto=format&fit=crop",
-  "Supermarket & Grocery":
-    "https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=400&q=80&auto=format&fit=crop",
-  "Sports & Fitness":
-    "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&q=80&auto=format&fit=crop",
-  Automotive:
-    "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=400&q=80&auto=format&fit=crop",
-  "Gaming & Entertainment":
-    "https://images.pexels.com/photos/4317157/pexels-photo-4317157.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1",
-  "Books & Stationery":
-    "https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=400&q=80&auto=format&fit=crop",
-  "Pet Supplies":
-    "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&q=80&auto=format&fit=crop",
-  "Digital Products":
-    "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&q=80&auto=format&fit=crop",
-  "Handmade & Crafts":
-    "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=400&q=80&auto=format&fit=crop",
-  "Jewelry & Luxury":
-    "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&q=80&auto=format&fit=crop",
-  "Baby & Kids":
-    "https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=400&q=80&auto=format&fit=crop",
-  "Tools & Construction":
-    "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=400&q=80&auto=format&fit=crop",
-  "Garden & Outdoor":
-    "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&q=80&auto=format&fit=crop",
-  "Gifts & Events":
-    "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80&auto=format&fit=crop",
-};
-
-/* ── Popular category cards (matching reference design) ─────────── */
+/* ── Popular category cards ──────────────────────────────────────── */
 
 const POPULAR_CATEGORIES = [
   {
@@ -177,11 +109,13 @@ const POPULAR_CATEGORIES = [
   },
 ] as const;
 
+/* ── Popular categories row ─────────────────────────────────────── */
+
 function PopularCategoriesSection() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   return (
-    <div className="border-b bg-background">
+    <div id="categories" className="border-b bg-background">
       <div className="container px-4 py-5 sm:py-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold text-foreground">
@@ -215,16 +149,13 @@ function PopularCategoriesSection() {
                         const target = e.currentTarget as HTMLImageElement;
                         target.style.display = "none";
                         const parent = target.parentElement;
-                        if (parent) {
-                          parent.classList.add(iconBg);
-                          const icon = document.createElement("div");
-                          icon.className = "absolute inset-0 flex items-center justify-center";
-                          parent.appendChild(icon);
-                        }
+                        if (parent) parent.classList.add(iconBg);
                       }}
                     />
                   ) : (
-                    <div className={`absolute inset-0 ${iconBg} flex items-center justify-center`}>
+                    <div
+                      className={`absolute inset-0 ${iconBg} flex items-center justify-center`}
+                    >
                       <Icon className="h-6 w-6 text-white" />
                     </div>
                   )}
@@ -254,7 +185,7 @@ function FlashSaleTimerBadge({ formatted }: { formatted: string }) {
   );
 }
 
-/* ── Hot Deals section (isolated — owns countdown tick) ─────────── */
+/* ── Hot Deals section ──────────────────────────────────────────── */
 
 const HotDealsSection = React.memo(function HotDealsSection({
   hotDeals,
@@ -269,28 +200,24 @@ const HotDealsSection = React.memo(function HotDealsSection({
   const { formatted: flashSaleFormatted } = useCountdown(getFlashSaleTarget);
 
   return (
-    <section className="py-12 md:py-16 border-b bg-gradient-to-br from-rose-950/25 via-background to-background cv-section">
+    <section className="py-10 md:py-14 border-b bg-gradient-to-br from-rose-950/20 via-background to-background cv-section">
       <div className="container px-4">
-        <div className="flex items-center justify-between mb-6 md:mb-8">
-          <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center justify-between mb-5 md:mb-7">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0">
-                <Flame className="h-4 w-4 text-rose-500" />
+              <div className="h-7 w-7 rounded-lg bg-rose-500/15 flex items-center justify-center shrink-0">
+                <Flame className="h-3.5 w-3.5 text-rose-500" />
               </div>
               <h2 className="heading-section">{t("home.deals_title")}</h2>
             </div>
-            <span className="hidden sm:inline-flex items-center gap-1 bg-rose-500/15 text-rose-400 text-xs font-bold px-2.5 py-1 rounded-full">
-              <Zap className="h-3 w-3" />
-              {t("home.deals_badge")}
-            </span>
             <FlashSaleTimerBadge formatted={flashSaleFormatted} />
           </div>
           <Link
             href="/products?hasDiscount=true"
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline shrink-0"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0"
           >
             {t("home.view_all_deals")}
-            <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" />
+            <ArrowRight className="h-3 w-3 rtl:rotate-180" />
           </Link>
         </div>
         <div className="product-grid">
@@ -317,20 +244,25 @@ function SectionHeader({
   title,
   viewAllHref,
   viewAllLabel,
+  icon,
 }: {
   title: string;
   viewAllHref: string;
   viewAllLabel: string;
+  icon?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between mb-6 md:mb-8">
-      <h2 className="heading-section">{title}</h2>
+    <div className="flex items-center justify-between mb-5 md:mb-7">
+      <div className="flex items-center gap-2">
+        {icon}
+        <h2 className="heading-section">{title}</h2>
+      </div>
       <Link
         href={viewAllHref}
-        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline shrink-0"
+        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0"
       >
         {viewAllLabel}
-        <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" />
+        <ArrowRight className="h-3 w-3 rtl:rotate-180" />
       </Link>
     </div>
   );
@@ -349,13 +281,14 @@ function ProductSkeleton() {
   );
 }
 
-/* ── Verified Stores section ─────────────────────────────────────── */
+/* ── Trusted Stores section (premium cards) ─────────────────────── */
 
 interface FeaturedStore {
   sellerId: number;
   storeName: string;
   storeSlug: string | null;
   storeLogo: string | null;
+  storeBanner: string | null;
   accentColor: string | null;
   categories: string[];
   city: string | null;
@@ -366,22 +299,107 @@ interface FeaturedStore {
   reviewsCount: number;
 }
 
-function StoreInitialAvatar({
-  name,
-  color,
-}: {
-  name: string;
-  color: string | null;
-}) {
-  const bg = color ?? "#059669";
-  const letter = (name ?? "?").charAt(0);
+function StoreSkeleton() {
   return (
-    <div
-      className="h-12 w-12 rounded-xl flex items-center justify-center text-white font-black text-lg shrink-0"
-      style={{ background: `linear-gradient(135deg, ${bg}, ${bg}cc)` }}
-    >
-      {letter}
+    <div className="w-[168px] sm:w-[185px] flex-shrink-0 rounded-2xl border border-border/50 bg-card overflow-hidden animate-pulse">
+      <div className="h-[92px] bg-muted" />
+      <div className="p-3 space-y-2.5">
+        <div className="h-3 bg-muted rounded w-2/3" />
+        <div className="h-2.5 bg-muted rounded w-1/2" />
+        <div className="h-7 bg-muted rounded-lg mt-1" />
+      </div>
     </div>
+  );
+}
+
+function StoreCard({ s, lang }: { s: FeaturedStore; lang: string }) {
+  const accent = s.accentColor ?? "#059669";
+  const coverBg = `linear-gradient(135deg, ${accent}55 0%, ${accent}cc 100%)`;
+
+  return (
+    <Link
+      href={s.storeSlug ? `/store/${s.storeSlug}` : "/products"}
+      className="shrink-0"
+    >
+      <div className="w-[168px] sm:w-[185px] rounded-2xl border border-border/50 bg-card overflow-hidden hover:border-primary/40 hover:shadow-md transition-all duration-200 group cursor-pointer">
+        {/* Cover image */}
+        <div className="relative h-[88px] overflow-hidden">
+          {s.storeBanner ? (
+            <img
+              src={s.storeBanner}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <div className="h-full w-full" style={{ background: coverBg }} />
+          )}
+          {/* Subtle bottom fade */}
+          <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/25 to-transparent" />
+        </div>
+
+        {/* Logo overlapping cover */}
+        <div className="px-3 -mt-4 relative z-10">
+          {s.storeLogo ? (
+            <img
+              src={s.storeLogo}
+              alt={s.storeName}
+              className="h-9 w-9 rounded-xl object-cover border-2 border-background shadow-md"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <div
+              className="h-9 w-9 rounded-xl border-2 border-background shadow-md flex items-center justify-center text-white font-black text-sm"
+              style={{ background: `linear-gradient(135deg, ${accent}, ${accent}cc)` }}
+            >
+              {s.storeName.charAt(0)}
+            </div>
+          )}
+        </div>
+
+        {/* Body */}
+        <div className="px-3 pt-1.5 pb-3 space-y-1.5">
+          <div className="flex items-center gap-1">
+            <span className="text-[13px] font-bold text-foreground truncate group-hover:text-primary transition-colors flex-1 min-w-0">
+              {s.storeName}
+            </span>
+            {s.isVerified && (
+              <BadgeCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+            )}
+          </div>
+
+          {/* Stats row */}
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            {s.averageRating > 0 && (
+              <span className="flex items-center gap-0.5">
+                <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                <span className="font-semibold text-foreground tabular-nums">
+                  {s.averageRating.toFixed(1)}
+                </span>
+              </span>
+            )}
+            {s.productsCount > 0 && (
+              <span className="text-muted-foreground/70">
+                {lang === "ar" ? `${s.productsCount} منتج` : `${s.productsCount} items`}
+              </span>
+            )}
+          </div>
+
+          {/* CTA */}
+          <div className="pt-0.5">
+            <span className="block text-center text-[11px] font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200">
+              {lang === "ar" ? "زيارة المتجر" : "Visit Store"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -394,7 +412,9 @@ function VerifiedStoresSection() {
   React.useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}api/sellers/featured`)
       .then((r) => (r.ok ? r.json() : []))
-      .then((d: FeaturedStore[]) => setStores(Array.isArray(d) ? d.slice(0, 4) : []))
+      .then((d: FeaturedStore[]) =>
+        setStores(Array.isArray(d) ? d.slice(0, 6) : []),
+      )
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -405,89 +425,70 @@ function VerifiedStoresSection() {
     <section className="py-10 md:py-14 border-b bg-background cv-section">
       <div className="container px-4">
         <div className="flex items-center justify-between mb-5 md:mb-7">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <BadgeCheck className="h-4 w-4 text-primary" />
+              <BadgeCheck className="h-3.5 w-3.5 text-primary" />
             </div>
-            <h2 className="heading-section">{t("home.verified_stores_title")}</h2>
+            <h2 className="heading-section">
+              {t("home.verified_stores_title")}
+            </h2>
           </div>
           <Link
             href="/products"
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline shrink-0"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0"
           >
             {t("home.view_all")}
-            <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" />
+            <ArrowRight className="h-3 w-3 rtl:rotate-180" />
           </Link>
         </div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {Array(4).fill(0).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 p-4 rounded-2xl border bg-card animate-pulse">
-                <div className="h-12 w-12 rounded-xl bg-muted shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3 bg-muted rounded w-1/2" />
-                  <div className="h-3 bg-muted rounded w-1/3" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {stores.map((s) => (
-              <Link
-                key={s.sellerId}
-                href={s.storeSlug ? `/store/${s.storeSlug}` : "/products"}
-              >
-                <div className="flex items-center gap-3 p-4 rounded-2xl border border-border/60 bg-card hover:border-primary/40 hover:shadow-md transition-all duration-200 group cursor-pointer">
-                  <StoreInitialAvatar name={s.storeName} color={s.accentColor} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-bold text-sm text-foreground truncate group-hover:text-primary transition-colors">
-                        {s.storeName}
-                      </span>
-                      {s.isVerified && (
-                        <BadgeCheck className="h-3.5 w-3.5 text-primary shrink-0" />
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {s.productsCount > 0
-                        ? lang === "ar"
-                          ? `${s.productsCount} منتج`
-                          : `${s.productsCount} products`
-                        : lang === "ar"
-                          ? "متجر موثوق"
-                          : "Verified store"}
-                      {s.city ? ` · ${s.city}` : ""}
-                    </div>
-                  </div>
-                  {s.averageRating > 0 && (
-                    <div className="text-end shrink-0">
-                      <div className="flex items-center gap-1 justify-end">
-                        <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-                        <span className="text-xs font-bold text-foreground">
-                          {s.averageRating.toFixed(1)}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">
-                        ({s.reviewsCount})
-                      </div>
-                    </div>
-                  )}
-                  <div className="shrink-0">
-                    <span className="inline-flex items-center text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                      {lang === "ar" ? "زيارة" : "Visit"}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        {/* Horizontal scroll — all breakpoints */}
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
+          {loading
+            ? Array(4)
+                .fill(0)
+                .map((_, i) => <StoreSkeleton key={i} />)
+            : stores.map((s) => (
+                <StoreCard key={s.sellerId} s={s} lang={lang} />
+              ))}
+        </div>
       </div>
     </section>
   );
 }
+
+/* ── Trust strip (appears ONCE — in the join section) ───────────── */
+
+const TRUST_ITEMS = [
+  {
+    Icon: Truck,
+    ar: "توصيل سريع",
+    en: "Fast Delivery",
+    subAr: "لجميع أحياء حلب",
+    subEn: "All areas in Aleppo",
+  },
+  {
+    Icon: ShieldCheck,
+    ar: "دفع آمن",
+    en: "Secure Payment",
+    subAr: "مدفوعات محمية",
+    subEn: "Protected payments",
+  },
+  {
+    Icon: BadgeCheck,
+    ar: "بائعون موثوقون",
+    en: "Verified Sellers",
+    subAr: "جميع البائعين معتمدون",
+    subEn: "All sellers vetted",
+  },
+  {
+    Icon: Zap,
+    ar: "دعم سريع",
+    en: "Quick Support",
+    subAr: "نحن دائماً هنا",
+    subEn: "Always here for you",
+  },
+] as const;
 
 /* ── Main page ───────────────────────────────────────────────────── */
 
@@ -520,11 +521,9 @@ export default function Home() {
     canonical: "/",
   });
 
-  /* Derived product lists */
   const newArrivals = products?.slice(0, 4) ?? [];
   const hotDeals = products?.filter((p) => p.isBestDeal).slice(0, 4) ?? [];
 
-  /* Best Sellers */
   const { data: bestSellersData, isLoading: isLoadingBestSellers } =
     useGetBestSellers(4, {
       query: {
@@ -556,20 +555,19 @@ export default function Home() {
     <Layout>
       <div className="w-full">
 
-        {/* ════════════════════════════════════════════════════
-            HERO V4 — split layout, max 460px, no full-screen
-            Banner enhancement layer activates when banners exist
-        ════════════════════════════════════════════════════ */}
+        {/* ────────────────────────────────────────────────────
+            1. HERO — cinematic full-width
+        ──────────────────────────────────────────────────── */}
         <HeroV4 />
 
-        {/* ════════════════════════════════════════════════════
-            POPULAR CATEGORIES — scrollable card row
-        ════════════════════════════════════════════════════ */}
+        {/* ────────────────────────────────────────────────────
+            2. POPULAR CATEGORIES — horizontal chip scroll
+        ──────────────────────────────────────────────────── */}
         <PopularCategoriesSection />
 
-        {/* ════════════════════════════════════════════════════
-            HOT DEALS — flash sale products
-        ════════════════════════════════════════════════════ */}
+        {/* ────────────────────────────────────────────────────
+            3. HOT DEALS — flash sale products
+        ──────────────────────────────────────────────────── */}
         {(isLoadingProducts || hotDeals.length > 0) && (
           <HotDealsSection
             hotDeals={hotDeals}
@@ -578,30 +576,27 @@ export default function Home() {
           />
         )}
 
-        {/* ════════════════════════════════════════════════════
-            BEST SELLERS — ranked by real purchase volume
-        ════════════════════════════════════════════════════ */}
+        {/* ────────────────────────────────────────────────────
+            4. VERIFIED STORES — premium horizontal scroll
+        ──────────────────────────────────────────────────── */}
+        <VerifiedStoresSection />
+
+        {/* ────────────────────────────────────────────────────
+            5. BEST SELLERS — ranked by purchase volume
+        ──────────────────────────────────────────────────── */}
         {(isLoadingBestSellers || bestSellers.length > 0) && (
-          <section className="py-12 md:py-16 border-b bg-muted/15 cv-section">
+          <section className="py-10 md:py-14 border-b bg-muted/10 cv-section">
             <div className="container px-4">
-              <div className="flex items-center justify-between mb-6 md:mb-8">
-                <div className="flex items-center gap-3">
-                  <h2 className="heading-section">
-                    {t("home.bestsellers_title")}
-                  </h2>
-                  <span className="hidden sm:inline-flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold px-2.5 py-1 rounded-full">
-                    <TrendingUp className="h-3 w-3" />
-                    {t("home.bestsellers_badge")}
-                  </span>
-                </div>
-                <Link
-                  href="/products"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline shrink-0"
-                >
-                  {t("home.view_all")}
-                  <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" />
-                </Link>
-              </div>
+              <SectionHeader
+                title={t("home.bestsellers_title")}
+                viewAllHref="/products"
+                viewAllLabel={t("home.view_all")}
+                icon={
+                  <div className="h-7 w-7 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                  </div>
+                }
+              />
               <div className="product-grid">
                 {isLoadingBestSellers
                   ? Array(4)
@@ -615,15 +610,10 @@ export default function Home() {
           </section>
         )}
 
-        {/* ════════════════════════════════════════════════════
-            VERIFIED STORES — featured seller cards
-        ════════════════════════════════════════════════════ */}
-        <VerifiedStoresSection />
-
-        {/* ════════════════════════════════════════════════════
-            NEW ARRIVALS — most recently listed products
-        ════════════════════════════════════════════════════ */}
-        <section className="py-12 md:py-16 border-b cv-section">
+        {/* ────────────────────────────────────────────────────
+            6. NEW ARRIVALS — most recently listed
+        ──────────────────────────────────────────────────── */}
+        <section className="py-10 md:py-14 border-b cv-section">
           <div className="container px-4">
             <SectionHeader
               title={t("home.arrivals_title")}
@@ -648,22 +638,22 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ════════════════════════════════════════════════════
-            RECENTLY VIEWED — personalised from localStorage
-        ════════════════════════════════════════════════════ */}
+        {/* ────────────────────────────────────────────────────
+            7. RECENTLY VIEWED — personalised, localStorage
+        ──────────────────────────────────────────────────── */}
         {recentlyViewed.length > 0 && (
-          <section className="py-12 md:py-16 border-b cv-section">
+          <section className="py-10 md:py-14 border-b cv-section">
             <div className="container px-4">
-              <div className="flex items-center justify-between mb-6 md:mb-8">
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
+              <div className="flex items-center justify-between mb-5 md:mb-7">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
                   <h2 className="heading-section">
                     {t("home.recently_viewed_title")}
                   </h2>
                 </div>
                 <button
                   onClick={clearHistory}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {t("home.recently_viewed_clear")}
                 </button>
@@ -677,63 +667,102 @@ export default function Home() {
           </section>
         )}
 
-        {/* ════════════════════════════════════════════════════
-            BOTTOM CTAs — seller + courier recruitment
-            Side-by-side on sm+, stacked on xs
-        ════════════════════════════════════════════════════ */}
-        <section className="py-12 md:py-16 bg-primary/5 border-b">
-          <div className="container px-4">
+        {/* ────────────────────────────────────────────────────
+            8. JOIN SYANO — seller + courier recruitment
+               Trust strip appears HERE — the single place
+               where marketplace promises are displayed.
+        ──────────────────────────────────────────────────── */}
+        <section className="py-12 md:py-16 bg-muted/10 border-b">
+          <div className="container px-4 space-y-8">
+
+            {/* Heading */}
+            <div className="text-center space-y-1.5">
+              <h2 className="text-lg sm:text-xl font-bold">
+                {lang === "ar"
+                  ? "انضم إلى منظومة سيانو"
+                  : "Join the Syano Ecosystem"}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {lang === "ar"
+                  ? "ابدأ البيع أو كن مندوب توصيل وحقق المزيد من الأرباح"
+                  : "Start selling or become a courier and grow your income"}
+              </p>
+            </div>
+
+            {/* CTA cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Seller CTA */}
-              <div className="flex flex-col justify-between gap-4 bg-card border rounded-2xl p-6 md:p-8 shadow-sm">
-                <div className="flex items-start gap-4">
-                  <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+              {/* Seller */}
+              <div className="flex flex-col justify-between gap-4 bg-card border rounded-2xl p-5 md:p-6 shadow-sm">
+                <div className="flex items-start gap-3.5">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                     <Store className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold">
-                      {t("home.sell_cta_title")}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                    <h3 className="text-sm font-bold">{t("home.sell_cta_title")}</h3>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                       {t("home.sell_cta_desc")}
                     </p>
                   </div>
                 </div>
                 <Button
-                  variant="outline"
-                  className="h-10 px-5 font-semibold w-full"
+                  className="h-9 px-5 text-sm font-semibold w-full"
                   onClick={handleOpenYourStore}
                 >
                   {t("home.sell_cta_btn")}
-                  <ArrowRight className="ms-2 h-4 w-4 rtl:rotate-180" />
+                  <ArrowRight className="ms-2 h-3.5 w-3.5 rtl:rotate-180" />
                 </Button>
               </div>
 
-              {/* Courier CTA */}
-              <div className="flex flex-col justify-between gap-4 bg-card border rounded-2xl p-6 md:p-8 shadow-sm">
-                <div className="flex items-start gap-4">
-                  <div className="h-11 w-11 rounded-xl bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center shrink-0 mt-0.5">
+              {/* Courier */}
+              <div className="flex flex-col justify-between gap-4 bg-card border rounded-2xl p-5 md:p-6 shadow-sm">
+                <div className="flex items-start gap-3.5">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center shrink-0 mt-0.5">
                     <Truck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold">
+                    <h3 className="text-sm font-bold">
                       {t("home.courier_cta_title")}
                     </h3>
-                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                       {t("home.courier_cta_desc")}
                     </p>
                   </div>
                 </div>
                 <Button
                   variant="outline"
-                  className="h-10 px-5 font-semibold w-full"
+                  className="h-9 px-5 text-sm font-semibold w-full"
                   onClick={handleBecomeCourier}
                 >
                   {t("home.courier_cta_btn")}
-                  <ArrowRight className="ms-2 h-4 w-4 rtl:rotate-180" />
+                  <ArrowRight className="ms-2 h-3.5 w-3.5 rtl:rotate-180" />
                 </Button>
               </div>
             </div>
+
+            {/* Trust strip — the ONE location for marketplace promises */}
+            <div className="border-t pt-7">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                {TRUST_ITEMS.map(({ Icon, ar, en, subAr, subEn }) => (
+                  <div
+                    key={en}
+                    className="flex flex-col items-center text-center gap-2"
+                  >
+                    <div className="h-9 w-9 rounded-xl bg-primary/8 border border-primary/15 flex items-center justify-center">
+                      <Icon className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">
+                        {lang === "ar" ? ar : en}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {lang === "ar" ? subAr : subEn}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </section>
 

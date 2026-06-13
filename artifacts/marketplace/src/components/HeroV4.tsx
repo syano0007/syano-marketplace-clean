@@ -1,48 +1,36 @@
 // @refresh reset
 /**
- * HeroV4 — Full-width cinematic hero (Homepage V4 refined)
+ * HeroV4 — Full-width cinematic hero (Homepage V4 refined, premium pass)
  *
- * Desktop / Mobile layout:
- *   Single full-width column — no split mosaic
- *   Height: 380px mobile → 500px tablet → 560px desktop
+ * Hero is intentionally minimal:
+ *   eyebrow → headline → subtext → 2 CTAs
+ *
+ * No search bar (navbar has search).
+ * No trust bullets (trust strip lives in the bottom CTA section — one location only).
  *
  * Banner enhancement layer:
- *   - 0 banners  → BrandStatement (premium dark cinematic background)
- *   - Banners exist → BannerCarousel (full-width, same dimensions)
- *
- * Trust strip: REMOVED (was redundant with inline hero trust)
+ *   0 banners  → BrandStatement (cinematic background image cascade)
+ *   Banners    → BannerCarousel (full-width, same dimensions)
  */
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  memo,
-} from "react";
-import { Link, useLocation } from "wouter";
+import React, { useEffect, useState, useCallback, memo } from "react";
+import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ArrowRight,
-  Zap,
-  Search,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
 const BANNER_INTERVAL_MS = 6000;
 
-// Default hero backgrounds — night market / premium shopping scene
-// Falls through list on error; last fallback is dark gradient (CSS)
+// Hero background cascade — first to load wins; CSS gradient is final fallback
 const HERO_BACKGROUNDS = [
   "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&q=80&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1920&q=80&auto=format&fit=crop",
   "https://images.pexels.com/photos/3617500/pexels-photo-3617500.jpeg?auto=compress&cs=tinysrgb&w=1920&h=600&fit=crop",
 ];
 
-// ─── Banner type (mirrors API response) ──────────────────────────────────────
+// ─── Banner type ──────────────────────────────────────────────────────────────
 
 interface Banner {
   id: number;
@@ -59,35 +47,17 @@ interface Banner {
   sortOrder: number;
 }
 
-// ─── Inline trust bullets (used in BrandStatement) ───────────────────────────
-
-const HERO_TRUST = [
-  { ar: "بائعون موثوقون", en: "Verified Sellers" },
-  { ar: "شحن سريع",      en: "Fast Delivery"    },
-  { ar: "حماية المشتري", en: "Buyer Protection"  },
-  { ar: "دفع آمن",       en: "Secure Payment"   },
-] as const;
-
-// ─── Brand statement (full-width cinematic, shown when no banners) ────────────
+// ─── Brand statement (minimal cinematic) ─────────────────────────────────────
 
 const BrandStatement = memo(function BrandStatement() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const isRTL = i18n.dir() === "rtl";
-  const [, navigate] = useLocation();
-  const [query, setQuery] = useState("");
   const [bgIndex, setBgIndex] = useState(0);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate(
-      `/products${query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""}`,
-    );
-  };
 
   return (
     <div className="relative h-full overflow-hidden select-none">
-      {/* Background — cinematic image with cascade fallback */}
+      {/* Background image cascade */}
       {bgIndex < HERO_BACKGROUNDS.length ? (
         <img
           src={HERO_BACKGROUNDS[bgIndex]}
@@ -101,27 +71,27 @@ const BrandStatement = memo(function BrandStatement() {
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950" />
       )}
 
-      {/* Directional gradient — dark from content side */}
+      {/* Directional gradient overlay — content side is darkest */}
       <div
         className="absolute inset-0"
         style={{
           background: isRTL
-            ? "linear-gradient(to left, rgba(5,15,30,0.88) 0%, rgba(5,15,30,0.72) 38%, rgba(5,15,30,0.35) 62%, rgba(5,15,30,0.10) 100%)"
-            : "linear-gradient(to right, rgba(5,15,30,0.88) 0%, rgba(5,15,30,0.72) 38%, rgba(5,15,30,0.35) 62%, rgba(5,15,30,0.10) 100%)",
+            ? "linear-gradient(to left, rgba(5,15,30,0.92) 0%, rgba(5,15,30,0.78) 36%, rgba(5,15,30,0.28) 62%, rgba(5,15,30,0.06) 100%)"
+            : "linear-gradient(to right, rgba(5,15,30,0.92) 0%, rgba(5,15,30,0.78) 36%, rgba(5,15,30,0.28) 62%, rgba(5,15,30,0.06) 100%)",
         }}
       />
-      {/* Bottom depth */}
-      <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/50 to-transparent" />
+      {/* Bottom depth scrim */}
+      <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/60 to-transparent" />
 
-      {/* Content overlay */}
+      {/* Content */}
       <div
         className={cn(
           "absolute inset-0 flex flex-col justify-center z-10",
           "px-6 sm:px-10 lg:px-16",
         )}
       >
-        <div className="space-y-4 sm:space-y-5 max-w-[420px]">
-          {/* Eyebrow */}
+        <div className="space-y-4 sm:space-y-5 max-w-[400px]">
+          {/* Eyebrow badge */}
           <div className="inline-flex items-center gap-1.5 bg-primary/20 border border-primary/40 text-primary px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold">
             <Zap className="h-3 w-3 shrink-0" />
             {lang === "ar"
@@ -145,38 +115,15 @@ const BrandStatement = memo(function BrandStatement() {
             </h1>
           )}
 
-          {/* Subheadline */}
-          <p className="text-sm sm:text-[15px] text-white/70 leading-relaxed">
+          {/* Supporting text */}
+          <p className="text-sm sm:text-[15px] text-white/65 leading-relaxed max-w-[320px]">
             {lang === "ar"
-              ? "منتجات عالية الجودة · توصيل سريع · دفع آمن"
-              : "Fast delivery · Trusted sellers · Best prices in Syria"}
+              ? "آلاف المنتجات من متاجر موثوقة في جميع أنحاء سوريا"
+              : "Thousands of products from trusted sellers across Syria."}
           </p>
 
-          {/* Hero search bar */}
-          <form
-            onSubmit={handleSearch}
-            className="flex items-stretch overflow-hidden rounded-xl border border-white/20 bg-black/30 backdrop-blur-md shadow-lg focus-within:border-primary transition-colors duration-200"
-          >
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={
-                lang === "ar" ? "ابحث عن أي منتج..." : "Search products, brands..."
-              }
-              dir={isRTL ? "rtl" : "ltr"}
-              className="flex-1 bg-transparent px-4 py-3 text-sm text-white placeholder:text-white/45 outline-none min-w-0"
-            />
-            <button
-              type="submit"
-              className="bg-primary text-primary-foreground px-4 py-3 flex items-center justify-center hover:bg-primary/90 transition-colors shrink-0"
-              aria-label={lang === "ar" ? "بحث" : "Search"}
-            >
-              <Search className="h-4 w-4" />
-            </button>
-          </form>
-
-          {/* CTAs */}
-          <div className="flex flex-row items-center gap-2.5 flex-wrap">
+          {/* CTA row */}
+          <div className="flex flex-row items-center gap-2.5 flex-wrap pt-1">
             <Link href="/products">
               <Button
                 size="lg"
@@ -197,22 +144,9 @@ const BrandStatement = memo(function BrandStatement() {
                 variant="outline"
                 className="h-10 sm:h-11 px-5 text-sm font-semibold border-white/30 text-white hover:bg-white/10 hover:border-white/50 hover:-translate-y-0.5 transition-all duration-200 bg-transparent"
               >
-                {lang === "ar" ? "الفئات" : "Browse Categories"}
+                {lang === "ar" ? "الفئات" : "Browse"}
               </Button>
             </a>
-          </div>
-
-          {/* Inline trust signals */}
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-            {HERO_TRUST.map((s) => (
-              <span
-                key={s.en}
-                className="inline-flex items-center gap-1.5 text-[11px] text-white/60 font-medium"
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                {lang === "ar" ? s.ar : s.en}
-              </span>
-            ))}
           </div>
         </div>
       </div>
@@ -220,7 +154,7 @@ const BrandStatement = memo(function BrandStatement() {
   );
 });
 
-// ─── Full-width banner carousel ───────────────────────────────────────────────
+// ─── Banner carousel ──────────────────────────────────────────────────────────
 
 const BannerCarousel = memo(function BannerCarousel({
   banners,
@@ -277,7 +211,6 @@ const BannerCarousel = memo(function BannerCarousel({
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Slide stack */}
       <AnimatePresence mode="sync">
         <motion.div
           key={current}
@@ -297,19 +230,16 @@ const BannerCarousel = memo(function BannerCarousel({
               !reducedMotion && "hero-kenburns",
             )}
           />
-          {/* Brand-colour directional gradient */}
           <div
             className="absolute inset-0"
             style={{
               background: `linear-gradient(${isRTL ? "to left" : "to right"}, ${bgColor}e0 0%, ${bgColor}a0 38%, ${bgColor}55 60%, transparent 100%)`,
             }}
           />
-          {/* Bottom-to-top depth */}
           <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/50 to-transparent" />
         </motion.div>
       </AnimatePresence>
 
-      {/* Content overlay */}
       <div
         className="absolute inset-0 flex flex-col justify-center px-6 sm:px-10 lg:px-16 z-10 space-y-3"
         style={{ color: textColor }}
@@ -350,7 +280,6 @@ const BannerCarousel = memo(function BannerCarousel({
         )}
       </div>
 
-      {/* Prev / Next arrows */}
       {banners.length > 1 && (
         <>
           <button
@@ -378,7 +307,6 @@ const BannerCarousel = memo(function BannerCarousel({
         </>
       )}
 
-      {/* Minimal dot indicators */}
       {banners.length > 1 && (
         <div className="absolute bottom-4 inset-x-0 z-20 flex items-center justify-center gap-1.5">
           {banners.map((_, i) => (
@@ -418,7 +346,6 @@ export function HeroV4() {
 
   return (
     <section className="border-b overflow-hidden">
-      {/* Single full-width column — no split mosaic */}
       <div className="h-[360px] sm:h-[440px] lg:h-[520px]">
         {hasBanners ? (
           <BannerCarousel banners={banners} />

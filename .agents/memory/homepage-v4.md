@@ -103,6 +103,17 @@ Module 21 (`heroBannerSystem`) checks `home.tsx uses HeroBanner`. This FAILS bec
 uses `HeroV4` instead. This is a **false negative** — system is working correctly.
 The recovery-check module 21 condition should check for `HeroV4`, not `HeroBanner`.
 
+## Premium Pass Changes (V4 → V4 Premium)
+
+- **Hero** — removed inline search bar + HERO_TRUST bullets entirely; now: eyebrow + headline + subtext + 2 CTAs only
+- **Trust** — trust appears ONE time only: bottom CTA section `TRUST_ITEMS` strip (Truck, ShieldCheck, BadgeCheck, Zap); removed from hero
+- **Stores** — `VerifiedStoresSection` rewritten to horizontal-scroll premium cards: cover gradient/banner + logo overlap + stats + CTA
+- **API** — `/sellers/featured` now returns `storeBanner` field for cover images
+- **Section order** — Hero → Categories → Deals → Verified Stores → Best Sellers → New Arrivals → Recently Viewed → Join CTA
+- **Join section** — unified heading "انضم إلى منظومة سيانو" + 2 cards + trust strip at bottom
+- **home.tsx imports** — removed BookOpen, PawPrint, Download, Palette, Gem, Baby, Wrench, TreePine, Gift, CATEGORIES, ICON_MAP, CATEGORY_IMAGES
+- **home.tsx added** — ShieldCheck, TRUST_ITEMS constant
+
 ## Files Changed (V4 → V4 Refined)
 
 - `artifacts/marketplace/src/components/HeroV4.tsx` — full rewrite; removed mosaic+trust strip
