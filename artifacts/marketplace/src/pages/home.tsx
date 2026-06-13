@@ -14,6 +14,7 @@ import { useCourierOnboarding } from "@/hooks/useCourierOnboarding";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useCountdown } from "@/hooks/use-countdown";
 import { ProductCard } from "@/components/ProductCard";
+import { HeroV4 } from "@/components/HeroV4";
 
 /* ─────────────────────────────────────────────────────────
    SCOPED CSS — keyframes + utility classes (no global reset)
@@ -29,6 +30,57 @@ const PAGE_CSS = `
   @keyframes syFloatB { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-7px); } }
   @keyframes syFloatC { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-11px); } }
 
+  /* ── Light / Dark page wrapper ────────────────────────────────── */
+  .sy-page { background:#f8fafc; color:#111827; }
+  .dark .sy-page { background:#080808; color:#fff; }
+
+  /* ── Section title inherits page color ─────────────────────────── */
+  .sy-title { color:inherit; }
+
+  /* ── Card base — bg swaps per theme ────────────────────────────── */
+  .sy-card-bg { background:#fff; border-color:rgba(0,0,0,0.08) !important; }
+  .dark .sy-card-bg { background:#0b0b0b; border-color:rgba(255,255,255,0.06) !important; }
+
+  /* ── Card text ─────────────────────────────────────────────────── */
+  .sy-card-name { color:#111827; }
+  .dark .sy-card-name { color:#f0f0f0; }
+  .sy-card-muted { color:#4b5563; }
+  .dark .sy-card-muted { color:#9ca3af; }
+
+  /* ── Store card CTA ────────────────────────────────────────────── */
+  .sy-store-cta { background:none; border:1px solid rgba(0,0,0,0.1); color:#4b5563; transition:border-color 0.22s,color 0.22s,background 0.22s; }
+  .dark .sy-store-cta { border-color:rgba(255,255,255,0.1); color:#9ca3af; }
+  .sy-store-cta:hover { border-color:rgba(16,185,129,0.45) !important; color:#10b981 !important; background:rgba(16,185,129,0.04) !important; }
+
+  /* ── CTA section ───────────────────────────────────────────────── */
+  .sy-cta-section { background:#f1f5f9; border-color:rgba(0,0,0,0.07) !important; }
+  .dark .sy-cta-section { background:#0a0a0a; border-color:rgba(255,255,255,0.07) !important; }
+  .sy-cta-btn { background:#fff !important; border:1px solid rgba(0,0,0,0.08) !important; border-radius:16px; padding:38px 28px; text-align:center; cursor:pointer; transition:border-color 0.25s,background 0.25s; width:100%; }
+  .dark .sy-cta-btn { background:#111 !important; border-color:rgba(255,255,255,0.06) !important; }
+  .sy-cta-btn:hover { border-color:rgba(16,185,129,0.3) !important; background:rgba(16,185,129,0.04) !important; }
+
+  /* ── Add to cart buttons ───────────────────────────────────────── */
+  .sy-add-dark { background:rgba(0,0,0,0.05); border:1px solid rgba(0,0,0,0.12); color:#374151; transition:background 0.22s,color 0.22s,border-color 0.22s; }
+  .dark .sy-add-dark { background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.1); color:#9ca3af; }
+  .sy-add-dark:hover { background:#10b981 !important; color:#fff !important; border-color:#10b981 !important; }
+
+  .sy-add-green { background:#10b981; border:none; color:#fff; transition:background 0.22s; }
+  .sy-add-green:hover { background:#059669 !important; }
+
+  /* ── Wishlist heart ────────────────────────────────────────────── */
+  .sy-heart { background:rgba(10,10,10,0.75); backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,0.09); color:#6b7280; transition:color 0.2s,background 0.2s; }
+  .sy-heart:hover { color:#f87171 !important; background:rgba(248,113,113,0.12) !important; }
+
+  /* ── Category hover ────────────────────────────────────────────── */
+  .sy-cat { cursor:pointer; overflow:hidden; transition:transform 0.3s cubic-bezier(0.22,1,0.36,1); }
+  .sy-cat:hover { transform:scale(1.028); }
+  .sy-cat:hover img { filter:brightness(0.45) contrast(1.1) !important; }
+
+  /* ── View all link ─────────────────────────────────────────────── */
+  .sy-view-all { color:#6b7280; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; transition:color 0.2s; padding-bottom:8px; flex-shrink:0; }
+  .sy-view-all:hover { color:#10b981; }
+
+  /* ── Scroll-reveal ─────────────────────────────────────────────── */
   .sy-sr {
     opacity:0; transform:translateY(32px);
     transition: opacity 1.2s cubic-bezier(0.22,1,0.36,1), transform 1.2s cubic-bezier(0.22,1,0.36,1);
@@ -43,32 +95,12 @@ const PAGE_CSS = `
   }
   .sy-sr-card.visible { opacity:1; transform:translateY(0); }
 
+  /* ── Card hover ────────────────────────────────────────────────── */
   .sy-card {
     transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s ease, border-color 0.25s ease;
   }
-  .sy-card:hover { transform:translateY(-6px); box-shadow:0 24px 56px rgba(0,0,0,0.7); border-color:rgba(16,185,129,0.25) !important; }
-
-  .sy-cat { cursor:pointer; overflow:hidden; transition:transform 0.3s cubic-bezier(0.22,1,0.36,1); }
-  .sy-cat:hover { transform:scale(1.028); }
-  .sy-cat:hover img { filter:brightness(0.45) contrast(1.1) !important; }
-
-  .sy-heart { background:rgba(10,10,10,0.75); backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,0.09); color:#6b7280; transition:color 0.2s,background 0.2s; }
-  .sy-heart:hover { color:#f87171 !important; background:rgba(248,113,113,0.12) !important; }
-
-  .sy-add-dark { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#9ca3af; transition:background 0.22s,color 0.22s,border-color 0.22s; }
-  .sy-add-dark:hover { background:#10b981 !important; color:#fff !important; border-color:#10b981 !important; }
-
-  .sy-add-green { background:#10b981; border:none; color:#fff; transition:background 0.22s; }
-  .sy-add-green:hover { background:#059669 !important; }
-
-  .sy-store-cta { background:none; border:1px solid rgba(255,255,255,0.1); color:#9ca3af; transition:border-color 0.22s,color 0.22s,background 0.22s; }
-  .sy-store-cta:hover { border-color:rgba(16,185,129,0.45) !important; color:#10b981 !important; background:rgba(16,185,129,0.04) !important; }
-
-  .sy-view-all { color:#6b7280; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; transition:color 0.2s; padding-bottom:8px; flex-shrink:0; }
-  .sy-view-all:hover { color:#10b981; }
-
-  .sy-cta-btn { background:#111; border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:38px 28px; text-align:center; cursor:pointer; transition:border-color 0.25s,background 0.25s; width:100%; }
-  .sy-cta-btn:hover { border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.04); }
+  .sy-card:hover { transform:translateY(-6px); box-shadow:0 24px 56px rgba(0,0,0,0.18); border-color:rgba(16,185,129,0.25) !important; }
+  .dark .sy-card:hover { box-shadow:0 24px 56px rgba(0,0,0,0.7); }
 
   /* Mobile responsive */
   @media (max-width: 900px) {
@@ -91,7 +123,7 @@ const PAGE_CSS = `
    ───────────────────────────────────────────────────────── */
 const MAX_W = { maxWidth:1260, margin:"0 auto", padding:"0 clamp(24px,5vw,64px)" } as const;
 const SEC_PB = 80;
-const TITLE_STYLE: React.CSSProperties = { margin:0, fontSize:"clamp(32px,3.5vw,52px)", fontWeight:800, color:"#fff", letterSpacing:"-0.8px", lineHeight:1.08 };
+const TITLE_STYLE: React.CSSProperties = { margin:0, fontSize:"clamp(32px,3.5vw,52px)", fontWeight:800, color:"inherit", letterSpacing:"-0.8px", lineHeight:1.08 };
 const SUP_STYLE: React.CSSProperties = { display:"block", fontSize:12, fontWeight:600, color:"#10b981", letterSpacing:"0.05em", marginBottom:10 };
 
 /* ─────────────────────────────────────────────────────────
@@ -250,99 +282,6 @@ function SectionHeader({ sup, title, href }: { sup: string; title: string; href:
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   SECTION 1 — HERO
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function HeroSection() {
-  return (
-    <section style={{ position:"relative", overflow:"hidden", minHeight:640, zIndex:1 }}>
-      {/* Ambient glows */}
-      <div style={{ position:"absolute", top:-60, right:"18%", width:700, height:600, borderRadius:"50%", background:"radial-gradient(ellipse,rgba(16,185,129,0.065) 0%,transparent 70%)", pointerEvents:"none" }} />
-      <div style={{ position:"absolute", bottom:0, left:"8%", width:480, height:380, borderRadius:"50%", background:"radial-gradient(ellipse,rgba(245,158,11,0.035) 0%,transparent 70%)", pointerEvents:"none" }} />
-
-      <div style={{ ...MAX_W, display:"flex", alignItems:"center", minHeight:640, gap:0 }}>
-        {/* TEXT — first DOM = visual RIGHT in RTL */}
-        <div className="sy-hero-text" style={{ width:"min(500px,100%)", flexShrink:0, display:"flex", flexDirection:"column", gap:22, paddingTop:52, paddingBottom:68, textAlign:"right" }}>
-          <div>
-            <span style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"5px 14px", borderRadius:100, border:"1px solid rgba(16,185,129,0.4)", color:"#10b981", fontSize:11, fontWeight:600, background:"rgba(16,185,129,0.06)" }}>
-              ✦ سوق سوريا الرقمي
-            </span>
-          </div>
-          <h1 style={{ margin:0, fontSize:"clamp(40px,5vw,68px)", fontWeight:900, lineHeight:1.05, letterSpacing:"-2px", color:"#fff" }}>
-            اكتشف آلاف<br />
-            المنتجات من<br />
-            <span style={{ color:"#10b981" }}>المتاجر السورية</span>
-          </h1>
-          <p style={{ margin:0, color:"#9ca3af", fontSize:14, lineHeight:1.85 }}>
-            منتجات متنوعة، متاجر موثوقة، وتجربة تسوق حديثة<br />تجمع أفضل المتاجر السورية في مكان واحد.
-          </p>
-          <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
-            <Link href="/products" style={{ padding:"13px 30px", borderRadius:12, background:"#10b981", color:"#fff", fontSize:14, fontWeight:700, display:"inline-flex", alignItems:"center", gap:7, textDecoration:"none" }}>
-              تسوق الآن
-              <svg style={{ width:14, height:14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-            </Link>
-            <Link href="/products" style={{ padding:"13px 30px", borderRadius:12, background:"transparent", color:"#d1d5db", fontSize:14, border:"1px solid rgba(255,255,255,0.12)", textDecoration:"none" }}>
-              استكشف المتاجر
-            </Link>
-          </div>
-          {/* Stats */}
-          <div style={{ borderTop:"1px solid rgba(255,255,255,0.07)", paddingTop:26, display:"flex", alignItems:"flex-start" }}>
-            {[{ n:"+12,000", l:"عميل راضٍ" },{ n:"+25,000", l:"منتج فاعل" },{ n:"+500", l:"متاجر نشطة" }].map((s, i) => (
-              <div key={s.l} style={{ flex:1, textAlign:"right", paddingInlineEnd:i<2?24:0, paddingInlineStart:i>0?24:0, borderInlineStart:i>0?"1px solid rgba(255,255,255,0.07)":"none" }}>
-                <div style={{ fontSize:28, fontWeight:900, color:"#fff", lineHeight:1, whiteSpace:"nowrap" }}>{s.n}</div>
-                <div style={{ fontSize:11, color:"#6b7280", marginTop:5 }}>{s.l}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* IMAGE — second DOM = visual LEFT in RTL */}
-        <div className="sy-hero-img" style={{ flex:1, position:"relative", height:600, marginRight:52 }}>
-          <div style={{ position:"absolute", inset:0, borderRadius:20, overflow:"hidden" }}>
-            <img
-              src="https://images.pexels.com/photos/1279107/pexels-photo-1279107.jpeg?auto=compress&cs=tinysrgb&w=1000"
-              alt=""
-              loading="eager"
-              decoding="async"
-              style={{ width:"100%", height:"100%", objectFit:"cover", filter:"brightness(0.35) contrast(1.18)", animation:"syKenBurns 28s ease-in-out infinite", transformOrigin:"center center", willChange:"transform" }}
-            />
-            <div style={{ position:"absolute", inset:0, background:"linear-gradient(to right,transparent 40%,#080808 100%)" }} />
-            <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(8,8,8,0.75) 0%,transparent 40%)" }} />
-          </div>
-          {/* Floating card TOP */}
-          <div style={{ position:"absolute", top:40, right:24, zIndex:2, background:"rgba(10,10,10,0.92)", backdropFilter:"blur(20px)", border:"1px solid rgba(255,255,255,0.09)", borderRadius:16, padding:"12px 16px", display:"flex", gap:12, alignItems:"center", width:220, boxShadow:"0 8px 32px rgba(0,0,0,0.6)", animation:"syFloatC 5.5s ease-in-out infinite", willChange:"transform" }}>
-            <div style={{ flex:1, textAlign:"right" }}>
-              <div style={{ fontSize:10, color:"#9ca3af", marginBottom:3 }}>عطار ديور سوهاج</div>
-              <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:5 }}>75,000 <span style={{ color:"#10b981", fontSize:10, fontWeight:400 }}>ل.س</span></div>
-              <Stars n={5} size={10} />
-            </div>
-            <img src="https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=60" alt="" style={{ width:44, height:44, borderRadius:10, objectFit:"cover", flexShrink:0 }} />
-          </div>
-          {/* Floating card MID */}
-          <div style={{ position:"absolute", top:218, left:20, zIndex:2, background:"rgba(10,10,10,0.92)", backdropFilter:"blur(20px)", border:"1px solid rgba(255,255,255,0.09)", borderRadius:16, padding:"12px 16px", display:"flex", gap:12, alignItems:"center", width:192, boxShadow:"0 8px 32px rgba(0,0,0,0.6)", animation:"syFloatB 7s 1.8s ease-in-out infinite", willChange:"transform" }}>
-            <div style={{ flex:1, textAlign:"right" }}>
-              <div style={{ fontSize:10, color:"#9ca3af", marginBottom:3 }}>مومية رالية</div>
-              <div style={{ fontSize:14, fontWeight:700, color:"#fff" }}>38,500 <span style={{ color:"#10b981", fontSize:10, fontWeight:400 }}>ل.س</span></div>
-            </div>
-            <img src="https://images.pexels.com/photos/1536619/pexels-photo-1536619.jpeg?auto=compress&cs=tinysrgb&w=60" alt="" style={{ width:44, height:44, borderRadius:10, objectFit:"cover", flexShrink:0 }} />
-          </div>
-          {/* Floating card BOTTOM */}
-          <div style={{ position:"absolute", bottom:56, left:48, zIndex:2, background:"rgba(10,10,10,0.92)", backdropFilter:"blur(20px)", border:"1px solid rgba(255,255,255,0.09)", borderRadius:16, padding:"12px 16px", display:"flex", gap:12, alignItems:"center", width:232, boxShadow:"0 8px 32px rgba(0,0,0,0.6)", animation:"syFloatA 6.5s 3.5s ease-in-out infinite", willChange:"transform" }}>
-            <div style={{ flex:1, textAlign:"right" }}>
-              <div style={{ fontSize:10, color:"#9ca3af", marginBottom:3 }}>ساعة خضرية فاخرة</div>
-              <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:5 }}>142,000 <span style={{ color:"#10b981", fontSize:10, fontWeight:400 }}>ل.س</span></div>
-              <div style={{ fontSize:10, color:"#10b981", display:"flex", alignItems:"center", gap:3, justifyContent:"flex-end" }}>● متوفر الآن</div>
-            </div>
-            <img src="https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=60" alt="" style={{ width:44, height:44, borderRadius:10, objectFit:"cover", flexShrink:0 }} />
-          </div>
-          {/* Discount badge */}
-          <div style={{ position:"absolute", top:135, left:40, zIndex:2, background:"#10b981", color:"#fff", fontSize:13, fontWeight:800, padding:"6px 16px", borderRadius:100 }}>خصم ٨٠٪</div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    SECTION 2 — CATEGORIES
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function CategoriesSection() {
@@ -390,7 +329,8 @@ type DealCardData = {
 function apiProductToDeal(p: import("@workspace/api-client-react").Product): DealCardData {
   const pr = p.price;
   const or = (p as any).compareAtPrice ?? pr;
-  const disc = or > pr ? Math.round((1 - pr / or) * 100) : 0;
+  const discFromCompare = or > pr ? Math.round((1 - pr / or) * 100) : 0;
+  const disc = discFromCompare > 0 ? discFromCompare : ((p as any).discountPercent ?? 0);
   const img = (p as any).imageUrls?.[0] ?? "";
   const badge = p.isBestDeal ? "الأكثر مبيعاً" : disc >= 30 ? "حصري" : "عرض محدود";
   return {
@@ -412,7 +352,7 @@ function DealCardItem({ d }: { d: DealCardData }) {
   const bc = BADGE_COLORS[d.badge] ?? BADGE_COLORS["عرض محدود"];
   return (
     <Link href={d.href} style={{ textDecoration:"none", display:"flex", flexDirection:"column", height:"100%" }}>
-      <div className="sy-card" style={{ background:"#0b0b0b", borderRadius:16, overflow:"hidden", border:"1px solid rgba(255,255,255,0.06)", display:"flex", flexDirection:"column", height:"100%" }}>
+      <div className="sy-card sy-card-bg" style={{ borderRadius:16, overflow:"hidden", border:"1px solid", display:"flex", flexDirection:"column", height:"100%" }}>
         <div style={{ position:"relative", height:260, flexShrink:0 }}>
           {d.img
             ? <img src={d.img} alt={d.nameAr} loading="lazy" decoding="async" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
@@ -424,8 +364,8 @@ function DealCardItem({ d }: { d: DealCardData }) {
           <button className="sy-heart" style={{ position:"absolute", bottom:12, left:12, width:30, height:30, borderRadius:"50%", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }} onClick={e => e.preventDefault()}>♡</button>
         </div>
         <div style={{ padding:"13px 16px 16px", flex:1, display:"flex", flexDirection:"column" }}>
-          <div style={{ fontSize:10, color:"#6b7280", textAlign:"right", marginBottom:4, fontWeight:500, letterSpacing:"0.03em" }}>{d.cat}</div>
-          <div style={{ fontSize:17, fontWeight:800, color:"#fff", textAlign:"right", lineHeight:1.35, marginBottom:9, flex:1 }}>{d.nameAr}</div>
+          <div className="sy-card-muted" style={{ fontSize:10, textAlign:"right", marginBottom:4, fontWeight:500, letterSpacing:"0.03em" }}>{d.cat}</div>
+          <div className="sy-card-name" style={{ fontSize:17, fontWeight:800, textAlign:"right", lineHeight:1.35, marginBottom:9, flex:1 }}>{d.nameAr}</div>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", marginBottom:13 }}>
             <CompactRating rating={d.rating} rev={d.rev} />
           </div>
@@ -518,7 +458,7 @@ type StoreCardData = {
 function PremiumStoreCard({ s }: { s: StoreCardData }) {
   return (
     <Link href={s.slug} style={{ textDecoration:"none" }}>
-      <div className="sy-card" style={{ background:"#0b0b0b", borderRadius:16, overflow:"hidden", border:"1px solid rgba(255,255,255,0.07)" }}>
+      <div className="sy-card sy-card-bg" style={{ borderRadius:16, overflow:"hidden", border:"1px solid" }}>
         {/* Banner */}
         <div style={{ position:"relative", height:152 }}>
           {s.img
@@ -541,9 +481,9 @@ function PremiumStoreCard({ s }: { s: StoreCardData }) {
           <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-start", marginBottom:8 }}>
             <CompactRating rating={s.rating} rev={s.rev} />
           </div>
-          <div style={{ fontSize:17, fontWeight:700, color:"#f0f0f0", marginBottom:6 }}>{s.name}</div>
-          <p style={{ margin:"0 0 14px", fontSize:12, color:"#9ca3af", lineHeight:1.65 }}>{s.desc}</p>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:5, marginBottom:18, paddingTop:12, borderTop:"1px solid rgba(255,255,255,0.06)" }}>
+          <div className="sy-card-name" style={{ fontSize:17, fontWeight:700, marginBottom:6 }}>{s.name}</div>
+          <p className="sy-card-muted" style={{ margin:"0 0 14px", fontSize:12, lineHeight:1.65 }}>{s.desc}</p>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:5, marginBottom:18, paddingTop:12, borderTop:"1px solid rgba(128,128,128,0.15)" }}>
             <span style={{ fontSize:12, color:"#9ca3af" }}>{s.cat} · {s.cnt} منتج</span>
             <BoxIconSVG />
           </div>
@@ -658,7 +598,7 @@ function TrendingSection({ products }: { products: import("@workspace/api-client
         <div ref={trendGrid} className="sy-trend-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
           {cards.map((p, i) => (
             <Link key={String(p.id ?? i)} href={p.href} style={{ textDecoration:"none" }}>
-              <div className="sy-card" style={{ background:"#0b0b0b", borderRadius:16, overflow:"hidden", border:"1px solid rgba(255,255,255,0.07)" }}>
+              <div className="sy-card sy-card-bg" style={{ borderRadius:16, overflow:"hidden", border:"1px solid" }}>
                 <div style={{ position:"relative", height:310 }}>
                   {p.img
                     ? <img src={p.img} alt={p.nameAr} loading="lazy" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", filter:"brightness(0.62)" }} />
@@ -758,13 +698,13 @@ function NewArrivalsSection({ newArrivals }: { newArrivals: import("@workspace/a
           <div ref={revealSmall} className="sy-sr" style={{ display:"flex", flexDirection:"column", gap:14 }}>
             {smalls.map((a, i) => (
               <Link key={i} href={a.href} style={{ textDecoration:"none" }}>
-                <div style={{ background:"#0b0b0b", borderRadius:16, overflow:"hidden", border:"1px solid rgba(255,255,255,0.07)", display:"flex", height:182, transition:"border-color 0.25s" }} className="sy-card">
+                <div className="sy-card sy-card-bg" style={{ borderRadius:16, overflow:"hidden", border:"1px solid", display:"flex", height:182, transition:"border-color 0.25s" }}>
                   {/* Text — first DOM = visual RIGHT in RTL */}
                   <div style={{ flex:1, padding:"16px 18px", textAlign:"right", display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
                     <div>
                       <span style={{ display:"inline-flex", alignItems:"center", gap:3, fontSize:10, color:"#10b981", background:"rgba(16,185,129,0.08)", border:"1px solid rgba(16,185,129,0.18)", padding:"2px 8px", borderRadius:100, marginBottom:7, fontWeight:600 }}>● جديد</span>
-                      <div style={{ fontSize:10, color:"#6b7280", marginBottom:4 }}>{a.cat}</div>
-                      <div style={{ fontSize:15, fontWeight:700, color:"#f0f0f0", lineHeight:1.35 }}>{a.nameAr}</div>
+                      <div className="sy-card-muted" style={{ fontSize:10, marginBottom:4 }}>{a.cat}</div>
+                      <div className="sy-card-name" style={{ fontSize:15, fontWeight:700, lineHeight:1.35 }}>{a.nameAr}</div>
                     </div>
                     <div style={{ fontSize:19, fontWeight:800, color:"#10b981" }}>{a.price} <span style={{ fontSize:11, fontWeight:400, color:"#9ca3af" }}>ل.س</span></div>
                   </div>
@@ -797,7 +737,7 @@ function JoinCTASection() {
     <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB }}>
       <div style={MAX_W}>
         <div ref={revealCard} className="sy-sr">
-          <div style={{ background:"#0a0a0a", borderRadius:24, border:"1px solid rgba(255,255,255,0.07)", padding:"clamp(40px,5vw,72px) clamp(28px,5vw,64px)", textAlign:"center", position:"relative", overflow:"hidden" }}>
+          <div className="sy-cta-section" style={{ borderRadius:24, border:"1px solid", padding:"clamp(40px,5vw,72px) clamp(28px,5vw,64px)", textAlign:"center", position:"relative", overflow:"hidden" }}>
             <div style={{ position:"absolute", top:-50, left:"50%", transform:"translateX(-50%)", width:600, height:300, background:"radial-gradient(ellipse,rgba(16,185,129,0.055) 0%,transparent 70%)", pointerEvents:"none" }} />
             <span style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"5px 16px", borderRadius:100, border:"1px solid rgba(16,185,129,0.3)", color:"#10b981", fontSize:11, fontWeight:600, marginBottom:22, background:"rgba(16,185,129,0.06)" }}>انضم إلى سيانو</span>
             <h2 style={{ ...TITLE_STYLE, marginBottom:14, display:"block" }}>كن جزءاً من السوق السوري</h2>
@@ -806,15 +746,15 @@ function JoinCTASection() {
               {/* Seller */}
               <button onClick={handleOpenYourStore} className="sy-cta-btn">
                 <div style={{ width:54, height:54, borderRadius:"50%", background:"rgba(16,185,129,0.08)", border:"1px solid rgba(16,185,129,0.18)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}><StoreIconSVG /></div>
-                <div style={{ fontSize:18, fontWeight:700, color:"#fff", marginBottom:10 }}>ابدأ البيع على سيانو</div>
-                <p style={{ fontSize:13, color:"#9ca3af", lineHeight:1.75, marginBottom:24 }}>افتح متجرك الإلكتروني وتواصل مع آلاف المشترين في جميع أنحاء سوريا</p>
+                <div className="sy-card-name" style={{ fontSize:18, fontWeight:700, marginBottom:10 }}>ابدأ البيع على سيانو</div>
+                <p className="sy-card-muted" style={{ fontSize:13, lineHeight:1.75, marginBottom:24 }}>افتح متجرك الإلكتروني وتواصل مع آلاف المشترين في جميع أنحاء سوريا</p>
                 <span style={{ color:"#10b981", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:4, justifyContent:"center" }}>إنشاء متجري ←</span>
               </button>
               {/* Courier */}
               <button onClick={handleBecomeCourier} className="sy-cta-btn">
                 <div style={{ width:54, height:54, borderRadius:"50%", background:"rgba(16,185,129,0.08)", border:"1px solid rgba(16,185,129,0.18)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}><BikeIconSVG /></div>
-                <div style={{ fontSize:18, fontWeight:700, color:"#fff", marginBottom:10 }}>انضم كمندوب توصيل</div>
-                <p style={{ fontSize:13, color:"#9ca3af", lineHeight:1.75, marginBottom:24 }}>حقق دخلاً إضافياً من خلال توصيل الطلبات في مدينتك بمرونة كاملة في عملك</p>
+                <div className="sy-card-name" style={{ fontSize:18, fontWeight:700, marginBottom:10 }}>انضم كمندوب توصيل</div>
+                <p className="sy-card-muted" style={{ fontSize:13, lineHeight:1.75, marginBottom:24 }}>حقق دخلاً إضافياً من خلال توصيل الطلبات في مدينتك بمرونة كاملة في عملك</p>
                 <span style={{ color:"#10b981", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:4, justifyContent:"center" }}>التسجيل كمندوب ←</span>
               </button>
             </div>
@@ -905,8 +845,8 @@ export default function Home() {
     <Layout>
       <style>{PAGE_CSS}</style>
       {/* Dark premium homepage wrapper */}
-      <div dir="rtl" style={{ background:"#080808", color:"#fff", fontFamily:"'Cairo','Segoe UI',system-ui,sans-serif", minHeight:"100vh" }}>
-        <HeroSection />
+      <div dir="rtl" className="sy-page" style={{ fontFamily:"'Cairo','Segoe UI',system-ui,sans-serif", minHeight:"100vh" }}>
+        <HeroV4 />
         <CategoriesSection />
         <DealsSection hotDeals={hotDeals} isLoading={isLoadingProducts} flashFormatted={flashFormatted} />
         <StoresSection />
