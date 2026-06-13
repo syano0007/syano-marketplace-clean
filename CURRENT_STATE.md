@@ -69,6 +69,7 @@ Project migrated to a new Replit account. Full recovery performed:
 | **Final Consistency & UI Stabilization Audit** | ✅ Complete — Brand accent color, SellerTrustBadge unified, portal dropdown — 100/100 |
 | **Seller Store Pages V2** | ✅ Complete + Validated — 5 new endpoints, 4-tab premium storefront, 29 i18n keys, recovery check: 15/15 modules |
 | **Account Migration Recovery (June 13, 2026)** | ✅ Complete — New Replit account, full platform restore, 95/100 recovery score, all services operational |
+| **Homepage Audit V1 (June 13, 2026)** | ✅ Complete — Split-hero layout, real category data, button fixes, section order fix, currency audit |
 
 ---
 

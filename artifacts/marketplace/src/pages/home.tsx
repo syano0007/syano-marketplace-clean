@@ -284,25 +284,49 @@ function SectionHeader({ sup, title, href }: { sup: string; title: string; href:
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    SECTION 2 — CATEGORIES
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function CategoriesSection() {
+function CategoriesSection({ products }: { products?: import("@workspace/api-client-react").Product[] }) {
   const catGrid = useStagger(8, 60);
+
+  // Build a lookup: category slug → { count, firstImage } from real DB products
+  const catDataMap = React.useMemo(() => {
+    const map: Record<string, { count: number; img: string | null }> = {};
+    (products ?? []).forEach(p => {
+      const slug = p.category ?? "";
+      if (!map[slug]) map[slug] = { count: 0, img: null };
+      map[slug].count += 1;
+      if (!map[slug].img) {
+        const imgs = (p as any).imageUrls as string[] | undefined;
+        map[slug].img = imgs?.[0] ?? null;
+      }
+    });
+    return map;
+  }, [products]);
+
   return (
     <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB, paddingTop:SEC_PB }}>
       <div style={MAX_W}>
         <SectionHeader sup="تصفح حسب الفئة" title="الفئات الأكثر شيوعاً" href="/products" />
         <div ref={catGrid} className="sy-cat-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
-          {CATS.map(c => (
-            <Link key={c.nameAr} href={`/products?category=${encodeURIComponent(c.slug)}`} style={{ textDecoration:"none" }}>
-              <div className="sy-cat" style={{ position:"relative", height:168, borderRadius:12, overflow:"hidden" }}>
-                <img src={c.img} alt={c.nameAr} loading="lazy" decoding="async" style={{ width:"100%", height:"100%", objectFit:"cover", filter:"brightness(0.34) contrast(1.1)", display:"block", transition:"filter 0.3s" }} />
-                <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0.08) 55%,transparent 100%)" }} />
-                <div style={{ position:"absolute", bottom:0, right:0, padding:"0 14px 13px", textAlign:"right" }}>
-                  <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:2 }}>{c.nameAr}</div>
-                  <div style={{ fontSize:11, color:"#9ca3af" }}>{c.count} منتج</div>
+          {CATS.map(c => {
+            const real = catDataMap[c.slug];
+            // Use real product image if available, otherwise curated fallback
+            const imgSrc = real?.img ?? c.img;
+            // Use real count if > 0, otherwise curated fallback
+            const count = real && real.count > 0 ? real.count.toLocaleString() : c.count;
+            return (
+              <Link key={c.nameAr} href={`/products?category=${encodeURIComponent(c.slug)}`} style={{ textDecoration:"none" }}>
+                <div className="sy-cat" style={{ position:"relative", height:168, borderRadius:12, overflow:"hidden" }}>
+                  <img src={imgSrc} alt={c.nameAr} loading="lazy" decoding="async"
+                    style={{ width:"100%", height:"100%", objectFit:"cover", filter:"brightness(0.34) contrast(1.1)", display:"block", transition:"filter 0.3s" }} />
+                  <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0.08) 55%,transparent 100%)" }} />
+                  <div style={{ position:"absolute", bottom:0, right:0, padding:"0 14px 13px", textAlign:"right" }}>
+                    <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:2 }}>{c.nameAr}</div>
+                    <div style={{ fontSize:11, color:"#9ca3af" }}>{count} منتج</div>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -361,7 +385,7 @@ function DealCardItem({ d }: { d: DealCardData }) {
           <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(11,11,11,0.55) 0%,transparent 52%)" }} />
           {d.disc > 0 && <span style={{ position:"absolute", top:12, left:12, background:"#10b981", color:"#fff", fontSize:11, fontWeight:800, padding:"3px 10px", borderRadius:100 }}>-{d.disc}%</span>}
           <span style={{ position:"absolute", top:12, right:12, background:bc.bg, color:bc.color, fontSize:10, fontWeight:700, padding:"3px 9px", borderRadius:5, border:`1px solid ${bc.border}`, backdropFilter:"blur(8px)" }}>{d.badge}</span>
-          <button className="sy-heart" style={{ position:"absolute", bottom:12, left:12, width:30, height:30, borderRadius:"50%", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }} onClick={e => e.preventDefault()}>♡</button>
+          <button className="sy-heart" style={{ position:"absolute", bottom:12, left:12, width:30, height:30, borderRadius:"50%", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }} onClick={e => { e.preventDefault(); e.stopPropagation(); }}>♡</button>
         </div>
         <div style={{ padding:"13px 16px 16px", flex:1, display:"flex", flexDirection:"column" }}>
           <div className="sy-card-muted" style={{ fontSize:10, textAlign:"right", marginBottom:4, fontWeight:500, letterSpacing:"0.03em" }}>{d.cat}</div>
@@ -375,7 +399,7 @@ function DealCardItem({ d }: { d: DealCardData }) {
               <div style={{ fontSize:18, fontWeight:900, color:"#10b981", lineHeight:1 }}>{d.price} <span style={{ fontSize:10, color:"#6b7280", fontWeight:400 }}>ل.س</span></div>
               {d.disc > 0 && <div style={{ fontSize:10, color:"#6b7280", textDecoration:"line-through", marginTop:2 }}>{d.orig} ل.س</div>}
             </div>
-            <button className="sy-add-dark" style={{ borderRadius:8, padding:"8px 18px", fontSize:12, fontWeight:700, cursor:"pointer", flexShrink:0 }} onClick={e => e.preventDefault()}>أضف</button>
+            <button className="sy-add-dark" style={{ borderRadius:8, padding:"8px 18px", fontSize:12, fontWeight:700, cursor:"pointer", flexShrink:0 }}>أضف</button>
           </div>
         </div>
       </div>
@@ -606,7 +630,7 @@ function TrendingSection({ products }: { products: import("@workspace/api-client
                   }
                   <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(11,11,11,0.97) 0%,rgba(11,11,11,0.1) 48%,transparent 70%)" }} />
                   {p.hot && <span style={{ position:"absolute", top:12, left:12, background:"#10b981", color:"#fff", fontSize:10, fontWeight:700, padding:"3px 11px", borderRadius:100 }}>↑ رائج</span>}
-                  <button className="sy-heart" style={{ position:"absolute", top:12, right:12, width:30, height:30, borderRadius:"50%", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }} onClick={e => e.preventDefault()}>♡</button>
+                  <button className="sy-heart" style={{ position:"absolute", top:12, right:12, width:30, height:30, borderRadius:"50%", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }} onClick={e => { e.preventDefault(); e.stopPropagation(); }}>♡</button>
                   <div style={{ position:"absolute", bottom:0, right:0, left:0, padding:"0 16px 14px", textAlign:"right" }}>
                     <div style={{ fontSize:10, color:"#9ca3af", marginBottom:4 }}>{p.cat} · {p.seller}</div>
                     <div style={{ fontSize:16, fontWeight:700, color:"#fff", marginBottom:10, lineHeight:1.3 }}>{p.nameAr}</div>
@@ -622,7 +646,7 @@ function TrendingSection({ products }: { products: import("@workspace/api-client
                 </div>
                 {/* GREEN "أضف للسلة" — ref 243 */}
                 <div style={{ padding:"10px 14px 14px" }}>
-                  <button className="sy-add-green" style={{ width:"100%", fontSize:12, fontWeight:700, padding:"10px", borderRadius:8, cursor:"pointer" }} onClick={e => e.preventDefault()}>أضف للسلة</button>
+                  <button className="sy-add-green" style={{ width:"100%", fontSize:12, fontWeight:700, padding:"10px", borderRadius:8, cursor:"pointer" }}>أضف للسلة</button>
                 </div>
               </div>
             </Link>
@@ -847,15 +871,15 @@ export default function Home() {
       {/* Dark premium homepage wrapper */}
       <div dir="rtl" className="sy-page" style={{ fontFamily:"'Cairo','Segoe UI',system-ui,sans-serif", minHeight:"100vh" }}>
         <HeroV4 />
-        <CategoriesSection />
+        <CategoriesSection products={products} />
         <DealsSection hotDeals={hotDeals} isLoading={isLoadingProducts} flashFormatted={flashFormatted} />
         <StoresSection />
         <TrendingSection products={trending} />
         <NewArrivalsSection newArrivals={newArrivals} />
-        <JoinCTASection />
         {recentlyViewed.length > 0 && (
           <RecentlyViewedDark items={recentlyViewed} onClear={clearHistory} />
         )}
+        <JoinCTASection />
       </div>
     </Layout>
   );

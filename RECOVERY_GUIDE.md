@@ -238,73 +238,96 @@ The endpoint runs 13 parallel checks covering:
 - **Courier flow:** `POST /admin/orders/:id/assign-courier` creates assignment + updates order status atomically
 - **Trust System:** `lib/trustScore.ts` — 0-100 score; `seller_verification_log` audit table; admin routes in `admin.ts` (lines 1356–1530)
 
-## Homepage V5 Architecture (June 2026)
+## Homepage V6 Architecture (June 2026)
 
-**Homepage version:** V5 — Approved hero banner image + commerce sections
+**Homepage version:** V6 — Amazon/Noon/Trendyol split-hero layout + real category data
 
 ### Section Order (top to bottom)
-1. `<HeroV4 />` — fully dynamic hero (BrandStatement or BannerCarousel) + TrustStrip
-2. Popular Categories — 8 wide image tiles (~130 px), text below, no icon badge
+1. `<HeroV4 />` — split-panel hero (text LEFT + rotating image RIGHT) + TrustStrip
+2. Popular Categories — real product images + real counts from DB, RTL-aware grid
 3. Hot Deals countdown — dark card-style boxes (conditional: hidden when 0 `isBestDeal` products)
 4. Combined section — Verified Stores (53%) + New Arrivals (47%), vertical divider
 5. Recently Viewed Products — horizontal scroll, conditional (hidden when empty)
 6. Join Syano — delivery van + two CTAs (Open Store / Become Courier)
 
-### Hero Banner System V3 (fully dynamic)
+> **Note (section order change):** Recently Viewed now appears **before** Join Syano. Previously it was after.
 
-The hero has **NO static image**. It is built entirely from React components.
+### Hero Split-Panel Layout (V6)
 
-**BrandStatement** (default — renders when `GET /api/banners` returns 0 results):
-- Dark luxury background: CSS gradient + vertical stripe pattern (58px repeating-linear-gradient)
-- Green ambient glow (radial-gradient, 8% opacity) and warm amber glow in opposite corner
-- Product mosaic (md+ only): 6 Pexels product images scattered at absolute positions within the visual area
-  - Visual area: left 55% in RTL, right 55% in LTR
-  - For LTR: outer div `scaleX(-1)` + each image counter `scaleX(-1)` (keeps images unmirrored)
-  - Products have per-image `brightness`/`contrast`/`saturate` filters to blend with dark bg
-  - Gradient blend from visual side to text side for readability
-- Text column (right in RTL, left in LTR): badge → headline (white + green line 2) → subtitle → Shop Now CTA
-- Container height: `h-[310px] sm:h-[370px] md:h-[450px] lg:h-[510px]` (NOT aspect-ratio based)
+The hero uses a **fixed split** — no full-width image. This is the Amazon/Noon/Trendyol pattern.
 
-**BannerCarousel** (activates when `GET /api/banners` returns ≥1 banner):
-- Background: admin-uploaded image + directional gradient overlay using banner's `backgroundColor`
-- Text from banner data: `titleAr/En`, `subtitleAr/En`, `ctaLabelAr/En`, `ctaUrl`
-- Secondary CTA: `ctaLabelArSecondary/EnSecondary` + `ctaUrlSecondary`
-- `textColor` override supported per-banner
-- Autoplay: 6 000 ms, pauses on mouseenter
-- Prev/Next arrows (start/end, RTL-aware chevron direction)
-- Dot/pill progress indicators (pill=active, dot=inactive)
-- **Swipe**: touchstart/touchend with 48 px threshold, RTL-aware direction
-- **Keyboard**: ArrowLeft/Right whilst hover, RTL-aware
-- **Impression tracking**: `POST /api/banners/:id/impression` on slide change + mount
-- **Click tracking**: `POST /api/banners/:id/click` on CTA button click
-- AnimatePresence fade transition between slides (0.55 s in / 0.38 s out)
+**LEFT panel (48% width in LTR — text is always fixed, never rotates):**
+- Brand badge: "Syria's Premier Marketplace ✦"
+- Headline: title white + green line 2 (locale-aware: AR/EN)
+- Subtitle paragraph
+- Two CTA buttons: "Browse Stores" (outline) + "→ Shop Now" (green solid)
+- Stats bar: 500+ Active Stores | 25,000+ Active Products | 12,000+ Happy Customers
+
+**RIGHT panel (56% width in LTR — rotating banners):**
+- Full-height banner image (objectFit:cover), Ken Burns scale animation
+- Ken Burns CSS keyframe (`@keyframes heroKenBurns`) on each image
+- **Floating product cards** (3 cards, absolutely positioned on the image panel):
+  - Top-right: product card 1 (عطر ديور سوفاج, 75,000 ل.س, 5-star rating)
+  - Middle-left: product card 2 (جاكيت جلد فاخر, 175,000 ل.س)
+  - Bottom-left: product card 3 (رولكس سابمارينر, 142,000 ل.س, ● متوفر الآن)
+  - Float animations: `heroFloatA/B/C` keyframes, staggered timing
+- Discount badge: `خصم ٨٠٪` (green pill, top-left of image panel)
+- Dot progress indicators (bottom of image panel)
+- Prev arrow: `left: calc(44% + 10px)` (junction of text/image panels in LTR)
+- Next arrow: `right: 12px` (far edge of image panel in LTR)
+- All positions RTL-aware (flipped when `i18n.language === "ar"`)
+
+**RTL flip:** `isRTL = i18n.language === "ar"`. Text panel: `[isRTL?"right":"left"]:0`. Image panel: `[isRTL?"left":"right"]:0`.
 
 **TrustStrip** (always rendered, below hero content):
-- 4 items: دعم سريع / تاجر موثوق / دفع آمن / توصيل سريع
-- `grid-cols-2 sm:grid-cols-4`, emerald icon squares, bilingual
+- 4 items: Fast Support / Trusted Sellers / Secure Payment / Fast Delivery
+- `grid-cols-2 sm:grid-cols-4`, emerald icon squares
 - NOT duplicated anywhere else on the homepage
+
+**BannerCarousel data source:** `GET /api/banners` → array of banners used as image slides.  
+Falls back to 3 hardcoded static banner objects (tech workspace, fashion, luxury) when DB returns 0.
+
+### Categories — Real Data (V6)
+
+`CategoriesSection` now accepts `products` prop from `home.tsx` (all products from `/api/products`).  
+It derives real images and counts from DB data, not hardcoded values.
+
+```ts
+// home.tsx passes: <CategoriesSection products={products} />
+// CategoriesSection groups by product.category, picks first imageUrl, counts per category
+```
 
 ### Key Component
 - `artifacts/marketplace/src/components/HeroV4.tsx`
-  - `BrandStatement` — default dynamic hero (CSS + React text + product mosaic)
-  - `BannerCarousel` — admin-controlled carousel with full analytics
-  - `ProductMosaic` — 6 product images; LTR mirror logic
+  - Split-panel layout (text panel + image panel)
+  - Floating product cards with float animations
+  - Dot indicators, prev/next arrows (RTL-aware)
   - `TrustStrip` — 4-item row at hero bottom
+  - `// @refresh reset` at top (required for HMR stability)
 
 ### API Endpoints (homepage)
 | Endpoint | Consumer | Notes |
 |---|---|---|
-| `GET /api/banners` | `HeroV4.tsx` | Active banners; triggers BannerCarousel if ≥1 |
-| `POST /api/banners/:id/impression` | `BannerCarousel` | Fire-and-forget; always 200 |
-| `POST /api/banners/:id/click` | `BannerCarousel` | Fire-and-forget; always 200 |
-| `GET /api/products` | `home.tsx` | New Arrivals + Hot Deals derived client-side |
+| `GET /api/banners` | `HeroV4.tsx` | Banner images for rotating right panel; fallback to static if 0 |
+| `POST /api/banners/:id/impression` | `HeroV4.tsx` | Fire-and-forget; always 200 |
+| `POST /api/banners/:id/click` | `HeroV4.tsx` | Fire-and-forget; always 200 |
+| `GET /api/products` | `home.tsx` | Passed to CategoriesSection + Deals + Trending + New Arrivals |
 | `GET /api/sellers/featured` | `home.tsx` | Verified Stores carousel |
 
 ### Zero-Data Resilience
-- 0 banners → BrandStatement renders (always beautiful, no external image dependency)
+- 0 banners → 3 hardcoded static slides (always beautiful, no external image dependency)
 - 0 `isBestDeal` products → Hot Deals section hidden
-- 0 products → New Arrivals column hidden in combined section
+- 0 products → New Arrivals column hidden; Categories shows empty state
 - 0 featured sellers → Verified Stores section hidden
+
+### Currency System Audit (V6)
+| Component | Uses useCurrency | Notes |
+|---|---|---|
+| ProductCard | ✅ `format(product.price)` | All price displays |
+| Cart | ✅ `format(price)` | Item prices + subtotal + total |
+| Checkout | ✅ `format(price)` | Order totals + delivery fee |
+| ProductDetail | ✅ `format(price)` | Final + compare-at prices |
+| Home custom sections (Deals/Trending) | ⚠️ Hardcoded `ل.س` | Inline style sections don't use context — known limitation |
 
 ## Trust System API Reference
 
