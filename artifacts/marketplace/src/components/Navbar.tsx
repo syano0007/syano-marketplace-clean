@@ -449,20 +449,45 @@ export function Navbar() {
             </div>
           ) : <div />}
 
-          {/* ── COL 3 → renders on the LEFT in RTL: Settings + Auth buttons ──── */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* ── COL 3 → renders on the LEFT in RTL: Actions + Auth buttons ──── */}
+          <div className="flex items-center gap-1.5 shrink-0">
 
-            {/* Settings dropdown */}
+            {/* Wishlist — customer only */}
+            {isCustomer && (
+              <Link href="/wishlist"
+                className={`relative h-9 w-9 flex items-center justify-center rounded-lg ${navSettingsBtn} transition-all duration-200`}
+                aria-label={isRtl ? "قائمة الأمنيات" : "Wishlist"}>
+                <Heart className="h-[17px] w-[17px]" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-0.5 -end-0.5 flex h-[16px] w-[16px] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white pointer-events-none">
+                    {wishlistCount > 99 ? "99+" : wishlistCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
+            {/* Cart — customers and guests */}
+            {!isSeller && !isAdmin && !isCourier && (
+              <Link href="/cart"
+                className={`relative h-9 w-9 flex items-center justify-center rounded-lg ${navSettingsBtn} transition-all duration-200`}
+                aria-label={isRtl ? "سلة التسوق" : "Cart"}>
+                <ShoppingCart className="h-[17px] w-[17px]" />
+                {visibleCartCount > 0 && (
+                  <span className="absolute -top-0.5 -end-0.5 flex h-[16px] w-[16px] items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-black pointer-events-none">
+                    {visibleCartCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
+            {/* Settings dropdown — icon only */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className={`h-9 px-3 flex items-center gap-1.5 rounded-lg ${navSettingsBtn} transition-all duration-200`}
+                  className={`h-9 w-9 flex items-center justify-center rounded-lg ${navSettingsBtn} transition-all duration-200`}
                   aria-label={isRtl ? "الإعدادات" : "Settings"}
                 >
-                  <Settings className="h-4 w-4" />
-                  <span style={{ fontSize: "12px", fontWeight: 600 }} className="hidden lg:inline">
-                    {isRtl ? "الإعدادات" : "Settings"}
-                  </span>
+                  <Settings className="h-[17px] w-[17px]" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" sideOffset={8} className="bg-popover border-border shadow-xl shadow-black/10 w-56 p-0 overflow-hidden">
@@ -547,6 +572,9 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Divider */}
+            <div className={`w-px h-5 mx-0.5 ${navDivider}`} />
+
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -587,13 +615,13 @@ export function Navbar() {
             ) : (
               <>
                 <Link href="/login"
-                  style={{ fontSize: "13px", fontWeight: 600 }}
-                  className={`h-9 px-4 rounded-lg ${navLoginLink} transition-colors whitespace-nowrap`}>
+                  style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "0.01em" }}
+                  className={`h-9 px-4 flex items-center rounded-lg ${navLoginLink} transition-colors whitespace-nowrap`}>
                   {t("nav.login")}
                 </Link>
                 <Link href="/register"
-                  style={{ fontSize: "13px", fontWeight: 700 }}
-                  className="h-9 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black transition-colors shadow-lg shadow-emerald-500/20 whitespace-nowrap">
+                  style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.01em" }}
+                  className="h-9 px-5 flex items-center rounded-lg bg-emerald-500 hover:bg-emerald-400 active:scale-[0.97] text-black transition-all duration-150 shadow-sm shadow-emerald-500/30 whitespace-nowrap">
                   {t("nav.signup")}
                 </Link>
               </>
