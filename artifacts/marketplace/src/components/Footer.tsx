@@ -2,22 +2,29 @@ import React, { useState } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { MapPin, Mail, Phone } from "lucide-react";
+import { useTheme } from "next-themes";
 import SOCIAL_LINKS from "@/config/socialLinks";
 
 /* ─────────────────────────────────────────────────────────────────
-   PALETTE (graphite / AMOLED — zero blue tint)
-   bg-base    : #050505
-   bg-surface : #0F0F0F
-   bg-card    : #141414
-   border     : #262626
-   border-soft: #303030
-   text-hi    : #F5F5F5
-   text-mid   : #B8B8B8
-   text-lo    : #8A8A8A
-   accent     : #10B981
-   accent-h   : #059669
-   accent-glow: rgba(16,185,129,0.15)
+   Theme-adaptive color tokens
 ───────────────────────────────────────────────────────────────── */
+function useFooterColors() {
+  const { resolvedTheme } = useTheme();
+  const dark = resolvedTheme !== "light";
+  return {
+    base:        dark ? "#050505"  : "#F1F5F9",
+    surface:     dark ? "#0F0F0F"  : "#FFFFFF",
+    card:        dark ? "#141414"  : "#F8FAFC",
+    border:      dark ? "#262626"  : "#E2E8F0",
+    borderSoft:  dark ? "#303030"  : "#CBD5E1",
+    borderSubtle:dark ? "#1a1a1a"  : "#E2E8F0",
+    textHi:      dark ? "#F5F5F5"  : "#0F172A",
+    textMid:     dark ? "#B8B8B8"  : "#475569",
+    textLo:      dark ? "#8A8A8A"  : "#64748B",
+    accent:      "#10B981",
+    accentH:     "#059669",
+  };
+}
 
 /* ─────────────────────────────────────────────────────────────────
    Social brand SVG icons
@@ -42,7 +49,6 @@ const TelegramIcon = () => (
     <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
   </svg>
 );
-
 const WhatsAppIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="h-[18px] w-[18px]" aria-hidden="true">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
@@ -64,15 +70,16 @@ interface ColProps {
   heading: string;
   links: { label: string; href: string }[];
   isRtl: boolean;
+  C: ReturnType<typeof useFooterColors>;
 }
 
-function FooterColumn({ heading, links, isRtl }: ColProps) {
+function FooterColumn({ heading, links, isRtl, C }: ColProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <div
       className="border-b last:border-b-0 md:border-none"
-      style={{ borderColor: "#262626" }}
+      style={{ borderColor: C.border }}
     >
       <button
         type="button"
@@ -82,7 +89,7 @@ function FooterColumn({ heading, links, isRtl }: ColProps) {
       >
         <p
           className="text-[13px] font-semibold leading-snug"
-          style={{ color: "#F5F5F5", letterSpacing: "0.03em" }}
+          style={{ color: C.textHi, letterSpacing: "0.03em" }}
         >
           {heading}
         </p>
@@ -91,7 +98,7 @@ function FooterColumn({ heading, links, isRtl }: ColProps) {
           viewBox="0 0 20 20"
           fill="currentColor"
           className={`h-4 w-4 shrink-0 transition-transform duration-200 md:hidden ${open ? "rotate-180" : ""}`}
-          style={{ color: "#8A8A8A" }}
+          style={{ color: C.textLo }}
           aria-hidden="true"
         >
           <path
@@ -115,19 +122,19 @@ function FooterColumn({ heading, links, isRtl }: ColProps) {
               <span
                 className="group inline-flex items-center gap-2 text-[13px] leading-relaxed
                            cursor-pointer transition-colors duration-150 min-h-[40px]"
-                style={{ color: "#8A8A8A" }}
+                style={{ color: C.textLo }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLSpanElement).style.color = "#10B981";
+                  (e.currentTarget as HTMLSpanElement).style.color = C.accent;
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLSpanElement).style.color = "#8A8A8A";
+                  (e.currentTarget as HTMLSpanElement).style.color = C.textLo;
                 }}
               >
                 <svg
                   viewBox="0 0 16 16"
                   fill="currentColor"
                   className={`h-2.5 w-2.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 ${isRtl ? "rotate-180" : ""}`}
-                  style={{ color: "#10B981" }}
+                  style={{ color: C.accent }}
                   aria-hidden="true"
                 >
                   <path
@@ -153,8 +160,9 @@ export function Footer() {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.language === "ar";
   const dir = isRtl ? "rtl" : "ltr";
+  const C = useFooterColors();
 
-  const columns: ColProps[] = [
+  const columns: Omit<ColProps, "C">[] = [
     {
       isRtl,
       heading: t("footer.col1_heading"),
@@ -214,13 +222,13 @@ export function Footer() {
     <footer
       dir={dir}
       className="mt-auto select-none"
-      style={{ background: "#050505", color: "#B8B8B8" }}
+      style={{ background: C.base, color: C.textMid }}
     >
 
       {/* ════════════════════════════════════════════════════════════
           ZONE 1 — Brand + tagline + contact pills
       ════════════════════════════════════════════════════════════ */}
-      <div style={{ background: "#0F0F0F", borderBottom: "1px solid #262626" }}>
+      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}` }}>
         <div className="container px-4 py-10 md:py-12">
           <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
 
@@ -228,20 +236,20 @@ export function Footer() {
               <div className="flex items-baseline gap-2">
                 <span
                   className="text-2xl font-extrabold tracking-tight leading-none"
-                  style={{ color: "#F5F5F5" }}
+                  style={{ color: C.textHi }}
                 >
                   {isRtl ? "سيانو" : "Syano"}
                 </span>
                 <span
                   className="text-sm font-normal leading-none"
-                  style={{ color: "#10B981" }}
+                  style={{ color: C.accent }}
                 >
                   {isRtl ? "Syano" : "سيانو"}
                 </span>
               </div>
               <p
                 className="max-w-[300px] text-[13px] leading-relaxed"
-                style={{ color: "#8A8A8A" }}
+                style={{ color: C.textLo }}
               >
                 {t("footer.tagline")}
               </p>
@@ -251,13 +259,13 @@ export function Footer() {
               {[
                 {
                   href: "mailto:syano.marketplace@gmail.com",
-                  icon: <Mail className="h-3.5 w-3.5 shrink-0" style={{ color: "#10B981" }} />,
+                  icon: <Mail className="h-3.5 w-3.5 shrink-0" style={{ color: C.accent }} />,
                   label: "syano.marketplace@gmail.com",
                   external: false,
                 },
                 {
                   href: "https://chat.whatsapp.com/B7NFVFWglpX0OoLhFj9R2m",
-                  icon: <Phone className="h-3.5 w-3.5 shrink-0" style={{ color: "#10B981" }} />,
+                  icon: <Phone className="h-3.5 w-3.5 shrink-0" style={{ color: C.accent }} />,
                   label: t("footer.contact_whatsapp"),
                   external: true,
                 },
@@ -268,21 +276,21 @@ export function Footer() {
                   {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                   className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium transition-[opacity,transform] duration-150"
                   style={{
-                    border: "1px solid #303030",
-                    background: "#141414",
-                    color: "#B8B8B8",
+                    border: `1px solid ${C.borderSoft}`,
+                    background: C.card,
+                    color: C.textMid,
                   }}
                   onMouseEnter={(e) => {
                     const el = e.currentTarget as HTMLAnchorElement;
                     el.style.borderColor = "rgba(16,185,129,0.4)";
                     el.style.background = "rgba(16,185,129,0.08)";
-                    el.style.color = "#10B981";
+                    el.style.color = C.accent;
                   }}
                   onMouseLeave={(e) => {
                     const el = e.currentTarget as HTMLAnchorElement;
-                    el.style.borderColor = "#303030";
-                    el.style.background = "#141414";
-                    el.style.color = "#B8B8B8";
+                    el.style.borderColor = C.borderSoft;
+                    el.style.background = C.card;
+                    el.style.color = C.textMid;
                   }}
                 >
                   {icon}
@@ -292,9 +300,9 @@ export function Footer() {
 
               <div
                 className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs"
-                style={{ border: "1px solid #262626", background: "#141414", color: "#8A8A8A" }}
+                style={{ border: `1px solid ${C.border}`, background: C.card, color: C.textLo }}
               >
-                <MapPin className="h-3.5 w-3.5 shrink-0" style={{ color: "#10B981" }} />
+                <MapPin className="h-3.5 w-3.5 shrink-0" style={{ color: C.accent }} />
                 {t("footer.contact_location")}
               </div>
             </div>
@@ -308,7 +316,7 @@ export function Footer() {
       <div className="container px-4 py-12 md:py-16">
         <div className="grid grid-cols-1 gap-0 md:grid-cols-2 md:gap-x-12 md:gap-y-14 lg:grid-cols-4 lg:gap-x-16">
           {columns.map((col) => (
-            <FooterColumn key={col.heading} {...col} />
+            <FooterColumn key={col.heading} {...col} C={C} />
           ))}
         </div>
       </div>
@@ -318,7 +326,7 @@ export function Footer() {
           Mobile  : label → icon row → tagline, all centred, stacked
           Desktop : label+icons left | tagline right, single row
       ════════════════════════════════════════════════════════════ */}
-      <div style={{ borderTop: "1px solid #262626" }}>
+      <div style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="container px-4 py-8 sm:py-6">
 
           {/* ── Desktop layout (sm+): two-column spread ── */}
@@ -328,14 +336,13 @@ export function Footer() {
             <div className="flex items-center gap-4">
               <span
                 className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em]"
-                style={{ color: "#8A8A8A" }}
+                style={{ color: C.textLo }}
               >
                 {t("footer.follow_us")}
               </span>
-              {/* thin divider */}
               <span
                 className="block h-4 w-px shrink-0"
-                style={{ background: "#303030" }}
+                style={{ background: C.borderSoft }}
                 aria-hidden="true"
               />
               <div className="flex items-center gap-3" role="list" aria-label="Social media links">
@@ -352,10 +359,10 @@ export function Footer() {
                                transition-[color,border-color,background] duration-150
                                focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                     style={{
-                      border: "1px solid #303030",
-                      background: "#141414",
-                      color: "#8A8A8A",
-                      outlineColor: "#10B981",
+                      border: `1px solid ${C.borderSoft}`,
+                      background: C.card,
+                      color: C.textLo,
+                      outlineColor: C.accent,
                     }}
                     onMouseEnter={(e) => {
                       const el = e.currentTarget as HTMLAnchorElement;
@@ -365,9 +372,9 @@ export function Footer() {
                     }}
                     onMouseLeave={(e) => {
                       const el = e.currentTarget as HTMLAnchorElement;
-                      el.style.color = "#8A8A8A";
-                      el.style.borderColor = "#303030";
-                      el.style.background = "#141414";
+                      el.style.color = C.textLo;
+                      el.style.borderColor = C.borderSoft;
+                      el.style.background = C.card;
                     }}
                   >
                     {SOCIAL_ICONS[key]}
@@ -377,10 +384,10 @@ export function Footer() {
             </div>
 
             {/* Right: tagline */}
-            <div className="flex shrink-0 items-center gap-2 text-[11px]" style={{ color: "#8A8A8A" }}>
-              <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#10B981" }} aria-hidden="true" />
+            <div className="flex shrink-0 items-center gap-2 text-[11px]" style={{ color: C.textLo }}>
+              <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: C.accent }} aria-hidden="true" />
               <span className="whitespace-nowrap">{isRtl ? "سوق حلب الموثوق" : "Aleppo's Trusted Marketplace"}</span>
-              <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#10B981" }} aria-hidden="true" />
+              <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: C.accent }} aria-hidden="true" />
             </div>
           </div>
 
@@ -390,12 +397,12 @@ export function Footer() {
             {/* Label */}
             <span
               className="text-[11px] font-semibold uppercase tracking-[0.12em]"
-              style={{ color: "#8A8A8A" }}
+              style={{ color: C.textLo }}
             >
               {t("footer.follow_us")}
             </span>
 
-            {/* Icon row — always fits even at 320 px */}
+            {/* Icon row */}
             <div className="flex items-center gap-3" role="list" aria-label="Social media links">
               {SOCIAL_LINKS.map(({ key, platform, href, hoverColor }) => (
                 <a
@@ -410,10 +417,10 @@ export function Footer() {
                              transition-[color,border-color,background] duration-150
                              focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                   style={{
-                    border: "1px solid #303030",
-                    background: "#141414",
-                    color: "#8A8A8A",
-                    outlineColor: "#10B981",
+                    border: `1px solid ${C.borderSoft}`,
+                    background: C.card,
+                    color: C.textLo,
+                    outlineColor: C.accent,
                   }}
                   onMouseEnter={(e) => {
                     const el = e.currentTarget as HTMLAnchorElement;
@@ -423,9 +430,9 @@ export function Footer() {
                   }}
                   onMouseLeave={(e) => {
                     const el = e.currentTarget as HTMLAnchorElement;
-                    el.style.color = "#8A8A8A";
-                    el.style.borderColor = "#303030";
-                    el.style.background = "#141414";
+                    el.style.color = C.textLo;
+                    el.style.borderColor = C.borderSoft;
+                    el.style.background = C.card;
                   }}
                 >
                   {SOCIAL_ICONS[key]}
@@ -433,11 +440,11 @@ export function Footer() {
               ))}
             </div>
 
-            {/* Tagline — visible on mobile too */}
-            <div className="flex items-center gap-2 text-[11px]" style={{ color: "#8A8A8A" }}>
-              <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#10B981" }} aria-hidden="true" />
+            {/* Tagline */}
+            <div className="flex items-center gap-2 text-[11px]" style={{ color: C.textLo }}>
+              <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: C.accent }} aria-hidden="true" />
               <span>{isRtl ? "سوق حلب الموثوق" : "Aleppo's Trusted Marketplace"}</span>
-              <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#10B981" }} aria-hidden="true" />
+              <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: C.accent }} aria-hidden="true" />
             </div>
           </div>
 
@@ -447,20 +454,20 @@ export function Footer() {
       {/* ════════════════════════════════════════════════════════════
           ZONE 4 — Copyright bar (darkest)
       ════════════════════════════════════════════════════════════ */}
-      <div style={{ background: "#050505", borderTop: "1px solid #1a1a1a" }}>
+      <div style={{ background: C.base, borderTop: `1px solid ${C.borderSubtle}` }}>
         <div className="container px-4 pb-safe-5 pt-5">
           <div className="flex flex-col items-center gap-4 md:flex-row md:justify-between">
 
             <div
               className={`space-y-1 text-center ${isRtl ? "md:text-right" : "md:text-left"}`}
             >
-              <p className="text-[13px] font-medium" style={{ color: "#B8B8B8" }}>
+              <p className="text-[13px] font-medium" style={{ color: C.textMid }}>
                 {t("footer.copyright")}
               </p>
-              <p className="text-[11px]" style={{ color: "#8A8A8A" }}>
+              <p className="text-[11px]" style={{ color: C.textLo }}>
                 {t("footer.rights")}
-                <span className="mx-2" style={{ color: "#303030" }} aria-hidden="true">·</span>
-                <span style={{ color: "#059669" }}>{t("footer.made_in")}</span>
+                <span className="mx-2" style={{ color: C.borderSoft }} aria-hidden="true">·</span>
+                <span style={{ color: C.accentH }}>{t("footer.made_in")}</span>
                 {" "}
                 <span aria-hidden="true">🇸🇾</span>
               </p>
@@ -473,12 +480,12 @@ export function Footer() {
                     <Link href={href}>
                       <span
                         className="text-[11px] transition-colors duration-150 cursor-pointer"
-                        style={{ color: "#8A8A8A" }}
+                        style={{ color: C.textLo }}
                         onMouseEnter={(e) =>
-                          ((e.currentTarget as HTMLSpanElement).style.color = "#B8B8B8")
+                          ((e.currentTarget as HTMLSpanElement).style.color = C.textMid)
                         }
                         onMouseLeave={(e) =>
-                          ((e.currentTarget as HTMLSpanElement).style.color = "#8A8A8A")
+                          ((e.currentTarget as HTMLSpanElement).style.color = C.textLo)
                         }
                       >
                         {label}
@@ -487,7 +494,7 @@ export function Footer() {
                     {i < legalLinks.length - 1 && (
                       <span
                         className="text-[11px]"
-                        style={{ color: "#303030" }}
+                        style={{ color: C.borderSoft }}
                         aria-hidden="true"
                       >
                         |

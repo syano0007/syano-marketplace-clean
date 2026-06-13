@@ -537,101 +537,18 @@ function TrendingSection({ products }: { products: import("@workspace/api-client
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   SECTION 6 — NEW ARRIVALS (asymmetric)
+   SECTION 6 — NEW ARRIVALS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-const STATIC_SMALL_ARRIVALS = [
-  { nameAr:"عطر الأوبسيديان الليلي", nameEn:"Night Obsidian Perfume", cat:"عطور",        catEn:"Perfumes",    price:"89,500", img:"https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=300", href:"/products" },
-  { nameAr:"ديكور منزلي مودرن",      nameEn:"Modern Home Decor",      cat:"منزل وديكور", catEn:"Home & Decor", price:"56,000", img:"https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=300", href:"/products" },
-];
-
-type SmallArrivalCard = { name: string; cat: string; price: string; img: string; href: string; };
-
 function NewArrivalsSection({ newArrivals }: { newArrivals: import("@workspace/api-client-react").Product[] }) {
-  const revealLarge = useReveal();
-  const revealSmall = useReveal();
-  const { t, i18n } = useTranslation();
-  const isRTL = i18n.dir() === "rtl";
-
-  const large = newArrivals[0];
-  const largeHref = large ? `/products/${large.id}` : "/products";
-  const largeImg = large
-    ? ((large as any).imageUrls?.[0] ?? "https://images.pexels.com/photos/1279107/pexels-photo-1279107.jpeg?auto=compress&cs=tinysrgb&w=900")
-    : "https://images.pexels.com/photos/1279107/pexels-photo-1279107.jpeg?auto=compress&cs=tinysrgb&w=900";
-  const largeName  = large ? ((isRTL ? (large as any).nameAr : null) ?? large.name) : (isRTL ? "مجموعة تقنية بريميوم 2025" : "Premium Tech Collection 2025");
-  const largeCat   = large?.category ?? (isRTL ? "إلكترونيات" : "Electronics");
-  const largePrice = large ? large.price.toLocaleString() : "435,000";
-  const largeRev   = (large as any)?.reviewsCount ?? 0;
-  const largeRating = ((large as any)?.averageRating ?? 0).toFixed(1);
-
-  const smalls: SmallArrivalCard[] = newArrivals.slice(1, 3).length >= 2
-    ? newArrivals.slice(1, 3).map(p => ({
-        name: (isRTL ? (p as any).nameAr : null) ?? p.name,
-        cat: p.category ?? (isRTL ? "منتجات" : "Products"),
-        price: p.price.toLocaleString(),
-        img: (p as any).imageUrls?.[0] ?? "",
-        href: `/products/${p.id}`,
-      }))
-    : STATIC_SMALL_ARRIVALS.map(a => ({
-        name: isRTL ? a.nameAr : a.nameEn,
-        cat: isRTL ? a.cat : a.catEn,
-        price: a.price,
-        img: a.img,
-        href: a.href,
-      }));
-
+  const ref = useReveal();
+  const { t } = useTranslation();
+  if (newArrivals.length === 0) return null;
   return (
     <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB }}>
       <div style={MAX_W}>
         <SectionHeader sup={t("home.arrivals_sup")} title={t("home.arrivals_title")} href="/products" />
-        <div className="sy-arrivals-grid" style={{ display:"grid", gridTemplateColumns:"1fr 356px", gap:14 }}>
-          {/* Large card */}
-          <Link href={largeHref} style={{ textDecoration:"none" }}>
-            <div ref={revealLarge} className="sy-sr" style={{ position:"relative", borderRadius:18, overflow:"hidden", minHeight:386 }}>
-              <img src={largeImg} alt="" loading="lazy" style={{ width:"100%", height:"100%", minHeight:386, objectFit:"cover", filter:"brightness(0.26) contrast(1.12)", display:"block" }} />
-              <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(0,0,0,0.97) 0%,rgba(0,0,0,0.02) 55%)" }} />
-              <div style={{ position:"absolute", top:20, [isRTL ? "right" : "left"]:20 }}>
-                <span style={{ display:"inline-flex", alignItems:"center", gap:5, fontSize:11, color:"#10b981", background:"rgba(16,185,129,0.1)", border:"1px solid rgba(16,185,129,0.28)", padding:"4px 13px", borderRadius:100, fontWeight:600 }}>↑ {t("home.new_label")}</span>
-              </div>
-              <div style={{ position:"absolute", bottom:0, [isRTL ? "right" : "left"]:0, [isRTL ? "left" : "right"]:0, padding: isRTL ? "0 28px 28px" : "0 28px 28px", textAlign: isRTL ? "right" : "left" }}>
-                <div style={{ fontSize:11, color:"#9ca3af", marginBottom:7 }}>{largeCat}</div>
-                <div style={{ fontSize:26, fontWeight:800, color:"#fff", marginBottom:11, lineHeight:1.2 }}>{largeName}</div>
-                {parseFloat(largeRating) > 0 && (
-                  <div style={{ display:"flex", alignItems:"center", justifyContent: isRTL ? "flex-end" : "flex-start", gap:6, marginBottom:10 }}>
-                    {largeRev > 0 && <span style={{ fontSize:11, color:"#9ca3af" }}>({largeRev})</span>}
-                    <span style={{ fontSize:12, fontWeight:600, color:"#fff" }}>{largeRating}</span>
-                    <Stars n={Math.round(parseFloat(largeRating))} size={12} />
-                  </div>
-                )}
-                <div style={{ fontSize:26, fontWeight:900, color:"#10b981" }}>{largePrice} <span style={{ fontSize:13, fontWeight:400, color:"#9ca3af" }}>ل.س</span></div>
-              </div>
-            </div>
-          </Link>
-
-          {/* Small cards stack */}
-          <div ref={revealSmall} className="sy-sr" style={{ display:"flex", flexDirection:"column", gap:14 }}>
-            {smalls.map((a, i) => (
-              <Link key={i} href={a.href} style={{ textDecoration:"none" }}>
-                <div className="sy-card sy-card-bg" style={{ borderRadius:16, overflow:"hidden", border:"1px solid", display:"flex", height:182, transition:"border-color 0.25s" }}>
-                  {/* Text side */}
-                  <div style={{ flex:1, padding:"16px 18px", textAlign: isRTL ? "right" : "left", display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
-                    <div>
-                      <span style={{ display:"inline-flex", alignItems:"center", gap:3, fontSize:10, color:"#10b981", background:"rgba(16,185,129,0.08)", border:"1px solid rgba(16,185,129,0.18)", padding:"2px 8px", borderRadius:100, marginBottom:7, fontWeight:600 }}>● {t("home.new_label")}</span>
-                      <div className="sy-card-muted" style={{ fontSize:10, marginBottom:4 }}>{a.cat}</div>
-                      <div className="sy-card-name" style={{ fontSize:15, fontWeight:700, lineHeight:1.35 }}>{a.name}</div>
-                    </div>
-                    <div style={{ fontSize:19, fontWeight:800, color:"#10b981" }}>{a.price} <span style={{ fontSize:11, fontWeight:400, color:"#9ca3af" }}>ل.س</span></div>
-                  </div>
-                  {/* Image side */}
-                  <div style={{ width:140, flexShrink:0 }}>
-                    {a.img
-                      ? <img src={a.img} alt="" loading="lazy" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", filter:"brightness(0.7)" }} />
-                      : <div style={{ width:"100%", height:"100%", background:"var(--secondary)" }} />
-                    }
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+        <div ref={ref} className="sy-sr product-grid">
+          {newArrivals.slice(0, 8).map(p => <ProductCard key={p.id} product={p} />)}
         </div>
       </div>
     </section>

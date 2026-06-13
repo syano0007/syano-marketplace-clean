@@ -480,6 +480,19 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {isCustomer && (
+              <Link href="/wishlist">
+                <Button variant="ghost" size="icon" className="relative h-10 w-10">
+                  <Heart className="h-5 w-5" />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1 -end-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                      {wishlistCount > 99 ? "99+" : wishlistCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            )}
+
             <NotificationCenter />
 
             {!isSeller && !isAdmin && !isCourier && (

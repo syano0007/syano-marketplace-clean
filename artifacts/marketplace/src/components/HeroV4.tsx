@@ -452,7 +452,7 @@ export function HeroV4() {
                 </svg>
               </Link>
               <Link
-                href="/products"
+                href="/stores"
                 style={{
                   padding:"13px 28px", borderRadius:12,
                   background:"transparent", color:"#d1d5db",

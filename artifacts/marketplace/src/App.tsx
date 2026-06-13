@@ -95,6 +95,7 @@ const PrivacyPolicyPage   = lazy(() => import("@/pages/privacy-policy"));
 const TermsOfUsePage      = lazy(() => import("@/pages/terms-of-use"));
 const ReturnsPolicyPage   = lazy(() => import("@/pages/returns-policy"));
 const CookiesPage         = lazy(() => import("@/pages/cookies"));
+const StoresPage          = lazy(() => import("@/pages/stores"));
 
 setupApi();
 
@@ -316,6 +317,8 @@ function Router() {
             </Route>
 
             {/* ── Info & Footer pages ──────────────────────────────── */}
+            <Route path="/stores" component={StoresPage} />
+
             <Route path="/about" component={AboutPage} />
             <Route path="/about/story" component={StoryPage} />
             <Route path="/about/team" component={TeamPage} />

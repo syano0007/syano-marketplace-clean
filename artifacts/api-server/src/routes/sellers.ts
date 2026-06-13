@@ -128,6 +128,84 @@ router.get("/sellers/featured", async (_req, res): Promise<void> => {
   }
 });
 
+/* ── GET /sellers/directory (public — searchable paginated store list) ── */
+router.get("/sellers/directory", async (req, res): Promise<void> => {
+  try {
+    const {
+      search = "", sort = "newest", verified, category,
+      page: pageStr = "1", limit: limitStr = "12",
+    } = req.query as Record<string, string>;
+    const pageNum  = Math.max(1, parseInt(pageStr,  10) || 1);
+    const limitNum = Math.min(48, parseInt(limitStr, 10) || 12);
+
+    const conditions: any[] = [eq(sellerApplicationsTable.status, "approved")];
+    if (search.trim()) {
+      const pat = `%${search.trim()}%`;
+      conditions.push(sql`lower(${sellerApplicationsTable.storeName}) like lower(${pat})`);
+    }
+    if (verified === "true") {
+      conditions.push(sql`${usersTable.verifiedAt} is not null`);
+    }
+
+    const rows = await db
+      .select({
+        sellerId:    sellerApplicationsTable.userId,
+        storeName:   sellerApplicationsTable.storeName,
+        storeSlug:   sellerApplicationsTable.storeSlug,
+        storeLogo:   sellerApplicationsTable.storeLogo,
+        storeBanner: sellerApplicationsTable.storeBanner,
+        accentColor: sellerApplicationsTable.accentColor,
+        categories:  sellerApplicationsTable.categories,
+        city:        sellerApplicationsTable.city,
+        description: sellerApplicationsTable.description,
+        createdAt:   usersTable.createdAt,
+        verifiedAt:  usersTable.verifiedAt,
+      })
+      .from(sellerApplicationsTable)
+      .innerJoin(usersTable, eq(usersTable.id, sellerApplicationsTable.userId))
+      .where(and(...conditions))
+      .orderBy(desc(usersTable.createdAt));
+
+    let filtered = rows;
+    if (category && category !== "all") {
+      filtered = rows.filter(
+        (s) => (s.categories ?? []).some((c: string) => c === category),
+      );
+    }
+
+    const withStats = await Promise.all(
+      filtered.map(async (s) => {
+        const stats = await getStoreStats(s.sellerId);
+        return {
+          sellerId:    s.sellerId,
+          storeName:   s.storeName ?? "متجر",
+          storeSlug:   s.storeSlug,
+          storeLogo:   s.storeLogo ?? null,
+          storeBanner: s.storeBanner ?? null,
+          accentColor: s.accentColor ?? null,
+          categories:  s.categories ?? [],
+          city:        s.city ?? null,
+          description: s.description ?? null,
+          isVerified:  !!s.verifiedAt,
+          createdAt:   s.createdAt.toISOString(),
+          ...stats,
+        };
+      }),
+    );
+
+    const sorted = [...withStats];
+    if      (sort === "rating")    sorted.sort((a, b) => (b.averageRating ?? 0) - (a.averageRating ?? 0));
+    else if (sort === "followers") sorted.sort((a, b) => b.followerCount - a.followerCount);
+    else if (sort === "products")  sorted.sort((a, b) => b.totalProducts  - a.totalProducts);
+
+    const total     = sorted.length;
+    const paginated = sorted.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+    res.json({ stores: paginated, total, page: pageNum, limit: limitNum });
+  } catch {
+    res.json({ stores: [], total: 0, page: 1, limit: 12 });
+  }
+});
+
 /* ── GET /sellers/store/:slug ────────────────────────────────── */
 router.get("/sellers/store/:slug", async (req, res): Promise<void> => {
   const { slug } = req.params;
