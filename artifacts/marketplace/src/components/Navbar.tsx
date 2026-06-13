@@ -408,8 +408,104 @@ export function Navbar() {
             </div>
           ) : <div />}
 
-          {/* ── COL 3 → renders on the LEFT in RTL: Auth buttons ─────────────── */}
+          {/* ── COL 3 → renders on the LEFT in RTL: Settings + Auth buttons ──── */}
           <div className="flex items-center gap-2 shrink-0">
+
+            {/* Settings dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="h-9 px-3 flex items-center gap-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.14] transition-all duration-200"
+                  aria-label={isRtl ? "الإعدادات" : "Settings"}
+                >
+                  <Settings className="h-4 w-4" />
+                  <span style={{ fontSize: "12px", fontWeight: 600 }} className="hidden lg:inline">
+                    {isRtl ? "الإعدادات" : "Settings"}
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" sideOffset={8} className="bg-[#111] border-white/[0.1] w-56 p-0 overflow-hidden">
+
+                {/* Theme */}
+                <div className="px-3 pt-3 pb-2">
+                  <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-white/30 uppercase mb-2 flex items-center gap-1.5">
+                    <Sun className="h-3 w-3" /> {isRtl ? "المظهر" : "Theme"}
+                  </p>
+                  <div className="grid grid-cols-3 gap-1">
+                    {([
+                      { val: "light", ar: "فاتح", en: "Light" },
+                      { val: "dark", ar: "داكن", en: "Dark" },
+                      { val: "system", ar: "تلقائي", en: "Auto" },
+                    ] as const).map(opt => (
+                      <button key={opt.val} onClick={() => setTheme(opt.val)}
+                        style={{ fontSize: "11px", fontWeight: 600 }}
+                        className={cn(
+                          "py-1.5 rounded-lg transition-colors",
+                          theme === opt.val
+                            ? "bg-emerald-500 text-black"
+                            : "bg-white/[0.05] text-white/50 hover:bg-white/[0.1] hover:text-white"
+                        )}>
+                        {isRtl ? opt.ar : opt.en}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="h-px bg-white/[0.07] mx-3" />
+
+                {/* Language */}
+                <div className="px-3 py-2">
+                  <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-white/30 uppercase mb-2 flex items-center gap-1.5">
+                    <Globe className="h-3 w-3" /> {isRtl ? "اللغة" : "Language"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-1">
+                    {([
+                      { val: "ar", label: "العربية" },
+                      { val: "en", label: "English" },
+                    ] as const).map(opt => (
+                      <button key={opt.val} onClick={() => switchLanguage(opt.val)}
+                        style={{ fontSize: "11px", fontWeight: 600 }}
+                        className={cn(
+                          "py-1.5 rounded-lg transition-colors",
+                          lang === opt.val
+                            ? "bg-emerald-500 text-black"
+                            : "bg-white/[0.05] text-white/50 hover:bg-white/[0.1] hover:text-white"
+                        )}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="h-px bg-white/[0.07] mx-3" />
+
+                {/* Currency */}
+                <div className="px-3 py-2 pb-3">
+                  <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-white/30 uppercase mb-2 flex items-center gap-1.5">
+                    <DollarSign className="h-3 w-3" /> {isRtl ? "العملة" : "Currency"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-1">
+                    {([
+                      { val: "SYP", label: "ل.س SYP" },
+                      { val: "USD", label: "$ USD" },
+                    ] as const).map(opt => (
+                      <button key={opt.val} onClick={() => setCurrency(opt.val)}
+                        style={{ fontSize: "11px", fontWeight: 600 }}
+                        className={cn(
+                          "py-1.5 rounded-lg transition-colors",
+                          currency === opt.val
+                            ? "bg-emerald-500 text-black"
+                            : "bg-white/[0.05] text-white/50 hover:bg-white/[0.1] hover:text-white"
+                        )}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

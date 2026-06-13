@@ -299,14 +299,17 @@ Server start
 ### Critical: home.tsx Does NOT Use Layout
 `home.tsx` renders `<Navbar />` directly (not inside Layout) because the page is full dark (`#080808`) and uses its own footer. All other pages still use `<Layout>`. The Navbar must be present in home.tsx explicitly.
 
-### Navbar Architecture (NEW)
-- File: `artifacts/marketplace/src/components/Navbar.tsx` — complete V7 rewrite
+### Navbar Architecture (Session 8 — RTL-first 3-column grid)
+- File: `artifacts/marketplace/src/components/Navbar.tsx`
 - **Always dark** glassmorphism — `rgba(8,8,8,0.75)` base → `rgba(8,8,8,0.88)` when scrolled > 20px
-- `position: fixed` at `top-0 z-50`, height: 72px desktop / 60px mobile
-- Desktop layout (LTR/RTL aware): Logo → Nav links → Search pill → [Lang/Currency/Theme] → Notifications → Wishlist → Cart → Role shortcuts → Auth
-- Role shortcuts: emerald "متجري" pill (seller), blue "توصيلاتي" (courier), purple Admin (admin) — all dropdown
-- Search: `useSearch()` hook → live suggestions with image + price; localStorage recent searches
-- Mobile: Logo → [Search icon / Wishlist / Cart] → Menu → Sheet drawer (dark `#0d0d0d`)
+- `position: fixed` at `top-0 z-50`, height: 64px desktop / 60px mobile
+- Desktop uses **CSS Grid** `gridTemplateColumns: "auto 1fr auto"` with `dir={isRtl?"rtl":"ltr"}`
+  - COL 1 (renders RIGHT in RTL): Logo + divider + Nav links (الرئيسية / المنتجات / المتاجر / العروض)
+  - COL 2 (CENTER): Search bar `max-w-[300px]` with live suggestions + recent searches
+  - COL 3 (renders LEFT in RTL): ⚙ Settings dropdown + Login button + Sign up button (or avatar when authenticated)
+- **Settings dropdown** (new, Session 8): Theme (Light/Dark/Auto) + Language (العربية/English) + Currency (SYP/USD) — fully functional, matches navbar design system
+- Floating green ShoppingBag icon **removed** from HeroSection (Session 8)
+- Mobile: Logo → [Search icon / Wishlist / Cart] → Menu → Sheet drawer (dark `#0d0d0d`) with preferences section
 
 ### Section Order (top to bottom)
 1. `<HeroSection products={allProducts} />` — split-panel; floating cards use real DB products (first 3)

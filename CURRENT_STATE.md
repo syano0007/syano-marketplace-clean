@@ -1,12 +1,24 @@
 # SYANO — Current Project State
-**Last Updated:** June 13, 2026 (Session 7)  
-**Updated By:** Homepage V7 — Premium dark navbar, 8 HomeSections components, real DB products, all buttons functional
+**Last Updated:** June 13, 2026 (Session 8)  
+**Updated By:** Navbar fixes + Settings button — RTL layout corrected, floating hero icon removed, Settings dropdown added
 
 ---
 
 ## Platform Status: ✅ PRODUCTION READY — RECOVERY VERIFIED
 
 All services running. All features validated end-to-end with real API calls.
+
+---
+
+## Migration Note (June 13, 2026 — Session 8)
+
+Navbar geometry fixes + Settings button:
+
+### Changes Applied
+- **Floating hero icon removed**: `ShoppingBag` icon that floated above the hero image was deleted from `HeroSection.tsx`
+- **RTL layout corrected**: Desktop navbar rebuilt as 3-column CSS Grid with `dir="rtl"` — COL 1 (Logo+Nav, renders RIGHT in RTL), COL 2 (Search, CENTER), COL 3 (Settings+Auth, renders LEFT in RTL)
+- **Settings button added**: ⚙ Settings dropdown placed in COL 3 immediately beside Login/Register — contains Theme (Light/Dark/Auto), Language (العربية/English), Currency (SYP/USD) — all functional with SYANO design system styling
+- **All existing navbar items preserved**: الرئيسية, المنتجات, المتاجر, العروض, Search bar, Login, Sign up — all untouched
 
 ---
 
