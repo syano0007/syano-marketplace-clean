@@ -1,5 +1,36 @@
 import { useState, useEffect } from "react";
 
+/* ── GLOBAL CSS ANIMATIONS ───────────────────────────── */
+const GLOBAL_CSS = `
+  @keyframes kenBurns {
+    0%   { transform: scale(1)    translate(0%, 0%); }
+    40%  { transform: scale(1.07) translate(-1.2%, 0.8%); }
+    70%  { transform: scale(1.04) translate(0.8%, -0.5%); }
+    100% { transform: scale(1)    translate(0%, 0%); }
+  }
+  @keyframes floatA {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-9px); }
+  }
+  @keyframes floatB {
+    0%, 100% { transform: translateY(-50%) translateX(0px); }
+    50%       { transform: translateY(-50%) translateX(0px) translateY(-7px); }
+  }
+  @keyframes floatC {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-6px); }
+  }
+  @keyframes navBlur {
+    from { backdrop-filter: blur(0px); background: rgba(8,8,8,0); }
+    to   { backdrop-filter: blur(24px); background: rgba(8,8,8,0.96); }
+  }
+  .syano-card { transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.28s ease, border-color 0.2s ease; }
+  .syano-card:hover { transform: translateY(-5px); box-shadow: 0 20px 50px rgba(0,0,0,0.6); border-color: rgba(16,185,129,0.2) !important; }
+  .syano-cat-card { transition: transform 0.25s ease; cursor: pointer; }
+  .syano-cat-card:hover { transform: scale(1.03); }
+  .syano-cat-card:hover img { filter: brightness(0.55) contrast(1.15) !important; }
+`;
+
 /* ── DATA ────────────────────────────────────────────── */
 const CATEGORIES = [
   { name: "إلكترونيات",      count: "12,450", img: "https://images.pexels.com/photos/577769/pexels-photo-577769.jpeg?auto=compress&cs=tinysrgb&w=600" },
@@ -95,14 +126,17 @@ function BikeIcon() {
 /* ━━━ SECTION HEADER component ━━━━━━━━━━━━━━━━━━━━━━━━ */
 function SectionHeader({ sup, title, linkText }: { sup: string; title: string; linkText: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 40 }}>
+    <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 32 }}>
       {/* Title: FIRST in DOM = RIGHT in RTL */}
       <div style={{ textAlign: "right" }}>
-        <div style={{ color: "#10b981", fontSize: 12, fontWeight: 600, marginBottom: 8, letterSpacing: "0.05em" }}>{sup}</div>
-        <h2 style={{ margin: 0, fontSize: 64, fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-1px" }}>{title}</h2>
+        <div style={{ color: "#10b981", fontSize: 11, fontWeight: 600, marginBottom: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>{sup}</div>
+        <h2 style={{ margin: 0, fontSize: 42, fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-0.8px" }}>{title}</h2>
       </div>
       {/* Link: SECOND in DOM = LEFT in RTL */}
-      <button style={{ color: "#6b7280", fontSize: 13, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>← {linkText}</button>
+      <button style={{ color: "#6b7280", fontSize: 13, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, transition: "color 0.2s" }}
+        onMouseEnter={e => (e.currentTarget.style.color = "#10b981")}
+        onMouseLeave={e => (e.currentTarget.style.color = "#6b7280")}
+      >← {linkText}</button>
     </div>
   );
 }
@@ -110,9 +144,19 @@ function SectionHeader({ sup, title, linkText }: { sup: string; title: string; l
 /* ── MAIN COMPONENT ──────────────────────────────────── */
 export function HomepageRedesign() {
   const maxW = { maxWidth: 1280, margin: "0 auto", padding: "0 48px" };
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const el = document.getElementById("syano-scroll-root");
+    if (!el) return;
+    const handler = () => setScrolled(el.scrollTop > 20);
+    el.addEventListener("scroll", handler, { passive: true });
+    return () => el.removeEventListener("scroll", handler);
+  }, []);
 
   return (
-    <div dir="rtl" style={{ fontFamily: "'Segoe UI', Tahoma, system-ui, sans-serif", background: "#080808", color: "#fff", minHeight: "100vh", overflowX: "hidden" }}>
+    <div id="syano-scroll-root" dir="rtl" style={{ fontFamily: "'Segoe UI', Tahoma, system-ui, sans-serif", background: "#080808", color: "#fff", minHeight: "100vh", overflowX: "hidden", overflowY: "auto", height: "100vh" }}>
+      {/* ━━━ INJECT CSS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <style>{GLOBAL_CSS}</style>
 
       {/* ━━━ GLOBAL GRID TEXTURE OVERLAY ━━━━━━━━━━━━━━━━━ */}
       <div style={{
@@ -122,7 +166,14 @@ export function HomepageRedesign() {
       }} />
 
       {/* ━━━ NAVBAR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <nav style={{ background: "rgba(8,8,8,0.95)", borderBottom: "1px solid rgba(255,255,255,0.05)", position: "sticky", top: 0, zIndex: 50, backdropFilter: "blur(20px)" }}>
+      <nav style={{
+        background: scrolled ? "rgba(8,8,8,0.97)" : "rgba(8,8,8,0.88)",
+        borderBottom: scrolled ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(255,255,255,0.04)",
+        position: "sticky", top: 0, zIndex: 100,
+        backdropFilter: "blur(24px)",
+        transition: "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
+        boxShadow: scrolled ? "0 4px 32px rgba(0,0,0,0.4)" : "none",
+      }}>
         <div style={{ ...maxW, height: 64, display: "flex", alignItems: "center", gap: 24 }}>
           {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
@@ -173,12 +224,12 @@ export function HomepageRedesign() {
                 ✦ سوق سوريا الرقمي
               </span>
             </div>
-            <h1 style={{ margin: 0, fontSize: 72, fontWeight: 900, lineHeight: 1.05, letterSpacing: "-2px", color: "#fff" }}>
+            <h1 style={{ margin: 0, fontSize: 54, fontWeight: 900, lineHeight: 1.08, letterSpacing: "-1.5px", color: "#fff" }}>
               اكتشف آلاف<br />
               المنتجات من<br />
               <span style={{ color: "#10b981" }}>المتاجر السورية</span>
             </h1>
-            <p style={{ margin: 0, color: "#9ca3af", fontSize: 15, lineHeight: 1.75 }}>
+            <p style={{ margin: 0, color: "#9ca3af", fontSize: 14, lineHeight: 1.75 }}>
               منتجات متنوعة، متاجر موثوقة، وتجربة تسوق حديثة تجمع أفضل المتاجر السورية في مكان واحد.
             </p>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
@@ -192,9 +243,9 @@ export function HomepageRedesign() {
                 { n: "+25,000", l: "منتج فاعل" },
                 { n: "+500",    l: "متاجر نشط" },
               ].map((s, i) => (
-                <div key={s.l} style={{ flex: 1, textAlign: "right", paddingInlineEnd: i < 2 ? 24 : 0, paddingInlineStart: i > 0 ? 24 : 0, borderInlineStart: i > 0 ? "1px solid rgba(255,255,255,0.07)" : "none" }}>
-                  <div style={{ fontSize: 34, fontWeight: 900, color: "#fff", lineHeight: 1, whiteSpace: "nowrap" }}>{s.n}</div>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>{s.l}</div>
+                <div key={s.l} style={{ flex: 1, textAlign: "right", paddingInlineEnd: i < 2 ? 20 : 0, paddingInlineStart: i > 0 ? 20 : 0, borderInlineStart: i > 0 ? "1px solid rgba(255,255,255,0.07)" : "none" }}>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", lineHeight: 1, whiteSpace: "nowrap" }}>{s.n}</div>
+                  <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{s.l}</div>
                 </div>
               ))}
             </div>
@@ -207,7 +258,7 @@ export function HomepageRedesign() {
               <img
                 src="https://images.pexels.com/photos/1279107/pexels-photo-1279107.jpeg?auto=compress&cs=tinysrgb&w=1000"
                 alt=""
-                style={{ width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.5) contrast(1.15)" }}
+                style={{ width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.5) contrast(1.15)", animation: "kenBurns 24s ease-in-out infinite", transformOrigin: "center center", willChange: "transform" }}
               />
               {/* Gradient fade towards text side (right = RTL start) */}
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, transparent 35%, #080808 100%)" }} />
@@ -215,7 +266,7 @@ export function HomepageRedesign() {
             </div>
 
             {/* Floating card — top left of image */}
-            <div style={{ position: "absolute", top: 32, left: 28, zIndex: 2, background: "rgba(12,12,12,0.88)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "12px 16px", display: "flex", gap: 12, alignItems: "center", width: 218, boxShadow: "0 12px 40px rgba(0,0,0,0.5)" }}>
+            <div style={{ position: "absolute", top: 32, left: 28, zIndex: 2, background: "rgba(12,12,12,0.88)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "12px 16px", display: "flex", gap: 12, alignItems: "center", width: 218, boxShadow: "0 12px 40px rgba(0,0,0,0.5)", animation: "floatA 5s ease-in-out infinite", willChange: "transform" }}>
               <div style={{ flex: 1, textAlign: "right" }}>
                 <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 2 }}>عطار ديور سوهاج</div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", marginBottom: 4 }}>75,000 <span style={{ color: "#10b981", fontSize: 11, fontWeight: 400 }}>ل.س</span></div>
@@ -224,8 +275,8 @@ export function HomepageRedesign() {
               <img src="https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=60" alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
             </div>
 
-            {/* Floating card — mid left */}
-            <div style={{ position: "absolute", top: "42%", left: 20, transform: "translateY(-50%)", zIndex: 2, background: "rgba(12,12,12,0.88)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "12px 16px", display: "flex", gap: 12, alignItems: "center", width: 195, boxShadow: "0 12px 40px rgba(0,0,0,0.5)" }}>
+            {/* Floating card — mid left (top value = 42% of 560px ≈ 235 − half card height 36px) */}
+            <div style={{ position: "absolute", top: 200, left: 20, zIndex: 2, background: "rgba(12,12,12,0.88)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "12px 16px", display: "flex", gap: 12, alignItems: "center", width: 195, boxShadow: "0 12px 40px rgba(0,0,0,0.5)", animation: "floatC 7s 1.5s ease-in-out infinite", willChange: "transform" }}>
               <div style={{ flex: 1, textAlign: "right" }}>
                 <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 2 }}>مومية رالية</div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>38,500 <span style={{ color: "#10b981", fontSize: 11, fontWeight: 400 }}>ل.س</span></div>
@@ -234,7 +285,7 @@ export function HomepageRedesign() {
             </div>
 
             {/* Floating card — bottom left */}
-            <div style={{ position: "absolute", bottom: 44, left: 44, zIndex: 2, background: "rgba(12,12,12,0.88)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "12px 16px", display: "flex", gap: 12, alignItems: "center", width: 230, boxShadow: "0 12px 40px rgba(0,0,0,0.5)" }}>
+            <div style={{ position: "absolute", bottom: 44, left: 44, zIndex: 2, background: "rgba(12,12,12,0.88)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "12px 16px", display: "flex", gap: 12, alignItems: "center", width: 230, boxShadow: "0 12px 40px rgba(0,0,0,0.5)", animation: "floatA 6s 3s ease-in-out infinite", willChange: "transform" }}>
               <div style={{ flex: 1, textAlign: "right" }}>
                 <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 2 }}>ساعة خضرية فاخرة</div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", marginBottom: 4 }}>142,000 <span style={{ color: "#10b981", fontSize: 11, fontWeight: 400 }}>ل.س</span></div>
@@ -255,12 +306,12 @@ export function HomepageRedesign() {
           <SectionHeader sup="تصفح حسب الفئة" title="الفئات الأكثر شيوعاً" linkText="عرض الكل" />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
             {CATEGORIES.map(c => (
-              <div key={c.name} style={{ position: "relative", height: 260, borderRadius: 18, overflow: "hidden", cursor: "pointer" }}>
-                <img src={c.img} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.4) contrast(1.15)", display: "block" }} />
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)" }} />
-                <div style={{ position: "absolute", bottom: 0, right: 0, padding: "0 18px 20px", textAlign: "right" }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 4 }}>{c.name}</div>
-                  <div style={{ fontSize: 13, color: "#9ca3af" }}>{c.count} منتج</div>
+              <div key={c.name} className="syano-cat-card" style={{ position: "relative", height: 240, borderRadius: 16, overflow: "hidden" }}>
+                <img src={c.img} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.4) contrast(1.15)", display: "block", transition: "filter 0.3s ease" }} />
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)" }} />
+                <div style={{ position: "absolute", bottom: 0, right: 0, padding: "0 16px 18px", textAlign: "right" }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", marginBottom: 3 }}>{c.name}</div>
+                  <div style={{ fontSize: 12, color: "#9ca3af" }}>{c.count} منتج</div>
                 </div>
               </div>
             ))}
@@ -277,7 +328,7 @@ export function HomepageRedesign() {
             {/* Title: FIRST = RIGHT in RTL */}
             <div style={{ textAlign: "right" }}>
               <div style={{ color: "#10b981", fontSize: 12, fontWeight: 600, marginBottom: 8, letterSpacing: "0.05em" }}>عروض حصرية</div>
-              <h2 style={{ margin: 0, fontSize: 64, fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-1px" }}>عروض مميزة</h2>
+              <h2 style={{ margin: 0, fontSize: 42, fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-0.8px" }}>عروض مميزة</h2>
             </div>
             {/* Timer + link: SECOND = LEFT in RTL */}
             <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-start" }}>
@@ -287,29 +338,41 @@ export function HomepageRedesign() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
             {DEALS.map(d => (
-              <div key={d.name} style={{ background: "#0e0e0e", borderRadius: 20, overflow: "hidden", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <div style={{ position: "relative", height: 280 }}>
-                  <img src={d.img} alt={d.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "brightness(0.85)" }} />
-                  {/* Discount badge: LEFT side of image */}
-                  <span style={{ position: "absolute", top: 14, left: 14, background: "#10b981", color: "#fff", fontSize: 13, fontWeight: 800, padding: "4px 12px", borderRadius: 100 }}>-{d.disc}%</span>
-                  {/* Secondary label: RIGHT side of image */}
-                  <span style={{ position: "absolute", top: 14, right: 14, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)" }}>{d.badge}</span>
+              <div key={d.name} className="syano-card" style={{ background: "#0d0d0d", borderRadius: 18, overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column" }}>
+                <div style={{ position: "relative", height: 210, flexShrink: 0 }}>
+                  <img src={d.img} alt={d.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "brightness(0.9)" }} />
+                  {/* Gradient overlay at bottom of image */}
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(13,13,13,0.7) 0%, transparent 55%)" }} />
+                  {/* Discount badge: LEFT side */}
+                  <span style={{ position: "absolute", top: 12, left: 12, background: "#10b981", color: "#fff", fontSize: 12, fontWeight: 800, padding: "3px 10px", borderRadius: 100, letterSpacing: "0.3px" }}>-{d.disc}%</span>
+                  {/* Secondary label: RIGHT side */}
+                  <span style={{ position: "absolute", top: 12, right: 12, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(10px)", color: "#d1d5db", fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)" }}>{d.badge}</span>
+                  {/* Favorite heart — top left below discount */}
+                  <button style={{ position: "absolute", bottom: 12, left: 12, width: 30, height: 30, borderRadius: "50%", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.1)", color: "#9ca3af", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>♡</button>
                 </div>
-                <div style={{ padding: "16px 18px 18px" }}>
-                  <div style={{ fontSize: 12, color: "#6b7280", textAlign: "right", marginBottom: 6 }}>{d.cat}</div>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: "#fff", textAlign: "right", lineHeight: 1.3, marginBottom: 10 }}>{d.name}</div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, marginBottom: 14 }}>
-                    <span style={{ fontSize: 12, color: "#9ca3af" }}>({d.rev}) {d.rating}</span>
-                    <Stars n={Math.floor(d.rating)} size={13} />
+                <div style={{ padding: "14px 16px 16px", flex: 1, display: "flex", flexDirection: "column" }}>
+                  <div style={{ fontSize: 11, color: "#6b7280", textAlign: "right", marginBottom: 4 }}>{d.cat}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", textAlign: "right", lineHeight: 1.35, marginBottom: 8, flex: 1 }}>{d.name}</div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginBottom: 12 }}>
+                    <span style={{ fontSize: 11, color: "#6b7280" }}>({d.rev})</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#e5e7eb" }}>{d.rating}</span>
+                    <Stars n={Math.floor(d.rating)} size={12} />
                   </div>
-                  {/* Bottom: price RIGHT (first in DOM=RIGHT in RTL), button LEFT (second=LEFT) */}
-                  <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 20, fontWeight: 900, color: "#10b981", lineHeight: 1 }}>{d.price} <span style={{ fontSize: 12, fontWeight: 400 }}>ل.س</span></div>
-                      <div style={{ fontSize: 11, color: "#6b7280", textDecoration: "line-through", marginTop: 3 }}>{d.orig} ل.س</div>
+                  {/* Price row */}
+                  <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 12 }}>
+                    <div style={{ textAlign: "left" }}>
+                      <div style={{ fontSize: 11, color: "#6b7280", textDecoration: "line-through" }}>{d.orig} ل.س</div>
                     </div>
-                    <button style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "#d1d5db", fontSize: 13, fontWeight: 700, padding: "9px 20px", borderRadius: 10, cursor: "pointer" }}>أضف</button>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 17, fontWeight: 900, color: "#10b981", lineHeight: 1 }}>{d.price}</div>
+                      <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>ل.س</div>
+                    </div>
                   </div>
+                  {/* Full-width Add to cart button */}
+                  <button style={{ width: "100%", background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)", color: "#10b981", fontSize: 13, fontWeight: 700, padding: "10px", borderRadius: 10, cursor: "pointer", transition: "background 0.2s, color 0.2s" }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#10b981"; e.currentTarget.style.color = "#fff"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(16,185,129,0.12)"; e.currentTarget.style.color = "#10b981"; }}
+                  >أضف للسلة</button>
                 </div>
               </div>
             ))}
@@ -341,7 +404,7 @@ export function HomepageRedesign() {
                       <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{s.rating}</span>
                       <Stars n={Math.floor(s.rating)} size={13} />
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>{s.name}</div>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: "#fff" }}>{s.name}</div>
                   </div>
                   <p style={{ margin: "0 0 12px", fontSize: 13, color: "#9ca3af", lineHeight: 1.6 }}>{s.desc}</p>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, fontSize: 12, color: "#6b7280" }}>
@@ -368,31 +431,31 @@ export function HomepageRedesign() {
           <SectionHeader sup="الأعلى تقييماً هذا الأسبوع" title="المنتجات الرائجة" linkText="عرض الكل" />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
             {TRENDING.map(p => (
-              <div key={p.name} style={{ background: "#0e0e0e", borderRadius: 20, overflow: "hidden", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <div style={{ position: "relative", height: 360 }}>
-                  <img src={p.img} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "brightness(0.75)" }} />
+              <div key={p.name} className="syano-card" style={{ background: "#0d0d0d", borderRadius: 18, overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)" }}>
+                <div style={{ position: "relative", height: 320 }}>
+                  <img src={p.img} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "brightness(0.72)" }} />
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(13,13,13,0.9) 0%, transparent 50%)" }} />
                   {p.hot && (
-                    <span style={{ position: "absolute", top: 16, right: 16, background: "#10b981", color: "#fff", fontSize: 12, fontWeight: 800, padding: "5px 12px", borderRadius: 100, display: "flex", alignItems: "center", gap: 4 }}>↑ رائج</span>
+                    <span style={{ position: "absolute", top: 14, right: 14, background: "#10b981", color: "#fff", fontSize: 11, fontWeight: 800, padding: "4px 11px", borderRadius: 100, display: "flex", alignItems: "center", gap: 4 }}>↑ رائج</span>
                   )}
-                  <button style={{ position: "absolute", top: 16, left: 16, width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)", color: "#d1d5db", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>♡</button>
+                  <button style={{ position: "absolute", top: 14, left: 14, width: 32, height: 32, borderRadius: "50%", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)", color: "#9ca3af", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>♡</button>
                 </div>
-                <div style={{ padding: "18px 20px 20px" }}>
+                <div style={{ padding: "16px 18px 18px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>{p.cat}</div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>{p.seller}</div>
+                    <div style={{ fontSize: 11, color: "#6b7280" }}>{p.cat}</div>
+                    <div style={{ fontSize: 11, color: "#6b7280" }}>{p.seller}</div>
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", textAlign: "right", marginBottom: 10 }}>{p.name}</div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, marginBottom: 18 }}>
-                    <span style={{ fontSize: 12, color: "#9ca3af" }}>({p.rev})</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{p.rating}</span>
-                    <Stars n={Math.floor(p.rating)} size={14} />
+                  <div style={{ fontSize: 17, fontWeight: 800, color: "#fff", textAlign: "right", marginBottom: 8 }}>{p.name}</div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, marginBottom: 14 }}>
+                    <span style={{ fontSize: 11, color: "#9ca3af" }}>({p.rev})</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#e5e7eb" }}>{p.rating}</span>
+                    <Stars n={Math.floor(p.rating)} size={13} />
                   </div>
-                  {/* Row: price RIGHT, button LEFT (RTL) */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <button style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 10, padding: "11px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>أضف للسلة</button>
+                    <button style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>أضف للسلة</button>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 22, fontWeight: 900, color: "#fff" }}>{p.price}</div>
-                      <div style={{ fontSize: 12, color: "#9ca3af" }}>ل.س</div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: "#fff" }}>{p.price}</div>
+                      <div style={{ fontSize: 11, color: "#9ca3af" }}>ل.س</div>
                     </div>
                   </div>
                 </div>
@@ -457,8 +520,8 @@ export function HomepageRedesign() {
           <div style={{ background: "#0a0a0a", borderRadius: 28, border: "1px solid rgba(255,255,255,0.07)", padding: "80px 64px", textAlign: "center", position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: -50, left: "50%", transform: "translateX(-50%)", width: 600, height: 300, background: "radial-gradient(ellipse, rgba(16,185,129,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 20px", borderRadius: 100, border: "1px solid rgba(16,185,129,0.35)", color: "#10b981", fontSize: 13, fontWeight: 700, marginBottom: 24, background: "rgba(16,185,129,0.06)" }}>انضم إلى سيانو</span>
-            <h2 style={{ margin: "0 0 16px", fontSize: 60, fontWeight: 900, color: "#fff", lineHeight: 1.1, letterSpacing: "-1px" }}>كن جزءاً من السوق السوري</h2>
-            <p style={{ margin: "0 0 56px", color: "#9ca3af", fontSize: 16 }}>سواء كنت بائعاً أو مندوب توصيل، هناك مكان لك في سيانو.</p>
+            <h2 style={{ margin: "0 0 14px", fontSize: 36, fontWeight: 900, color: "#fff", lineHeight: 1.15, letterSpacing: "-0.6px" }}>كن جزءاً من السوق السوري</h2>
+            <p style={{ margin: "0 0 44px", color: "#9ca3af", fontSize: 14 }}>سواء كنت بائعاً أو مندوب توصيل، هناك مكان لك في سيانو.</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, maxWidth: 760, margin: "0 auto" }}>
               {[
                 { Icon: StoreIcon, title: "ابدأ البيع على سيانو", desc: "افتح متجرك الإلكتروني وتواصل مع آلاف المشترين في جميع أنحاء سوريا", link: "إنشاء متجري" },
