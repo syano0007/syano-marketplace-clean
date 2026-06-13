@@ -60,7 +60,25 @@
     "verified_stores_title": "متاجر موثوقة",
     "visit_store": "زيارة المتجر",
     "products_count": "{{count}} منتج",
-    "followers_count": "{{count}} متابع"
+    "followers_count": "{{count}} متابع",
+    "categories_sup": "تصفح حسب الفئة",
+    "stores_sup": "شركاؤنا التجاريون",
+    "trending_sup": "الأعلى تقييماً هذا الأسبوع",
+    "trending_title": "المنتجات الرائجة",
+    "arrivals_sup": "أضيف لنا",
+    "deals_sup": "عروض حصرية",
+    "deals_ends_in": "تنتهي خلال",
+    "recently_viewed_sup": "تصفحتها مؤخراً",
+    "join_badge": "انضم إلى سيانو",
+    "join_title": "كن جزءاً من السوق السوري",
+    "join_desc": "سواء كنت بائعاً أو مندوب توصيل، هناك مكان لك في سيانو.",
+    "sell_cta_cta": "إنشاء متجري",
+    "courier_cta_cta": "التسجيل كمندوب",
+    "product_unit": "منتج",
+    "store_misc": "متجر متنوع",
+    "new_label": "جديد",
+    "available_now": "متوفر الآن",
+    "clear_history": "مسح السجل"
   },
   "products": {
     "title": "اكتشف المنتجات",
@@ -2714,5 +2732,9 @@
   "admin.hero_banners.status_live": "نشط",
   "admin.hero_banners.status_scheduled": "مجدول",
   "admin.hero_banners.status_expired": "منتهي",
-  "admin.hero_banners.status_inactive": "غير نشط"
+  "admin.hero_banners.status_inactive": "غير نشط",
+  "wishlist": {
+    "login_title": "يرجى تسجيل الدخول",
+    "login_desc": "سجّل دخولك لحفظ منتجاتك المفضلة"
+  }
 }

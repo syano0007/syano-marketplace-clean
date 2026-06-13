@@ -199,13 +199,23 @@ export function HeroV4() {
   ];
 
   return (
-    <section className="border-b bg-black overflow-hidden">
-      {/* Floating card keyframes */}
+    <section className="border-b overflow-hidden">
+      {/* Hero keyframes + theme-adaptive styles */}
       <style>{`
         @keyframes heroFloatA { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
         @keyframes heroFloatB { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
         @keyframes heroFloatC { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-11px)} }
         @keyframes heroKenBurns { 0%{transform:scale(1) translate(0%,0%)} 50%{transform:scale(1.04) translate(-0.8%,0.5%)} 100%{transform:scale(1) translate(0%,0%)} }
+        .hero-v4-panel { background: hsl(var(--background)); }
+        .hero-v4-blend-r { background: linear-gradient(to left,  hsl(var(--background)) 0%, transparent 100%); }
+        .hero-v4-blend-l { background: linear-gradient(to right, hsl(var(--background)) 0%, transparent 100%); }
+        .hero-v4-headline { color: hsl(var(--foreground)); }
+        .hero-v4-sub      { color: hsl(var(--muted-foreground)); }
+        .hero-v4-stat-n   { color: hsl(var(--foreground)); }
+        .hero-v4-stat-l   { color: hsl(var(--muted-foreground)); }
+        .hero-v4-divider  { border-color: hsl(var(--border)); }
+        .hero-v4-glow     { background: radial-gradient(circle, rgba(16,185,129,0.055) 0%, transparent 70%); }
+        .dark .hero-v4-glow { background: radial-gradient(circle, rgba(16,185,129,0.07) 0%, transparent 70%); }
       `}</style>
 
       {/* ── Main hero area ───────────────────────────────────────────── */}
@@ -265,13 +275,10 @@ export function HeroV4() {
 
           {/* Blend gradient — merges image into text panel on the right/left junction */}
           <div
-            className="absolute inset-y-0 pointer-events-none"
+            className={`absolute inset-y-0 pointer-events-none ${isRTL ? "hero-v4-blend-r" : "hero-v4-blend-l"}`}
             style={{
               [isRTL ? "right" : "left"]: 0,
               width: "45%",
-              background: isRTL
-                ? "linear-gradient(to left, #080808 0%, rgba(8,8,8,0.82) 30%, rgba(8,8,8,0.5) 55%, transparent 100%)"
-                : "linear-gradient(to right, #080808 0%, rgba(8,8,8,0.82) 30%, rgba(8,8,8,0.5) 55%, transparent 100%)",
             }}
           />
 
@@ -367,19 +374,17 @@ export function HeroV4() {
 
         {/* ══ TEXT PANEL (visual RIGHT in RTL) ════════════════════════ */}
         <div
-          className="absolute inset-y-0 flex flex-col justify-center z-10"
+          className="hero-v4-panel absolute inset-y-0 flex flex-col justify-center z-10"
           style={{
             [isRTL ? "right" : "left"]: 0,
             width: "48%",
-            background: "linear-gradient(to bottom, #080808, #080808)",
           }}
         >
           {/* Ambient green glow */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div style={{
+            <div className="hero-v4-glow" style={{
               position:"absolute", top:"-30%", right:"20%",
               width:"400px", height:"400px", borderRadius:"50%",
-              background:"radial-gradient(circle, rgba(16,185,129,0.055) 0%, transparent 70%)",
               pointerEvents:"none",
             }} />
           </div>
@@ -405,13 +410,12 @@ export function HeroV4() {
             </div>
 
             {/* Headline */}
-            <h1 style={{
+            <h1 className="hero-v4-headline" style={{
               margin:0,
               fontSize:"clamp(26px,3.2vw,58px)",
               fontWeight:900,
               lineHeight:1.06,
               letterSpacing:"-1.5px",
-              color:"#fff",
             }}>
               {isRTL ? (
                 <>اكتشف آلاف المنتجات<br />من <span style={{color:"#10b981"}}>المتاجر السورية</span></>
@@ -421,7 +425,7 @@ export function HeroV4() {
             </h1>
 
             {/* Subtitle */}
-            <p style={{ margin:0, color:"rgba(255,255,255,0.55)", fontSize:13, lineHeight:1.85, maxWidth:360 }}>
+            <p className="hero-v4-sub" style={{ margin:0, fontSize:13, lineHeight:1.85, maxWidth:360 }}>
               {isRTL
                 ? "منتجات متنوعة، متاجر موثوقة، وتجربة تسوق حديثة تجمع أفضل المتاجر السورية."
                 : "Diverse products, trusted sellers, and a modern shopping experience."}
@@ -461,24 +465,26 @@ export function HeroV4() {
             </div>
 
             {/* Stats bar */}
-            <div style={{
-              borderTop:"1px solid rgba(255,255,255,0.07)",
+            <div className="hero-v4-divider" style={{
+              borderTopWidth:1, borderTopStyle:"solid",
               paddingTop:22, marginTop:2,
               display:"flex", alignItems:"flex-start",
             }}>
               {STATS.map((s, i) => (
                 <div
                   key={s.l}
+                  className={i > 0 ? "hero-v4-divider" : ""}
                   style={{
                     flex:1,
                     textAlign: isRTL ? "right" : "left",
                     paddingInlineEnd: i < 2 ? 20 : 0,
                     paddingInlineStart: i > 0 ? 20 : 0,
-                    borderInlineStart: i > 0 ? "1px solid rgba(255,255,255,0.07)" : "none",
+                    borderInlineStartWidth: i > 0 ? 1 : 0,
+                    borderInlineStartStyle: "solid",
                   }}
                 >
-                  <div style={{ fontSize:"clamp(20px,2.2vw,28px)", fontWeight:900, color:"#fff", lineHeight:1, whiteSpace:"nowrap" }}>{s.n}</div>
-                  <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:4 }}>{s.l}</div>
+                  <div className="hero-v4-stat-n" style={{ fontSize:"clamp(20px,2.2vw,28px)", fontWeight:900, lineHeight:1, whiteSpace:"nowrap" }}>{s.n}</div>
+                  <div className="hero-v4-stat-l" style={{ fontSize:11, marginTop:4 }}>{s.l}</div>
                 </div>
               ))}
             </div>

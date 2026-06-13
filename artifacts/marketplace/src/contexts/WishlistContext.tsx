@@ -4,6 +4,11 @@ import { useAuth } from "./AuthContext";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
 
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem("token");
+  return token ? { "Authorization": `Bearer ${token}` } : {};
+}
+
 interface WishlistContextValue {
   ids: number[];
   isInWishlist: (productId: number) => boolean;
@@ -28,7 +33,10 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
   const fetchIds = useCallback(() => {
     if (!isAuthenticated) { setIds([]); return; }
-    fetch(`${BASE}api/wishlist/ids`, { credentials: "include" })
+    fetch(`${BASE}api/wishlist/ids`, {
+      credentials: "include",
+      headers: authHeaders(),
+    })
       .then((r) => (r.ok ? r.json() : []))
       .then((data: number[]) => setIds(Array.isArray(data) ? data : []))
       .catch(() => {});
@@ -45,11 +53,15 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     setIds((prev) => inList ? prev.filter((id) => id !== productId) : [...prev, productId]);
     try {
       if (inList) {
-        await fetch(`${BASE}api/wishlist/${productId}`, { method: "DELETE", credentials: "include" });
+        await fetch(`${BASE}api/wishlist/${productId}`, {
+          method: "DELETE",
+          credentials: "include",
+          headers: authHeaders(),
+        });
       } else {
         await fetch(`${BASE}api/wishlist`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeaders() },
           credentials: "include",
           body: JSON.stringify({ productId }),
         });

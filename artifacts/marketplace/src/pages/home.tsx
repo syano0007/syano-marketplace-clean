@@ -31,8 +31,22 @@ const PAGE_CSS = `
   @keyframes syFloatC { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-11px); } }
 
   /* ── Light / Dark page wrapper ────────────────────────────────── */
-  .sy-page { background:#f8fafc; color:#111827; }
-  .dark .sy-page { background:#080808; color:#fff; }
+  .sy-page {
+    background: #f8fafc;
+    color: #111827;
+    background-image:
+      linear-gradient(rgba(0,0,0,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.035) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+  .dark .sy-page {
+    background: #080808;
+    color: #fff;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
 
   /* ── Section title inherits page color ─────────────────────────── */
   .sy-title { color:inherit; }
@@ -63,7 +77,7 @@ const PAGE_CSS = `
   /* ── Category hover ────────────────────────────────────────────── */
   .sy-cat { cursor:pointer; overflow:hidden; transition:transform 0.3s cubic-bezier(0.22,1,0.36,1); }
   .sy-cat:hover { transform:scale(1.028); }
-  .sy-cat img { filter:brightness(0.68) contrast(1.05); transition:filter 0.3s; }
+  .sy-cat img { filter:brightness(0.58) contrast(1.08); transition:filter 0.3s; }
   .dark .sy-cat img { filter:brightness(0.34) contrast(1.1); }
   .sy-cat:hover img { filter:brightness(0.50) contrast(1.08) !important; }
   .sy-cat-overlay { background:linear-gradient(to top,rgba(0,0,0,0.72) 0%,rgba(0,0,0,0.02) 55%,transparent 100%); }
@@ -121,14 +135,14 @@ const SUP_STYLE: React.CSSProperties = { display:"block", fontSize:12, fontWeigh
    STATIC FALLBACK DATA
    ───────────────────────────────────────────────────────── */
 const CATS = [
-  { nameAr:"إلكترونيات",     slug:"Electronics",            count:"12,450", img:"https://images.pexels.com/photos/577769/pexels-photo-577769.jpeg?auto=compress&cs=tinysrgb&w=600" },
-  { nameAr:"موضة وملابس",    slug:"Fashion",                count:"8,320",  img:"https://images.pexels.com/photos/934070/pexels-photo-934070.jpeg?auto=compress&cs=tinysrgb&w=600" },
-  { nameAr:"عطور وجمال",     slug:"Beauty & Personal Care", count:"3,650",  img:"https://images.pexels.com/photos/3059609/pexels-photo-3059609.jpeg?auto=compress&cs=tinysrgb&w=600" },
-  { nameAr:"منزل وديكور",    slug:"Home & Kitchen",         count:"6,780",  img:"https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=600" },
-  { nameAr:"رياضة وأحذية",   slug:"Sports & Fitness",       count:"5,230",  img:"https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=600" },
-  { nameAr:"ساعات فاخرة",    slug:"Accessories",            count:"2,890",  img:"https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=600" },
-  { nameAr:"هواتف ذكية",     slug:"Electronics",            count:"4,120",  img:"https://images.pexels.com/photos/47261/pexels-photo-47261.jpeg?auto=compress&cs=tinysrgb&w=600" },
-  { nameAr:"حواسيب ولابتوب", slug:"Electronics",            count:"3,470",  img:"https://images.pexels.com/photos/2047905/pexels-photo-2047905.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { nameAr:"إلكترونيات",     nameEn:"Electronics",     slug:"Electronics",            count:"12,450", img:"https://images.pexels.com/photos/577769/pexels-photo-577769.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { nameAr:"موضة وملابس",    nameEn:"Fashion",          slug:"Fashion",                count:"8,320",  img:"https://images.pexels.com/photos/934070/pexels-photo-934070.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { nameAr:"عطور وجمال",     nameEn:"Beauty & Care",    slug:"Beauty & Personal Care", count:"3,650",  img:"https://images.pexels.com/photos/3059609/pexels-photo-3059609.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { nameAr:"منزل وديكور",    nameEn:"Home & Decor",     slug:"Home & Kitchen",         count:"6,780",  img:"https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { nameAr:"رياضة وأحذية",   nameEn:"Sports",           slug:"Sports & Fitness",       count:"5,230",  img:"https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { nameAr:"ساعات فاخرة",    nameEn:"Accessories",      slug:"Accessories",            count:"2,890",  img:"https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { nameAr:"هواتف ذكية",     nameEn:"Smartphones",      slug:"Electronics",            count:"4,120",  img:"https://images.pexels.com/photos/47261/pexels-photo-47261.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { nameAr:"حواسيب ولابتوب", nameEn:"Computers",        slug:"Electronics",            count:"3,470",  img:"https://images.pexels.com/photos/2047905/pexels-photo-2047905.jpeg?auto=compress&cs=tinysrgb&w=600" },
 ] as const;
 
 
@@ -166,7 +180,7 @@ function Stars({ n, size = 13 }: { n: number; size?: number }) {
   return (
     <span style={{ display:"inline-flex", gap:1.5, flexShrink:0 }}>
       {[1,2,3,4,5].map(i => (
-        <svg key={i} style={{ width:size, height:size, color:i<=n?"#f59e0b":"#2a2a2a" }} fill="currentColor" viewBox="0 0 20 20">
+        <svg key={i} style={{ width:size, height:size, color:i<=n?"#f59e0b":"rgba(128,128,128,0.22)" }} fill="currentColor" viewBox="0 0 20 20">
           <path d={starPath} />
         </svg>
       ))}
@@ -240,13 +254,16 @@ function useStagger(count: number, stagger = 110) {
    ───────────────────────────────────────────────────────── */
 function SectionHeader({ sup, title, href }: { sup: string; title: string; href: string }) {
   const ref = useReveal(0.2);
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === "rtl";
+  const arrow = isRTL ? "←" : "→";
   return (
     <div ref={ref} className="sy-sr" style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", marginBottom:36 }}>
-      <div style={{ textAlign:"right" }}>
+      <div style={{ textAlign: isRTL ? "right" : "left" }}>
         <span style={SUP_STYLE}>{sup}</span>
         <h2 style={TITLE_STYLE}>{title}</h2>
       </div>
-      <Link href={href} className="sy-view-all">← عرض الكل</Link>
+      <Link href={href} className="sy-view-all">{arrow} {t("home.view_all")}</Link>
     </div>
   );
 }
@@ -256,8 +273,9 @@ function SectionHeader({ sup, title, href }: { sup: string; title: string; href:
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function CategoriesSection({ products }: { products?: import("@workspace/api-client-react").Product[] }) {
   const catGrid = useStagger(8, 60);
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === "rtl";
 
-  // Build a lookup: category slug → { count, firstImage } from real DB products
   const catDataMap = React.useMemo(() => {
     const map: Record<string, { count: number; img: string | null }> = {};
     (products ?? []).forEach(p => {
@@ -275,23 +293,26 @@ function CategoriesSection({ products }: { products?: import("@workspace/api-cli
   return (
     <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB, paddingTop:SEC_PB }}>
       <div style={MAX_W}>
-        <SectionHeader sup="تصفح حسب الفئة" title="الفئات الأكثر شيوعاً" href="/products" />
+        <SectionHeader
+          sup={t("home.categories_sup")}
+          title={t("home.popular_categories_title")}
+          href="/products"
+        />
         <div ref={catGrid} className="sy-cat-grid" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
           {CATS.map(c => {
             const real = catDataMap[c.slug];
-            // Use real product image if available, otherwise curated fallback
             const imgSrc = real?.img ?? c.img;
-            // Use real count if > 0, otherwise curated fallback
             const count = real && real.count > 0 ? real.count.toLocaleString() : c.count;
+            const label = isRTL ? c.nameAr : c.nameEn;
             return (
               <Link key={c.nameAr} href={`/products?category=${encodeURIComponent(c.slug)}`} style={{ textDecoration:"none" }}>
                 <div className="sy-cat" style={{ position:"relative", height:168, borderRadius:12, overflow:"hidden" }}>
-                  <img src={imgSrc} alt={c.nameAr} loading="lazy" decoding="async"
+                  <img src={imgSrc} alt={label} loading="lazy" decoding="async"
                     style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
                   <div className="sy-cat-overlay" style={{ position:"absolute", inset:0 }} />
-                  <div style={{ position:"absolute", bottom:0, right:0, padding:"0 14px 13px", textAlign:"right" }}>
-                    <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:2 }}>{c.nameAr}</div>
-                    <div style={{ fontSize:11, color:"#9ca3af" }}>{count} منتج</div>
+                  <div style={{ position:"absolute", bottom:0, right:0, left:0, padding:"0 14px 13px", textAlign: isRTL ? "right" : "left" }}>
+                    <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:2 }}>{label}</div>
+                    <div style={{ fontSize:11, color:"#9ca3af" }}>{count} {t("home.product_unit")}</div>
                   </div>
                 </div>
               </Link>
@@ -313,6 +334,9 @@ function DealsSection({ hotDeals, isLoading, flashFormatted }: {
 }) {
   const revealHeader = useReveal();
   const dealsGrid = useStagger(4, 100);
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === "rtl";
+  const arrow = isRTL ? "←" : "→";
 
   if (!isLoading && hotDeals.length === 0) return null;
 
@@ -320,17 +344,16 @@ function DealsSection({ hotDeals, isLoading, flashFormatted }: {
     <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB }}>
       <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:800, height:400, background:"radial-gradient(ellipse,rgba(16,185,129,0.028) 0%,transparent 70%)", pointerEvents:"none" }} />
       <div style={MAX_W}>
-        {/* Custom header (link + timer stacked on left) */}
         <div ref={revealHeader} className="sy-sr" style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", marginBottom:36 }}>
-          <div style={{ textAlign:"right" }}>
-            <span style={SUP_STYLE}>عروض حصرية</span>
-            <h2 style={TITLE_STYLE}>عروض مميزة</h2>
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <span style={SUP_STYLE}>{t("home.deals_sup")}</span>
+            <h2 style={TITLE_STYLE}>{t("home.deals_title")}</h2>
           </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:10, alignItems:"flex-start", paddingBottom:8 }}>
-            <Link href="/products?hasDiscount=true" className="sy-view-all" style={{ paddingBottom:0 }}>← كل العروض</Link>
+          <div style={{ display:"flex", flexDirection:"column", gap:10, alignItems: isRTL ? "flex-start" : "flex-end", paddingBottom:8 }}>
+            <Link href="/products?hasDiscount=true" className="sy-view-all" style={{ paddingBottom:0 }}>{arrow} {t("home.view_all_deals")}</Link>
             <div style={{ display:"flex", alignItems:"center", gap:6, color:"#9ca3af" }}>
               <svg style={{ width:12, height:12, color:"#10b981", flexShrink:0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              <span style={{ whiteSpace:"nowrap", fontSize:11 }}>تنتهي خلال</span>
+              <span style={{ whiteSpace:"nowrap", fontSize:11 }}>{t("home.deals_ends_in")}</span>
               <div dir="ltr" style={{ display:"flex", alignItems:"center", gap:2 }}>
                 {flashFormatted.split(":").map((v, i) => (
                   <span key={i} style={{ display:"flex", alignItems:"center", gap:2 }}>
@@ -373,6 +396,8 @@ type StoreCardData = {
 };
 
 function PremiumStoreCard({ s }: { s: StoreCardData }) {
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === "rtl";
   return (
     <Link href={s.slug} style={{ textDecoration:"none" }}>
       <div className="sy-card sy-card-bg" style={{ borderRadius:16, overflow:"hidden", border:"1px solid" }}>
@@ -382,30 +407,43 @@ function PremiumStoreCard({ s }: { s: StoreCardData }) {
             ? <img src={s.img} alt="" loading="lazy" style={{ width:"100%", height:"100%", objectFit:"cover", filter:"brightness(0.22)", display:"block" }} />
             : <div style={{ width:"100%", height:"100%", background:s.bg, opacity:0.3 }} />
           }
-          <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,#0b0b0b 0%,transparent 48%)" }} />
-          {s.isVerified && (
-            <span style={{ position:"absolute", top:12, right:12, display:"flex", alignItems:"center", gap:3, background:"rgba(16,185,129,0.12)", border:"1px solid rgba(16,185,129,0.32)", color:"#10b981", fontSize:10, fontWeight:700, padding:"3px 10px", borderRadius:100, backdropFilter:"blur(8px)" }}>
-              <VerifyCheckSVG />موثوق
-            </span>
-          )}
-          {/* Avatar — bottom RIGHT, 52×52 rounded-square */}
-          <div style={{ position:"absolute", bottom:-26, right:16, width:52, height:52, borderRadius:13, background:s.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:21, fontWeight:900, color:"#fff", border:"2px solid #0b0b0b", boxShadow:"0 4px 18px rgba(0,0,0,0.6)", flexShrink:0, zIndex:2 }}>
+          {/* Avatar */}
+          <div style={{
+            position:"absolute", bottom:-24, [isRTL ? "right" : "left"]:18,
+            width:48, height:48, borderRadius:12,
+            background:s.bg, border:"2px solid rgba(255,255,255,0.12)",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            fontSize:20, fontWeight:800, color:"#fff", boxShadow:"0 4px 16px rgba(0,0,0,0.5)",
+          }}>
             {s.letter}
           </div>
+          {s.isVerified && (
+            <div style={{
+              position:"absolute", top:12, [isRTL ? "left" : "right"]:12,
+              display:"flex", alignItems:"center", gap:4,
+              background:"rgba(16,185,129,0.12)", border:"1px solid rgba(16,185,129,0.3)",
+              borderRadius:100, padding:"3px 10px", fontSize:10, fontWeight:600, color:"#10b981",
+            }}>
+              <VerifyCheckSVG /> {t("home.verified_seller")}
+            </div>
+          )}
+          <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(0,0,0,0.5) 0%,transparent 55%)" }} />
+          {s.rev > 0 && (
+            <div style={{ position:"absolute", bottom:12, [isRTL ? "left" : "right"]:12 }}>
+              <CompactRating rating={s.rating} rev={s.rev} />
+            </div>
+          )}
         </div>
-        {/* Body */}
-        <div style={{ padding:"34px 18px 18px", textAlign:"right" }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-start", marginBottom:8 }}>
-            <CompactRating rating={s.rating} rev={s.rev} />
-          </div>
+
+        <div style={{ padding:"34px 18px 18px" }}>
           <div className="sy-card-name" style={{ fontSize:17, fontWeight:700, marginBottom:6 }}>{s.name}</div>
           <p className="sy-card-muted" style={{ margin:"0 0 14px", fontSize:12, lineHeight:1.65 }}>{s.desc}</p>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:5, marginBottom:18, paddingTop:12, borderTop:"1px solid rgba(128,128,128,0.15)" }}>
-            <span style={{ fontSize:12, color:"#9ca3af" }}>{s.cat} · {s.cnt} منتج</span>
+          <div style={{ display:"flex", alignItems:"center", justifyContent: isRTL ? "flex-end" : "flex-start", gap:5, marginBottom:18, paddingTop:12, borderTop:"1px solid rgba(128,128,128,0.15)" }}>
+            <span style={{ fontSize:12, color:"#9ca3af" }}>{s.cat} · {s.cnt} {t("home.product_unit")}</span>
             <BoxIconSVG />
           </div>
           <button className="sy-store-cta" style={{ width:"100%", padding:"10px", borderRadius:10, fontSize:13, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
-            <ExternalLinkSVG />زيارة المتجر
+            <ExternalLinkSVG />{t("home.visit_store")}
           </button>
         </div>
       </div>
@@ -417,6 +455,7 @@ function StoresSection() {
   const storesGrid = useStagger(3, 115);
   const [featuredStores, setFeaturedStores] = React.useState<FeaturedStore[]>([]);
   const [loadingStores, setLoadingStores] = React.useState(true);
+  const { t } = useTranslation();
 
   React.useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}api/sellers/featured`)
@@ -429,8 +468,8 @@ function StoresSection() {
   const displayStores: StoreCardData[] = featuredStores.length > 0
     ? featuredStores.map(s => ({
         name: s.storeName,
-        desc: (s.categories ?? []).slice(0, 2).join(" · ") || "متجر متنوع",
-        cat: (s.categories ?? [])[0] || "متنوع",
+        desc: (s.categories ?? []).slice(0, 2).join(" · ") || t("home.store_misc"),
+        cat: (s.categories ?? [])[0] || t("home.store_misc"),
         cnt: (s.productsCount ?? 0).toLocaleString(),
         letter: s.storeName.charAt(0),
         bg: s.accentColor ?? "#059669",
@@ -446,15 +485,15 @@ function StoresSection() {
     return (
       <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB }}>
         <div style={MAX_W}>
-          <SectionHeader sup="شركاؤنا التجاريون" title="متاجر موثوقة" href="/products" />
+          <SectionHeader sup={t("home.stores_sup")} title={t("home.verified_stores_title")} href="/products" />
           <div className="sy-stores-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
             {STATIC_STORES.map(s => (
-              <div key={s.name} style={{ background:"#0b0b0b", borderRadius:16, border:"1px solid rgba(255,255,255,0.07)", overflow:"hidden" }}>
-                <div style={{ height:152, background:"#111" }} />
+              <div key={s.name} style={{ background:"var(--card)", borderRadius:16, border:"1px solid var(--border)", overflow:"hidden" }}>
+                <div style={{ height:152, background:"var(--secondary)" }} />
                 <div style={{ padding:"34px 18px 18px" }}>
-                  <div style={{ height:8, background:"#161616", borderRadius:4, width:"40%", marginBottom:10 }} />
-                  <div style={{ height:14, background:"#161616", borderRadius:4, width:"70%", marginBottom:8 }} />
-                  <div style={{ height:10, background:"#161616", borderRadius:4, width:"90%" }} />
+                  <div style={{ height:8, background:"var(--secondary)", borderRadius:4, width:"40%", marginBottom:10 }} />
+                  <div style={{ height:14, background:"var(--secondary)", borderRadius:4, width:"70%", marginBottom:8 }} />
+                  <div style={{ height:10, background:"var(--secondary)", borderRadius:4, width:"90%" }} />
                 </div>
               </div>
             ))}
@@ -467,7 +506,7 @@ function StoresSection() {
   return (
     <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB }}>
       <div style={MAX_W}>
-        <SectionHeader sup="شركاؤنا التجاريون" title="متاجر موثوقة" href="/products" />
+        <SectionHeader sup={t("home.stores_sup")} title={t("home.verified_stores_title")} href="/products" />
         <div ref={storesGrid} className="sy-stores-grid" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
           {displayStores.map((s, i) => <PremiumStoreCard key={s.name + i} s={s} />)}
         </div>
@@ -481,13 +520,14 @@ function StoresSection() {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function TrendingSection({ products }: { products: import("@workspace/api-client-react").Product[] }) {
   const trendGrid = useStagger(3, 115);
+  const { t } = useTranslation();
 
   if (products.length === 0) return null;
 
   return (
     <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB }}>
       <div style={MAX_W}>
-        <SectionHeader sup="الأعلى تقييماً هذا الأسبوع" title="المنتجات الرائجة" href="/products" />
+        <SectionHeader sup={t("home.trending_sup")} title={t("home.trending_title")} href="/products" />
         <div ref={trendGrid} className="product-grid">
           {products.map(p => <ProductCard key={p.id} product={p} />)}
         </div>
@@ -500,56 +540,64 @@ function TrendingSection({ products }: { products: import("@workspace/api-client
    SECTION 6 — NEW ARRIVALS (asymmetric)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const STATIC_SMALL_ARRIVALS = [
-  { nameAr:"عطر الأوبسيديان الليلي", cat:"عطور",        price:"89,500", img:"https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=300", href:"/products" },
-  { nameAr:"ديكور منزلي مودرن",      cat:"منزل وديكور", price:"56,000", img:"https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=300", href:"/products" },
+  { nameAr:"عطر الأوبسيديان الليلي", nameEn:"Night Obsidian Perfume", cat:"عطور",        catEn:"Perfumes",    price:"89,500", img:"https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=300", href:"/products" },
+  { nameAr:"ديكور منزلي مودرن",      nameEn:"Modern Home Decor",      cat:"منزل وديكور", catEn:"Home & Decor", price:"56,000", img:"https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=300", href:"/products" },
 ];
 
-type SmallArrivalCard = { nameAr: string; cat: string; price: string; img: string; href: string; };
+type SmallArrivalCard = { name: string; cat: string; price: string; img: string; href: string; };
 
 function NewArrivalsSection({ newArrivals }: { newArrivals: import("@workspace/api-client-react").Product[] }) {
   const revealLarge = useReveal();
   const revealSmall = useReveal();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === "rtl";
 
   const large = newArrivals[0];
   const largeHref = large ? `/products/${large.id}` : "/products";
   const largeImg = large
     ? ((large as any).imageUrls?.[0] ?? "https://images.pexels.com/photos/1279107/pexels-photo-1279107.jpeg?auto=compress&cs=tinysrgb&w=900")
     : "https://images.pexels.com/photos/1279107/pexels-photo-1279107.jpeg?auto=compress&cs=tinysrgb&w=900";
-  const largeName  = large ? ((large as any).nameAr ?? large.name) : "مجموعة تقنية بريميوم 2025";
-  const largeCat   = large?.category ?? "إلكترونيات";
+  const largeName  = large ? ((isRTL ? (large as any).nameAr : null) ?? large.name) : (isRTL ? "مجموعة تقنية بريميوم 2025" : "Premium Tech Collection 2025");
+  const largeCat   = large?.category ?? (isRTL ? "إلكترونيات" : "Electronics");
   const largePrice = large ? large.price.toLocaleString() : "435,000";
   const largeRev   = (large as any)?.reviewsCount ?? 0;
   const largeRating = ((large as any)?.averageRating ?? 0).toFixed(1);
 
   const smalls: SmallArrivalCard[] = newArrivals.slice(1, 3).length >= 2
     ? newArrivals.slice(1, 3).map(p => ({
-        nameAr: (p as any).nameAr ?? p.name,
-        cat: p.category ?? "منتجات",
+        name: (isRTL ? (p as any).nameAr : null) ?? p.name,
+        cat: p.category ?? (isRTL ? "منتجات" : "Products"),
         price: p.price.toLocaleString(),
         img: (p as any).imageUrls?.[0] ?? "",
         href: `/products/${p.id}`,
       }))
-    : STATIC_SMALL_ARRIVALS;
+    : STATIC_SMALL_ARRIVALS.map(a => ({
+        name: isRTL ? a.nameAr : a.nameEn,
+        cat: isRTL ? a.cat : a.catEn,
+        price: a.price,
+        img: a.img,
+        href: a.href,
+      }));
 
   return (
     <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB }}>
       <div style={MAX_W}>
-        <SectionHeader sup="أضيف لنا" title="وصل حديثاً" href="/products" />
+        <SectionHeader sup={t("home.arrivals_sup")} title={t("home.arrivals_title")} href="/products" />
         <div className="sy-arrivals-grid" style={{ display:"grid", gridTemplateColumns:"1fr 356px", gap:14 }}>
-          {/* Large card — first DOM = visual RIGHT in RTL */}
+          {/* Large card */}
           <Link href={largeHref} style={{ textDecoration:"none" }}>
             <div ref={revealLarge} className="sy-sr" style={{ position:"relative", borderRadius:18, overflow:"hidden", minHeight:386 }}>
               <img src={largeImg} alt="" loading="lazy" style={{ width:"100%", height:"100%", minHeight:386, objectFit:"cover", filter:"brightness(0.26) contrast(1.12)", display:"block" }} />
               <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top,rgba(0,0,0,0.97) 0%,rgba(0,0,0,0.02) 55%)" }} />
-              <div style={{ position:"absolute", top:20, right:20 }}>
-                <span style={{ display:"inline-flex", alignItems:"center", gap:5, fontSize:11, color:"#10b981", background:"rgba(16,185,129,0.1)", border:"1px solid rgba(16,185,129,0.28)", padding:"4px 13px", borderRadius:100, fontWeight:600 }}>↑ جديد</span>
+              <div style={{ position:"absolute", top:20, [isRTL ? "right" : "left"]:20 }}>
+                <span style={{ display:"inline-flex", alignItems:"center", gap:5, fontSize:11, color:"#10b981", background:"rgba(16,185,129,0.1)", border:"1px solid rgba(16,185,129,0.28)", padding:"4px 13px", borderRadius:100, fontWeight:600 }}>↑ {t("home.new_label")}</span>
               </div>
-              <div style={{ position:"absolute", bottom:0, right:0, left:0, padding:"0 28px 28px", textAlign:"right" }}>
+              <div style={{ position:"absolute", bottom:0, [isRTL ? "right" : "left"]:0, [isRTL ? "left" : "right"]:0, padding: isRTL ? "0 28px 28px" : "0 28px 28px", textAlign: isRTL ? "right" : "left" }}>
                 <div style={{ fontSize:11, color:"#9ca3af", marginBottom:7 }}>{largeCat}</div>
                 <div style={{ fontSize:26, fontWeight:800, color:"#fff", marginBottom:11, lineHeight:1.2 }}>{largeName}</div>
                 {parseFloat(largeRating) > 0 && (
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:6, marginBottom:10 }}>
-                    {largeRev > 0 && <span style={{ fontSize:11, color:"#9ca3af" }}>({largeRev} تقييم)</span>}
+                  <div style={{ display:"flex", alignItems:"center", justifyContent: isRTL ? "flex-end" : "flex-start", gap:6, marginBottom:10 }}>
+                    {largeRev > 0 && <span style={{ fontSize:11, color:"#9ca3af" }}>({largeRev})</span>}
                     <span style={{ fontSize:12, fontWeight:600, color:"#fff" }}>{largeRating}</span>
                     <Stars n={Math.round(parseFloat(largeRating))} size={12} />
                   </div>
@@ -559,25 +607,25 @@ function NewArrivalsSection({ newArrivals }: { newArrivals: import("@workspace/a
             </div>
           </Link>
 
-          {/* Small cards stack — second DOM = visual LEFT in RTL */}
+          {/* Small cards stack */}
           <div ref={revealSmall} className="sy-sr" style={{ display:"flex", flexDirection:"column", gap:14 }}>
             {smalls.map((a, i) => (
               <Link key={i} href={a.href} style={{ textDecoration:"none" }}>
                 <div className="sy-card sy-card-bg" style={{ borderRadius:16, overflow:"hidden", border:"1px solid", display:"flex", height:182, transition:"border-color 0.25s" }}>
-                  {/* Text — first DOM = visual RIGHT in RTL */}
-                  <div style={{ flex:1, padding:"16px 18px", textAlign:"right", display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
+                  {/* Text side */}
+                  <div style={{ flex:1, padding:"16px 18px", textAlign: isRTL ? "right" : "left", display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
                     <div>
-                      <span style={{ display:"inline-flex", alignItems:"center", gap:3, fontSize:10, color:"#10b981", background:"rgba(16,185,129,0.08)", border:"1px solid rgba(16,185,129,0.18)", padding:"2px 8px", borderRadius:100, marginBottom:7, fontWeight:600 }}>● جديد</span>
+                      <span style={{ display:"inline-flex", alignItems:"center", gap:3, fontSize:10, color:"#10b981", background:"rgba(16,185,129,0.08)", border:"1px solid rgba(16,185,129,0.18)", padding:"2px 8px", borderRadius:100, marginBottom:7, fontWeight:600 }}>● {t("home.new_label")}</span>
                       <div className="sy-card-muted" style={{ fontSize:10, marginBottom:4 }}>{a.cat}</div>
-                      <div className="sy-card-name" style={{ fontSize:15, fontWeight:700, lineHeight:1.35 }}>{a.nameAr}</div>
+                      <div className="sy-card-name" style={{ fontSize:15, fontWeight:700, lineHeight:1.35 }}>{a.name}</div>
                     </div>
                     <div style={{ fontSize:19, fontWeight:800, color:"#10b981" }}>{a.price} <span style={{ fontSize:11, fontWeight:400, color:"#9ca3af" }}>ل.س</span></div>
                   </div>
-                  {/* Image — second DOM = visual LEFT in RTL */}
+                  {/* Image side */}
                   <div style={{ width:140, flexShrink:0 }}>
                     {a.img
                       ? <img src={a.img} alt="" loading="lazy" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", filter:"brightness(0.7)" }} />
-                      : <div style={{ width:"100%", height:"100%", background:"#161616" }} />
+                      : <div style={{ width:"100%", height:"100%", background:"var(--secondary)" }} />
                     }
                   </div>
                 </div>
@@ -597,6 +645,9 @@ function JoinCTASection() {
   const revealCard = useReveal();
   const { handleOpenYourStore } = useSellerOnboarding();
   const { handleBecomeCourier } = useCourierOnboarding();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === "rtl";
+  const arrow = isRTL ? "←" : "→";
 
   return (
     <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB }}>
@@ -604,23 +655,23 @@ function JoinCTASection() {
         <div ref={revealCard} className="sy-sr">
           <div className="sy-cta-section" style={{ borderRadius:24, border:"1px solid", padding:"clamp(40px,5vw,72px) clamp(28px,5vw,64px)", textAlign:"center", position:"relative", overflow:"hidden" }}>
             <div style={{ position:"absolute", top:-50, left:"50%", transform:"translateX(-50%)", width:600, height:300, background:"radial-gradient(ellipse,rgba(16,185,129,0.055) 0%,transparent 70%)", pointerEvents:"none" }} />
-            <span style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"5px 16px", borderRadius:100, border:"1px solid rgba(16,185,129,0.3)", color:"#10b981", fontSize:11, fontWeight:600, marginBottom:22, background:"rgba(16,185,129,0.06)" }}>انضم إلى سيانو</span>
-            <h2 style={{ ...TITLE_STYLE, marginBottom:14, display:"block" }}>كن جزءاً من السوق السوري</h2>
-            <p style={{ margin:"0 0 48px", color:"#9ca3af", fontSize:14, lineHeight:1.75 }}>سواء كنت بائعاً أو مندوب توصيل، هناك مكان لك في سيانو.</p>
+            <span style={{ display:"inline-flex", alignItems:"center", gap:5, padding:"5px 16px", borderRadius:100, border:"1px solid rgba(16,185,129,0.3)", color:"#10b981", fontSize:11, fontWeight:600, marginBottom:22, background:"rgba(16,185,129,0.06)" }}>{t("home.join_badge")}</span>
+            <h2 style={{ ...TITLE_STYLE, marginBottom:14, display:"block" }}>{t("home.join_title")}</h2>
+            <p style={{ margin:"0 0 48px", color:"#9ca3af", fontSize:14, lineHeight:1.75 }}>{t("home.join_desc")}</p>
             <div className="sy-cta-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, maxWidth:720, margin:"0 auto" }}>
               {/* Seller */}
               <button onClick={handleOpenYourStore} className="sy-cta-btn">
                 <div style={{ width:54, height:54, borderRadius:"50%", background:"rgba(16,185,129,0.08)", border:"1px solid rgba(16,185,129,0.18)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}><StoreIconSVG /></div>
-                <div className="sy-card-name" style={{ fontSize:18, fontWeight:700, marginBottom:10 }}>ابدأ البيع على سيانو</div>
-                <p className="sy-card-muted" style={{ fontSize:13, lineHeight:1.75, marginBottom:24 }}>افتح متجرك الإلكتروني وتواصل مع آلاف المشترين في جميع أنحاء سوريا</p>
-                <span style={{ color:"#10b981", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:4, justifyContent:"center" }}>إنشاء متجري ←</span>
+                <div className="sy-card-name" style={{ fontSize:18, fontWeight:700, marginBottom:10 }}>{t("home.sell_cta_title")}</div>
+                <p className="sy-card-muted" style={{ fontSize:13, lineHeight:1.75, marginBottom:24 }}>{t("home.sell_cta_desc")}</p>
+                <span style={{ color:"#10b981", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:4, justifyContent:"center" }}>{t("home.sell_cta_cta")} {arrow}</span>
               </button>
               {/* Courier */}
               <button onClick={handleBecomeCourier} className="sy-cta-btn">
                 <div style={{ width:54, height:54, borderRadius:"50%", background:"rgba(16,185,129,0.08)", border:"1px solid rgba(16,185,129,0.18)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}><BikeIconSVG /></div>
-                <div className="sy-card-name" style={{ fontSize:18, fontWeight:700, marginBottom:10 }}>انضم كمندوب توصيل</div>
-                <p className="sy-card-muted" style={{ fontSize:13, lineHeight:1.75, marginBottom:24 }}>حقق دخلاً إضافياً من خلال توصيل الطلبات في مدينتك بمرونة كاملة في عملك</p>
-                <span style={{ color:"#10b981", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:4, justifyContent:"center" }}>التسجيل كمندوب ←</span>
+                <div className="sy-card-name" style={{ fontSize:18, fontWeight:700, marginBottom:10 }}>{t("home.courier_cta_title")}</div>
+                <p className="sy-card-muted" style={{ fontSize:13, lineHeight:1.75, marginBottom:24 }}>{t("home.courier_cta_desc")}</p>
+                <span style={{ color:"#10b981", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:4, justifyContent:"center" }}>{t("home.courier_cta_cta")} {arrow}</span>
               </button>
             </div>
           </div>
@@ -631,22 +682,24 @@ function JoinCTASection() {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   SECTION 8 — RECENTLY VIEWED (dark styled)
+   SECTION 8 — RECENTLY VIEWED
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function RecentlyViewedDark({ items, onClear }: {
+function RecentlyViewedSection({ items, onClear }: {
   items: import("@/hooks/useRecentlyViewed").RecentlyViewedProduct[];
   onClear: () => void;
 }) {
   const ref = useReveal();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === "rtl";
   return (
     <section style={{ position:"relative", zIndex:1, paddingBottom:SEC_PB }}>
       <div style={MAX_W}>
         <div ref={ref} className="sy-sr" style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", marginBottom:28 }}>
-          <div style={{ textAlign:"right" }}>
-            <span style={SUP_STYLE}>تصفحتها مؤخراً</span>
-            <h2 style={{ ...TITLE_STYLE, fontSize:"clamp(24px,2.5vw,36px)" }}>شاهدتها مؤخراً</h2>
+          <div style={{ textAlign: isRTL ? "right" : "left" }}>
+            <span style={SUP_STYLE}>{t("home.recently_viewed_sup")}</span>
+            <h2 style={{ ...TITLE_STYLE, fontSize:"clamp(24px,2.5vw,36px)" }}>{t("home.recently_viewed_title")}</h2>
           </div>
-          <button onClick={onClear} style={{ color:"#6b7280", fontSize:13, background:"none", border:"1px solid rgba(255,255,255,0.08)", padding:"6px 14px", borderRadius:8, cursor:"pointer" }}>مسح السجل</button>
+          <button onClick={onClear} style={{ color:"#6b7280", fontSize:13, background:"none", border:"1px solid rgba(128,128,128,0.2)", padding:"6px 14px", borderRadius:8, cursor:"pointer" }}>{t("home.clear_history")}</button>
         </div>
         <div className="product-grid">
           {items.map(p => <ProductCard key={p.id} product={p as any} />)}
@@ -709,8 +762,7 @@ export default function Home() {
   return (
     <Layout>
       <style>{PAGE_CSS}</style>
-      {/* Dark premium homepage wrapper */}
-      <div dir="rtl" className="sy-page" style={{ fontFamily:"'Cairo','Segoe UI',system-ui,sans-serif", minHeight:"100vh" }}>
+      <div dir={i18n.dir()} className="sy-page" style={{ fontFamily:"'Cairo','Segoe UI',system-ui,sans-serif", minHeight:"100vh" }}>
         <HeroV4 />
         <CategoriesSection products={products} />
         <DealsSection hotDeals={hotDeals} isLoading={isLoadingProducts} flashFormatted={flashFormatted} />
@@ -718,7 +770,7 @@ export default function Home() {
         <TrendingSection products={trending} />
         <NewArrivalsSection newArrivals={newArrivals} />
         {recentlyViewed.length > 0 && (
-          <RecentlyViewedDark items={recentlyViewed} onClear={clearHistory} />
+          <RecentlyViewedSection items={recentlyViewed} onClear={clearHistory} />
         )}
         <JoinCTASection />
       </div>

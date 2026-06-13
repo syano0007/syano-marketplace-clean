@@ -6,7 +6,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAddToCart, getGetCartQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Timer, Star, Heart } from "lucide-react";
+import { ShoppingCart, Timer, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
@@ -38,8 +38,8 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
     e.stopPropagation();
     if (!isAuthenticated) {
       toast({
-        title: "يرجى تسجيل الدخول",
-        description: "سجّل دخولك لحفظ منتجاتك المفضلة",
+        title: t("wishlist.login_title"),
+        description: t("wishlist.login_desc"),
       });
       return;
     }
@@ -225,27 +225,20 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
           </span>
         </div>
 
-        {/* Rating */}
-        <div className="pc-rating flex items-center gap-1 min-w-0 overflow-hidden">
-          {isRated ? (
-            <>
-              <StarRating rating={avgRating} size="sm" />
-              <span className="text-[10px] font-bold text-amber-500 tabular-nums shrink-0 leading-none">
-                {avgRating.toFixed(1)}
-              </span>
-              {reviewCount > 0 && (
-                <span className="text-[10px] text-muted-foreground tabular-nums shrink-0 leading-none">
-                  ({reviewCount})
-                </span>
-              )}
-            </>
-          ) : (
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60 leading-none">
-              <Star className="h-3 w-3 shrink-0" />
-              {t("products.no_reviews")}
+        {/* Rating — only shown when the product has ratings */}
+        {isRated && (
+          <div className="pc-rating flex items-center gap-1 min-w-0 overflow-hidden">
+            <StarRating rating={avgRating} size="sm" />
+            <span className="text-[10px] font-bold text-amber-500 tabular-nums shrink-0 leading-none">
+              {avgRating.toFixed(1)}
             </span>
-          )}
-        </div>
+            {reviewCount > 0 && (
+              <span className="text-[10px] text-muted-foreground tabular-nums shrink-0 leading-none">
+                ({reviewCount})
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Price + Add-to-cart */}
         <div className="flex items-end justify-between pt-1.5 sm:pt-2 border-t border-border/60 mt-auto">

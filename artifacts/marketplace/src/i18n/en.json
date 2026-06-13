@@ -60,7 +60,25 @@
     "verified_stores_title": "Verified Stores",
     "visit_store": "Visit Store",
     "products_count": "{{count}} products",
-    "followers_count": "{{count}} followers"
+    "followers_count": "{{count}} followers",
+    "categories_sup": "Browse by Category",
+    "stores_sup": "Our Trade Partners",
+    "trending_sup": "Top Rated This Week",
+    "trending_title": "Trending Products",
+    "arrivals_sup": "Just Added",
+    "deals_sup": "Exclusive Deals",
+    "deals_ends_in": "Ends in",
+    "recently_viewed_sup": "Your Browsing History",
+    "join_badge": "Join Syano",
+    "join_title": "Be Part of the Syrian Marketplace",
+    "join_desc": "Whether you're a seller or a delivery courier, there's a place for you in Syano.",
+    "sell_cta_cta": "Create My Store",
+    "courier_cta_cta": "Register as Courier",
+    "product_unit": "products",
+    "store_misc": "Various Products",
+    "new_label": "New",
+    "available_now": "Available Now",
+    "clear_history": "Clear History"
   },
   "products": {
     "title": "Discover Products",
@@ -2714,5 +2732,9 @@
   "admin.hero_banners.status_live": "Live",
   "admin.hero_banners.status_scheduled": "Scheduled",
   "admin.hero_banners.status_expired": "Expired",
-  "admin.hero_banners.status_inactive": "Inactive"
+  "admin.hero_banners.status_inactive": "Inactive",
+  "wishlist": {
+    "login_title": "Login Required",
+    "login_desc": "Sign in to save your favorite items"
+  }
 }
