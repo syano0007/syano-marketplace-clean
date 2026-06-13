@@ -289,7 +289,7 @@ export function Navbar() {
         </div>
 
         {/* ══ DESKTOP NAV (≥ md) ═════════════════════════════════════════════ */}
-        <div className="container hidden md:flex h-16 items-center justify-between gap-3">
+        <div className="container hidden md:flex h-14 items-center justify-between gap-3">
 
           {/* Left: Brand + desktop nav */}
           <div className="flex items-center gap-3 shrink-0">
@@ -312,32 +312,25 @@ export function Navbar() {
             </Link>
 
             <nav className="flex gap-5 ms-2">
-              {isSeller && sellerLinks.map((l) => (
-                <Link key={l.href} href={l.href}
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                  {l.label}
-                </Link>
-              ))}
-              {isCustomer && customerLinks.map((l) => (
-                <Link key={l.href} href={l.href}
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-                  {l.label}
-                </Link>
-              ))}
-              {isCustomer && (
-                <Link href="/messages"
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary flex items-center gap-1">
-                  <MessageCircle className="h-3.5 w-3.5" />
-                  {t("nav.messages")}
-                </Link>
-              )}
-              {isCourier && (
-                <Link href="/courier/dashboard"
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary flex items-center gap-1">
-                  <Package className="h-3.5 w-3.5" />
-                  {t("courier.my_deliveries")}
-                </Link>
-              )}
+              <Link href="/"
+                className={cn(
+                  "text-sm font-medium transition-colors hover:text-primary",
+                  location === "/" ? "text-primary font-semibold" : "text-muted-foreground",
+                )}>
+                {isRtl ? "الرئيسية" : "Home"}
+              </Link>
+              <Link href="/products"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+                {isRtl ? "الفئات" : "Categories"}
+              </Link>
+              <Link href="/stores"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+                {isRtl ? "المتاجر" : "Stores"}
+              </Link>
+              <Link href="/products?hasDiscount=true"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+                {isRtl ? "العروض" : "Deals"}
+              </Link>
             </nav>
           </div>
 
@@ -480,19 +473,6 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {isCustomer && (
-              <Link href="/wishlist">
-                <Button variant="ghost" size="icon" className="relative h-10 w-10">
-                  <Heart className="h-5 w-5" />
-                  {wishlistCount > 0 && (
-                    <span className="absolute -top-1 -end-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
-                      {wishlistCount > 99 ? "99+" : wishlistCount}
-                    </span>
-                  )}
-                </Button>
-              </Link>
-            )}
-
             <NotificationCenter />
 
             {!isSeller && !isAdmin && !isCourier && (
@@ -502,6 +482,19 @@ export function Navbar() {
                   {visibleCartCount > 0 && (
                     <span className="absolute -top-1 -end-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                       {visibleCartCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            )}
+
+            {isCustomer && (
+              <Link href="/wishlist">
+                <Button variant="ghost" size="icon" className="relative h-10 w-10">
+                  <Heart className="h-5 w-5" />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1 -end-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                      {wishlistCount > 99 ? "99+" : wishlistCount}
                     </span>
                   )}
                 </Button>
