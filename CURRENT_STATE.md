@@ -1,6 +1,6 @@
 # SYANO — Current Project State
-**Last Updated:** June 13, 2026 (Session 6)  
-**Updated By:** HeroV4 + Navbar desktop graduated from approved Canvas mockup — pixel-perfect production transfer
+**Last Updated:** June 13, 2026 (Session 7)  
+**Updated By:** Homepage V7 — Premium dark navbar, 8 HomeSections components, real DB products, all buttons functional
 
 ---
 
@@ -9,6 +9,53 @@
 All services running. All features validated end-to-end with real API calls.
 
 ---
+
+## Migration Note (June 13, 2026 — Session 7)
+
+Homepage V7 — Figma-approved dark design fully implemented:
+
+### New Navbar Architecture
+- `artifacts/marketplace/src/components/Navbar.tsx` — **complete rewrite**
+- Always-dark glassmorphism design (`rgba(8,8,8,0.75)` → `rgba(8,8,8,0.88)` on scroll)
+- Fixed `position: fixed` at top, `z-50`, 72px desktop / 60px mobile height
+- Desktop: Logo + wordmark → Nav links (Home, Products, Stores, Deals) → Search pill → Lang/Currency/Theme dropdowns → Notifications → Wishlist → Cart → Role shortcuts (seller/admin/courier) → Auth button
+- Mobile: Logo → Search/Wishlist/Cart icons → Hamburger Sheet drawer
+- Search dropdown: live results via `useSearch()`, recent searches (localStorage), per-item price
+- Role shortcuts: emerald pill for seller, blue for courier, purple for admin — all with dropdowns
+- Auth: avatar pill with initials + name → dropdown with dashboard/orders/logout
+
+### New HomeSections Architecture
+- `home.tsx` renders `<Navbar />` directly (no Layout wrapper since page is full-dark)
+- 8 section components in `artifacts/marketplace/src/components/HomeSections/`:
+  - `HeroSection.tsx` — animated split-panel; floating cards use **real DB products** (first 3 from API)
+  - `PopularCategories.tsx` — 4×2 grid; all links → `/products?category=...`
+  - `FeaturedDeals.tsx` — countdown timer; uses real `isBestDeal` products with **working add-to-cart** (auth + guest)
+  - `TrustedStores.tsx` — fetches `/api/sellers/featured`; store links → `/store/:slug`
+  - `TrendingProducts.tsx` — 3×2 grid; **working add-to-cart** + wishlist toggle for all cards
+  - `NewArrivals.tsx` — bento grid; all card links → `/products/:id`
+  - `JoinSection.tsx` — seller/courier CTAs via `useSellerOnboarding()` + `useCourierOnboarding()`
+  - `HomeFooter.tsx` — full footer with links, newsletter, payment badges
+
+### Button Audit Results (all working)
+- Hero "تسوق الآن" → `/products` ✅
+- Hero "استكشف المتاجر" → `/sellers/directory` ✅
+- Hero floating cards → `/products/:id` (real product IDs from DB) ✅
+- FeaturedDeals "أضف" → real add-to-cart (auth: `useAddToCart`, guest: `addGuestItem`) ✅
+- FeaturedDeals card click → `/products/:id` ✅
+- TrendingProducts "أضف" → real add-to-cart + toast ✅
+- TrendingProducts heart → `toggleWishlist()` (redirects to login if unauthenticated) ✅
+- TrustedStores "زيارة المتجر" → `/store/:slug` (real slugs from API) ✅
+- NewArrivals cards → `/products/:id` ✅
+- JoinSection seller CTA → seller apply flow ✅
+- JoinSection courier CTA → courier apply flow ✅
+- PopularCategories → `/products?category=...` ✅
+
+### APIs Connected (Phase 6)
+- `GET /api/products` → HeroSection cards, FeaturedDeals (isBestDeal), TrendingProducts, NewArrivals
+- `GET /api/sellers/featured` → TrustedStores
+- `POST /api/cart` (useAddToCart) → FeaturedDeals + TrendingProducts authenticated add
+- `GET /api/wishlist` (useWishlist) → TrendingProducts heart state
+- `GET /api/search` (useSearch) → Navbar live search suggestions
 
 ## Migration Note (June 13, 2026 — Session 5)
 
@@ -94,6 +141,7 @@ Full recovery performed from empty environment:
 | **Final Consistency & UI Stabilization Audit** | ✅ Complete — Brand accent color, SellerTrustBadge unified, portal dropdown — 100/100 |
 | **Seller Store Pages V2** | ✅ Complete + Validated — 5 new endpoints, 4-tab premium storefront, 29 i18n keys |
 | **Homepage V6 (split-hero, real categories, TrustStrip)** | ✅ Complete + Validated |
+| **Homepage V7 (Figma dark design, premium navbar, 8 HomeSections, real data)** | ✅ Complete + Validated — all buttons functional, all APIs connected |
 | **Wishlist System V1** | ✅ Complete + Validated — routes, DB table, heart button, WishlistContext, navbar icon |
 | **Recovery Session 3 (June 13, 2026)** | ✅ Complete — Full restore, wishlist TS fix, 0 errors all artifacts, 95/100 |
 

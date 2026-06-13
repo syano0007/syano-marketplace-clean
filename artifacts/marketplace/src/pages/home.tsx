@@ -1,8 +1,14 @@
 // @refresh reset
 import { useCallback } from "react";
-import { useListProducts, useGetPublicSettings, getListProductsQueryKey, getGetPublicSettingsQueryKey } from "@workspace/api-client-react";
+import {
+  useListProducts,
+  useGetPublicSettings,
+  getListProductsQueryKey,
+  getGetPublicSettingsQueryKey,
+} from "@workspace/api-client-react";
 import { useTranslation } from "react-i18next";
 import { useSEO } from "@/hooks/useSEO";
+import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HomeSections/HeroSection";
 import { PopularCategories } from "@/components/HomeSections/PopularCategories";
 import { FeaturedDeals } from "@/components/HomeSections/FeaturedDeals";
@@ -37,7 +43,7 @@ export default function Home() {
     canonical: "/",
   });
 
-  const hotDeals    = products?.filter(p => p.isBestDeal).slice(0, 4) ?? [];
+  const hotDeals    = products?.filter(p => p.isBestDeal) ?? [];
   const newArrivals = products?.slice(0, 4) ?? [];
   const trending    = products?.slice(0, 6) ?? [];
 
@@ -53,8 +59,10 @@ export default function Home() {
         ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
       `}</style>
 
+      <Navbar />
+
       <main>
-        <HeroSection />
+        <HeroSection products={products ?? []} />
         <PopularCategories />
         <FeaturedDeals hotDeals={hotDeals} />
         <TrustedStores />

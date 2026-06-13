@@ -1,5 +1,5 @@
 # SYANO — Recovery Guide
-**Last Updated:** June 13, 2026 (Recovery Session 5 — demo marketplace data self-healing)
+**Last Updated:** June 13, 2026 (Session 7 — Homepage V7: premium dark navbar + 8 HomeSections + real data)
 
 This guide restores the project to a fully working state from scratch.
 
@@ -292,20 +292,41 @@ Server start
   └─ app.listen()                 ← server ready
 ```
 
-## Homepage V6 Architecture (June 2026)
+## Homepage V7 Architecture (June 2026 — Session 7)
 
-**Homepage version:** V6 — Amazon/Noon/Trendyol split-hero layout + real category data
+**Homepage version:** V7 — Figma-approved premium dark design with 8 HomeSections components
+
+### Critical: home.tsx Does NOT Use Layout
+`home.tsx` renders `<Navbar />` directly (not inside Layout) because the page is full dark (`#080808`) and uses its own footer. All other pages still use `<Layout>`. The Navbar must be present in home.tsx explicitly.
+
+### Navbar Architecture (NEW)
+- File: `artifacts/marketplace/src/components/Navbar.tsx` — complete V7 rewrite
+- **Always dark** glassmorphism — `rgba(8,8,8,0.75)` base → `rgba(8,8,8,0.88)` when scrolled > 20px
+- `position: fixed` at `top-0 z-50`, height: 72px desktop / 60px mobile
+- Desktop layout (LTR/RTL aware): Logo → Nav links → Search pill → [Lang/Currency/Theme] → Notifications → Wishlist → Cart → Role shortcuts → Auth
+- Role shortcuts: emerald "متجري" pill (seller), blue "توصيلاتي" (courier), purple Admin (admin) — all dropdown
+- Search: `useSearch()` hook → live suggestions with image + price; localStorage recent searches
+- Mobile: Logo → [Search icon / Wishlist / Cart] → Menu → Sheet drawer (dark `#0d0d0d`)
 
 ### Section Order (top to bottom)
-1. `<HeroV4 />` — split-panel hero (text LEFT + rotating image RIGHT) + TrustStrip
-2. Popular Categories — real product images + real counts from DB, RTL-aware grid
-3. Hot Deals countdown — dark card-style boxes (conditional: hidden when 0 `isBestDeal` products)
-4. Combined section — Verified Stores (53%) + New Arrivals (47%), vertical divider
-5. Recently Viewed Products — horizontal scroll, conditional (hidden when empty)
-6. Join Syano — delivery van + two CTAs (Open Store / Become Courier)
+1. `<HeroSection products={allProducts} />` — split-panel; floating cards use real DB products (first 3)
+2. `<PopularCategories />` — 4×2 grid; links → `/products?category=...`
+3. `<FeaturedDeals hotDeals={isBestDealProducts} />` — countdown; working add-to-cart (auth + guest)
+4. `<TrustedStores />` — fetches `/api/sellers/featured`; links → `/store/:slug`
+5. `<TrendingProducts products={allProducts.slice(0,6)} />` — add-to-cart + wishlist heart
+6. `<NewArrivals newArrivals={allProducts.slice(0,4)} />` — bento grid; all links → `/products/:id`
+7. `<JoinSection />` — seller/courier CTAs via hooks
+8. `<HomeFooter />` — full dark footer
 
-### Key Component
-- `artifacts/marketplace/src/components/HeroV4.tsx`
+### All Components Location
+`artifacts/marketplace/src/components/HomeSections/`
+- `HeroSection.tsx`, `PopularCategories.tsx`, `FeaturedDeals.tsx`, `TrustedStores.tsx`
+- `TrendingProducts.tsx`, `NewArrivals.tsx`, `JoinSection.tsx`, `HomeFooter.tsx`
+
+### Homepage V6 Architecture (preserved for reference)
+**Homepage version:** V6 — Amazon/Noon/Trendyol split-hero layout + real category data
+- Section order: HeroV4 → Categories → Hot Deals → Verified Stores + New Arrivals → Recently Viewed → Join
+- Key component: `artifacts/marketplace/src/components/HeroV4.tsx`
 
 ## Trust System API Reference
 
