@@ -402,12 +402,12 @@ export async function bootstrapDemoMarketplaceData(): Promise<void> {
             categories, description, description_ar, store_slug, store_logo, store_banner,
             accent_color, status, reviewed_at, reviewed_by_id,
             shipping_policy, return_policy, warranty_policy)
-         VALUES ($1,$2,$3,$4,$4,$5,$6,$7::text[],$8,$9,$10,$11,$12,$13,
+         SELECT $1,$2,$3,$4,$4,$5,$6,$7::text[],$8,$9,$10,$11,$12,$13,
                  'approved',NOW(),1,
                  'Free shipping on orders over 50,000 ل.س. Delivery within 3–5 business days.',
                  'Returns accepted within 14 days of delivery for unused items in original packaging.',
-                 '1 year warranty on electronics. 3 months on accessories.')
-         ON CONFLICT (user_id) DO NOTHING`,
+                 '1 year warranty on electronics. 3 months on accessories.'
+         WHERE NOT EXISTS (SELECT 1 FROM seller_applications WHERE user_id = $1)`,
         [
           uid, s.storeName, s.storeNameAr, s.phone, s.city, s.category,
           pgArr(s.categories as unknown as string[]),
@@ -495,12 +495,12 @@ export async function bootstrapDemoMarketplaceData(): Promise<void> {
 
       const orderRes = await client.query<{ id: number }>(
         `INSERT INTO orders
-           (customer_id, seller_id, status, total_amount, delivery_fee, zone_id,
-            city, address, created_at, updated_at)
-         VALUES ($1,$2,$3::order_status,$4,$5,$6,$7,$8,$9,$9)
+           (customer_id, status, total, delivery_fee, zone_id,
+            city, shipping_address, created_at, updated_at)
+         VALUES ($1,$2::order_status,$3,$4,$5,$6,$7,$8,$8)
          RETURNING id`,
         [
-          customerId, sellerId, status, total, deliveryFee, zoneId,
+          customerId, status, total, deliveryFee, zoneId,
           cities[i % cities.length], addrs[i % addrs.length], createdAt,
         ]
       );
