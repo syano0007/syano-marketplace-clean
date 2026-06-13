@@ -136,7 +136,7 @@ export function HeroSection({ products }: { products: Product[] }) {
           className="flex-1 relative h-[600px] flex items-center justify-center"
         >
           <div className="relative w-[500px] h-[520px] rounded-3xl overflow-hidden border border-border shadow-2xl shadow-black/40">
-            <img src={HERO_MAIN_IMG} alt="Products" className="w-full h-full object-cover" style={{ filter: "brightness(0.6) contrast(1.1)" }} />
+            <img src={HERO_MAIN_IMG} alt="Products" className="w-full h-full object-cover" style={{ filter: "brightness(var(--img-dim-hero)) contrast(1.1)" }} />
             <div className="absolute inset-0" style={{ background: "linear-gradient(to top right, hsl(var(--background) / 0.6), transparent)" }} />
 
             <div className="absolute top-6 start-6">

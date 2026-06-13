@@ -424,11 +424,11 @@ export function Navbar() {
                   </span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" sideOffset={8} className="bg-[#111] border-white/[0.1] w-56 p-0 overflow-hidden">
+              <DropdownMenuContent align="end" sideOffset={8} className="bg-popover border-border shadow-xl shadow-black/10 w-56 p-0 overflow-hidden">
 
                 {/* Theme */}
                 <div className="px-3 pt-3 pb-2">
-                  <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-white/30 uppercase mb-2 flex items-center gap-1.5">
+                  <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-muted-foreground uppercase mb-2 flex items-center gap-1.5">
                     <Sun className="h-3 w-3" /> {isRtl ? "المظهر" : "Theme"}
                   </p>
                   <div className="grid grid-cols-3 gap-1">
@@ -443,7 +443,7 @@ export function Navbar() {
                           "py-1.5 rounded-lg transition-colors",
                           theme === opt.val
                             ? "bg-emerald-500 text-black"
-                            : "bg-white/[0.05] text-white/50 hover:bg-white/[0.1] hover:text-white"
+                            : "bg-secondary text-foreground/60 hover:bg-secondary/70 hover:text-foreground"
                         )}>
                         {isRtl ? opt.ar : opt.en}
                       </button>
@@ -451,11 +451,11 @@ export function Navbar() {
                   </div>
                 </div>
 
-                <div className="h-px bg-white/[0.07] mx-3" />
+                <div className="h-px bg-border mx-3" />
 
                 {/* Language */}
                 <div className="px-3 py-2">
-                  <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-white/30 uppercase mb-2 flex items-center gap-1.5">
+                  <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-muted-foreground uppercase mb-2 flex items-center gap-1.5">
                     <Globe className="h-3 w-3" /> {isRtl ? "اللغة" : "Language"}
                   </p>
                   <div className="grid grid-cols-2 gap-1">
@@ -469,7 +469,7 @@ export function Navbar() {
                           "py-1.5 rounded-lg transition-colors",
                           lang === opt.val
                             ? "bg-emerald-500 text-black"
-                            : "bg-white/[0.05] text-white/50 hover:bg-white/[0.1] hover:text-white"
+                            : "bg-secondary text-foreground/60 hover:bg-secondary/70 hover:text-foreground"
                         )}>
                         {opt.label}
                       </button>
@@ -477,11 +477,11 @@ export function Navbar() {
                   </div>
                 </div>
 
-                <div className="h-px bg-white/[0.07] mx-3" />
+                <div className="h-px bg-border mx-3" />
 
                 {/* Currency */}
                 <div className="px-3 py-2 pb-3">
-                  <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-white/30 uppercase mb-2 flex items-center gap-1.5">
+                  <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-muted-foreground uppercase mb-2 flex items-center gap-1.5">
                     <DollarSign className="h-3 w-3" /> {isRtl ? "العملة" : "Currency"}
                   </p>
                   <div className="grid grid-cols-2 gap-1">
@@ -495,7 +495,7 @@ export function Navbar() {
                           "py-1.5 rounded-lg transition-colors",
                           currency === opt.val
                             ? "bg-emerald-500 text-black"
-                            : "bg-white/[0.05] text-white/50 hover:bg-white/[0.1] hover:text-white"
+                            : "bg-secondary text-foreground/60 hover:bg-secondary/70 hover:text-foreground"
                         )}>
                         {opt.label}
                       </button>
@@ -519,26 +519,26 @@ export function Navbar() {
                     <ChevronDown className="h-3 w-3 text-white/30" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[#111] border-white/[0.1] w-52">
-                  <div className="px-3 py-2.5 border-b border-white/[0.07]">
-                    <p style={{ fontSize: "13px", fontWeight: 700 }} className="text-white">{user?.name}</p>
-                    <p style={{ fontSize: "11px" }} className="text-white/35 truncate" translate="no">{user?.email}</p>
+                <DropdownMenuContent align="end" className="bg-popover border-border shadow-xl shadow-black/10 w-52">
+                  <div className="px-3 py-2.5 border-b border-border">
+                    <p style={{ fontSize: "13px", fontWeight: 700 }} className="text-foreground">{user?.name}</p>
+                    <p style={{ fontSize: "11px" }} className="text-muted-foreground truncate" translate="no">{user?.email}</p>
                   </div>
-                  <DropdownMenuItem asChild className="text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer mt-1">
+                  <DropdownMenuItem asChild className="text-foreground/70 focus:text-foreground focus:bg-muted/60 cursor-pointer mt-1">
                     <Link href={isAdmin ? "/admin" : isSeller ? "/seller/dashboard" : isCourier ? "/courier/dashboard" : "/customer/dashboard"}
                       className="flex items-center gap-2">
                       <LayoutDashboard className="h-4 w-4" /> {t("nav.dashboard")}
                     </Link>
                   </DropdownMenuItem>
                   {isCustomer && (
-                    <DropdownMenuItem asChild className="text-white/60 focus:text-white focus:bg-white/[0.06] cursor-pointer">
+                    <DropdownMenuItem asChild className="text-foreground/70 focus:text-foreground focus:bg-muted/60 cursor-pointer">
                       <Link href="/orders" className="flex items-center gap-2">
                         <ClipboardList className="h-4 w-4" /> {t("nav.orders")}
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuSeparator className="bg-white/[0.07]" />
-                  <DropdownMenuItem onClick={logout} className="text-rose-400 focus:text-rose-300 focus:bg-rose-500/[0.08] cursor-pointer">
+                  <DropdownMenuSeparator className="bg-border" />
+                  <DropdownMenuItem onClick={logout} className="text-rose-500 focus:text-rose-600 focus:bg-rose-500/[0.08] cursor-pointer">
                     <LogOut className="me-2 h-4 w-4" /> {t("nav.logout")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>

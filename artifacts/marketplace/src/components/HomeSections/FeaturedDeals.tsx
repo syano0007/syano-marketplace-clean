@@ -113,12 +113,12 @@ function DealCard({ deal, i }: { deal: DealCardData; i: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.5, delay: i * 0.08, ease }}
-      className="group bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-black/20 hover:-translate-y-1"
+      className="group bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden transition-all duration-300 sy-card-elevated hover:-translate-y-1"
     >
       <Link href={href} className="block">
         <div className="relative aspect-square bg-muted overflow-hidden cursor-pointer">
-          <img src={deal.img} alt={deal.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(0.9) contrast(1.05)" }} />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <img src={deal.img} alt={deal.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(var(--img-dim-product)) contrast(1.05)" }} />
+          <div className="absolute inset-0 sy-overlay-medium" />
           <div className="absolute top-3 end-3">
             <div style={{ fontWeight: 800, fontSize: "13px", backgroundColor: "#10b981" }} className="text-black px-2.5 py-1 rounded-full shadow-lg">
               -{deal.discount}%
@@ -204,7 +204,7 @@ export function FeaturedDeals({ hotDeals }: { hotDeals?: Product[] }) {
       }));
 
   return (
-    <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="bg-background py-28 border-t border-border">
+    <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="sy-section-alt py-28 border-t border-border">
       <div className="max-w-[1400px] mx-auto px-10">
         <div className="flex items-end justify-between mb-14">
           <div>

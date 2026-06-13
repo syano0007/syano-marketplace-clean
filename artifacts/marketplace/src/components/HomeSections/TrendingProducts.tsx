@@ -87,12 +87,12 @@ function TrendingCard({ product, i }: { product: ProductData; i: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.5, delay: i * 0.07, ease }}
-      className="group bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-black/20 hover:-translate-y-1"
+      className="group bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden transition-all duration-300 sy-card-elevated hover:-translate-y-1"
     >
       <Link href={href} className="block">
         <div className="relative aspect-square bg-muted overflow-hidden cursor-pointer">
-          <img src={product.img} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(0.88) contrast(1.05)" }} />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          <img src={product.img} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(var(--img-dim-product)) contrast(1.05)" }} />
+          <div className="absolute inset-0 sy-overlay-light" />
           {product.trending && (
             <div className="absolute top-3 end-3">
               <div style={{ fontWeight: 700, fontSize: "11px" }} className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded-full backdrop-blur-sm">

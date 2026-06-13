@@ -48,7 +48,7 @@ export function JoinSection() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.55, delay: 0.1, ease }}
                 onClick={handleOpenYourStore}
-                className="group relative bg-background/80 border border-border hover:border-emerald-500/25 rounded-2xl p-7 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/[0.05]"
+                className="group relative bg-card border border-border hover:border-emerald-500/25 rounded-2xl p-7 cursor-pointer transition-all duration-300 sy-card-elevated"
               >
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-5 group-hover:bg-emerald-500/15 transition-colors duration-300">
                   <Store className="w-6 h-6 text-emerald-400" />
@@ -70,7 +70,7 @@ export function JoinSection() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.55, delay: 0.2, ease }}
                 onClick={handleBecomeCourier}
-                className="group relative bg-background/80 border border-border hover:border-border/80 rounded-2xl p-7 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-black/20"
+                className="group relative bg-card border border-border hover:border-border/80 rounded-2xl p-7 cursor-pointer transition-all duration-300 sy-card-elevated"
               >
                 <div className="w-12 h-12 rounded-2xl bg-muted/60 border border-border flex items-center justify-center mb-5 group-hover:bg-muted transition-colors duration-300">
                   <Bike className="w-6 h-6 text-muted-foreground group-hover:text-foreground/70 transition-colors" />

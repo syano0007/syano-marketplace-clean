@@ -106,50 +106,68 @@
   
   --card: 0 0% 100%;
   --card-foreground: 221 39% 11%;
-  --card-border: 220 13% 91%;
+  --card-border: 220 13% 84%;
 
   --popover: 0 0% 100%;
   --popover-foreground: 221 39% 11%;
-  --popover-border: 220 13% 91%;
+  --popover-border: 220 13% 84%;
 
   --primary: 161 94% 30%;
   --primary-foreground: 0 0% 100%;
   
-  --secondary: 220 13% 91%;
+  --secondary: 220 16% 94%;
   --secondary-foreground: 221 39% 11%;
 
-  --muted: 220 13% 91%;
-  --muted-foreground: 220 9% 35%;
+  /* muted surface is slightly lighter than border so cards lift off the page */
+  --muted: 220 18% 96%;
+  /* muted-foreground darkened for WCAG AA compliance on white (#3d4554 ≈ 7:1) */
+  --muted-foreground: 220 13% 32%;
 
-  --accent: 220 13% 91%;
+  --accent: 220 16% 94%;
   --accent-foreground: 221 39% 11%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 220 13% 91%;
-  --input: 220 13% 91%;
+  /* border is noticeably more visible — was 91% (very faint), now 84% */
+  --border: 220 13% 84%;
+  --input: 220 13% 84%;
   --ring: 161 94% 30%;
 
   --sidebar: 0 0% 100%;
   --sidebar-foreground: 221 39% 11%;
-  --sidebar-border: 220 13% 91%;
+  --sidebar-border: 220 13% 84%;
   --sidebar-primary: 161 94% 30%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 220 13% 91%;
+  --sidebar-accent: 220 16% 94%;
   --sidebar-accent-foreground: 221 39% 11%;
   --sidebar-ring: 161 94% 30%;
 
   --chart-1: 161 94% 30%;
   --chart-2: 221 39% 11%;
-  --chart-3: 220 9% 35%;
-  --chart-4: 220 13% 91%;
+  --chart-3: 220 13% 32%;
+  --chart-4: 220 13% 84%;
   --chart-5: 0 0% 0%;
 
   --app-font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
   --radius: .5rem;
+
+  /* ── Light Theme: image brightness (lighter overlays for readability) ── */
+  --img-dim-hero:     0.72;
+  --img-dim-category: 0.62;
+  --img-dim-product:  0.92;
+  --img-dim-store:    0.70;
+  --img-dim-arrival:  0.68;
+
+  /* ── Light Theme: card elevation ───────────────────────────────────── */
+  --shadow-card:       0 1px 3px 0 rgba(0,0,0,0.07), 0 1px 2px -1px rgba(0,0,0,0.05);
+  --shadow-card-hover: 0 8px 24px -4px rgba(0,0,0,0.12), 0 4px 8px -4px rgba(0,0,0,0.07);
+  --shadow-card-lg:    0 20px 48px -10px rgba(0,0,0,0.14), 0 8px 16px -8px rgba(0,0,0,0.08);
+
+  /* ── Alt section background ─────────────────────────────────────────── */
+  --section-alt: 220 22% 96%;
 }
 
 .dark {
@@ -213,6 +231,21 @@
   --chart-3: 215 25% 84%;
   --chart-4: 0 0% 10%;
   --chart-5: 0 0% 100%;
+
+  /* ── Dark Theme: image brightness (heavier overlays for drama) ───── */
+  --img-dim-hero:     0.60;
+  --img-dim-category: 0.45;
+  --img-dim-product:  0.88;
+  --img-dim-store:    0.50;
+  --img-dim-arrival:  0.55;
+
+  /* ── Dark Theme: card elevation (depth from bg contrast, no shadow) ── */
+  --shadow-card:       none;
+  --shadow-card-hover: 0 20px 60px -12px rgba(0,0,0,0.50);
+  --shadow-card-lg:    0 30px 80px -20px rgba(0,0,0,0.60);
+
+  /* ── Alt section background ──────────────────────────────────────── */
+  --section-alt: 0 0% 2%;
 }
 
 @utility container {
@@ -746,4 +779,88 @@
 }
 @media (min-width: 640px) {
   .pc-rating { min-height: 1.375rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SYANO LIGHT THEME UTILITIES
+   Theme-aware card elevation, image overlays, and section surfaces.
+   All values are CSS-var-driven — light vs dark handled in :root/.dark
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Card elevation ──────────────────────────────────────────────── */
+/* Gives cards visible depth in light mode; stays flat in dark (AMOLED). */
+.sy-card-elevated {
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.sy-card-elevated:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+.sy-card-elevated-lg {
+  box-shadow: var(--shadow-card-lg);
+}
+
+/* ── Theme-aware image overlay gradients ──────────────────────────
+   Each variant matches how dark the overlay must be in light vs dark.
+   Light mode uses softer overlays so photo detail is preserved.
+   Dark mode uses heavier overlays for dramatic contrast. */
+
+/* Category photo-cards — strongest overlay, readable labels */
+.sy-overlay-category {
+  background: linear-gradient(to top,
+    rgba(0,0,0,0.72) 0%,
+    rgba(0,0,0,0.18) 55%,
+    transparent 100%);
+}
+.dark .sy-overlay-category {
+  background: linear-gradient(to top,
+    rgba(0,0,0,0.92) 0%,
+    rgba(0,0,0,0.32) 55%,
+    transparent 100%);
+}
+
+/* Store/arrival hero-size images — heavy label overlay */
+.sy-overlay-heavy {
+  background: linear-gradient(to top,
+    rgba(0,0,0,0.60) 0%,
+    rgba(0,0,0,0.12) 55%,
+    transparent 100%);
+}
+.dark .sy-overlay-heavy {
+  background: linear-gradient(to top,
+    rgba(0,0,0,0.92) 0%,
+    rgba(0,0,0,0.30) 55%,
+    transparent 100%);
+}
+
+/* Deal/product card bottom-fade — medium overlay */
+.sy-overlay-medium {
+  background: linear-gradient(to top,
+    rgba(0,0,0,0.42) 0%,
+    rgba(0,0,0,0.05) 50%,
+    transparent 100%);
+}
+.dark .sy-overlay-medium {
+  background: linear-gradient(to top,
+    rgba(0,0,0,0.68) 0%,
+    rgba(0,0,0,0.12) 50%,
+    transparent 100%);
+}
+
+/* Trending product cards — lightest overlay */
+.sy-overlay-light {
+  background: linear-gradient(to top,
+    rgba(0,0,0,0.28) 0%,
+    transparent 40%);
+}
+.dark .sy-overlay-light {
+  background: linear-gradient(to top,
+    rgba(0,0,0,0.54) 0%,
+    transparent 40%);
+}
+
+/* ── Alt section background ───────────────────────────────────────
+   Subtly different page bg so adjacent sections don't merge visually. */
+.sy-section-alt {
+  background-color: hsl(var(--section-alt));
 }

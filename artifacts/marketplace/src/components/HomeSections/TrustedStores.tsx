@@ -50,11 +50,11 @@ function StoreCard({ store, i }: { store: StoreData; i: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.55, delay: i * 0.1, ease }}
-      className="group bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-black/20"
+      className="group bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden transition-all duration-300 sy-card-elevated"
     >
       <div className="relative h-[160px] overflow-hidden bg-muted">
-        <img src={store.coverImg} alt={store.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(0.5) contrast(1.1)" }} />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+        <img src={store.coverImg} alt={store.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(var(--img-dim-store)) contrast(1.1)" }} />
+        <div className="absolute inset-0 sy-overlay-heavy" />
         {store.verified && (
           <div className="absolute top-3 start-3">
             <div style={{ fontWeight: 600, fontSize: "11px" }} className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded-full backdrop-blur-sm">
@@ -150,7 +150,7 @@ export function TrustedStores() {
   }));
 
   return (
-    <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="bg-background py-28 border-t border-border">
+    <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="sy-section-alt py-28 border-t border-border">
       <div className="max-w-[1400px] mx-auto px-10">
         <div className="flex items-end justify-between mb-14">
           <div>

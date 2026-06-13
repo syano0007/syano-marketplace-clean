@@ -80,11 +80,11 @@ export function NewArrivals({ newArrivals }: { newArrivals?: Product[] }) {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.6, ease }}
-            className="col-span-2 row-span-2 group relative bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl hover:shadow-black/20"
+            className="col-span-2 row-span-2 group relative bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 sy-card-elevated"
           >
             <Link href={main.productId ? `/products/${main.productId}` : "/products"} className="block w-full h-full">
-              <img src={main.img} alt={main.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(0.55) contrast(1.1)" }} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+              <img src={main.img} alt={main.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(var(--img-dim-arrival)) contrast(1.1)" }} />
+              <div className="absolute inset-0 sy-overlay-heavy" />
               <div className="absolute top-5 start-5">
                 <div style={{ fontWeight: 700, fontSize: "12px" }} className="flex items-center gap-1.5 bg-emerald-500 text-black px-3 py-1.5 rounded-full">
                   <Zap className="w-3 h-3" /> {t("home.arrivals.new_since", { count: main.daysAgo })}
@@ -114,11 +114,11 @@ export function NewArrivals({ newArrivals }: { newArrivals?: Product[] }) {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.5, delay: i * 0.1, ease }}
-              className="group relative bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl hover:shadow-black/20"
+              className="group relative bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 sy-card-elevated"
             >
               <Link href={product.productId ? `/products/${product.productId}` : "/products"} className="block w-full h-full">
-                <img src={product.img} alt={product.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" style={{ filter: "brightness(0.5) contrast(1.1)" }} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                <img src={product.img} alt={product.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" style={{ filter: "brightness(var(--img-dim-arrival)) contrast(1.1)" }} />
+                <div className="absolute inset-0 sy-overlay-medium" />
                 <div className="absolute top-3 start-3">
                   <div style={{ fontWeight: 700, fontSize: "10px" }} className="flex items-center gap-1 bg-white/10 backdrop-blur-sm border border-white/10 text-white/70 px-2 py-0.5 rounded-full">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />

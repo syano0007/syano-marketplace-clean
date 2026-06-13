@@ -139,7 +139,7 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
     <div
       ref={cardRef}
       className={cn(
-        "group flex flex-col bg-card rounded-xl border border-border overflow-hidden",
+        "group flex flex-col bg-card rounded-xl border border-border overflow-hidden sy-card-elevated",
         "hover:border-primary/30 hover:-translate-y-0.5 transition-[transform,border-color] duration-150",
         "cursor-pointer h-full relative active:scale-[0.98]",
         product.stock <= 0 && "opacity-70"
