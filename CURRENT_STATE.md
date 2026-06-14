@@ -1,6 +1,29 @@
 # SYANO — Current Project State
-**Last Updated:** June 14, 2026 (Session 9 — Full Recovery)  
-**Updated By:** Full environment recovery — fresh DB restore, all services started, 4 TS errors fixed, bootstrap column bug patched
+**Last Updated:** June 14, 2026 (Session 10 — Messaging V2 Audit)  
+**Updated By:** Messaging V2 deep audit completed — 90% overall, all gaps documented, PROJECT_STATUS.md created
+
+---
+
+## Messaging V2 Audit (June 14, 2026 — Session 10)
+
+Full deep audit of Messaging V2 implementation. **Overall completion: 90%.**
+
+### What is 100% complete
+- **API** (messaging.ts, 868 lines, 18 endpoints): conversations CRUD, messages CRUD, unread-count, search, typing POST+GET (in-memory 4s TTL), attachments upload+serve (base64, 2MB, images/PDF/txt), report/flag, block/archive/mute, admin inbox, admin create conversation, admin block/unblock
+- **DB schema**: `conversations` (type, status, muted, last_message_at), `messages` (body, read_at, deleted_at, flagged, attachment_id), `message_attachments` (filename, mime_type, size, data)
+- **Web — MessagingPanel.tsx** (803 lines): sidebar (search, all/unread/archived filter tabs, archive/mute on hover), message thread (bubbles, read receipts ✓/✓✓, inline attachment preview, drag-drop+paste upload, typing indicator, delete, char counter)
+- **Web — 3 inbox pages**: `/messages` (customer), `/seller/messages` (seller), `/admin/messages` (admin — block/unblock, archive, type filter C↔S/C↔Admin/S↔Admin)
+- **Web — ContactSellerButton**: on product detail page + store page → navigate to /messages
+- **i18n**: 77 `messages.*` keys in both EN and AR
+- **lib/api-client-react/messaging.ts**: 20+ hooks (useGetConversations, useGetMessages, useSendMessage, useDeleteMessage, useArchiveConversation, useMuteConversation, useGetTyping, useUploadAttachment, useGetAdminConversations, useBlockConversation, useStartAdminConversation, etc.)
+- **Real-time**: SSE `new_message` → TanStack Query cache invalidation in NotificationProvider; polling fallback (messages 3s, conversations 5s); Navbar unread badge (15s refetch)
+
+### What is incomplete (mobile gaps, ~10%)
+- ❌ **Mobile read receipts**: text bubbles show no ✓/✓✓ indicator
+- ❌ **Mobile typing indicators**: no animated dots when partner is typing
+- ❌ **Mobile attachments**: text-only — no upload, no inline image preview
+- ❌ **Mobile archive/mute**: no conversation management controls
+- ❌ **Mobile i18n**: ~8 hardcoded English strings ("Messages", "Conversations", "Sign in to view messages", "No conversations yet", "Message a seller from any product page", "just now", etc.)
 
 ---
 
@@ -203,6 +226,7 @@ Full recovery performed from empty environment:
 | **Homepage V7 (Figma dark design, premium navbar, 8 HomeSections, real data)** | ✅ Complete + Validated — all buttons functional, all APIs connected |
 | **Wishlist System V1** | ✅ Complete + Validated — routes, DB table, heart button, WishlistContext, navbar icon |
 | **Recovery Session 3 (June 13, 2026)** | ✅ Complete — Full restore, wishlist TS fix, 0 errors all artifacts, 95/100 |
+| **Messaging V2 Audit (June 14, 2026)** | ✅ Complete — 90% overall; API 100% (18 endpoints), Web 100%, Notifications 100%, Mobile 55% (missing: read receipts, typing, attachments, archive/mute, full i18n) |
 
 ---
 

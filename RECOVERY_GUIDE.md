@@ -1,5 +1,5 @@
 # SYANO — Recovery Guide
-**Last Updated:** June 14, 2026 (Session 9 — Full Recovery: fresh DB + TS fixes + bootstrap patch)
+**Last Updated:** June 14, 2026 (Session 10 — Messaging V2 Audit complete, PROJECT_STATUS.md created)
 
 This guide restores the project to a fully working state from scratch.
 
