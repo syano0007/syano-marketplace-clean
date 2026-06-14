@@ -58,7 +58,7 @@ export function TrendingProducts({ products }: { products?: Product[] }) {
             {t("home.trending.see_all")} <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
           {displayProducts.map((product, i) => (
             <TrendingCard key={`${product.id}-${i}`} product={product} i={i} />
           ))}

@@ -307,7 +307,7 @@ function ProductsTab({ sellerId, storeCategories }: { sellerId: number; storeCat
   if (isLoading) return (
     <div className="space-y-4">
       <Skeleton className="h-10 w-full rounded-xl" />
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      <div className="store-grid">
         {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-56 rounded-2xl" />)}
       </div>
     </div>
@@ -383,7 +383,7 @@ function ProductsTab({ sellerId, storeCategories }: { sellerId: number; storeCat
           {!catFilter && !search && <p className="text-sm mt-1">{t("store.no_products_desc")}</p>}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="store-grid">
           {filtered.map((p: any) => (
             <MiniProductCard key={p.id} product={p} format={fmtCurrency} />
           ))}
@@ -412,7 +412,7 @@ function FeaturedTab({ sellerId }: { sellerId: number }) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-6 w-40 rounded" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="store-grid">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-56 rounded-2xl" />)}
         </div>
       </div>
@@ -433,7 +433,7 @@ function FeaturedTab({ sellerId }: { sellerId: number }) {
             <p className="text-sm mt-1">{t("store.no_featured_desc")}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="store-grid">
             {featured.map((p: any) => (
               <MiniProductCard key={p.id} product={p} format={fmtCurrency} />
             ))}
@@ -448,7 +448,7 @@ function FeaturedTab({ sellerId }: { sellerId: number }) {
             <Package className="h-5 w-5 text-primary shrink-0" />
             <h3 className="text-base font-bold">{t("store.new_arrivals")}</h3>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="store-grid">
             {newest.map((p: any) => (
               <MiniProductCard key={p.id} product={p} format={fmtCurrency} />
             ))}
