@@ -1,6 +1,63 @@
 # SYANO — Current Project State
-**Last Updated:** June 14, 2026 (Session 12 — Search Suggestions Engine)  
-**Updated By:** Search Suggestions Engine — Amazon/Noon style, text-intent phrases only, 0 TS errors
+**Last Updated:** June 14, 2026 (Session 13 — NLP Hybrid Search Step 3 COMPLETE)  
+**Updated By:** Step 3 — Shop page intent chips, NLP metadata banner, sort→URL sync wired to hybrid `/api/search/results`
+
+---
+
+## ✅ Hybrid NLP Search — Step 3: Shop Page Integration — COMPLETE (June 14, 2026)
+
+### What Was Built
+Frontend wiring of NLP payload metadata into the Shop page (`artifacts/marketplace/src/pages/search/index.tsx`).
+
+### Interface Update
+`SearchIntent` extended with three new fields from `GET /api/search/results`:
+```ts
+interface SearchIntent {
+  modifiers: string[];
+  mappedCategory: string | null;
+  expandedTerms: string[];
+  nlpBaseTokens?: string[];      // e.g. ["بواط","سبور"]
+  nlpExpandedCount?: number;     // e.g. 7
+  primaryLanguage?: "ar" | "en"; // query language detected by NLP
+}
+```
+
+### NLP Insights Banner
+- Renders when `searchMode && !nlpBannerDismissed && nlpExpandedCount > 0`
+- Violet-tinted pill (`bg-violet-500/10 border-violet-500/20`) — non-intrusive, blends in light + dark
+- Arabic mode: `"🔍 تم مطابقة ${n} مرادفات لغوية لـ: ${tokens.join('، ')}"`
+- English mode: `"🔍 Matched ${n} linguistic synonyms for: ${tokens.join(', ')}"`
+- Language badge: `"العربية"` or `"English"` (blue pill, `bg-blue-500/10`) — explains cross-language results
+- Dismiss button (`X`) sets `nlpBannerDismissed` state; resets automatically on next new query (via `searchFilterKey` useEffect)
+- RTL-aware: `dir={isRtl ? "rtl" : "ltr"}` on the banner container
+
+### Active Filter Chips (Redesigned)
+- **Query chip**: always rendered first when `debouncedQuery` is set — emerald styling with Search icon; clicking clears `q` param via `navigate("/shop")` → transitions page back to catalog listing
+- **Category chip**: sky-blue styling; clicking applies the category filter
+- **Modifier chips**: amber styling (cheap/premium/used), read-only
+
+### Sort → URL Sync
+- New `handleSortChange(v)` function wired to both sort dropdowns (sidebar + mobile bar)
+- Reads current URL params (`new URLSearchParams(window.location.search)`), sets `sortBy`, calls `navigate(\`/shop?\${sp}\`)`
+- Ensures sort selection survives page share/refresh and is bookmarkable
+- Options surfaced to the API: `relevance | price_asc | price_desc | rating | newest`
+
+### State Management
+| State | Reset trigger |
+|---|---|
+| `nlpBannerDismissed` | New debouncedQuery (searchFilterKey useEffect) |
+| `searchAccumulated` | New debouncedQuery, category, or sortBy change |
+| `searchPage` | Same as above |
+
+### TypeScript: ✅ 0 errors
+
+### Live Verification (June 14, 2026)
+```
+Query: بواط سبور (Arabic colloquial — "sports shoes")
+→ NLP banner: "🔍 تم مطابقة 7 مرادفات لغوية لـ: بواط، سبور"  Language badge: "العربية"
+→ Category chip: "Fashion ×"   Query chip: "بواط سبور ×"
+→ 12 results, sort="Most Relevant"
+```
 
 ---
 
@@ -507,6 +564,9 @@ Full audit of all 42 seeded products. Every image now matches its product name, 
 ✅ Wishlist System V1 — COMPLETE + VALIDATED
 ✅ Homepage V6 — COMPLETE + VALIDATED
 ✅ Product Data Quality Audit — COMPLETE (June 14, 2026)
+✅ Hybrid NLP Search — Step 1 (searchProcessor NLP pipeline) — COMPLETE (June 14, 2026)
+✅ Hybrid NLP Search — Step 2 (FTS + tsvector GIN index + hybrid engine) — COMPLETE (June 14, 2026)
+✅ Hybrid NLP Search — Step 3 (Shop page intent chips + NLP banner + sort URL sync) — COMPLETE (June 14, 2026)
 
 ⏳ Next: TBD
 ```

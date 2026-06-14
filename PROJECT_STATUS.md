@@ -1,5 +1,5 @@
 # SYANO — Project Status
-**Last Updated:** June 14, 2026 (Session 12 — Search Suggestions Engine COMPLETE)
+**Last Updated:** June 14, 2026 (Session 13 — Hybrid NLP Search Step 3 COMPLETE)
 
 SYANO is a production-scale Syrian marketplace platform built with React + Vite (web), Expo (mobile), Express + Drizzle (API), PostgreSQL (DB). Full Arabic/English bilingual, RTL support, dark/light theme.
 
@@ -21,6 +21,7 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 | Homepage V7 | ✅ 100% | 8 HomeSections, hero carousel, real data, dark glassmorphism navbar |
 | Navbar Polish V1 | ✅ 100% | Light mode contrast, icon unification, active state fix, badge fix, settings dropdown |
 | **Search & Discovery Engine V2** | ✅ 100% | Syrian Dialect Dict (55+ entries), intent modifiers, 4-tier scoring, 3 endpoints, dialect-aware suggestions |
+| **Hybrid NLP Search Engine V1** | ✅ 100% | Step 1: searchProcessor (25/25 tests). Step 2: FTS tsvector+GIN+trigger, OR-tsquery+trigram hybrid. Step 3: Shop page NLP banner, intent chips, sort→URL sync |
 | i18n (web) | ✅ 100% | 2592 EN / 2592 AR keys, 77 messages.* keys |
 | i18n (mobile) | ✅ 100% | Full i18n including 30+ messages.* keys; zero hardcoded strings |
 | Recovery system | ✅ 95% | 21/22 modules pass; heroBannerSystem false negative known |

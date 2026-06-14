@@ -1,5 +1,5 @@
 # SYANO — Recovery Guide
-**Last Updated:** June 14, 2026 (Session 12 — Search Suggestions Engine complete)
+**Last Updated:** June 14, 2026 (Session 13 — Hybrid NLP Search Step 3 complete)
 
 This guide restores the project to a fully working state from scratch.
 
@@ -265,6 +265,69 @@ The endpoint runs 13 parallel checks covering:
 | Seller application returns 400 "already an approved seller" | The test seller was registered with `role:"seller"` — reset to `role:"customer"` via SQL before applying: `UPDATE users SET role='customer', seller_status=null WHERE email='seller@syano.test'` |
 | Unverify returns "Invalid level" | Send `{"action":"unverify"}` OR `{"level":"none"}` — both accepted after June 2026 fix |
 | Demo products missing after recovery | `bootstrapDemoMarketplaceData()` now runs automatically — just restart the API server |
+
+---
+
+## Hybrid NLP Search — Verification (Step 2 + Step 3)
+
+### Backend Smoke Tests (run after API starts on port 8080)
+```bash
+# Test 1 — Arabic colloquial: dialect synonym expansion
+curl -s "http://localhost:8080/api/search/results?q=%D8%A8%D9%88%D8%A7%D8%B7%20%D8%B3%D8%A8%D9%88%D8%B1&limit=3" | \
+  node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
+  console.log('total:',d.total,'mappedCat:',d.intent?.mappedCategory,'lang:',d.intent?.primaryLanguage,'expanded:',d.intent?.nlpExpandedCount);"
+# Expect: total:12, mappedCat:Fashion, lang:ar, nlpExpanded:7
+
+# Test 2 — English cross-language
+curl -s "http://localhost:8080/api/search/results?q=shoes&limit=3" | \
+  node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
+  console.log('total:',d.total,'lang:',d.intent?.primaryLanguage);"
+# Expect: total:26, lang:en
+
+# Test 3 — Intent modifier (cheap)
+curl -s "http://localhost:8080/api/search/results?q=%D8%B1%D8%AE%D9%8A%D8%B5%20%D9%85%D9%88%D8%A8%D8%A7%D9%8A%D9%84&limit=3" | \
+  node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
+  console.log('modifiers:',JSON.stringify(d.intent?.modifiers),'total:',d.total);"
+# Expect: modifiers:["cheap"], total:9
+
+# Test 4 — Typo tolerance (trigram fallback)
+curl -s "http://localhost:8080/api/search/results?q=iphon&limit=3" | \
+  node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
+  console.log('total:',d.total);"
+# Expect: total:11 (trigram similarity)
+
+# Test 5 — Sticky token split
+curl -s "http://localhost:8080/api/search/results?q=%D8%B4%D8%A7%D8%AD%D9%86%D8%B3%D8%B1%D9%8A%D8%B9&limit=3" | \
+  node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
+  console.log('baseTokens:',JSON.stringify(d.intent?.nlpBaseTokens));"
+# Expect: baseTokens:["شاحن","سريع"]
+```
+
+### DB Infrastructure Check
+```bash
+psql "$DATABASE_URL" -t -c "SELECT 'fts_populated: '||COUNT(*) FROM products WHERE fts_vector IS NOT NULL;"
+# Expect: fts_populated: 42
+
+psql "$DATABASE_URL" -t -c "SELECT 'gin_index: '||indexname FROM pg_indexes WHERE tablename='products' AND indexname='products_fts_gin';"
+# Expect: gin_index: products_fts_gin
+```
+
+### Frontend Verification (Shop Page)
+Open the marketplace at `/shop?q=بواط سبور` and verify:
+1. **NLP banner** appears: `"🔍 Matched 7 linguistic synonyms for: بواط، سبور"` with `"العربية"` badge
+2. **Query chip** `"بواط سبور ×"` is present and clickable — clicking it navigates to `/shop` (catalog mode)
+3. **Category chip** `"Fashion ×"` appears (NLP-detected category)
+4. **Sort dropdown** shows `"Most Relevant"` for search mode vs `"Newest"` for browse mode
+5. Changing sort updates the URL `sortBy=` param (check browser address bar)
+6. Dismiss button (`×`) on NLP banner hides it for the current query; a new query resets it
+
+### Key Files
+| File | Purpose |
+|---|---|
+| `artifacts/api-server/src/utils/searchProcessor.ts` | NLP pipeline: tokenizer, dialect dict (55+ entries), intent parsing, language detection |
+| `artifacts/api-server/src/routes/search.ts` | Route 3: hybrid FTS+trigram engine, OR-tsquery, AND boost, seller gate |
+| `artifacts/api-server/src/lib/search-startup.ts` | Phase 1: pg_trgm. Phase 2: fts_vector column + GIN index + auto-update trigger |
+| `artifacts/marketplace/src/pages/search/index.tsx` | Shop page: NLP banner, intent chips, sort→URL sync, SearchIntent interface |
 
 ---
 

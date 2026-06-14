@@ -61,6 +61,9 @@ interface SearchIntent {
   modifiers: string[];
   mappedCategory: string | null;
   expandedTerms: string[];
+  nlpBaseTokens?: string[];
+  nlpExpandedCount?: number;
+  primaryLanguage?: "ar" | "en";
 }
 interface SearchApiResponse {
   results: SearchResultProduct[];
@@ -115,6 +118,7 @@ export default function SearchPage() {
   const [inStock, setInStock] = useState(false);
   const [minRating, setMinRating] = useState(0);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [nlpBannerDismissed, setNlpBannerDismissed] = useState(false);
 
   const [offset, setOffset] = useState(0);
   const [accumulated, setAccumulated] = useState<any[]>([]);
@@ -172,6 +176,7 @@ export default function SearchPage() {
       prevSearchFilterKey.current = searchFilterKey;
       setSearchPage(1);
       setSearchAccumulated([]);
+      setNlpBannerDismissed(false);
     }
   }, [searchFilterKey]);
 
@@ -317,6 +322,14 @@ export default function SearchPage() {
     setHasDiscount(false); setInStock(false); setMinRating(0);
   };
 
+  const handleSortChange = (v: string) => {
+    const newSort = v as SortOption;
+    setSortBy(newSort);
+    const sp = new URLSearchParams(window.location.search);
+    sp.set("sortBy", newSort);
+    navigate(`/shop?${sp.toString()}`);
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-background">
@@ -424,7 +437,7 @@ export default function SearchPage() {
                     <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
                       {lang === "ar" ? "ترتيب حسب" : "Sort by"}
                     </Label>
-                    <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                    <Select value={sortBy} onValueChange={handleSortChange}>
                       <SelectTrigger className="h-9 text-sm">
                         <SelectValue />
                       </SelectTrigger>
@@ -509,7 +522,7 @@ export default function SearchPage() {
                       </span>
                     )}
                   </button>
-                  <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                  <Select value={sortBy} onValueChange={handleSortChange}>
                     <SelectTrigger className="h-9 flex-1 text-sm max-w-[180px]">
                       <SelectValue />
                     </SelectTrigger>
@@ -590,8 +603,38 @@ export default function SearchPage() {
                   </div>
                 )}
 
-                {/* ── Intent chips + result count ──────────────────── */}
-                {searchMode && (searchIntent?.modifiers.length || searchIntent?.mappedCategory || totalResults !== undefined) && (
+                {/* ── NLP Insights Banner ───────────────────────────── */}
+                {searchMode && !nlpBannerDismissed && (searchIntent?.nlpExpandedCount ?? 0) > 0 && (
+                  <div
+                    dir={isRtl ? "rtl" : "ltr"}
+                    className="flex items-center gap-2.5 mb-3 px-3.5 py-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-xs"
+                  >
+                    <span className="shrink-0 text-base leading-none" aria-hidden="true">🔍</span>
+                    <span className="flex-1 text-violet-700 dark:text-violet-300 leading-snug">
+                      {isRtl
+                        ? `تم مطابقة ${searchIntent!.nlpExpandedCount} مرادفات لغوية لـ: ${(searchIntent!.nlpBaseTokens ?? []).join("، ")}`
+                        : `Matched ${searchIntent!.nlpExpandedCount} linguistic synonyms for: ${(searchIntent!.nlpBaseTokens ?? []).join(", ")}`
+                      }
+                    </span>
+                    <span
+                      className="shrink-0 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold border border-blue-500/20 tracking-wide"
+                      title={isRtl ? "لغة الاستعلام" : "Query language"}
+                    >
+                      {searchIntent!.primaryLanguage === "ar" ? "العربية" : "English"}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={isRtl ? "إخفاء" : "Dismiss"}
+                      onClick={() => setNlpBannerDismissed(true)}
+                      className="shrink-0 text-muted-foreground hover:text-foreground transition-colors rounded-full p-0.5 hover:bg-violet-500/10"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+
+                {/* ── Active filter chips + result count ───────────── */}
+                {searchMode && (searchIntent?.modifiers.length || searchIntent?.mappedCategory || debouncedQuery || totalResults !== undefined) && (
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     {totalResults !== undefined && (
                       <span className="text-xs text-muted-foreground">
@@ -600,30 +643,37 @@ export default function SearchPage() {
                           : `${totalResults.toLocaleString()} result${totalResults !== 1 ? "s" : ""}`}
                       </span>
                     )}
+                    {/* Active query chip — dismissible */}
+                    {debouncedQuery && (
+                      <button
+                        type="button"
+                        onClick={() => { setQuery(""); navigate("/shop"); }}
+                        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
+                      >
+                        <Search className="h-3 w-3 shrink-0" />
+                        <span className="max-w-[120px] truncate">
+                          {debouncedQuery.length > 22 ? `${debouncedQuery.slice(0, 22)}…` : debouncedQuery}
+                        </span>
+                        <X className="h-3 w-3 ms-0.5 opacity-70 shrink-0" />
+                      </button>
+                    )}
+                    {/* Category intent chip */}
                     {searchIntent?.mappedCategory && (
                       <button
+                        type="button"
                         onClick={() => setCategory(searchIntent.mappedCategory ?? undefined)}
-                        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors"
+                        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 hover:bg-sky-500/15 transition-colors"
                       >
                         {searchIntent.mappedCategory}
                         <X className="h-3 w-3 ms-0.5 opacity-70" />
                       </button>
                     )}
+                    {/* Modifier chips */}
                     {(searchIntent?.modifiers ?? []).map((mod) => (
                       <span key={mod} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                         {MODIFIER_LABELS[mod] ?? mod}
                       </span>
                     ))}
-                    {debouncedQuery && (
-                      <button
-                        onClick={() => { setQuery(""); navigate("/shop"); }}
-                        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted/80 transition-colors"
-                      >
-                        <Search className="h-3 w-3" />
-                        {debouncedQuery.length > 20 ? `${debouncedQuery.slice(0, 20)}…` : debouncedQuery}
-                        <X className="h-3 w-3 ms-0.5 opacity-70" />
-                      </button>
-                    )}
                   </div>
                 )}
 
