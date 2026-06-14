@@ -37,11 +37,11 @@ function CountdownTimer() {
   return (
     <div className="flex items-center gap-2">
       <Timer className="w-4 h-4 text-emerald-400" />
-      <span style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground">{t("home.deals.ends_in")}</span>
+      <span style={{ fontWeight: 400, fontSize: "0.8125rem" }} className="text-muted-foreground">{t("home.deals.ends_in")}</span>
       <div className="flex items-center gap-1">
         {[pad(time.h), pad(time.m), pad(time.s)].map((val, i) => (
           <span key={i} className="flex items-center gap-1">
-            <span style={{ fontWeight: 700, fontSize: "14px", fontVariantNumeric: "tabular-nums" }} className="bg-muted text-foreground px-2 py-0.5 rounded-md min-w-[32px] text-center">{val}</span>
+            <span style={{ fontWeight: 700, fontSize: "0.875rem", fontVariantNumeric: "tabular-nums" }} className="bg-muted text-foreground px-2 py-0.5 rounded-md min-w-[2rem] text-center">{val}</span>
             {i < 2 && <span style={{ fontWeight: 700 }} className="text-muted-foreground">:</span>}
           </span>
         ))}
@@ -120,7 +120,7 @@ function DealCard({ deal, i }: { deal: DealCardData; i: number }) {
           <img src={deal.img} alt={deal.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(var(--img-dim-product)) contrast(1.05)" }} />
           <div className="absolute inset-0 sy-overlay-medium" />
           <div className="absolute top-3 end-3">
-            <div style={{ fontWeight: 800, fontSize: "13px", backgroundColor: "#10b981" }} className="text-black px-2.5 py-1 rounded-full shadow-lg">
+            <div style={{ fontWeight: 800, fontSize: "0.8125rem", backgroundColor: "#10b981" }} className="text-black px-2.5 py-1 rounded-full shadow-lg">
               -{deal.discount}%
             </div>
           </div>
@@ -134,18 +134,18 @@ function DealCard({ deal, i }: { deal: DealCardData; i: number }) {
       <div className="p-5">
         <p style={{ fontWeight: 500, fontSize: "11px" }} className="text-muted-foreground mb-1.5">{deal.categoryLabel}</p>
         <Link href={href}>
-          <h3 style={{ fontWeight: 700, fontSize: "16px", lineHeight: 1.4 }} className="text-foreground mb-3 group-hover:text-emerald-400 transition-colors duration-200 cursor-pointer">
+          <h3 style={{ fontWeight: 700, fontSize: "1rem", lineHeight: 1.4 }} className="text-foreground mb-3 group-hover:text-emerald-400 transition-colors duration-200 cursor-pointer">
             {deal.name}
           </h3>
         </Link>
         <div className="flex items-center gap-1.5 mb-4">
           <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 flex-shrink-0" />
-          <span style={{ fontWeight: 700, fontSize: "13px" }} className="text-foreground/80">{deal.rating}</span>
+          <span style={{ fontWeight: 700, fontSize: "0.8125rem" }} className="text-foreground/80">{deal.rating}</span>
           <span style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground">({deal.reviews})</span>
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <div style={{ fontWeight: 800, fontSize: "20px", letterSpacing: "-0.02em" }} className="text-emerald-400" translate="no">
+            <div style={{ fontWeight: 800, fontSize: "1.25rem", letterSpacing: "-0.02em" }} className="text-emerald-400" translate="no">
               {format(deal.price)}
             </div>
             <div style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground line-through mt-0.5" translate="no">{format(deal.originalPrice)}</div>
@@ -153,7 +153,7 @@ function DealCard({ deal, i }: { deal: DealCardData; i: number }) {
           <button
             onClick={handleAddToCart}
             disabled={adding}
-            style={{ fontWeight: 600, fontSize: "13px" }}
+            style={{ fontWeight: 600, fontSize: "0.8125rem" }}
             className="flex items-center gap-1.5 bg-muted/60 hover:bg-emerald-500/15 hover:text-emerald-400 text-foreground/60 px-3.5 py-2 rounded-xl transition-all duration-200 border border-border hover:border-emerald-500/30 disabled:opacity-50"
           >
             {adding ? <div className="w-3.5 h-3.5 border border-emerald-500 border-t-transparent rounded-full animate-spin" /> : <ShoppingCart className="w-3.5 h-3.5" />}
@@ -208,11 +208,11 @@ export function FeaturedDeals({ hotDeals }: { hotDeals?: Product[] }) {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-8 md:mb-10 lg:mb-14">
           <div>
-            <p style={{ fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.deals.eyebrow")}</p>
+            <p style={{ fontWeight: 600, fontSize: "0.75rem", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.deals.eyebrow")}</p>
             <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3vw, 38px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground mb-4">{t("home.deals.title")}</h2>
             <CountdownTimer />
           </div>
-          <Link href="/products?hasDiscount=true" style={{ fontWeight: 600, fontSize: "14px" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
+          <Link href="/products?hasDiscount=true" style={{ fontWeight: 600, fontSize: "0.875rem" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
             {t("home.deals.see_all")} <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>

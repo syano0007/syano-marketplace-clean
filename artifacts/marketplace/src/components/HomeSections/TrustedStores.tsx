@@ -52,7 +52,7 @@ function StoreCard({ store, i }: { store: StoreData; i: number }) {
       transition={{ duration: 0.55, delay: i * 0.1, ease }}
       className="group bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden transition-all duration-300 sy-card-elevated"
     >
-      <div className="relative h-[160px] overflow-hidden bg-muted">
+      <div className="relative h-[10rem] overflow-hidden bg-muted">
         <img src={store.coverImg} alt={store.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(var(--img-dim-store)) contrast(1.1)" }} />
         <div className="absolute inset-0 sy-overlay-heavy" />
         {store.verified && (
@@ -67,29 +67,29 @@ function StoreCard({ store, i }: { store: StoreData; i: number }) {
       <div className="p-6 -mt-8 relative">
         <div className="flex items-end justify-between mb-4">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl" style={{ backgroundColor: `${store.logoColor}18`, border: `2px solid ${store.logoColor}30` }}>
-            <span style={{ fontWeight: 900, fontSize: "24px", color: store.logoColor }}>{store.logoInitial}</span>
+            <span style={{ fontWeight: 900, fontSize: "1.5rem", color: store.logoColor }}>{store.logoInitial}</span>
           </div>
           <div className="flex items-center gap-1.5 mb-1">
             <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-            <span style={{ fontWeight: 700, fontSize: "14px" }} className="text-foreground/80">{store.rating}</span>
+            <span style={{ fontWeight: 700, fontSize: "0.875rem" }} className="text-foreground/80">{store.rating}</span>
             <span style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground">({store.reviews.toLocaleString()})</span>
           </div>
         </div>
-        <h3 style={{ fontWeight: 800, fontSize: "19px" }} className="text-foreground mb-1">{store.name}</h3>
-        <p style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground mb-4 leading-relaxed">{store.tagline}</p>
+        <h3 style={{ fontWeight: 800, fontSize: "1.1875rem" }} className="text-foreground mb-1">{store.name}</h3>
+        <p style={{ fontWeight: 400, fontSize: "0.8125rem" }} className="text-muted-foreground mb-4 leading-relaxed">{store.tagline}</p>
         <div className="flex items-center gap-4 py-4 border-y border-border mb-5">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-3.5 h-3.5 text-muted-foreground/50" />
-            <span style={{ fontWeight: 600, fontSize: "13px" }} className="text-foreground/60">
+            <span style={{ fontWeight: 600, fontSize: "0.8125rem" }} className="text-foreground/60">
               {t("home.stores.products_count", { count: store.productCount.toLocaleString() })}
             </span>
           </div>
           <div className="w-1 h-1 rounded-full bg-border" />
-          <span style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground">{store.categoryLabel}</span>
+          <span style={{ fontWeight: 400, fontSize: "0.8125rem" }} className="text-muted-foreground">{store.categoryLabel}</span>
         </div>
         <Link
           href={store.slug ? `/store/${store.slug}` : "/sellers/directory"}
-          style={{ fontWeight: 700, fontSize: "14px" }}
+          style={{ fontWeight: 700, fontSize: "0.875rem" }}
           className="w-full flex items-center justify-center gap-2 bg-muted/40 hover:bg-muted/80 border border-border hover:border-border text-foreground/70 hover:text-foreground py-3 rounded-xl transition-all duration-200"
         >
           <ExternalLink className="w-3.5 h-3.5" /> {t("home.stores.visit")}
@@ -154,10 +154,10 @@ export function TrustedStores() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-8 md:mb-10 lg:mb-14">
           <div>
-            <p style={{ fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.stores.eyebrow")}</p>
+            <p style={{ fontWeight: 600, fontSize: "0.75rem", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.stores.eyebrow")}</p>
             <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3vw, 38px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground">{t("home.stores.title")}</h2>
           </div>
-          <Link href="/sellers/directory" style={{ fontWeight: 600, fontSize: "14px" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
+          <Link href="/sellers/directory" style={{ fontWeight: 600, fontSize: "0.875rem" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
             {t("home.stores.see_all")} <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>

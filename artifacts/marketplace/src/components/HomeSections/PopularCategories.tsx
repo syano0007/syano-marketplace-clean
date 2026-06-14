@@ -24,10 +24,10 @@ export function PopularCategories() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-8 md:mb-10 lg:mb-14">
           <div>
-            <p style={{ fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.categories.eyebrow")}</p>
+            <p style={{ fontWeight: 600, fontSize: "0.75rem", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.categories.eyebrow")}</p>
             <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3vw, 38px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground">{t("home.categories.title")}</h2>
           </div>
-          <Link href="/products" style={{ fontWeight: 600, fontSize: "14px" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
+          <Link href="/products" style={{ fontWeight: 600, fontSize: "0.875rem" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
             {t("home.categories.see_all")} <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>
@@ -60,10 +60,10 @@ export function PopularCategories() {
                   >
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
                   </div>
-                  <h3 style={{ fontWeight: 700, fontSize: "17px" }} className="text-white mb-1 transition-transform duration-300 group-hover:-translate-y-0.5">
+                  <h3 style={{ fontWeight: 700, fontSize: "1.0625rem" }} className="text-white mb-1 transition-transform duration-300 group-hover:-translate-y-0.5">
                     {t(cat.nameKey)}
                   </h3>
-                  <p style={{ fontWeight: 400, fontSize: "13px" }} className="text-white/70">{t(cat.countKey)}</p>
+                  <p style={{ fontWeight: 400, fontSize: "0.8125rem" }} className="text-white/70">{t(cat.countKey)}</p>
                 </div>
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-white/[0.03] to-transparent" />
               </Link>

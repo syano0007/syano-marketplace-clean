@@ -36,7 +36,7 @@ export function JoinSection() {
               <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3.5vw, 42px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground mb-4">
                 {t("home.join.title")}
               </h2>
-              <p style={{ fontWeight: 400, fontSize: "16px", lineHeight: 1.7 }} className="text-muted-foreground max-w-[500px] mx-auto">
+              <p style={{ fontWeight: 400, fontSize: "1rem", lineHeight: 1.7 }} className="text-muted-foreground max-w-[500px] mx-auto">
                 {t("home.join.subtitle")}
               </p>
             </motion.div>
@@ -53,12 +53,12 @@ export function JoinSection() {
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-5 group-hover:bg-emerald-500/15 transition-colors duration-300">
                   <Store className="w-6 h-6 text-emerald-400" />
                 </div>
-                <h3 style={{ fontWeight: 800, fontSize: "20px" }} className="text-foreground mb-2">{t("home.join.seller_title")}</h3>
-                <p style={{ fontWeight: 400, fontSize: "14px", lineHeight: 1.65 }} className="text-muted-foreground mb-6">
+                <h3 style={{ fontWeight: 800, fontSize: "1.25rem" }} className="text-foreground mb-2">{t("home.join.seller_title")}</h3>
+                <p style={{ fontWeight: 400, fontSize: "0.875rem", lineHeight: 1.65 }} className="text-muted-foreground mb-6">
                   {t("home.join.seller_desc")}
                 </p>
                 <div className="flex items-center gap-2 text-emerald-400 group-hover:text-emerald-300 transition-colors">
-                  <span style={{ fontWeight: 700, fontSize: "14px" }}>{t("home.join.seller_cta")}</span>
+                  <span style={{ fontWeight: 700, fontSize: "0.875rem" }}>{t("home.join.seller_cta")}</span>
                   <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
                 </div>
                 <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_80%_60%_at_50%_120%,_rgba(16,185,129,0.06)_0%,_transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
@@ -75,12 +75,12 @@ export function JoinSection() {
                 <div className="w-12 h-12 rounded-2xl bg-muted/60 border border-border flex items-center justify-center mb-5 group-hover:bg-muted transition-colors duration-300">
                   <Bike className="w-6 h-6 text-muted-foreground group-hover:text-foreground/70 transition-colors" />
                 </div>
-                <h3 style={{ fontWeight: 800, fontSize: "20px" }} className="text-foreground mb-2">{t("home.join.courier_title")}</h3>
-                <p style={{ fontWeight: 400, fontSize: "14px", lineHeight: 1.65 }} className="text-muted-foreground mb-6">
+                <h3 style={{ fontWeight: 800, fontSize: "1.25rem" }} className="text-foreground mb-2">{t("home.join.courier_title")}</h3>
+                <p style={{ fontWeight: 400, fontSize: "0.875rem", lineHeight: 1.65 }} className="text-muted-foreground mb-6">
                   {t("home.join.courier_desc")}
                 </p>
                 <div className="flex items-center gap-2 text-muted-foreground group-hover:text-foreground/70 transition-colors">
-                  <span style={{ fontWeight: 700, fontSize: "14px" }}>{t("home.join.courier_cta")}</span>
+                  <span style={{ fontWeight: 700, fontSize: "0.875rem" }}>{t("home.join.courier_cta")}</span>
                   <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
                 </div>
               </motion.div>

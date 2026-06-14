@@ -61,7 +61,7 @@ export function HomeFooter() {
                 <div style={{ fontWeight: 400, fontSize: "10px" }} className="text-emerald-400/70 tracking-widest">سوق سوريا</div>
               </div>
             </div>
-            <p style={{ fontWeight: 400, fontSize: "14px", lineHeight: 1.8 }} className="text-muted-foreground mb-8 max-w-[280px]">
+            <p style={{ fontWeight: 400, fontSize: "0.875rem", lineHeight: 1.8 }} className="text-muted-foreground mb-8 max-w-[280px]">
               {t("home.footer.tagline")}
             </p>
             <div className="flex items-center gap-3">
@@ -77,11 +77,11 @@ export function HomeFooter() {
 
           {Object.entries(footerLinks).map(([key, section]) => (
             <div key={key} className="lg:col-span-2">
-              <h4 style={{ fontWeight: 700, fontSize: "14px", letterSpacing: "0.02em" }} className="text-foreground mb-5">{t(section.titleKey)}</h4>
+              <h4 style={{ fontWeight: 700, fontSize: "0.875rem", letterSpacing: "0.02em" }} className="text-foreground mb-5">{t(section.titleKey)}</h4>
               <ul className="flex flex-col gap-3">
                 {section.links.map((link) => (
                   <li key={link.labelKey}>
-                    <Link href={link.href} style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground hover:text-foreground/65 transition-colors duration-200">
+                    <Link href={link.href} style={{ fontWeight: 400, fontSize: "0.8125rem" }} className="text-muted-foreground hover:text-foreground/65 transition-colors duration-200">
                       {t(link.labelKey)}
                     </Link>
                   </li>
@@ -91,16 +91,16 @@ export function HomeFooter() {
           ))}
 
           <div className="col-span-2 md:col-span-3 lg:col-span-3">
-            <h4 style={{ fontWeight: 700, fontSize: "14px" }} className="text-foreground mb-2">{t("home.footer.newsletter_title")}</h4>
-            <p style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground mb-4 leading-relaxed">{t("home.footer.newsletter_desc")}</p>
+            <h4 style={{ fontWeight: 700, fontSize: "0.875rem" }} className="text-foreground mb-2">{t("home.footer.newsletter_title")}</h4>
+            <p style={{ fontWeight: 400, fontSize: "0.8125rem" }} className="text-muted-foreground mb-4 leading-relaxed">{t("home.footer.newsletter_desc")}</p>
             <div className="flex flex-col gap-2">
               <input
                 type="email"
                 placeholder={t("home.footer.newsletter_placeholder")}
-                style={{ fontFamily: "'Cairo', sans-serif", fontWeight: 400, fontSize: "13px" }}
+                style={{ fontFamily: "'Cairo', sans-serif", fontWeight: 400, fontSize: "0.8125rem" }}
                 className="w-full bg-muted/40 border border-border focus:border-emerald-500/40 rounded-xl px-4 py-3 text-foreground/70 placeholder:text-muted-foreground/50 outline-none transition-colors"
               />
-              <button style={{ fontWeight: 700, fontSize: "13px" }} className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black w-full py-3 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-emerald-500/20">
+              <button style={{ fontWeight: 700, fontSize: "0.8125rem" }} className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black w-full py-3 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-emerald-500/20">
                 {t("home.footer.subscribe")} <ArrowLeft className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -108,7 +108,7 @@ export function HomeFooter() {
         </div>
 
         <div className="py-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0 text-center sm:text-start">
-          <p style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground/60">{t("home.footer.copyright")}</p>
+          <p style={{ fontWeight: 400, fontSize: "0.8125rem" }} className="text-muted-foreground/60">{t("home.footer.copyright")}</p>
           <div className="flex items-center gap-2 flex-wrap justify-center">
             {paymentMethods.map((method) => (
               <div key={method} style={{ fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em" }} className="px-2.5 py-1 bg-muted/40 border border-border text-muted-foreground/60 rounded-md">

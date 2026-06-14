@@ -114,7 +114,7 @@ export function HeroSection({ products }: { products: Product[] }) {
       <div className="absolute left-1/4 bottom-0 w-[400px] h-[400px] rounded-full bg-emerald-600/[0.05] blur-[100px] pointer-events-none" />
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 w-full flex flex-col lg:flex-row items-center gap-8 lg:gap-16 min-h-[calc(100vh-72px)] py-16 lg:py-0">
-        <div className="flex-1 w-full max-w-full lg:max-w-[560px] py-0">
+        <div className="flex-1 w-full max-w-full lg:max-w-[35rem] py-0">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}>
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/[0.08] mb-8">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
@@ -142,8 +142,8 @@ export function HeroSection({ products }: { products: Product[] }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.22, ease }}
-            style={{ fontWeight: 400, fontSize: "17px", lineHeight: 1.75 }}
-            className="text-muted-foreground mb-10 max-w-full lg:max-w-[440px]"
+            style={{ fontWeight: 400, fontSize: "1.0625rem", lineHeight: 1.75 }}
+            className="text-muted-foreground mb-10 max-w-full lg:max-w-[27.5rem]"
           >
             {t("home.hero.subtext")}
           </motion.p>
@@ -155,14 +155,14 @@ export function HeroSection({ products }: { products: Product[] }) {
             className="flex items-center gap-4"
           >
             <Link href="/products"
-              style={{ fontWeight: 700, fontSize: "15px" }}
+              style={{ fontWeight: 700, fontSize: "0.9375rem" }}
               className="group flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-black px-8 py-4 rounded-full transition-all duration-200 hover:shadow-2xl hover:shadow-emerald-500/30 active:scale-95"
             >
               {t("home.hero.shop_now")}
               <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
             </Link>
             <Link href="/sellers/directory"
-              style={{ fontWeight: 500, fontSize: "14px" }}
+              style={{ fontWeight: 500, fontSize: "0.875rem" }}
               className="text-muted-foreground hover:text-foreground/80 transition-colors px-4 py-4"
             >
               {t("home.hero.explore_stores")}
@@ -182,7 +182,7 @@ export function HeroSection({ products }: { products: Product[] }) {
             ].map((stat) => (
               <div key={stat.labelKey}>
                 <div style={{ fontWeight: 800, fontSize: "clamp(18px, 2vw, 26px)", letterSpacing: "-0.02em" }} className="text-foreground">{stat.value}</div>
-                <div style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground mt-0.5">{t(stat.labelKey)}</div>
+                <div style={{ fontWeight: 400, fontSize: "0.8125rem" }} className="text-muted-foreground mt-0.5">{t(stat.labelKey)}</div>
               </div>
             ))}
           </motion.div>
@@ -192,10 +192,10 @@ export function HeroSection({ products }: { products: Product[] }) {
           initial={{ opacity: 0, x: -40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.9, delay: 0.15, ease }}
-          className="hidden lg:flex flex-1 relative h-[500px] xl:h-[600px] items-center justify-center"
+          className="hidden lg:flex flex-1 relative h-[31.25rem] xl:h-[37.5rem] items-center justify-center"
         >
           {/* ── Hero image carousel ─────────────────────────────────── */}
-          <div className="relative w-[500px] h-[520px] rounded-3xl overflow-hidden border border-border shadow-2xl shadow-black/40">
+          <div className="relative w-[31.25rem] h-[32.5rem] rounded-3xl overflow-hidden border border-border shadow-2xl shadow-black/40">
 
             {/* Carousel images — fade + subtle zoom transition */}
             <AnimatePresence mode="wait">
@@ -217,7 +217,7 @@ export function HeroSection({ products }: { products: Product[] }) {
 
             {/* Discount badge */}
             <div className="absolute top-6 start-6 z-10">
-              <div style={{ fontWeight: 800, fontSize: "14px" }} className="bg-emerald-500 text-black px-3 py-1.5 rounded-full shadow-lg shadow-emerald-500/30">
+              <div style={{ fontWeight: 800, fontSize: "0.875rem" }} className="bg-emerald-500 text-black px-3 py-1.5 rounded-full shadow-lg shadow-emerald-500/30">
                 {t("home.hero.discount_badge")}
               </div>
             </div>
@@ -239,7 +239,7 @@ export function HeroSection({ products }: { products: Product[] }) {
             </div>
 
             {/* Floating product card — top right */}
-            <div className="absolute top-6 end-6 w-[170px] bg-card/80 backdrop-blur-md border border-border rounded-2xl p-3 z-10">
+            <div className="absolute top-6 end-6 w-[10.625rem] bg-card/80 backdrop-blur-md border border-border rounded-2xl p-3 z-10">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeCard}
@@ -270,7 +270,7 @@ export function HeroSection({ products }: { products: Product[] }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4, ease }}
-            className="absolute bottom-16 start-0 w-[170px] bg-card/90 backdrop-blur-md border border-border rounded-2xl p-3 shadow-2xl shadow-black/30"
+            className="absolute bottom-16 start-0 w-[10.625rem] bg-card/90 backdrop-blur-md border border-border rounded-2xl p-3 shadow-2xl shadow-black/30"
           >
             <Link href={cards[1]?.id ? `/products/${cards[1].id}` : "/products"} className="block">
               <div className="flex items-center gap-2.5">
@@ -288,7 +288,7 @@ export function HeroSection({ products }: { products: Product[] }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.55, ease }}
-            className="absolute bottom-4 end-6 w-[160px] bg-card/90 backdrop-blur-md border border-border rounded-2xl p-3 shadow-2xl shadow-black/30"
+            className="absolute bottom-4 end-6 w-[10rem] bg-card/90 backdrop-blur-md border border-border rounded-2xl p-3 shadow-2xl shadow-black/30"
           >
             <Link href={cards[2]?.id ? `/products/${cards[2].id}` : "/products"} className="block">
               <div className="flex items-center gap-2.5">

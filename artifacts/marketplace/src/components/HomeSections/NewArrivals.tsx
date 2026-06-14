@@ -66,15 +66,15 @@ export function NewArrivals({ newArrivals }: { newArrivals?: Product[] }) {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-8 md:mb-10 lg:mb-14">
           <div>
-            <p style={{ fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.arrivals.eyebrow")}</p>
+            <p style={{ fontWeight: 600, fontSize: "0.75rem", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.arrivals.eyebrow")}</p>
             <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3vw, 38px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground">{t("home.arrivals.title")}</h2>
           </div>
-          <Link href="/products" style={{ fontWeight: 600, fontSize: "14px" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
+          <Link href="/products" style={{ fontWeight: 600, fontSize: "0.875rem" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
             {t("home.arrivals.see_all")} <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2 gap-5 lg:h-[560px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2 gap-5 lg:h-[35rem]">
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -92,15 +92,15 @@ export function NewArrivals({ newArrivals }: { newArrivals?: Product[] }) {
               </div>
               <div className="absolute bottom-0 start-0 end-0 p-7">
                 <p style={{ fontWeight: 500, fontSize: "12px", letterSpacing: "0.06em" }} className="text-emerald-400 uppercase mb-2">{main.categoryLabel}</p>
-                <h3 style={{ fontWeight: 800, fontSize: "28px", lineHeight: 1.3, letterSpacing: "-0.01em" }} className="text-white mb-3">{main.name}</h3>
+                <h3 style={{ fontWeight: 800, fontSize: "1.75rem", lineHeight: 1.3, letterSpacing: "-0.01em" }} className="text-white mb-3">{main.name}</h3>
                 <div className="flex items-center gap-4">
-                  <div style={{ fontWeight: 800, fontSize: "24px" }} className="text-emerald-400" translate="no">
+                  <div style={{ fontWeight: 800, fontSize: "1.5rem" }} className="text-emerald-400" translate="no">
                     {format(main.price)}
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    <span style={{ fontWeight: 700, fontSize: "14px" }} className="text-white/70">{main.rating}</span>
-                    <span style={{ fontWeight: 400, fontSize: "13px" }} className="text-white/30">({main.reviews} {t("home.arrivals.reviews")})</span>
+                    <span style={{ fontWeight: 700, fontSize: "0.875rem" }} className="text-white/70">{main.rating}</span>
+                    <span style={{ fontWeight: 400, fontSize: "0.8125rem" }} className="text-white/30">({main.reviews} {t("home.arrivals.reviews")})</span>
                   </div>
                 </div>
               </div>
@@ -127,8 +127,8 @@ export function NewArrivals({ newArrivals }: { newArrivals?: Product[] }) {
                 </div>
                 <div className="absolute bottom-0 start-0 end-0 p-4">
                   <p style={{ fontWeight: 500, fontSize: "10px" }} className="text-emerald-400/70 uppercase mb-1">{product.categoryLabel}</p>
-                  <h3 style={{ fontWeight: 700, fontSize: "15px", lineHeight: 1.3 }} className="text-white mb-2">{product.name}</h3>
-                  <div style={{ fontWeight: 800, fontSize: "17px" }} className="text-emerald-400" translate="no">
+                  <h3 style={{ fontWeight: 700, fontSize: "0.9375rem", lineHeight: 1.3 }} className="text-white mb-2">{product.name}</h3>
+                  <div style={{ fontWeight: 800, fontSize: "1.0625rem" }} className="text-emerald-400" translate="no">
                     {format(product.price)}
                   </div>
                 </div>

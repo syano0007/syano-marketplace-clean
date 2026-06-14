@@ -243,11 +243,11 @@ export function Navbar() {
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
 
         {/* ══ MOBILE NAV (< md) ══════════════════════════════════════════════ */}
-        <div className="md:hidden flex h-[60px] items-center justify-between px-4 gap-2">
+        <div className="md:hidden flex h-[3.75rem] items-center justify-between px-4 gap-2">
           <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="Syano home">
             <img src="/syano-logo.png" alt="" width={30} height={30}
-              className="h-[30px] w-[30px] object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]" loading="eager" />
-            <span style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "16px" }} className={`${navFg} uppercase`}>SYANO</span>
+              className="h-[1.875rem] w-[1.875rem] object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]" loading="eager" />
+            <span style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "1rem" }} className={` uppercase`}>SYANO</span>
           </Link>
 
           <div className="flex items-center gap-1 shrink-0">
@@ -262,7 +262,7 @@ export function Navbar() {
               <Link href="/wishlist" className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
                 <Heart className="h-5 w-5" />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 flex h-[16px] w-[16px] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
+                  <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
                     {wishlistCount > 99 ? "99+" : wishlistCount}
                   </span>
                 )}
@@ -272,7 +272,7 @@ export function Navbar() {
               <Link href="/cart" className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
                 <ShoppingCart className="h-5 w-5" />
                 {visibleCartCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 flex h-[16px] w-[16px] items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-black">
+                  <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-black">
                     {visibleCartCount}
                   </span>
                 )}
@@ -298,7 +298,7 @@ export function Navbar() {
                   value={searchQuery}
                   onChange={e => { setSearchQuery(e.target.value); }}
                   placeholder={isRtl ? "ابحث عن منتجات..." : "Search products..."}
-                  style={{ fontFamily: "'Cairo', sans-serif", fontSize: "14px", background: "transparent", outline: "none", border: "none", color: navInputColor, flex: 1 }}
+                  style={{ fontFamily: "'Cairo', sans-serif", fontSize: "0.875rem", background: "transparent", outline: "none", border: "none", color: navInputColor, flex: 1 }}
                 />
                 {searchQuery && (
                   <button type="button" onClick={() => setSearchQuery("")} className={navXBtn}>
@@ -313,7 +313,7 @@ export function Navbar() {
                       className={`w-full flex items-center gap-3 px-3 py-2.5 ${navHoverBg} text-start`}>
                       {p.imageUrl && <img src={p.imageUrl} alt="" className={`h-8 w-8 rounded-lg object-cover border ${navBorder}`} />}
                       <div className="flex-1 min-w-0">
-                        <div style={{ fontSize: "13px", fontWeight: 600 }} className={`${navDropText} truncate`}>{p.name}</div>
+                        <div style={{ fontSize: "0.8125rem", fontWeight: 600 }} className={`${navDropText} truncate`}>{p.name}</div>
                         <div style={{ fontSize: "11px" }} className={navDropSub}>{p.category}</div>
                       </div>
                     </button>
@@ -326,7 +326,7 @@ export function Navbar() {
 
         {/* ══ DESKTOP NAV (≥ md) ═════════════════════════════════════════════ */}
         <div
-          className="container hidden md:grid h-[64px] items-center gap-3"
+          className="container hidden md:grid h-[4rem] items-center gap-3"
           style={{ gridTemplateColumns: "auto 1fr auto" }}
           dir={isRtl ? "rtl" : "ltr"}
         >
@@ -337,9 +337,9 @@ export function Navbar() {
             {/* Logo — far right in RTL (first in DOM = rightmost in RTL flow) */}
             <Link href="/" className="flex items-center gap-2 shrink-0 group">
               <img src="/syano-logo.png" alt="Syano" width={30} height={30}
-                className="h-[30px] w-[30px] object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.75)] group-hover:drop-shadow-[0_0_18px_rgba(16,185,129,1)] transition-[filter] duration-200" loading="eager" />
+                className="h-[1.875rem] w-[1.875rem] object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.75)] group-hover:drop-shadow-[0_0_18px_rgba(16,185,129,1)] transition-[filter] duration-200" loading="eager" />
               <div>
-                <div style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "15px", lineHeight: 1 }} className={`${navFg} uppercase`}>SYANO</div>
+                <div style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "0.9375rem", lineHeight: 1 }} className={`${navFg} uppercase`}>SYANO</div>
                 <div style={{ fontWeight: 400, fontSize: "8px", letterSpacing: "0.16em" }} className="text-emerald-400/60 uppercase">سوق سوريا</div>
               </div>
             </Link>
@@ -353,7 +353,7 @@ export function Navbar() {
                 const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href.split("?")[0]));
                 return (
                   <Link key={link.href} href={link.href}
-                    style={{ fontWeight: isActive ? 700 : 500, fontSize: "13px" }}
+                    style={{ fontWeight: isActive ? 700 : 500, fontSize: "0.8125rem" }}
                     className={cn(
                       "px-3 py-2 rounded-lg transition-colors duration-150 whitespace-nowrap",
                       isActive ? "text-emerald-400 bg-emerald-500/[0.08]" : `${navFgSub} ${navHoverFgMid} ${navHoverBg}`
@@ -368,7 +368,7 @@ export function Navbar() {
           {/* ── COL 2 → CENTER: Search bar ───────────────────────────────────── */}
           {!isAuthPage ? (
             <div ref={searchRef} className="relative flex justify-center">
-              <div className="relative w-full max-w-[300px]">
+              <div className="relative w-full max-w-[18.75rem]">
                 <form onSubmit={handleSearchSubmit}>
                   <div className={`flex items-center gap-2 ${navSearchBg} rounded-full h-9 px-3.5 transition-all duration-200`}>
                     <Search className={`w-3.5 h-3.5 ${navSearchIcon} shrink-0`} />
@@ -378,7 +378,7 @@ export function Navbar() {
                       onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
                       onFocus={() => setSearchOpen(true)}
                       placeholder={isRtl ? "ابحث عن منتجات..." : "Search products..."}
-                      style={{ fontFamily: "'Cairo', sans-serif", fontSize: "13px", background: "transparent", outline: "none", border: "none", color: navInputColor, flex: 1, minWidth: 0 }}
+                      style={{ fontFamily: "'Cairo', sans-serif", fontSize: "0.8125rem", background: "transparent", outline: "none", border: "none", color: navInputColor, flex: 1, minWidth: 0 }}
                     />
                     {searchQuery && (
                       <button type="button" onClick={() => { setSearchQuery(""); setSearchOpen(false); }} className={`${navXBtn} shrink-0`}>
@@ -405,10 +405,10 @@ export function Navbar() {
                               className={`w-full flex items-center gap-3 px-3.5 py-2.5 ${navHoverBg} transition-colors`} style={{ textAlign: isRtl ? "right" : "left" }}>
                               {p.imageUrl && <img src={p.imageUrl} alt="" className={`h-9 w-9 rounded-lg object-cover border ${navBorder} shrink-0`} />}
                               <div className="flex-1 min-w-0">
-                                <div style={{ fontSize: "13px", fontWeight: 600 }} className={`${navDropText} truncate`}>{p.name}</div>
+                                <div style={{ fontSize: "0.8125rem", fontWeight: 600 }} className={`${navDropText} truncate`}>{p.name}</div>
                                 <div style={{ fontSize: "11px" }} className={navDropSub}>{p.category}</div>
                               </div>
-                              <div style={{ fontSize: "13px", fontWeight: 700 }} className="text-emerald-400 shrink-0">{p.finalPrice.toLocaleString()} ل.س</div>
+                              <div style={{ fontSize: "0.8125rem", fontWeight: 700 }} className="text-emerald-400 shrink-0">{p.finalPrice.toLocaleString()} ل.س</div>
                             </button>
                           ))}
                           <button onClick={handleSearchSubmit as any}
@@ -433,7 +433,7 @@ export function Navbar() {
                             <button onClick={() => { setSearchQuery(s); setSearchOpen(true); }}
                               className={`flex-1 flex items-center gap-2.5 px-3.5 py-2 ${navHoverBg} transition-colors`}>
                               <Clock className={`h-3.5 w-3.5 ${navDropMeta} shrink-0`} />
-                              <span style={{ fontSize: "13px" }} className={`${navDropRecent} truncate`}>{s}</span>
+                              <span style={{ fontSize: "0.8125rem" }} className={`${navDropRecent} truncate`}>{s}</span>
                             </button>
                             <button onClick={() => removeRecentSearch(s)}
                               className={`px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity ${navXBtn}`}>
@@ -457,9 +457,9 @@ export function Navbar() {
               <Link href="/wishlist"
                 className={`relative h-9 w-9 flex items-center justify-center rounded-lg ${navSettingsBtn} transition-all duration-200`}
                 aria-label={isRtl ? "قائمة الأمنيات" : "Wishlist"}>
-                <Heart className="h-[17px] w-[17px]" />
+                <Heart className="h-[1.0625rem] w-[1.0625rem]" />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 flex h-[16px] w-[16px] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white pointer-events-none">
+                  <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white pointer-events-none">
                     {wishlistCount > 99 ? "99+" : wishlistCount}
                   </span>
                 )}
@@ -471,9 +471,9 @@ export function Navbar() {
               <Link href="/cart"
                 className={`relative h-9 w-9 flex items-center justify-center rounded-lg ${navSettingsBtn} transition-all duration-200`}
                 aria-label={isRtl ? "سلة التسوق" : "Cart"}>
-                <ShoppingCart className="h-[17px] w-[17px]" />
+                <ShoppingCart className="h-[1.0625rem] w-[1.0625rem]" />
                 {visibleCartCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 flex h-[16px] w-[16px] items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-black pointer-events-none">
+                  <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-black pointer-events-none">
                     {visibleCartCount}
                   </span>
                 )}
@@ -487,7 +487,7 @@ export function Navbar() {
                   className={`h-9 w-9 flex items-center justify-center rounded-lg ${navSettingsBtn} transition-all duration-200`}
                   aria-label={isRtl ? "الإعدادات" : "Settings"}
                 >
-                  <Settings className="h-[17px] w-[17px]" />
+                  <Settings className="h-[1.0625rem] w-[1.0625rem]" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" sideOffset={8} className="bg-popover border-border shadow-xl shadow-black/10 w-56 p-0 overflow-hidden">
@@ -584,13 +584,13 @@ export function Navbar() {
                         {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
                       </span>
                     </div>
-                    <span style={{ fontSize: "13px", fontWeight: 600, maxWidth: 80 }} className={`${navFgMuted} truncate`}>{user?.name}</span>
+                    <span style={{ fontSize: "0.8125rem", fontWeight: 600, maxWidth: 80 }} className={`${navFgMuted} truncate`}>{user?.name}</span>
                     <ChevronDown className={`h-3 w-3 ${navDropMeta}`} />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-popover border-border shadow-xl shadow-black/10 w-52">
                   <div className="px-3 py-2.5 border-b border-border">
-                    <p style={{ fontSize: "13px", fontWeight: 700 }} className="text-foreground">{user?.name}</p>
+                    <p style={{ fontSize: "0.8125rem", fontWeight: 700 }} className="text-foreground">{user?.name}</p>
                     <p style={{ fontSize: "11px" }} className="text-muted-foreground truncate" translate="no">{user?.email}</p>
                   </div>
                   <DropdownMenuItem asChild className="text-foreground/70 focus:text-foreground focus:bg-muted/60 cursor-pointer mt-1">
@@ -615,12 +615,12 @@ export function Navbar() {
             ) : (
               <>
                 <Link href="/login"
-                  style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "0.01em" }}
+                  style={{ fontSize: "0.8125rem", fontWeight: 600, letterSpacing: "0.01em" }}
                   className={`h-9 px-4 flex items-center rounded-lg ${navLoginLink} transition-colors whitespace-nowrap`}>
                   {t("nav.login")}
                 </Link>
                 <Link href="/register"
-                  style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.01em" }}
+                  style={{ fontSize: "0.8125rem", fontWeight: 700, letterSpacing: "0.01em" }}
                   className="h-9 px-5 flex items-center rounded-lg bg-emerald-500 hover:bg-emerald-400 active:scale-[0.97] text-black transition-all duration-150 shadow-sm shadow-emerald-500/30 whitespace-nowrap">
                   {t("nav.signup")}
                 </Link>
