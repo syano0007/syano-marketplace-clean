@@ -88,8 +88,11 @@
    Mobile navbar is h-[60px], desktop (md+) is h-[64px].
    All layout consumers (Layout <main>, scroll-padding) must use these vars.
 ─────────────────────────────────────────────────────────────────────── */
-:root { --navbar-height: 60px; }
-@media (min-width: 768px) { :root { --navbar-height: 64px; } }
+/* Navbar height in rem so it scales with the fluid root font-size.
+   3.75rem = 60px at 16px root, ≈ 54px at 14.4px (1280px viewport).
+   4rem    = 64px at 16px root, ≈ 57.6px at 14.4px (1280px viewport). */
+:root { --navbar-height: 3.75rem; }
+@media (min-width: 768px) { :root { --navbar-height: 4rem; } }
 
 :root {
   --button-outline: rgba(0,0,0, .10);
@@ -272,9 +275,25 @@
 
 @layer base {
   html {
-    /* scroll-behavior:smooth removed from root — causes jarring slow-scroll during
-       programmatic navigation (ScrollToTop fires on every route change). Apply it
-       on specific containers where smooth-scroll is intentional UX instead. */
+    /* ── Fluid root font-size ─────────────────────────────────────────────
+       Every rem unit in the UI (Tailwind spacing, heights, text sizes,
+       container padding, grid gaps) scales proportionally with this single
+       rule. Result: the whole interface "zooms" as viewport narrows rather
+       than staying full-size and clipping.
+
+       Range: 13 px at ≤ 960 px viewport → 16 px at ≥ 1600 px viewport.
+       Formula: clamp(min, 8px + 0.5vw, max)
+         960 px  → 8 + 4.8  = 12.8 → clamped to 13 px  (tablets)
+        1024 px  → 8 + 5.12 = 13.12 px                  (small laptop)
+        1280 px  → 8 + 6.4  = 14.4 px                   (common laptop)
+        1440 px  → 8 + 7.2  = 15.2 px                   (wide laptop)
+        1600 px  → 8 + 8    = 16 px  → clamped to 16 px (desktop)
+        1920 px  →                   = 16 px             (large desktop)
+
+       Mobile (< 640 px) also gets the 13 px floor — a comfortable minimum
+       that keeps 0.875 rem text at ≈ 11.4 px (still readable in 2-col
+       product cards which are ~166 px wide). ────────────────────────────── */
+    font-size: clamp(13px, calc(8px + 0.5vw), 16px);
     scrollbar-gutter: stable;
     -webkit-text-size-adjust: 100%;
   }

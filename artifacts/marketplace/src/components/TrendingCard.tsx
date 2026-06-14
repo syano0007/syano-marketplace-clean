@@ -202,7 +202,7 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
 
         {/* Title — 2-line clamp, fixed height for grid alignment */}
         <h3
-          style={{ fontWeight: 700, fontSize: "16px", lineHeight: 1.4, minHeight: "2.8em" }}
+          style={{ fontWeight: 700, fontSize: "1rem", lineHeight: 1.4, minHeight: "2.8em" }}
           className="text-foreground mb-3 group-hover:text-emerald-400 transition-colors duration-200 line-clamp-2 pc-title"
         >
           {product.name}
@@ -240,7 +240,7 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
               </p>
             )}
             <div
-              style={{ fontWeight: 800, fontSize: "20px", letterSpacing: "-0.02em" }}
+              style={{ fontWeight: 800, fontSize: "1.25rem", letterSpacing: "-0.02em" }}
               className="text-emerald-400 pc-price-main"
               translate="no"
             >
@@ -252,7 +252,7 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
             <button
               onClick={handleAddToCart}
               disabled={adding || outOfStock}
-              style={{ fontWeight: 600, fontSize: "13px" }}
+              style={{ fontWeight: 600, fontSize: "0.8125rem" }}
               className="flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white px-4 py-2 rounded-xl transition-all duration-200 border border-emerald-500/20 hover:border-emerald-500 disabled:opacity-50 shrink-0 pc-cart-btn"
               aria-label={product.hasVariants ? t("products.choose_options") : t("product_detail.add_to_cart")}
             >
