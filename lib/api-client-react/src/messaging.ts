@@ -231,6 +231,20 @@ export function useDeleteMessage(convId: number) {
   });
 }
 
+/* ── Mark Conversation as Read ───────────────────────────────── */
+
+export function useMarkConversationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (convId: number) =>
+      customFetch<{ read: boolean }>(`/api/conversations/${convId}/read`, { method: "PATCH", body: "{}" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: getUnreadCountQueryKey() });
+      qc.invalidateQueries({ queryKey: getConversationsQueryKey() });
+    },
+  });
+}
+
 /* ── Archive Conversation ────────────────────────────────────── */
 
 export function useArchiveConversation() {

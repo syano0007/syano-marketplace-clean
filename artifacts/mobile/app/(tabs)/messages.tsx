@@ -24,6 +24,7 @@ import {
   useGetConversations,
   useGetMessages,
   useGetTyping,
+  useMarkConversationRead,
   useMuteConversation,
   useSendMessage,
   useUploadAttachment,
@@ -255,8 +256,12 @@ function ChatView({
 
   const sendMut = useSendMessage(conv.id);
   const uploadMut = useUploadAttachment(conv.id);
+  const markReadMut = useMarkConversationRead();
 
-  useEffect(() => { isInitialLoadRef.current = true; }, [conv.id]);
+  useEffect(() => {
+    isInitialLoadRef.current = true;
+    markReadMut.mutate(conv.id);
+  }, [conv.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const len = msgs?.length ?? 0;

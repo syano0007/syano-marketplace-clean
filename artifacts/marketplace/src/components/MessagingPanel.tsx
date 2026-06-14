@@ -24,6 +24,7 @@ import {
   useDeleteMessage,
   useArchiveConversation,
   useMuteConversation,
+  useMarkConversationRead,
   useUploadAttachment,
   useGetTyping,
   sendTyping,
@@ -348,10 +349,12 @@ function MessageThread({
   const sendMut = useSendMessage(conv.id);
   const deleteMut = useDeleteMessage(conv.id);
   const uploadMut = useUploadAttachment(conv.id);
+  const markReadMut = useMarkConversationRead();
 
   const typingNames = typingData?.typing ?? [];
 
-  useEffect(() => { isInitialLoadRef.current = true; }, [conv.id]);
+  useEffect(() => { isInitialLoadRef.current = true; markReadMut.mutate(conv.id); }, [conv.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (messages.length === 0) return;
     if (isInitialLoadRef.current) { isInitialLoadRef.current = false; return; }

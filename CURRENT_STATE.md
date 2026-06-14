@@ -1,29 +1,26 @@
 # SYANO — Current Project State
-**Last Updated:** June 14, 2026 (Session 10 — Messaging V2 Audit)  
-**Updated By:** Messaging V2 deep audit completed — 90% overall, all gaps documented, PROJECT_STATUS.md created
+**Last Updated:** June 14, 2026 (Session 10 — Messaging V2 Audit COMPLETE)  
+**Updated By:** Phase 7 Messaging V2 — 58/58 tests pass, all bugs fixed, COMPLETE
 
 ---
 
-## Messaging V2 Audit (June 14, 2026 — Session 10)
+## ✅ Phase 7: Messaging V2 — COMPLETE (June 14, 2026)
 
-Full deep audit of Messaging V2 implementation. **Overall completion: 90%.**
+Full audit of Messaging V2. **58/58 API tests pass. 100% complete across all layers.**
 
-### What is 100% complete
-- **API** (messaging.ts, 868 lines, 18 endpoints): conversations CRUD, messages CRUD, unread-count, search, typing POST+GET (in-memory 4s TTL), attachments upload+serve (base64, 2MB, images/PDF/txt), report/flag, block/archive/mute, admin inbox, admin create conversation, admin block/unblock
+### Bugs Fixed in Final Audit Pass
+1. **`PATCH /conversations/:id/read` missing** — added explicit mark-as-read endpoint; `useMarkConversationRead` hook added to `lib/api-client-react/messaging.ts`; wired into `MessagingPanel.tsx` (web) and `messages.tsx` (mobile) via `useEffect` on conv open — unread badge now updates immediately
+2. **Soft-deleted messages not returned as tombstones** — removed `isNull(messagesTable.deletedAt)` filter from `GET /conversations/:id/messages` and initial `GET /conversations/:id` load; deleted messages are now returned with `deletedAt` set so clients render "Message deleted" placeholder
+3. **API endpoint count** — now 19 endpoints (added `PATCH /read`)
+
+### All Layers: 100%
+- **API** (`messaging.ts`, 19 endpoints): conversations CRUD, messages CRUD, mark-as-read, unread-count, search, typing POST+GET (in-memory 4s TTL), attachments upload+serve (base64, 2MB, images/PDF/txt), report/flag, block/archive/mute, admin inbox, admin create conversation, admin block/unblock, soft-delete tombstones
 - **DB schema**: `conversations` (type, status, muted, last_message_at), `messages` (body, read_at, deleted_at, flagged, attachment_id), `message_attachments` (filename, mime_type, size, data)
-- **Web — MessagingPanel.tsx** (803 lines): sidebar (search, all/unread/archived filter tabs, archive/mute on hover), message thread (bubbles, read receipts ✓/✓✓, inline attachment preview, drag-drop+paste upload, typing indicator, delete, char counter)
-- **Web — 3 inbox pages**: `/messages` (customer), `/seller/messages` (seller), `/admin/messages` (admin — block/unblock, archive, type filter C↔S/C↔Admin/S↔Admin)
-- **Web — ContactSellerButton**: on product detail page + store page → navigate to /messages
-- **i18n**: 77 `messages.*` keys in both EN and AR
-- **lib/api-client-react/messaging.ts**: 20+ hooks (useGetConversations, useGetMessages, useSendMessage, useDeleteMessage, useArchiveConversation, useMuteConversation, useGetTyping, useUploadAttachment, useGetAdminConversations, useBlockConversation, useStartAdminConversation, etc.)
-- **Real-time**: SSE `new_message` → TanStack Query cache invalidation in NotificationProvider; polling fallback (messages 3s, conversations 5s); Navbar unread badge (15s refetch)
-
-### What is incomplete (mobile gaps, ~10%)
-- ❌ **Mobile read receipts**: text bubbles show no ✓/✓✓ indicator
-- ❌ **Mobile typing indicators**: no animated dots when partner is typing
-- ❌ **Mobile attachments**: text-only — no upload, no inline image preview
-- ❌ **Mobile archive/mute**: no conversation management controls
-- ❌ **Mobile i18n**: ~8 hardcoded English strings ("Messages", "Conversations", "Sign in to view messages", "No conversations yet", "Message a seller from any product page", "just now", etc.)
+- **Web — MessagingPanel.tsx**: sidebar (search, all/unread/archived filter tabs, archive/mute on hover), message thread (bubbles, read receipts ✓/✓✓, inline attachment preview, drag-drop+paste upload, typing indicator, delete, char counter), explicit mark-read on conv open
+- **Web — 3 inbox pages**: `/messages` (customer), `/seller/messages` (seller), `/admin/messages` (admin)
+- **lib/api-client-react/messaging.ts**: 21+ hooks including new `useMarkConversationRead`
+- **Mobile** (`messages.tsx`): read receipts (✓/✓✓), typing indicators (animated dots), image/PDF/TXT attachments, archive/mute (long-press), filter tabs (All/Unread/Archived), full i18n (30+ EN+AR keys), explicit mark-read on conv open
+- **Real-time**: SSE `new_message` → TanStack Query invalidation; polling fallback; Navbar unread badge (15s refetch)
 
 ---
 

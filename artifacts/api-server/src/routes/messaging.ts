@@ -210,7 +210,7 @@ router.post("/conversations", requireAuth, requireActiveAccount, async (req, res
     })
     .from(messagesTable)
     .innerJoin(usersTable, eq(usersTable.id, messagesTable.senderId))
-    .where(and(eq(messagesTable.conversationId, conversation.id), isNull(messagesTable.deletedAt)))
+    .where(eq(messagesTable.conversationId, conversation.id))
     .orderBy(desc(messagesTable.createdAt))
     .limit(30);
 
@@ -387,10 +387,7 @@ router.get("/conversations/:id/messages", requireAuth, requireActiveAccount, asy
   const limit = Math.min(parseInt((req.query.limit as string) || "50", 10), 100);
   const before = req.query.before ? parseInt(req.query.before as string, 10) : undefined;
 
-  const baseWhere = and(
-    eq(messagesTable.conversationId, convId),
-    isNull(messagesTable.deletedAt)
-  );
+  const baseWhere = eq(messagesTable.conversationId, convId);
   const whereClause = before
     ? and(baseWhere, sql`${messagesTable.id} < ${before}`)
     : baseWhere;
@@ -556,6 +553,32 @@ router.delete("/conversations/:id/messages/:msgId", requireAuth, async (req, res
 
   await db.update(messagesTable).set({ deletedAt: new Date() }).where(eq(messagesTable.id, msgId));
   res.json({ deleted: true });
+});
+
+/* ── PATCH /conversations/:id/read ──────────────────────────
+   Explicitly mark all partner messages in conv as read */
+router.patch("/conversations/:id/read", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
+  const convId = parseInt(String(req.params.id), 10);
+  if (isNaN(convId)) { res.status(400).json({ error: "Invalid ID" }); return; }
+
+  const userId = req.user!.userId;
+  const role = req.user!.role;
+  const conv = await getConvWithAccess(convId, userId, role);
+  if (!conv) { res.status(404).json({ error: "Conversation not found" }); return; }
+
+  await db
+    .update(messagesTable)
+    .set({ readAt: new Date() })
+    .where(
+      and(
+        eq(messagesTable.conversationId, convId),
+        isNull(messagesTable.readAt),
+        isNull(messagesTable.deletedAt),
+        ne(messagesTable.senderId, userId)
+      )
+    );
+
+  res.json({ read: true });
 });
 
 /* ── PATCH /conversations/:id/archive ────────────────────────

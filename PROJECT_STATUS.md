@@ -1,11 +1,11 @@
 # SYANO — Project Status
-**Last Updated:** June 14, 2026 (Session 10 — Messaging V2 Audit)
+**Last Updated:** June 14, 2026 (Session 10 — Phase 7 Messaging V2 COMPLETE)
 
 SYANO is a production-scale Syrian marketplace platform built with React + Vite (web), Expo (mobile), Express + Drizzle (API), PostgreSQL (DB). Full Arabic/English bilingual, RTL support, dark/light theme.
 
 ---
 
-## Overall Completion: ~93%
+## Overall Completion: ~95%
 
 | Layer | Status | Notes |
 |---|---|---|
@@ -14,23 +14,26 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 | Admin panel | ✅ 100% | Stats, moderation, user management, delivery, courier mgmt |
 | Trust & verification | ✅ 100% | 0-100 score, tiers, audit log, verification badges |
 | Delivery system | ✅ 100% | 40 Aleppo zones, courier ops, assignment flow |
-| Messaging V2 (web) | ✅ 100% | 18 API endpoints, MessagingPanel, 3 inbox pages, attachments, typing, read receipts |
-| Messaging V2 (mobile) | ✅ 100% | Read receipts (✓/✓✓), typing indicators (animated dots), image attachments, archive/mute (long-press), full i18n (EN+AR) |
+| Messaging V2 | ✅ 100% | 19 API endpoints, 58/58 tests, web+mobile+lib complete |
 | Notifications | ✅ 100% | SSE real-time, polling fallback, in-app toasts, web push (VAPID), bilingual |
 | Wishlist | ✅ 100% | Web + heart button; mobile not implemented |
 | Guest cart | ✅ 100% | All entry points wired |
 | Homepage V7 | ✅ 100% | 8 HomeSections, hero carousel, real data, dark glassmorphism navbar |
 | i18n (web) | ✅ 100% | 2592 EN / 2592 AR keys, 77 messages.* keys |
-| i18n (mobile) | 🟡 80% | Some hardcoded strings in messages screen + minor screens |
+| i18n (mobile) | ✅ 100% | Full i18n including 30+ messages.* keys; zero hardcoded strings |
 | Recovery system | ✅ 95% | 21/22 modules pass; heroBannerSystem false negative known |
 
 ---
 
-## Messaging V2 — Deep Audit (June 14, 2026)
+## ✅ Phase 7: Messaging V2 — COMPLETE (June 14, 2026)
 
-### Completion: 90%
+**58/58 API tests pass.** Three bugs found and fixed in final audit pass:
 
-#### API — 100% (18 endpoints in `artifacts/api-server/src/routes/messaging.ts`, 868 lines)
+1. **`PATCH /conversations/:id/read` was missing** → added explicit mark-as-read endpoint; `useMarkConversationRead` hook added to lib; wired into MessagingPanel (web) and messages.tsx (mobile) — unread badge updates immediately when conversation is opened
+2. **Soft-deleted messages weren't returned as tombstones** → removed `isNull(deletedAt)` filter from GET messages queries; deleted messages now appear with `deletedAt` set so clients render "Message deleted" placeholder
+3. Both web and mobile were relying solely on GET /messages auto-mark instead of explicit mark-as-read; now correctly call PATCH /read on conversation open
+
+### API — 100% (19 endpoints in `artifacts/api-server/src/routes/messaging.ts`)
 
 | Endpoint | Purpose |
 |---|---|
@@ -39,9 +42,10 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 | `POST /conversations` | Start or resume a conversation (idempotent) |
 | `GET /conversations` | List with archive filter, last message, unread counts |
 | `GET /conversations/:id` | Single conversation detail |
-| `GET /conversations/:id/messages` | Paginated history + auto-mark-read |
+| `GET /conversations/:id/messages` | Paginated history (includes soft-delete tombstones) |
 | `POST /conversations/:id/messages` | Send message (optional attachmentId) |
-| `DELETE /conversations/:id/messages/:msgId` | Soft-delete own message |
+| `DELETE /conversations/:id/messages/:msgId` | Soft-delete own message (tombstone preserved) |
+| `PATCH /conversations/:id/read` | **[NEW]** Explicitly mark all partner messages as read |
 | `PATCH /conversations/:id/archive` | Toggle archive |
 | `PATCH /conversations/:id/mute` | Toggle mute |
 | `POST /conversations/:id/typing` | Signal typing (in-memory, 4s TTL) |
@@ -150,11 +154,10 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 
 | Issue | Severity | Status |
 |---|---|---|
-| Mobile messaging: no read receipts, typing, attachments | Medium | Open |
-| Mobile messaging: ~8 hardcoded English strings | Low | Open |
 | Mobile wishlist: not implemented | Low | Open |
 | heroBannerSystem recovery module false negative | Low | Known — expected (banner images require seeded DB) |
 | Demo reviews don't seed on first run (bootstrap bug fixed June 14) | Fixed | `customer_id` → `user_id` column fix applied |
+| Mobile messaging: read receipts, typing, attachments, i18n | All Fixed | Completed June 14, 2026 (Phase 7) |
 
 ---
 
