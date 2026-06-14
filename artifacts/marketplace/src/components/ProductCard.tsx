@@ -227,35 +227,35 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
           </p>
         </div>
 
-        {/* Title */}
+        {/* Title — 2-line clamp with fixed height so all cards align */}
         <h3
-          style={{ fontWeight: 700, fontSize: "15px", lineHeight: 1.4 }}
+          style={{ fontWeight: 700, fontSize: "15px", lineHeight: 1.4, minHeight: "2.8em" }}
           className="text-foreground mb-3 group-hover:text-emerald-400 transition-colors duration-200 line-clamp-2"
         >
           {product.name}
         </h3>
 
-        {/* Rating */}
-        {isRated && (
-          <div className="flex items-center gap-1.5 mb-3">
-            <div className="flex items-center gap-0.5">
-              {[...Array(5)].map((_, j) => (
-                <Star
-                  key={j}
-                  className={cn(
-                    "w-3 h-3",
-                    j < Math.floor(avgRating)
-                      ? "fill-amber-400 text-amber-400"
-                      : "text-foreground/10"
-                  )}
-                />
-              ))}
-            </div>
-            <span style={{ fontWeight: 600, fontSize: "12px" }} className="text-foreground/50">
-              {avgRating.toFixed(1)}{reviewCount > 0 && ` (${reviewCount})`}
-            </span>
+        {/* Rating — always rendered to keep consistent card height */}
+        <div className="flex items-center gap-1.5 mb-3" style={{ minHeight: "18px" }}>
+          <div className="flex items-center gap-0.5">
+            {[...Array(5)].map((_, j) => (
+              <Star
+                key={j}
+                className={cn(
+                  "w-3 h-3",
+                  isRated && j < Math.floor(avgRating)
+                    ? "fill-amber-400 text-amber-400"
+                    : "text-foreground/10"
+                )}
+              />
+            ))}
           </div>
-        )}
+          <span style={{ fontWeight: 600, fontSize: "12px" }} className="text-foreground/50">
+            {isRated
+              ? `${avgRating.toFixed(1)}${reviewCount > 0 ? ` (${reviewCount})` : ""}`
+              : "—"}
+          </span>
+        </div>
 
         {/* Price + Add-to-cart — pushed to bottom */}
         <div className="flex items-center justify-between mt-auto gap-2">
@@ -287,8 +287,8 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
               ) : (
                 <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
               )}
-              <span className="hidden sm:inline whitespace-nowrap">
-                {hasVariants ? t("products.choose_options") : t("product_detail.add_to_cart")}
+              <span className="whitespace-nowrap">
+                {t("home.trending.add")}
               </span>
             </button>
           )}
