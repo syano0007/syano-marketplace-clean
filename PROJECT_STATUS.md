@@ -20,7 +20,7 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 | Guest cart | ✅ 100% | All entry points wired |
 | Homepage V7 | ✅ 100% | 8 HomeSections, hero carousel, real data, dark glassmorphism navbar |
 | Navbar Polish V1 | ✅ 100% | Light mode contrast, icon unification, active state fix, badge fix, settings dropdown |
-| **Search Suggestions Engine** | ✅ 100% | Amazon/Noon style — text intents only, Arabic-normalized, category+store matches, click tracking |
+| **Search & Discovery Engine V2** | ✅ 100% | Syrian Dialect Dict (55+ entries), intent modifiers, 4-tier scoring, 3 endpoints, dialect-aware suggestions |
 | i18n (web) | ✅ 100% | 2592 EN / 2592 AR keys, 77 messages.* keys |
 | i18n (mobile) | ✅ 100% | Full i18n including 30+ messages.* keys; zero hardcoded strings |
 | Recovery system | ✅ 95% | 21/22 modules pass; heroBannerSystem false negative known |

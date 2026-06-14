@@ -4,7 +4,7 @@
 
 ---
 
-## ✅ Search Suggestions Engine — COMPLETE (June 14, 2026)
+## ✅ Search & Discovery Engine V2 — COMPLETE (June 14, 2026)
 
 ### Architecture
 - **Backend:** `GET /api/search/suggestions?q=<term>` returns `{ suggestions[], categories[], stores[], trending[] }`
