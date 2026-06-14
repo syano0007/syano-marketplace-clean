@@ -399,9 +399,28 @@ export async function runMigrations(): Promise<void> {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_theme    VARCHAR(10) DEFAULT 'dark';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(5)  DEFAULT 'ar';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_currency VARCHAR(3)  DEFAULT 'SYP';
+
+      -- ── Messaging V2 — additive schema extensions ────────────────────────────
+      ALTER TABLE conversations ADD COLUMN IF NOT EXISTS type     VARCHAR(30) NOT NULL DEFAULT 'customer_seller';
+      ALTER TABLE conversations ADD COLUMN IF NOT EXISTS muted    BOOLEAN     NOT NULL DEFAULT false;
+      ALTER TABLE conversations ADD COLUMN IF NOT EXISTS order_id INTEGER;
+
+      ALTER TABLE messages ADD COLUMN IF NOT EXISTS attachment_id INTEGER;
+      ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at    TIMESTAMPTZ;
+
+      CREATE TABLE IF NOT EXISTS message_attachments (
+        id              SERIAL PRIMARY KEY,
+        conversation_id INTEGER NOT NULL,
+        filename        TEXT    NOT NULL,
+        mime_type       TEXT    NOT NULL,
+        size            INTEGER NOT NULL,
+        data            TEXT    NOT NULL,
+        created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_msg_attachments_conv_id ON message_attachments(conversation_id);
     `);
 
-    logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings columns ready");
+    logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns ready");
   } catch (err) {
     logger.error({ err }, "Migration error — server cannot start safely");
     throw err;

@@ -70,6 +70,7 @@ const AdminHeroBanners               = lazy(() => import("@/pages/admin/hero-ban
 const AdminCourierApplications       = lazy(() => import("@/pages/admin/courier-applications"));
 const AdminCourierApplicationDetail  = lazy(() => import("@/pages/admin/courier-application-detail"));
 const AdminVerification              = lazy(() => import("@/pages/admin/verification"));
+const AdminMessages                  = lazy(() => import("@/pages/admin/messages"));
 const SellerTrustPage                = lazy(() => import("@/pages/seller/trust"));
 const CourierDashboard               = lazy(() => import("@/pages/courier/dashboard"));
 const WishlistPage                   = lazy(() => import("@/pages/wishlist"));
@@ -291,6 +292,9 @@ function Router() {
             </Route>
             <Route path="/admin/verification">
               <ProtectedRoute allowedRoles={["admin"]}><AdminVerification /></ProtectedRoute>
+            </Route>
+            <Route path="/admin/messages">
+              <ProtectedRoute allowedRoles={["admin"]}><AdminMessages /></ProtectedRoute>
             </Route>
             <Route path="/admin/hero-banners">
               <ProtectedRoute allowedRoles={["admin"]}><AdminHeroBanners /></ProtectedRoute>

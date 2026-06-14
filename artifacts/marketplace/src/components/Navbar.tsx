@@ -15,7 +15,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useGetCart, getGetCartQueryKey } from "@workspace/api-client-react";
+import { useGetCart, getGetCartQueryKey, useGetUnreadCount } from "@workspace/api-client-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useTranslation } from "react-i18next";
@@ -153,6 +153,8 @@ export function Navbar() {
   const cartItemCount = cart?.itemCount || 0;
   const { guestTotal } = useGuestCart();
   const visibleCartCount = isAuthenticated ? cartItemCount : guestTotal;
+  const { data: unreadData } = useGetUnreadCount({ query: { enabled: isAuthenticated, refetchInterval: 15_000 } });
+  const unreadMsgCount = unreadData?.unread ?? 0;
 
   const { results: suggestions, isLoading: searchLoading } = useSearch(debouncedSearch);
 
@@ -452,6 +454,22 @@ export function Navbar() {
           {/* ── COL 3 → renders on the LEFT in RTL: Actions + Auth buttons ──── */}
           <div className="flex items-center gap-1.5 shrink-0">
 
+            {/* Messages — authenticated users (not couriers) */}
+            {isAuthenticated && !isCourier && (
+              <Link
+                href={isAdmin ? "/admin/messages" : isSeller ? "/seller/messages" : "/messages"}
+                className={`relative h-9 w-9 flex items-center justify-center rounded-lg ${navSettingsBtn} transition-all duration-200`}
+                aria-label={isRtl ? "الرسائل" : "Messages"}
+              >
+                <MessageCircle className="h-[1.0625rem] w-[1.0625rem]" />
+                {unreadMsgCount > 0 && (
+                  <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white pointer-events-none">
+                    {unreadMsgCount > 9 ? "9+" : unreadMsgCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
             {/* Wishlist — customers and guests (not sellers/admins/couriers) */}
             {!isSeller && !isAdmin && !isCourier && (
               <Link href="/wishlist"
@@ -653,7 +671,42 @@ export function Navbar() {
             {isCourier && <MobileNavLink href="/courier/dashboard" icon={Bike} label={isRtl ? "لوحة التوصيل" : "Courier"} location={location} onClose={closeMobileMenu} />}
             {isCustomer && customerLinks.map(l => <MobileNavLink key={l.href} {...l} location={location} onClose={closeMobileMenu} />)}
             {isCustomer && <MobileNavLink href="/cart" icon={ShoppingCart} label={isRtl ? "السلة" : "Cart"} location={location} onClose={closeMobileMenu} />}
-            {isCustomer && <MobileNavLink href="/messages" icon={MessageCircle} label={isRtl ? "الرسائل" : "Messages"} location={location} onClose={closeMobileMenu} />}
+            {isCustomer && (
+              <Link href="/messages" onClick={closeMobileMenu}>
+                <div className={cn(
+                  "flex items-center gap-3 px-3 rounded-lg text-sm font-medium transition-colors min-h-[44px]",
+                  location === "/messages" ? "bg-emerald-500/10 text-emerald-400" : "text-white/60 hover:text-white hover:bg-white/[0.06]",
+                )}>
+                  <span className="relative">
+                    <MessageCircle className="h-5 w-5 shrink-0" />
+                    {unreadMsgCount > 0 && (
+                      <span className="absolute -top-1 -end-1 flex h-[14px] w-[14px] items-center justify-center rounded-full bg-blue-500 text-[8px] font-bold text-white">
+                        {unreadMsgCount > 9 ? "9+" : unreadMsgCount}
+                      </span>
+                    )}
+                  </span>
+                  {isRtl ? "الرسائل" : "Messages"}
+                </div>
+              </Link>
+            )}
+            {isSeller && (
+              <Link href="/seller/messages" onClick={closeMobileMenu}>
+                <div className={cn(
+                  "flex items-center gap-3 px-3 rounded-lg text-sm font-medium transition-colors min-h-[44px]",
+                  location === "/seller/messages" ? "bg-emerald-500/10 text-emerald-400" : "text-white/60 hover:text-white hover:bg-white/[0.06]",
+                )}>
+                  <span className="relative">
+                    <MessageCircle className="h-5 w-5 shrink-0" />
+                    {unreadMsgCount > 0 && (
+                      <span className="absolute -top-1 -end-1 flex h-[14px] w-[14px] items-center justify-center rounded-full bg-blue-500 text-[8px] font-bold text-white">
+                        {unreadMsgCount > 9 ? "9+" : unreadMsgCount}
+                      </span>
+                    )}
+                  </span>
+                  {isRtl ? "الرسائل" : "Messages"}
+                </div>
+              </Link>
+            )}
           </div>
 
           <div className="px-3 py-2 border-t border-white/[0.07] space-y-0.5">
