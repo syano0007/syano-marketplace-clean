@@ -1498,6 +1498,7 @@
     "users_verified_title": "User verified",
     "users_verified_desc": "{{name}} is now verified.",
     "verify_user": "Manually verify user",
+    "verify_action": "Verify",
     "col_verification": "Verification",
     "verify_user_title": "Verify Seller",
     "verify_user_desc_name": "Select verification tier for {{name}}:",

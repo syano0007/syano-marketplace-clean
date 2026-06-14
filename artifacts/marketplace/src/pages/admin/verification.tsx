@@ -347,7 +347,7 @@ export default function AdminVerificationPage() {
                               onClick={() => { setVerifyTarget(seller); setVerifyLevel("basic"); }}
                             >
                               <ShieldCheck className="h-3.5 w-3.5" />
-                              {seller.isVerified ? t("admin.change_tier", "Change") : t("admin.verify_user", "Verify")}
+                              {seller.isVerified ? t("admin.change_tier", "Change") : t("admin.verify_action", "Verify")}
                             </Button>
                           </div>
                         </td>
@@ -363,7 +363,7 @@ export default function AdminVerificationPage() {
 
       {/* ── Verify dialog ── */}
       <Dialog open={!!verifyTarget} onOpenChange={() => setVerifyTarget(null)}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
+        <DialogContent className="sm:max-w-md rounded-2xl" aria-describedby={undefined}>
           <DialogHeader className="space-y-2 pb-2">
             <DialogTitle className="text-xl font-bold">
               {t("admin.verify_user_title", "Verify Seller")}
@@ -409,7 +409,7 @@ export default function AdminVerificationPage() {
               onClick={() => verifyTarget && verifyMutation.mutate({ id: verifyTarget.userId, level: verifyLevel })}
               disabled={verifyMutation.isPending}
             >
-              {verifyMutation.isPending ? t("admin.saving", "Saving…") : t("admin.verify_user", "Verify")}
+              {verifyMutation.isPending ? t("admin.saving", "Saving…") : t("admin.verify_action", "Verify")}
             </Button>
           </DialogFooter>
         </DialogContent>
