@@ -147,7 +147,7 @@ const PRODUCTS: ProductSpec[] = [
   { si:0, name:"Samsung Galaxy S24 Ultra 256GB", nameAr:"سامسونج جالاكسي S24 ألترا 256 جيجا",
     desc:"200MP camera, S-Pen included, 6.8\" Dynamic AMOLED display. The ultimate Android flagship.",
     price:890000, disc:8, cat:"Electronics", sub:"Smartphones", stock:15,
-    img:699122, extra:[5632399], featured:true, sales:89, ago:20 },
+    img:699122, featured:true, sales:89, ago:20 },
 
   { si:0, name:"Apple MacBook Pro 14\" M3 Pro", nameAr:"آبل ماك بوك برو 14 إنش M3 برو",
     desc:"Apple M3 Pro chip, 18-hour battery, Liquid Retina XDR display. Built for professionals.",
@@ -167,7 +167,7 @@ const PRODUCTS: ProductSpec[] = [
   { si:0, name:"Apple AirPods Pro 3rd Generation", nameAr:"آبل إيربودز برو الجيل الثالث",
     desc:"Active noise cancellation, adaptive audio, H2 chip, 6-hour listening time. Sweat resistant.",
     price:295000, disc:18, cat:"Electronics", sub:"Earbuds", stock:42,
-    img:3587477, extra:[1649771], featured:true, sales:203, ago:60 },
+    img:3587477, featured:true, sales:203, ago:60 },
 
   { si:0, name:"iPad Pro 12.9\" M2 Wi-Fi 256GB", nameAr:"آيباد برو 12.9 إنش M2 واي فاي 256 جيجا",
     desc:"M2 chip, Liquid Retina XDR display, ProMotion 120Hz, Face ID. For creative professionals.",
@@ -182,7 +182,7 @@ const PRODUCTS: ProductSpec[] = [
   { si:0, name:"Samsung 65\" 4K QLED Smart TV", nameAr:"تلفزيون سامسونج 65 بوصة QLED 4K ذكي",
     desc:"Quantum Dot technology, 4K AI upscaling, HDR10+, built-in Alexa. 120Hz refresh rate.",
     price:1850000, disc:8, cat:"Electronics", sub:"TVs", stock:4,
-    img:5632399, extra:[1649771], featured:true, sales:5, ago:3 },
+    img:1201996, extra:[5082660], featured:true, sales:5, ago:3 },
 
   // ── FASHION (seller 1: Nour Fashion) ──────────────────────────────────────
   { si:1, name:"Floral Maxi Dress — Summer 2025 Collection", nameAr:"فستان ماكسي بالزهور — كوليكشن صيف 2025",
@@ -193,7 +193,7 @@ const PRODUCTS: ProductSpec[] = [
   { si:1, name:"Premium Leather Jacket — Men's Classic Biker", nameAr:"جاكيت جلد فاخر للرجال — كلاسيك بايكر",
     desc:"Genuine leather jacket with quilted lining. Classic biker style with zip pockets.",
     price:175000, disc:15, cat:"Fashion", sub:"Men's Outerwear", stock:22,
-    img:2529148, extra:[1152077], featured:true, sales:94, ago:25 },
+    img:2529148, featured:true, sales:94, ago:25 },
 
   { si:1, name:"Nike Air Max 270 Sneakers", nameAr:"حذاء نايك إير ماكس 270",
     desc:"Iconic Air Max sole for all-day comfort. Breathable mesh upper. Available sizes 38–46.",
@@ -208,17 +208,17 @@ const PRODUCTS: ProductSpec[] = [
   { si:1, name:"Men's Slim-Fit Chino Pants", nameAr:"بنطلون شينو سليم فيت للرجال",
     desc:"Stretch cotton chinos for all-day comfort. Available in navy, khaki, and olive. Machine washable.",
     price:45000, disc:35, cat:"Fashion", sub:"Men's Pants", stock:86,
-    img:1536619, extra:[1152077], sales:189, ago:20 },
+    img:2220280, extra:[996329], sales:189, ago:20 },
 
   { si:1, name:"Women's Stiletto Heels — Party Collection", nameAr:"حذاء كعب عالٍ للسيدات — كوليكشن حفلات",
     desc:"Elegant stiletto heels with ankle strap. Cushioned insole. Black, nude, and red.",
     price:78000, disc:22, cat:"Fashion", sub:"Women's Shoes", stock:31,
-    img:2529148, extra:[1926769], sales:73, ago:18 },
+    img:1619651, extra:[2213005], sales:73, ago:18 },
 
   { si:1, name:"Nida Fabric Abaya — Classic Black", nameAr:"عباءة قماش نيدا — أسود كلاسيك",
     desc:"Classic cut abaya in premium nida fabric. Front zipper, side pockets. Navy and dark green available.",
     price:55000, cat:"Fashion", sub:"Abayas", stock:95,
-    img:1926769, extra:[1536619], sales:3, ago:2 },
+    img:6149284, extra:[8090091], sales:3, ago:2 },
 
   // ── HOME & LIVING (seller 2: Beit Al-Nour) ────────────────────────────────
   { si:2, name:"Modern Scandinavian 3-Seater Sofa", nameAr:"أريكة سكاندينافية عصرية ثلاثية المقاعد",
@@ -244,7 +244,7 @@ const PRODUCTS: ProductSpec[] = [
   { si:2, name:"Abstract Canvas Wall Art Set — 3 Pieces", nameAr:"طقم لوحات جدارية تجريدية — 3 قطع",
     desc:"Modern abstract art on premium canvas. 3 coordinated prints. Ready to hang.",
     price:68000, disc:40, cat:"Home & Living", sub:"Wall Decor", stock:41,
-    img:1643383, extra:[1279107], featured:true, sales:88, ago:7 },
+    img:1839919, extra:[3246603], featured:true, sales:88, ago:7 },
 
   { si:2, name:"Stainless Steel Cookware Set — 8 Pieces", nameAr:"طقم أواني طبخ ستانلس ستيل — 8 قطع",
     desc:"Heavy-duty 18/10 stainless steel, tri-ply construction. Oven safe to 260°C. Dishwasher safe.",
@@ -254,7 +254,7 @@ const PRODUCTS: ProductSpec[] = [
   { si:2, name:"Memory Foam Orthopedic Pillow", nameAr:"وسادة إسفنج ذاكرة علاجية",
     desc:"Ergonomic cervical support with cooling gel cover. Medium firmness. Hypoallergenic. Washable cover.",
     price:42000, disc:30, cat:"Home & Living", sub:"Bedding", stock:67,
-    img:1571458, sales:134, ago:5 },
+    img:1034584, extra:[3952234], sales:134, ago:5 },
 
   // ── BEAUTY (seller 3: Hana Beauty) ────────────────────────────────────────
   { si:3, name:"Dior Sauvage Eau de Parfum 100ml", nameAr:"عطر ديور سوفاج أو دو بارفان 100 مل",
@@ -280,12 +280,12 @@ const PRODUCTS: ProductSpec[] = [
   { si:3, name:"Charlotte Tilbury Matte Revolution Lipstick", nameAr:"أحمر شفاه شارلوت تيلبري ماتي",
     desc:"High-impact matte finish. 12-hour lasting formula with jojoba and vitamin E. Non-drying.",
     price:42000, disc:20, cat:"Beauty", sub:"Makeup", stock:74,
-    img:1115128, extra:[3373716], sales:156, ago:10 },
+    img:2533266, extra:[3373725], sales:156, ago:10 },
 
   { si:3, name:"Dyson Supersonic Hair Dryer", nameAr:"مجفف شعر دايسون سوبرسونيك",
     desc:"Intelligent heat control prevents extreme damage. 5 magnetic attachments included.",
     price:485000, disc:12, cat:"Beauty", sub:"Hair Care", stock:9,
-    img:3059609, sales:29, ago:8 },
+    img:3993449, extra:[5069441], sales:29, ago:8 },
 
   { si:3, name:"Tom Ford Tobacco Vanille EDP 50ml", nameAr:"عطر توم فورد توباكو فانيل 50 مل",
     desc:"Warm, spicy, addictive. Tobacco, vanilla, tonka bean. Statement fragrance for colder weather.",
@@ -311,7 +311,7 @@ const PRODUCTS: ProductSpec[] = [
   { si:1, name:"Resistance Bands Set — 5 Levels 5–100 lbs", nameAr:"طقم أربطة مقاومة — 5 مستويات",
     desc:"Latex-free, odor-free. For stretching, strength training and physical therapy.",
     price:18000, disc:40, cat:"Sports & Fitness", sub:"Fitness Accessories", stock:120,
-    img:3775549, sales:378, ago:50 },
+    img:4498480, extra:[5638567], sales:378, ago:50 },
 
   // ── JEWELRY & WATCHES ─────────────────────────────────────────────────────
   { si:3, name:"Rolex Submariner Style Watch — Swiss Movement", nameAr:"ساعة رولكس سابمارينر — حركة سويسرية",
@@ -332,7 +332,7 @@ const PRODUCTS: ProductSpec[] = [
   { si:3, name:"Freshwater Pearl Bracelet — Classic White", nameAr:"سوار لؤلؤ طبيعي — أبيض كلاسيك",
     desc:"Genuine freshwater pearls, 7mm diameter, 14K gold clasp, 19cm length. Elegant gift box.",
     price:95000, disc:15, cat:"Jewelry", sub:"Bracelets", stock:21,
-    img:248077, extra:[1407305], sales:28, ago:12 },
+    img:5442799, extra:[3490348], sales:28, ago:12 },
 
   // ── BOOKS ─────────────────────────────────────────────────────────────────
   { si:2, name:"Atomic Habits — Arabic Edition", nameAr:"العادات الذرية — الطبعة العربية",
@@ -343,7 +343,7 @@ const PRODUCTS: ProductSpec[] = [
   { si:2, name:"Think & Grow Rich — Arabic Edition", nameAr:"فكّر وازدد ثراءً — الطبعة العربية",
     desc:"Napoleon Hill's classic on the philosophy of personal achievement and success.",
     price:9500, disc:15, cat:"Books", sub:"Business", stock:120,
-    img:1907785, sales:287, ago:120 },
+    img:2908984, extra:[1370295], sales:287, ago:120 },
 
   // ── FOOD & SPECIALTY ──────────────────────────────────────────────────────
   { si:2, name:"Premium Syrian Olive Oil Extra Virgin 1L", nameAr:"زيت زيتون سوري ممتاز بكر ممتاز 1 لتر",
@@ -354,7 +354,7 @@ const PRODUCTS: ProductSpec[] = [
   { si:2, name:"Damascus Rose Water — Pure Distilled 500ml", nameAr:"ماء ورد دمشق — مقطر نقي 500 مل",
     desc:"100% pure Damascus rose water. Skincare, cooking, desserts, aromatherapy. No preservatives.",
     price:15000, cat:"Food & Grocery", sub:"Specialty", stock:300,
-    img:3059609, sales:312, ago:30 },
+    img:4021992, extra:[3764578], sales:312, ago:30 },
 ];
 
 // ── main bootstrap function ───────────────────────────────────────────────────

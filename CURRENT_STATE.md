@@ -339,6 +339,44 @@ See KNOWN_ISSUES.md for full details.
 
 ---
 
+## Product Image Quality Audit — June 14, 2026 (Session 9)
+
+Full audit of all 42 seeded products. Every image now matches its product name, category, and description.
+
+### Fixes Applied
+
+**Critical primary image mismatches corrected (11 products):**
+- id 14 (Men's Chino Pants): was showing woman's dress → men's casual clothing (2220280)
+- id 15 (Women's Stiletto Heels): was showing leather jacket → women's shoes (1619651)
+- id 16 (Nida Fabric Abaya): was showing floral dress → dark modest fashion (6149284)
+- id 21 (Abstract Canvas Wall Art): was showing sofa → gallery/wall art (1839919)
+- id 23 (Memory Foam Pillow): was showing rug (same as id 20) → white bedding (1034584)
+- id 28 (Charlotte Tilbury Lipstick): was showing La Mer cream (same as id 26) → makeup (2533266)
+- id 29 (Dyson Supersonic Hair Dryer): was showing perfume bottles → hair styling (3993449)
+- id 34 (Resistance Bands): was showing dumbbells (same as id 31) → fitness bands (4498480)
+- id 38 (Pearl Bracelet): was showing diamond necklace (same as id 36) → pearl jewelry (5442799)
+- id 40 (Think & Grow Rich): was identical to Atomic Habits (id 39) → different book (2908984)
+- id 42 (Damascus Rose Water): was showing perfume bottles → botanical/rose (4021992)
+
+**Samsung TV pre-existing bug fixed:**
+- id 9: was `5632399` (retail "Black Friday Sale" sign) → `1201996` (TV in living room)
+
+**Secondary image quality cleanup:**
+- Samsung Galaxy S24: removed Samsung TV as secondary
+- Apple AirPods Pro: removed over-ear headphones as secondary
+- Samsung TV: removed headphones as secondary
+- Leather Jacket: removed handbag as secondary
+
+**Homepage data quality (from Session 9):**
+- SYP price format fixed: format() now divides by exchange rate for USD (was wrongly multiplying)
+- Hero carousel: built from real DB products per category, no static stock photos
+- FeaturedDeals: hides if no real isBestDeal products (no fake static deals)
+- TrendingProducts/NewArrivals/TrendingCard: real ratings only (no fake 4.7★ data)
+
+**Bootstrap seed file updated:** `artifacts/api-server/src/lib/bootstrap-demo-data.ts` — all corrected image IDs now persist through database resets.
+
+---
+
 ## Current Roadmap Position
 
 ```
@@ -353,6 +391,7 @@ See KNOWN_ISSUES.md for full details.
 ✅ UI Consistency + Mobile Polish — COMPLETE
 ✅ Wishlist System V1 — COMPLETE + VALIDATED
 ✅ Homepage V6 — COMPLETE + VALIDATED
+✅ Product Data Quality Audit — COMPLETE (June 14, 2026)
 
 ⏳ Next: TBD
 ```

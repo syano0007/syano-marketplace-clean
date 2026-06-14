@@ -331,6 +331,35 @@ Server start
 - Section order: HeroV4 → Categories → Hot Deals → Verified Stores + New Arrivals → Recently Viewed → Join
 - Key component: `artifacts/marketplace/src/components/HeroV4.tsx`
 
+## Product Image Quality — Verified June 14, 2026
+
+All 42 demo products have verified matching images. The bootstrap seed in `lib/bootstrap-demo-data.ts` uses the corrected Pexels IDs. Key verified IDs:
+
+| Product | Pexels ID | Content |
+|---------|-----------|---------|
+| Sony WH-1000XM5 Headphones | 1649771 | over-ear headphones |
+| Samsung Galaxy S24 | 699122 | smartphone |
+| Apple MacBook Pro | 18105 | laptop |
+| Samsung 65" QLED TV | 1201996 | TV in living room |
+| Floral Maxi Dress | 1926769 | floral dress |
+| Leather Jacket | 2529148 | leather jacket |
+| Men's Chino Pants | 2220280 | casual trousers |
+| Women's Stiletto Heels | 1619651 | women's shoes |
+| Nida Fabric Abaya | 6149284 | dark modest fashion |
+| Canvas Wall Art | 1839919 | gallery/art |
+| Memory Foam Pillow | 1034584 | white bedding |
+| Dior Sauvage EDP | 3059609 | perfume bottles |
+| Charlotte Tilbury Lipstick | 2533266 | makeup products |
+| Dyson Supersonic Hair Dryer | 3993449 | hair styling (Anna Avilova) |
+| Resistance Bands | 4498480 | fitness bands (Karolina Grabowska) |
+| Pearl Bracelet | 5442799 | pearl jewelry |
+| Atomic Habits | 1907785 | book |
+| Think & Grow Rich | 2908984 | book (Andrew Neel) |
+| Syrian Olive Oil | 1029757 | olive oil bottle |
+| Damascus Rose Water | 4021992 | botanical/rose (Karolina Grabowska) |
+
+**Idempotency note:** The bootstrap guard (`COUNT(products) >= 42 → skip`) means these image fixes only apply on fresh DB restores. On an existing DB, re-run the image SQL from the audit if needed.
+
 ## Trust System API Reference
 
 ```
