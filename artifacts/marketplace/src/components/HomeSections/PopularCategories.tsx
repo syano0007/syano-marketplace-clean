@@ -27,7 +27,7 @@ export function PopularCategories() {
             <p style={{ fontWeight: 600, fontSize: "0.75rem", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.categories.eyebrow")}</p>
             <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3vw, 38px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground">{t("home.categories.title")}</h2>
           </div>
-          <Link href="/products" style={{ fontWeight: 600, fontSize: "0.875rem" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
+          <Link href="/shop" style={{ fontWeight: 600, fontSize: "0.875rem" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
             {t("home.categories.see_all")} <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>
@@ -41,7 +41,7 @@ export function PopularCategories() {
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.5, delay: i * 0.06, ease }}
             >
-              <Link href={`/products?category=${encodeURIComponent(cat.slug)}`} className="group relative overflow-hidden rounded-2xl aspect-[4/3] bg-card border border-border hover:border-border/60 transition-all duration-300 cursor-pointer block">
+              <Link href={`/shop?category=${encodeURIComponent(cat.slug)}`} className="group relative overflow-hidden rounded-2xl aspect-[4/3] bg-card border border-border hover:border-border/60 transition-all duration-300 cursor-pointer block">
                 <img
                   src={cat.img}
                   alt={t(cat.nameKey)}

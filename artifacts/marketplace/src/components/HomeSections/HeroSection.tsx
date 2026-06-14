@@ -156,7 +156,7 @@ export function HeroSection({ products }: { products: Product[] }) {
             transition={{ duration: 0.6, delay: 0.34, ease }}
             className="flex items-center gap-4"
           >
-            <Link href="/products"
+            <Link href="/shop"
               style={{ fontWeight: 700, fontSize: "0.9375rem" }}
               className="group flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-black px-8 py-4 rounded-full transition-all duration-200 hover:shadow-2xl hover:shadow-emerald-500/30 active:scale-95"
             >

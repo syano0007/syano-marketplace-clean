@@ -58,16 +58,24 @@ export default function SearchPage() {
   const isRtl = lang === "ar";
   const [location, navigate] = useLocation();
 
-  const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-  const initialQ = sp.get("q") || "";
+  const getInitialParams = () => {
+    const sp2 = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    const q = sp2.get("q") || sp2.get("search") || "";
+    const cat = sp2.get("category") || undefined;
+    const disc = sp2.get("hasDiscount") === "true";
+    const rawSort = sp2.get("sortBy") || sp2.get("sort") || "newest";
+    const sort = rawSort === "best_sellers" ? "best_selling" : rawSort as SortOption;
+    return { q, cat, disc, sort };
+  };
+  const init = getInitialParams();
 
-  const [query, setQuery] = useState(initialQ);
+  const [query, setQuery] = useState(init.q);
   const [activeTab, setActiveTab] = useState<ActiveTab>("products");
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
-  const [category, setCategory] = useState<string | undefined>(undefined);
+  const [sortBy, setSortBy] = useState<SortOption>(init.sort);
+  const [category, setCategory] = useState<string | undefined>(init.cat);
   const [minPriceInput, setMinPriceInput] = useState("");
   const [maxPriceInput, setMaxPriceInput] = useState("");
-  const [hasDiscount, setHasDiscount] = useState(false);
+  const [hasDiscount, setHasDiscount] = useState(init.disc);
   const [inStock, setInStock] = useState(false);
   const [minRating, setMinRating] = useState(0);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -84,17 +92,23 @@ export default function SearchPage() {
   useSEO({
     title: debouncedQuery
       ? lang === "ar" ? `نتائج البحث عن "${debouncedQuery}"` : `Search results for "${debouncedQuery}"`
-      : lang === "ar" ? "البحث" : "Search",
+      : lang === "ar" ? "تسوق" : "Shop",
     description: lang === "ar"
-      ? "ابحث عن المنتجات والمتاجر في سوق سيانو السوري"
-      : "Search for products and stores on Syano marketplace",
+      ? "اكتشف الآلاف من المنتجات والمتاجر السورية في سوق سيانو"
+      : "Discover thousands of products and Syrian stores on Syano marketplace",
   });
 
   useEffect(() => {
     const sp2 = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-    const urlQ = sp2.get("q") || "";
+    const urlQ = sp2.get("q") || sp2.get("search") || "";
+    const urlCat = sp2.get("category") || undefined;
+    const urlDisc = sp2.get("hasDiscount") === "true";
+    const rawSort = sp2.get("sortBy") || sp2.get("sort") || "";
     if (urlQ !== query) setQuery(urlQ);
-  }, [location]);
+    if (urlCat !== undefined && urlCat !== category) setCategory(urlCat);
+    if (urlDisc && !hasDiscount) setHasDiscount(true);
+    if (rawSort && rawSort !== sortBy) setSortBy((rawSort === "best_sellers" ? "best_selling" : rawSort) as SortOption);
+  }, [location]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toUsd = (val: string) => {
     const n = parseFloat(val);
@@ -188,7 +202,7 @@ export default function SearchPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+      navigate(`/shop?q=${encodeURIComponent(query.trim())}`);
     }
   };
 
@@ -213,10 +227,10 @@ export default function SearchPage() {
                   placeholder={lang === "ar" ? "ابحث عن منتجات أو متاجر..." : "Search products or stores..."}
                   className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
                   style={{ fontFamily: "'Cairo', sans-serif" }}
-                  autoFocus={!initialQ}
+                  autoFocus={!init.q}
                 />
                 {query && (
-                  <button type="button" onClick={() => { setQuery(""); navigate("/search"); }}
+                  <button type="button" onClick={() => { setQuery(""); navigate("/shop"); }}
                     className="text-muted-foreground hover:text-foreground transition-colors">
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -542,7 +556,7 @@ export default function SearchPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {stores.map((s) => (
-                  <Link key={s.userId} href={s.storeSlug ? `/store/${s.storeSlug}` : `/products?sellerId=${s.userId}`}>
+                  <Link key={s.userId} href={s.storeSlug ? `/store/${s.storeSlug}` : `/shop?sellerId=${s.userId}`}>
                     <div className="bg-card border border-border/60 rounded-2xl p-4 hover:border-emerald-500/40 hover:shadow-md transition-all group cursor-pointer">
                       <div className="flex items-center gap-3 mb-3">
                         {s.storeLogo ? (
@@ -618,7 +632,7 @@ export default function SearchPage() {
                             {cat.subcategories.length} {lang === "ar" ? "فئة فرعية" : "subcategories"}
                           </div>
                         </div>
-                        <Link href={`/products?category=${encodeURIComponent(cat.slug)}`}>
+                        <Link href={`/shop?category=${encodeURIComponent(cat.slug)}`}>
                           <Button variant="ghost" size="sm" className="gap-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10">
                             {lang === "ar" ? "تصفح" : "Browse"}
                             <ArrowRight className={cn("h-3.5 w-3.5", isRtl && "rotate-180")} />
@@ -628,7 +642,7 @@ export default function SearchPage() {
                       {matchingSubcats.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                           {matchingSubcats.map((sub) => (
-                            <Link key={sub.slug} href={`/products?category=${encodeURIComponent(cat.slug)}&subcategory=${encodeURIComponent(sub.slug)}`}>
+                            <Link key={sub.slug} href={`/shop?category=${encodeURIComponent(cat.slug)}&subcategory=${encodeURIComponent(sub.slug)}`}>
                               <Badge variant="secondary" className="cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
                                 {lang === "ar" ? sub.ar : sub.en}
                               </Badge>
@@ -650,7 +664,7 @@ export default function SearchPage() {
                       {CATEGORIES.filter((c) => !matchedCategories.find((m) => m.slug === c.slug)).map((cat) => {
                         const Icon = ICON_MAP[cat.icon] ?? Package;
                         return (
-                          <Link key={cat.slug} href={`/products?category=${encodeURIComponent(cat.slug)}`}>
+                          <Link key={cat.slug} href={`/shop?category=${encodeURIComponent(cat.slug)}`}>
                             <div className="flex flex-col items-center gap-2 p-3 bg-card border border-border/60 rounded-xl hover:border-emerald-500/40 hover:shadow-sm transition-all cursor-pointer group">
                               <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", cat.iconBg)}>
                                 <Icon className={cn("h-5 w-5", cat.iconColor)} />
@@ -675,12 +689,12 @@ export default function SearchPage() {
           <div className="container px-4 py-12 text-center">
             <Search className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
             <p className="text-xl font-semibold text-foreground mb-2">
-              {lang === "ar" ? "ابدأ البحث" : "Start searching"}
+              {lang === "ar" ? "اكتشف منتجاتنا" : "Discover our products"}
             </p>
             <p className="text-muted-foreground text-sm max-w-sm mx-auto">
               {lang === "ar"
-                ? "ابحث عن منتجات، متاجر، أو فئات في سوق سيانو"
-                : "Search for products, stores, or categories on Syano"}
+                ? "ابحث عن منتجات، تسوق بالفئات، أو اكتشف متاجر سورية متميزة"
+                : "Search for products, browse categories, or discover top Syrian stores"}
             </p>
 
             {/* Category shortcuts */}
@@ -688,7 +702,7 @@ export default function SearchPage() {
               {CATEGORIES.slice(0, 12).map((cat) => {
                 const Icon = ICON_MAP[cat.icon] ?? Package;
                 return (
-                  <Link key={cat.slug} href={`/products?category=${encodeURIComponent(cat.slug)}`}>
+                  <Link key={cat.slug} href={`/shop?category=${encodeURIComponent(cat.slug)}`}>
                     <div className="flex flex-col items-center gap-2 p-3 bg-card border border-border/60 rounded-xl hover:border-emerald-500/40 hover:shadow-sm transition-all cursor-pointer group">
                       <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", cat.iconBg)}>
                         <Icon className={cn("h-5 w-5", cat.iconColor)} />

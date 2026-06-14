@@ -49,7 +49,7 @@ export function NewArrivals({ newArrivals }: { newArrivals?: Product[] }) {
             <p style={{ fontWeight: 600, fontSize: "0.75rem", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.arrivals.eyebrow")}</p>
             <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3vw, 38px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground">{t("home.arrivals.title")}</h2>
           </div>
-          <Link href="/products" style={{ fontWeight: 600, fontSize: "0.875rem" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
+          <Link href="/shop" style={{ fontWeight: 600, fontSize: "0.875rem" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
             {t("home.arrivals.see_all")} <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>

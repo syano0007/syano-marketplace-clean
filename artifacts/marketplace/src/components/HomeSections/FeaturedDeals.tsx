@@ -78,7 +78,7 @@ function DealCard({ deal, i }: { deal: DealCardData; i: number }) {
   const handleAddToCart = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (deal.id === 0) { navigate("/products"); return; }
+    if (deal.id === 0) { navigate("/shop"); return; }
     if (isSeller || isAdmin || isCourier) return;
     setAdding(true);
     try {
@@ -181,7 +181,7 @@ export function FeaturedDeals({ hotDeals }: { hotDeals?: Product[] }) {
             <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3vw, 38px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground mb-4">{t("home.deals.title")}</h2>
             <CountdownTimer />
           </div>
-          <Link href="/products?hasDiscount=true" style={{ fontWeight: 600, fontSize: "0.875rem" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
+          <Link href="/shop?hasDiscount=true" style={{ fontWeight: 600, fontSize: "0.875rem" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
             {t("home.deals.see_all")} <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>

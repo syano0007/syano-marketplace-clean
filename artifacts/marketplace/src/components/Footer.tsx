@@ -194,7 +194,7 @@ export function Footer() {
         { label: t("footer.col3_payment"),       href: "/payment-methods" },
         { label: t("footer.col3_guarantee"),     href: "/syano-guarantee" },
         { label: t("footer.col3_loyalty"),       href: "/loyalty" },
-        { label: t("footer.col3_deals"),         href: "/products" },
+        { label: t("footer.col3_deals"),         href: "/shop?hasDiscount=true" },
       ],
     },
     {

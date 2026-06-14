@@ -934,7 +934,7 @@ export default function StorePage() {
         <div className="max-w-5xl mx-auto px-4 py-20 text-center">
           <h2 className="text-2xl font-bold mb-2">{t("store.not_found_title")}</h2>
           <p className="text-muted-foreground mb-6">{t("store.not_found_desc")}</p>
-          <Link href="/products">
+          <Link href="/shop">
             <Button variant="outline" className="gap-2">
               <ArrowLeft className="h-4 w-4 rtl:rotate-180 shrink-0" />
               {t("store.browse_products")}
@@ -986,7 +986,7 @@ export default function StorePage() {
         <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent" />
         {/* Back button on banner */}
         <div className="absolute top-4 start-4">
-          <Link href="/products">
+          <Link href="/shop">
             <Button
               variant="ghost"
               size="sm"

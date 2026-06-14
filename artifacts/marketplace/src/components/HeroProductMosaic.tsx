@@ -86,7 +86,7 @@ const CategoryTile = memo(function CategoryTile({
 }) {
   const { icon: Icon } = tile;
   return (
-    <Link href={`/products?category=${encodeURIComponent(tile.slug)}`}>
+    <Link href={`/shop?category=${encodeURIComponent(tile.slug)}`}>
       <div
         className={cn(
           "relative flex flex-col items-center justify-center h-full",
@@ -244,7 +244,7 @@ export const HeroProductMosaic = memo(function HeroProductMosaic() {
 
       {/* Browse all link */}
       <Link
-        href="/products"
+        href="/shop"
         className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-primary hover:underline py-0.5 shrink-0"
       >
         <ArrowRight className="h-3 w-3 rtl:rotate-180" />

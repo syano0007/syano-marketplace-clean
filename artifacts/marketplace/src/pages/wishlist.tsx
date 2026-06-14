@@ -334,7 +334,7 @@ export default function WishlistPage() {
                   {isAr ? "نقل الكل إلى السلة" : "Move All to Cart"}
                 </Button>
               )}
-              <Link href="/products">
+              <Link href="/shop">
                 <Button variant="outline" size="sm" className="gap-2">
                   <ShoppingBag className="h-4 w-4" />
                   {isAr ? "تسوق المزيد" : "Shop More"}
@@ -380,7 +380,7 @@ export default function WishlistPage() {
                   : "Tap the heart on any product to save it here"}
               </p>
             </div>
-            <Link href="/products">
+            <Link href="/shop">
               <Button className="gap-2">
                 <ShoppingBag className="h-4 w-4" />
                 {isAr ? "تصفح المنتجات" : "Browse Products"}

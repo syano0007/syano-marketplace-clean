@@ -18,11 +18,11 @@ export function HomeFooter() {
     marketplace: {
       titleKey: "home.footer.marketplace_title",
       links: [
-        { labelKey: "home.footer.link_all_products", href: "/products" },
-        { labelKey: "home.footer.link_deals", href: "/products?hasDiscount=true" },
+        { labelKey: "home.footer.link_all_products", href: "/shop" },
+        { labelKey: "home.footer.link_deals", href: "/shop?hasDiscount=true" },
         { labelKey: "home.footer.link_trusted_stores", href: "/sellers/directory" },
-        { labelKey: "home.footer.link_new_products", href: "/products" },
-        { labelKey: "home.footer.link_bestsellers", href: "/products" },
+        { labelKey: "home.footer.link_new_products", href: "/shop" },
+        { labelKey: "home.footer.link_bestsellers", href: "/shop?sortBy=best_selling" },
       ],
     },
     seller: {

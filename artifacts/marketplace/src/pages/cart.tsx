@@ -304,7 +304,7 @@ function GuestCart() {
                 {t("cart.empty_desc")}
               </p>
             </div>
-            <Link href="/products">
+            <Link href="/shop">
               <Button size="lg" className="h-12 px-8">{t("cart.start_shopping")}</Button>
             </Link>
           </div>
@@ -428,7 +428,7 @@ function ServerCart() {
                 {t("cart.empty_desc")}
               </p>
             </div>
-            <Link href="/products">
+            <Link href="/shop">
               <Button size="lg" className="h-12 px-8">{t("cart.start_shopping")}</Button>
             </Link>
           </div>

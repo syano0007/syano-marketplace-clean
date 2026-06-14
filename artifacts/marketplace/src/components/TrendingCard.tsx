@@ -79,7 +79,7 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
   const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (product.id === 0) { navigate("/products"); return; }
+    if (product.id === 0) { navigate("/shop"); return; }
     if (isSeller || isAdmin || isCourier) return;
     if (outOfStock) return;
     if (product.hasVariants) { navigate(`/products/${product.id}`); return; }

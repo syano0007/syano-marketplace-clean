@@ -137,7 +137,7 @@ export default function OrderHistory() {
             <Package className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
             <h3 className="text-xl font-semibold mb-2">{t("orders.empty")}</h3>
             <p className="text-muted-foreground max-w-md mb-6 leading-relaxed">{t("orders.empty_desc")}</p>
-            <Link href="/products" className="text-primary hover:underline font-medium inline-flex items-center gap-1">
+            <Link href="/shop" className="text-primary hover:underline font-medium inline-flex items-center gap-1">
               {t("orders.start_shopping")} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

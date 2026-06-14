@@ -230,15 +230,15 @@ export function Navbar() {
   const navLinks = isRtl
     ? [
       { href: "/", label: "الرئيسية" },
-      { href: "/products", label: "المنتجات" },
+      { href: "/shop", label: "تسوق" },
       { href: "/sellers/directory", label: "المتاجر" },
-      { href: "/products?hasDiscount=true", label: "العروض" },
+      { href: "/shop?hasDiscount=true", label: "العروض" },
     ]
     : [
       { href: "/", label: "Home" },
-      { href: "/products", label: "Products" },
+      { href: "/shop", label: "Shop" },
       { href: "/sellers/directory", label: "Stores" },
-      { href: "/products?hasDiscount=true", label: "Deals" },
+      { href: "/shop?hasDiscount=true", label: "Deals" },
     ];
 
   return (
@@ -346,7 +346,7 @@ export function Navbar() {
                   ))}
                   {suggestions.stores.slice(0, 2).map(s => (
                     <button key={s.userId}
-                      onClick={() => { navigate(s.storeSlug ? `/store/${s.storeSlug}` : `/products?sellerId=${s.userId}`); setSearchOpen(false); setSearchQuery(""); }}
+                      onClick={() => { navigate(s.storeSlug ? `/store/${s.storeSlug}` : `/shop?sellerId=${s.userId}`); setSearchOpen(false); setSearchQuery(""); }}
                       className={`w-full flex items-center gap-3 px-3 py-2 ${navHoverBg} border-t ${navBorder} text-start`}>
                       {s.storeLogo
                         ? <img src={s.storeLogo} alt="" className={`h-7 w-7 rounded-lg object-cover border ${navBorder} shrink-0`} />
@@ -486,7 +486,7 @@ export function Navbar() {
                               </div>
                               {suggestions.stores.slice(0, 3).map(s => (
                                 <button key={s.userId}
-                                  onClick={() => { navigate(s.storeSlug ? `/store/${s.storeSlug}` : `/products?sellerId=${s.userId}`); setSearchOpen(false); setSearchQuery(""); }}
+                                  onClick={() => { navigate(s.storeSlug ? `/store/${s.storeSlug}` : `/shop?sellerId=${s.userId}`); setSearchOpen(false); setSearchQuery(""); }}
                                   className={`w-full flex items-center gap-3 px-3.5 py-2 ${navHoverBg} transition-colors`} style={{ textAlign: isRtl ? "right" : "left" }}>
                                   {s.storeLogo
                                     ? <img src={s.storeLogo} alt="" className={`h-8 w-8 rounded-lg object-cover border ${navBorder} shrink-0`} />
@@ -513,7 +513,7 @@ export function Navbar() {
                               <div className="px-3.5 pb-2 flex flex-wrap gap-1.5">
                                 {suggestions.categories.slice(0, 4).map(cat => (
                                   <button key={cat}
-                                    onClick={() => { navigate(`/products?category=${encodeURIComponent(cat)}`); setSearchOpen(false); setSearchQuery(""); }}
+                                    onClick={() => { navigate(`/shop?category=${encodeURIComponent(cat)}`); setSearchOpen(false); setSearchQuery(""); }}
                                     className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${navBorder} ${navHoverBg} ${navDropText} transition-colors flex items-center gap-1`}>
                                     <Layers className="h-3 w-3 shrink-0" />
                                     {cat}
@@ -808,7 +808,7 @@ export function Navbar() {
 
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
             <MobileNavLink href="/" icon={Home} label={isRtl ? "الرئيسية" : "Home"} location={location} onClose={closeMobileMenu} isDark={isDark} />
-            <MobileNavLink href="/products" icon={Package} label={isRtl ? "المنتجات" : "Products"} location={location} onClose={closeMobileMenu} isDark={isDark} />
+            <MobileNavLink href="/shop" icon={Package} label={isRtl ? "تسوق" : "Shop"} location={location} onClose={closeMobileMenu} isDark={isDark} />
             <MobileNavLink href="/sellers/directory" icon={Store} label={isRtl ? "المتاجر" : "Stores"} location={location} onClose={closeMobileMenu} isDark={isDark} />
             {isAdmin && adminLinks.map(l => <MobileNavLink key={l.href} {...l} location={location} onClose={closeMobileMenu} isDark={isDark} />)}
             {isSeller && sellerLinks.map(l => <MobileNavLink key={l.href} {...l} location={location} onClose={closeMobileMenu} isDark={isDark} />)}

@@ -145,7 +145,7 @@ export default function Checkout() {
                 <Package className="me-2 h-4 w-4" />
                 {t("checkout.view_orders")}
               </Button>
-              <Button variant="outline" onClick={() => setLocation("/products")} className="flex-1 h-12">
+              <Button variant="outline" onClick={() => setLocation("/shop")} className="flex-1 h-12">
                 {t("checkout.continue_shopping")}
               </Button>
             </div>

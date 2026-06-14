@@ -703,7 +703,7 @@ function ConvSidebar({
                 <p className="text-sm font-medium">{t("messages.no_conversations")}</p>
                 <p className="text-xs mt-1">{emptyHint}</p>
                 {role === "customer" && (
-                  <Link href="/products">
+                  <Link href="/shop">
                     <Button variant="outline" size="sm" className="mt-4 gap-1.5">
                       <Store className="h-4 w-4" /> {t("messages.browse_products")}
                     </Button>

@@ -192,8 +192,9 @@ function Router() {
             <Route path="/register" component={Register} />
             <Route path="/verify" component={VerifyPage} />
             <Route path="/forgot-password" component={ForgotPassword} />
+            <Route path="/shop" component={SearchPage} />
             <Route path="/search" component={SearchPage} />
-            <Route path="/products" component={Products} />
+            <Route path="/products" component={SearchPage} />
             <Route path="/products/:id" component={ProductDetail} />
 
             <Route path="/cart" component={Cart} />

@@ -162,7 +162,7 @@ function StaticHero() {
               {t("home.hero.subtext")}
             </p>
             <div className="flex flex-col sm:flex-row items-start gap-3 pt-1">
-              <Link href="/products">
+              <Link href="/shop">
                 <Button size="lg" className="h-12 px-8 text-base font-bold shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-0.5 hover:ring-2 hover:ring-primary/40 transition-all duration-200">
                   {t("home.hero.shop_now")}
                   <ArrowRight className={cn("h-5 w-5 shrink-0", isRTL ? "me-2 rotate-180" : "ms-2")} />
@@ -215,7 +215,7 @@ const CategoryStrip = memo(function CategoryStrip() {
           {QUICK_CATEGORIES.map(({ slug, en, ar, Icon, bg, text }) => (
             <Link
               key={slug}
-              href={`/products?category=${encodeURIComponent(slug)}`}
+              href={`/shop?category=${encodeURIComponent(slug)}`}
               className="shrink-0"
             >
               <div className={cn(
@@ -235,7 +235,7 @@ const CategoryStrip = memo(function CategoryStrip() {
               </div>
             </Link>
           ))}
-          <Link href="/products" className="shrink-0">
+          <Link href="/shop" className="shrink-0">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-border hover:border-primary/40 bg-background hover:bg-muted transition-all duration-150 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground whitespace-nowrap">
               <ArrowRight className="h-3.5 w-3.5" />
             </div>
@@ -349,7 +349,7 @@ const DealsPanel = memo(function DealsPanel() {
             </span>
           </div>
           <Link
-            href="/products?sort=best_sellers"
+            href="/shop?sortBy=best_selling"
             className="text-[11px] text-primary hover:underline font-medium flex items-center gap-0.5"
           >
             {t("home.deals.see_all")}
@@ -635,7 +635,7 @@ function Slide({
                   </Button>
                 </Link>
               ) : (
-                <Link href="/products">
+                <Link href="/shop">
                   <Button size="lg" className="h-11 sm:h-12 px-7 text-sm sm:text-base font-bold shadow-2xl shadow-primary/30 hover:shadow-primary/55 hover:-translate-y-0.5 hover:ring-2 hover:ring-primary/45 transition-all duration-200">
                     {t("home.hero.shop_now")}
                     <ArrowRight className={cn("h-4 w-4 shrink-0", isRTL ? "me-2 rotate-180" : "ms-2")} />

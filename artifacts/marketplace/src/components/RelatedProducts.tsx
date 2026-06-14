@@ -33,7 +33,7 @@ export function RelatedProducts({ currentId, category }: RelatedProductsProps) {
       <Separator className="mb-8" />
       <div className="flex items-center justify-between mb-5 gap-4">
         <h2 className="text-xl font-bold text-foreground">{t("product_detail.you_may_like")}</h2>
-        <Link href={`/products?category=${encodeURIComponent(category)}`}>
+        <Link href={`/shop?category=${encodeURIComponent(category)}`}>
           <Button variant="ghost" size="sm" className="text-primary shrink-0 gap-1 hover:text-primary/80">
             <span className="text-sm font-medium capitalize">{category}</span>
             <ChevronRight className="h-4 w-4 rtl:rotate-180" />

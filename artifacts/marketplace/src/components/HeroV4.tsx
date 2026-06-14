@@ -486,7 +486,7 @@ export function HeroV4() {
         {/* CTA buttons — geometry from approved mockup */}
         <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
           <Link
-            href="/products"
+            href="/shop"
             style={{
               padding:"12px 24px", borderRadius:8,
               background:"#10b981",
