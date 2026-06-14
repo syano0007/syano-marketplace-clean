@@ -106,7 +106,7 @@ export function HeroSection({ products }: { products: Product[] }) {
       style={{ fontFamily: "'Cairo', sans-serif" }}
       className="relative min-h-screen w-full bg-background flex items-center overflow-hidden pt-[72px]"
     >
-      <div className="absolute inset-0 opacity-[0.04]" style={{
+      <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
         backgroundImage: `linear-gradient(hsl(var(--foreground) / 0.6) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / 0.6) 1px, transparent 1px)`,
         backgroundSize: "60px 60px",
       }} />
