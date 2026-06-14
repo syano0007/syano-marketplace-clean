@@ -15,7 +15,7 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 | Trust & verification | ✅ 100% | 0-100 score, tiers, audit log, verification badges |
 | Delivery system | ✅ 100% | 40 Aleppo zones, courier ops, assignment flow |
 | Messaging V2 (web) | ✅ 100% | 18 API endpoints, MessagingPanel, 3 inbox pages, attachments, typing, read receipts |
-| Messaging V2 (mobile) | 🟡 55% | Core list+send works; missing read receipts, typing, attachments, mute/archive, full i18n |
+| Messaging V2 (mobile) | ✅ 100% | Read receipts (✓/✓✓), typing indicators (animated dots), image attachments, archive/mute (long-press), full i18n (EN+AR) |
 | Notifications | ✅ 100% | SSE real-time, polling fallback, in-app toasts, web push (VAPID), bilingual |
 | Wishlist | ✅ 100% | Web + heart button; mobile not implemented |
 | Guest cart | ✅ 100% | All entry points wired |
@@ -91,23 +91,21 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 - `createNotification` called on send with bilingual (EN+AR) title
 - i18n: **77 `messages.*` keys** in both `en.json` and `ar.json`
 
-#### Mobile — 55% (gaps below)
+#### Mobile — 100% (COMPLETE as of June 14, 2026)
 
-**What works:**
-- Conversation list with FlatList, unread badges, partner name/avatar initial, last message preview
-- ChatView: message bubbles (mine/theirs), send with haptic feedback, scroll-to-bottom on new message
+**All features implemented in `artifacts/mobile/app/(tabs)/messages.tsx`:**
+- Conversation list with FlatList, unread badges, muted indicator, last message preview (with 📎 for attachments)
+- Filter tabs: All / Unread / Archived (archived fetched via separate query with `enabled` guard)
+- Long-press on conversation → Alert with Archive/Unarchive + Mute/Unmute + Cancel options
+- ChatView: message bubbles (mine/theirs), read receipts (✓ sent / ✓✓ read via `readAt`), soft-deleted messages
+- Typing indicators: animated 3-dot bounce using `Animated.loop` + `useGetTyping` polling every 2s
+- Image attachments: `expo-image-picker` → base64 → `useUploadAttachment` → inline `ExpoImage` display with auth headers; 2MB limit enforced
+- File attachments: chip display with filename + document icon
+- Haptic feedback on send and long-press
 - KeyboardAvoidingView for iOS/Android
+- Full i18n: 30+ `messages.*` keys in EN+AR, zero hardcoded strings
 - Auth gate with sign-in CTA
 - Performance: `removeClippedSubviews`, `initialNumToRender`, `windowSize` optimized
-
-**What is missing:**
-| Gap | Priority | Notes |
-|---|---|---|
-| Read receipts display | Medium | No ✓/✓✓ in mobile bubbles; API returns `readAt` |
-| Typing indicators | Low | No animated dots; API `/typing` endpoint ready |
-| Attachment support | Medium | Text-only; API upload+serve endpoints exist |
-| Archive/mute controls | Low | No long-press or swipe actions |
-| Full i18n | Medium | ~8 hardcoded English strings in messages.tsx |
 
 ---
 
