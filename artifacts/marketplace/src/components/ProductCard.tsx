@@ -1,21 +1,18 @@
 import React from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { Product, getProduct, getGetProductQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useAddToCart, getGetCartQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { ShoppingCart, Timer, Heart } from "lucide-react";
+import { ShoppingCart, Timer, Heart, Star, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
-import { OptimizedImage } from "@/components/OptimizedImage";
-import { StarRating } from "@/components/StarRating";
 import { cn } from "@/lib/utils";
 import { useGuestCart } from "@/contexts/GuestCartContext";
 import { calculateDiscountPercent } from "@/lib/pricing";
 import { useWishlist } from "@/contexts/WishlistContext";
+import { motion } from "framer-motion";
 
 interface ProductCardProps {
   product: Product;
@@ -23,7 +20,7 @@ interface ProductCardProps {
 }
 
 export const ProductCard = React.memo(function ProductCard({ product, flashSaleEndsIn }: ProductCardProps) {
-  const { isCustomer, isAuthenticated } = useAuth();
+  const { isCustomer, isAuthenticated, isSeller, isAdmin, isCourier } = useAuth();
   const { format } = useCurrency();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -42,11 +39,9 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
   const cardRef = React.useRef<HTMLDivElement>(null);
   const prefetchedRef = React.useRef(false);
 
-  // Prefetch product detail when card enters viewport (works on mobile too)
   React.useEffect(() => {
     const el = cardRef.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !prefetchedRef.current) {
@@ -60,7 +55,6 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
       },
       { threshold: 0.1, rootMargin: "100px 0px" }
     );
-
     observer.observe(el);
     return () => observer.disconnect();
   }, [product.id, queryClient]);
@@ -84,7 +78,6 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
     },
   });
 
-  // Desktop hover prefetch — skip if IntersectionObserver already handled it
   const handleMouseEnter = () => {
     if (prefetchedRef.current) return;
     prefetchedRef.current = true;
@@ -102,7 +95,6 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
   const isRated = avgRating > 0;
   const hasVariants = (product as any).hasVariants === true;
 
-  // Authenticated customer: if product has variants, go to detail (must pick variant first)
   const handleCustomerAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -113,7 +105,6 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
     }
   };
 
-  // Guest: add to localStorage cart, show toast prompting sign-in for checkout
   const handleGuestAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -128,13 +119,23 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
     });
   };
 
+  const showCart = isCustomer || !isAuthenticated;
+  const cartDisabled =
+    product.stock <= 0 ||
+    (isCustomer && addToCart.isPending);
+
   return (
-    <div
+    <motion.div
       ref={cardRef}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
       className={cn(
-        "group flex flex-col bg-card rounded-xl border border-border overflow-hidden sy-card-elevated",
-        "hover:border-primary/30 hover:-translate-y-0.5 transition-[transform,border-color] duration-150",
-        "cursor-pointer h-full relative active:scale-[0.98]",
+        "group flex flex-col bg-card border border-border hover:border-border/80",
+        "rounded-2xl overflow-hidden sy-card-elevated",
+        "hover:-translate-y-1 transition-all duration-300",
+        "cursor-pointer relative",
         product.stock <= 0 && "opacity-70"
       )}
       onClick={() => navigate(`/products/${product.id}`)}
@@ -144,53 +145,68 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
       onKeyDown={(e) => e.key === "Enter" && navigate(`/products/${product.id}`)}
       aria-label={`View ${product.name}`}
     >
-      {/* ── Discount badge ─────────────────────────────────── */}
-      {hasDiscount && (
-        <Badge className="absolute top-2 end-2 z-10 bg-primary hover:bg-primary text-primary-foreground font-bold px-1.5 py-0.5 text-[10px] sm:text-xs">
-          -{discPct}%
-        </Badge>
-      )}
-
-      {/* ── Wishlist heart ──────────────────────────────── */}
-      <button
-        className={cn(
-          "absolute top-2 start-2 z-10 h-7 w-7 rounded-full flex items-center justify-center",
-          "bg-background/80 backdrop-blur-sm border border-border/50",
-          "hover:scale-110 hover:border-rose-400/50 transition-all duration-150",
-          "opacity-0 group-hover:opacity-100 focus:opacity-100",
-          isWishlisted && "opacity-100 border-rose-400/50"
-        )}
-        onClick={handleWishlistToggle}
-        aria-label={isWishlisted ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
-      >
-        <Heart className={cn(
-          "h-3.5 w-3.5 transition-colors",
-          isWishlisted ? "fill-rose-500 text-rose-500" : "text-muted-foreground"
-        )} />
-      </button>
-
-      {/* ── Product image ───────────────────────────────────── */}
-      <div className="relative shrink-0">
+      {/* ── Image ─────────────────────────────────────────── */}
+      <div className="relative aspect-square bg-muted overflow-hidden shrink-0">
         {product.imageUrl ? (
-          <OptimizedImage
+          <img
             src={product.imageUrl}
             alt={product.name}
-            aspect="aspect-square"
-            className="group-hover:scale-105 transition-transform duration-200"
-            fallback={
-              <div className="absolute inset-0 flex items-center justify-center bg-secondary/50 text-muted-foreground">
-                <span className="text-xs font-medium px-2 text-center">{t("product_detail.no_image")}</span>
-              </div>
-            }
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            style={{ filter: "brightness(var(--img-dim-product)) contrast(1.05)" }}
           />
         ) : (
-          <div className="aspect-square w-full flex items-center justify-center bg-secondary/50 text-muted-foreground">
+          <div className="w-full h-full flex items-center justify-center bg-secondary/50 text-muted-foreground">
             <span className="text-xs font-medium px-2 text-center">{t("product_detail.no_image")}</span>
           </div>
         )}
 
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 sy-overlay-light pointer-events-none" />
+
+        {/* Discount badge */}
+        {hasDiscount && (
+          <div className="absolute top-3 end-3 z-10">
+            <div
+              style={{ fontWeight: 700, fontSize: "11px" }}
+              className="bg-primary text-primary-foreground px-2.5 py-0.5 rounded-full"
+            >
+              -{discPct}%
+            </div>
+          </div>
+        )}
+
+        {/* Trending badge (when product is marked trending) */}
+        {(product as any).isTrending && !hasDiscount && (
+          <div className="absolute top-3 end-3 z-10">
+            <div
+              style={{ fontWeight: 700, fontSize: "11px" }}
+              className="flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-2.5 py-0.5 rounded-full backdrop-blur-sm"
+            >
+              <TrendingUp className="w-3 h-3" />
+              {t("home.trending.trending_badge")}
+            </div>
+          </div>
+        )}
+
+        {/* Wishlist button */}
+        <button
+          className={cn(
+            "absolute top-3 start-3 z-10 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm border transition-all duration-200",
+            isWishlisted
+              ? "bg-rose-500/20 border-rose-500/40 text-rose-400"
+              : "bg-black/40 border-white/10 text-white/40 hover:text-white/70 hover:border-white/20"
+          )}
+          onClick={handleWishlistToggle}
+          aria-label={isWishlisted ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
+        >
+          <Heart className={cn("w-3.5 h-3.5", isWishlisted && "fill-rose-400")} />
+        </button>
+
+        {/* Flash sale countdown bar */}
         {flashSaleEndsIn && (
-          <div className="absolute bottom-0 inset-x-0 flex items-center justify-center gap-1 bg-rose-600 text-white text-[10px] font-bold px-2 py-1 tabular-nums">
+          <div className="absolute bottom-0 inset-x-0 z-10 flex items-center justify-center gap-1 bg-rose-600 text-white text-[10px] font-bold px-2 py-1 tabular-nums">
             <Timer className="h-2.5 w-2.5 shrink-0" />
             <span className="opacity-80">{t("home.deals.ends_in")}</span>
             <span dir="ltr">{flashSaleEndsIn}</span>
@@ -198,101 +214,98 @@ export const ProductCard = React.memo(function ProductCard({ product, flashSaleE
         )}
       </div>
 
-      {/* ── Card text body ──────────────────────────────────── */}
-      <div className="p-2 sm:p-2.5 md:p-3 flex flex-col flex-1 gap-0.5">
+      {/* ── Card body ─────────────────────────────────────── */}
+      <div className="p-4 sm:p-5 flex flex-col flex-1">
 
-        {/* Category chip */}
-        <div className="pc-category text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-          {product.category}
+        {/* Category + Store row */}
+        <div className="flex items-center justify-between mb-2">
+          <p style={{ fontWeight: 500, fontSize: "11px" }} className="text-muted-foreground truncate">
+            {product.category}
+          </p>
+          <p style={{ fontWeight: 400, fontSize: "11px" }} className="text-muted-foreground/70 truncate ms-2 shrink-0 max-w-[45%]">
+            {product.sellerName}
+          </p>
         </div>
 
         {/* Title */}
-        <h3 className="heading-card text-foreground pc-title group-hover:text-primary transition-colors">
+        <h3
+          style={{ fontWeight: 700, fontSize: "15px", lineHeight: 1.4 }}
+          className="text-foreground mb-3 group-hover:text-emerald-400 transition-colors duration-200 line-clamp-2"
+        >
           {product.name}
         </h3>
 
-        {/* Seller */}
-        <div className="pc-meta min-w-0 overflow-hidden">
-          <span className="text-[10px] sm:text-xs text-muted-foreground truncate block">
-            {t("common.by")} {product.sellerName}
-          </span>
-        </div>
-
-        {/* Rating — only shown when the product has ratings */}
+        {/* Rating */}
         {isRated && (
-          <div className="pc-rating flex items-center gap-1 min-w-0 overflow-hidden">
-            <StarRating rating={avgRating} size="sm" />
-            <span className="text-[10px] font-bold text-amber-500 tabular-nums shrink-0 leading-none">
-              {avgRating.toFixed(1)}
+          <div className="flex items-center gap-1.5 mb-3">
+            <div className="flex items-center gap-0.5">
+              {[...Array(5)].map((_, j) => (
+                <Star
+                  key={j}
+                  className={cn(
+                    "w-3 h-3",
+                    j < Math.floor(avgRating)
+                      ? "fill-amber-400 text-amber-400"
+                      : "text-foreground/10"
+                  )}
+                />
+              ))}
+            </div>
+            <span style={{ fontWeight: 600, fontSize: "12px" }} className="text-foreground/50">
+              {avgRating.toFixed(1)}{reviewCount > 0 && ` (${reviewCount})`}
             </span>
-            {reviewCount > 0 && (
-              <span className="text-[10px] text-muted-foreground tabular-nums shrink-0 leading-none">
-                ({reviewCount})
-              </span>
-            )}
           </div>
         )}
 
-        {/* Price + Add-to-cart */}
-        <div className="flex items-end justify-between pt-1.5 sm:pt-2 border-t border-border/60 mt-auto">
-          <div className="flex flex-col gap-0.5 min-w-0">
-            {hasDiscount ? (
-              <>
-                <span className="text-[10px] text-muted-foreground line-through leading-none" translate="no">
-                  {format(product.price)}
-                </span>
-                <span className="font-bold text-sm sm:text-base text-foreground leading-tight" translate="no">
-                  {format(product.finalPrice)}
-                </span>
-              </>
-            ) : (
-              <span className="font-bold text-sm sm:text-base text-foreground leading-tight" translate="no">
+        {/* Price + Add-to-cart — pushed to bottom */}
+        <div className="flex items-center justify-between mt-auto gap-2">
+          <div className="min-w-0">
+            {hasDiscount && (
+              <p className="text-[11px] text-muted-foreground line-through leading-none mb-0.5" translate="no">
                 {format(product.price)}
-              </span>
+              </p>
             )}
+            <div
+              style={{ fontWeight: 800, fontSize: "18px", letterSpacing: "-0.02em" }}
+              className="text-emerald-400 leading-tight"
+              translate="no"
+            >
+              {format(hasDiscount ? product.finalPrice : product.price)}
+            </div>
           </div>
 
-          {/* Authenticated customer add-to-cart */}
-          {isCustomer && (
-            <Button
-              size="icon"
-              variant="secondary"
-              className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground shrink-0 transition-[background-color,color] duration-150"
-              onClick={handleCustomerAddToCart}
-              disabled={addToCart.isPending || product.stock <= 0}
+          {showCart && (
+            <button
+              onClick={isCustomer ? handleCustomerAddToCart : handleGuestAddToCart}
+              disabled={cartDisabled}
+              style={{ fontWeight: 600, fontSize: "13px" }}
+              className="flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white px-2.5 sm:px-4 py-2 rounded-xl transition-all duration-200 border border-emerald-500/20 hover:border-emerald-500 disabled:opacity-50 shrink-0"
               aria-label={hasVariants ? t("products.choose_options") : t("product_detail.add_to_cart")}
             >
-              <ShoppingCart className="h-4 w-4" />
-            </Button>
-          )}
-
-          {/* Guest add-to-cart (no login required until checkout) */}
-          {!isAuthenticated && (
-            <Button
-              size="icon"
-              variant="secondary"
-              className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground shrink-0 transition-[background-color,color] duration-150"
-              onClick={handleGuestAddToCart}
-              disabled={product.stock <= 0}
-              aria-label={t("product_detail.add_to_cart")}
-            >
-              <ShoppingCart className="h-4 w-4" />
-            </Button>
+              {isCustomer && addToCart.isPending ? (
+                <div className="w-3.5 h-3.5 border border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
+              )}
+              <span className="hidden sm:inline whitespace-nowrap">
+                {hasVariants ? t("products.choose_options") : t("product_detail.add_to_cart")}
+              </span>
+            </button>
           )}
         </div>
 
         {/* Stock warnings */}
         {product.stock > 0 && product.stock <= 5 && (
-          <div className="mt-0.5 text-[10px] font-medium text-destructive">
+          <div className="mt-2 text-[10px] font-medium text-destructive">
             {t("products.only_left", { count: product.stock })}
           </div>
         )}
         {product.stock <= 0 && (
-          <div className="mt-0.5 text-[10px] font-medium text-muted-foreground">
+          <div className="mt-2 text-[10px] font-medium text-muted-foreground">
             {t("products.out_of_stock")}
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 });
