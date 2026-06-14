@@ -184,6 +184,7 @@ router.get("/products", async (req, res): Promise<void> => {
     sortBy === "price_desc"      ? sql`CAST(${productsTable.price} AS numeric) desc` :
     sortBy === "highest_rated"   ? sql`avg(${reviewsTable.rating}) desc nulls last` :
     sortBy === "most_discounted" ? sql`CAST(${productsTable.discountPercent} AS numeric) desc nulls last` :
+    sortBy === "best_selling"    ? sql`${productsTable.salesCount} desc nulls last` :
     sql`${productsTable.createdAt} desc`;
 
   const havingClause = params.data.minRating

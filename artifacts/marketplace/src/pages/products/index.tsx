@@ -36,7 +36,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 const NO_SCROLL = "[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]";
 
-type SortOption = "newest" | "price_asc" | "price_desc" | "highest_rated" | "most_discounted";
+type SortOption = "newest" | "price_asc" | "price_desc" | "highest_rated" | "most_discounted" | "best_selling";
 
 export default function Products() {
   const { t, i18n } = useTranslation();
@@ -163,6 +163,7 @@ export default function Products() {
     price_desc:      t("products.sort_price_desc"),
     highest_rated:   t("products.sort_highest_rated"),
     most_discounted: t("products.sort_most_discounted"),
+    best_selling:    t("products.sort_best_selling"),
   };
 
   const renderStarPicker = () => (

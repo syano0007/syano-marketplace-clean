@@ -58,6 +58,17 @@ export async function runSearchStartup(): Promise<void> {
     `);
 
     logger.info("Search startup complete: pg_trgm enabled, indexes created");
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS search_queries (
+        query        TEXT PRIMARY KEY,
+        count        INTEGER NOT NULL DEFAULT 1,
+        last_searched TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS search_queries_count_idx ON search_queries (count DESC);
+    `);
+
+    logger.info("Search startup: search_queries table ready");
   } catch (err) {
     logger.warn({ err }, "Search startup non-fatal warning — app continues");
   } finally {

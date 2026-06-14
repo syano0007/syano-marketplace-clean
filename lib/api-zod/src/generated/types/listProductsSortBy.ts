@@ -15,4 +15,5 @@ export const ListProductsSortBy = {
   price_desc: 'price_desc',
   highest_rated: 'highest_rated',
   most_discounted: 'most_discounted',
+  best_selling: 'best_selling',
 } as const;

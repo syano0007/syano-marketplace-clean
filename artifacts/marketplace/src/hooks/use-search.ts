@@ -21,6 +21,38 @@ export interface SearchProduct {
   score: number;
 }
 
+export interface SuggestionProduct {
+  id: number;
+  name: string;
+  nameAr: string | null;
+  category: string;
+  imageUrl: string | null;
+  price: number;
+  finalPrice: number;
+  discountPercent: number | null;
+  score: number;
+}
+
+export interface SuggestionStore {
+  userId: number;
+  storeName: string;
+  storeSlug: string | null;
+  storeLogo: string | null;
+  categories: string[];
+  city: string | null;
+}
+
+export interface SuggestionResult {
+  products: SuggestionProduct[];
+  stores: SuggestionStore[];
+  categories: string[];
+}
+
+export interface TrendingQuery {
+  query: string;
+  count: number;
+}
+
 async function fetchSearchTerm(term: string, limit: number): Promise<SearchProduct[]> {
   const url = `/api/search?q=${encodeURIComponent(term)}&limit=${limit}`;
   const res = await fetch(url, { credentials: "include" });
@@ -29,15 +61,12 @@ async function fetchSearchTerm(term: string, limit: number): Promise<SearchProdu
 }
 
 /**
- * Multilingual search hook.
+ * Multilingual search hook (for search results page — full product list).
  *
  * Flow:
  *   1. expandSearchQuery(rawQuery) → up to 4 terms (original + AR↔EN synonyms)
  *   2. For each unique term ≥ 2 chars → GET /api/search?q=<term>
- *      The API uses pg_trgm word_similarity for typo-tolerance within a script
- *      (e.g. "phon" matches "phone"), plus exact / ilike / description scoring.
- *   3. Results from all terms are merged, deduplicated by product ID, and
- *      re-ranked by the API-provided score (pg_trgm) then client-side scoreProduct().
+ *   3. Results are merged, deduplicated, and re-ranked.
  */
 export function useSearch(rawQuery: string, { limit = 8 }: { limit?: number } = {}) {
   const terms = useMemo(
@@ -101,4 +130,47 @@ export function useSearch(rawQuery: string, { limit = 8 }: { limit?: number } = 
     (term2.length >= 2 && term2 !== term0 && term2 !== term1 && q2.isFetching);
 
   return { results, isLoading, hasQuery };
+}
+
+/**
+ * Single-call suggestions hook for the Navbar overlay.
+ * Returns { products, stores, categories } from GET /api/search/suggestions.
+ */
+export function useSearchSuggestions(rawQuery: string) {
+  const dq = rawQuery.trim();
+  const { data, isFetching } = useQuery<SuggestionResult>({
+    queryKey: ["search/suggestions", dq],
+    queryFn: async () => {
+      if (dq.length < 2) return { products: [], stores: [], categories: [] };
+      const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(dq)}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return { products: [], stores: [], categories: [] };
+      return res.json() as Promise<SuggestionResult>;
+    },
+    enabled: dq.length >= 2,
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
+  });
+  return {
+    suggestions: data ?? { products: [], stores: [], categories: [] },
+    isLoading: isFetching,
+    hasQuery: dq.length >= 2,
+  };
+}
+
+/**
+ * Hook to fetch trending / popular search terms.
+ */
+export function useSearchTrending() {
+  const { data } = useQuery<TrendingQuery[]>({
+    queryKey: ["search/trending"],
+    queryFn: async () => {
+      const res = await fetch("/api/search/trending", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json() as Promise<TrendingQuery[]>;
+    },
+    staleTime: 5 * 60_000,
+  });
+  return data ?? [];
 }

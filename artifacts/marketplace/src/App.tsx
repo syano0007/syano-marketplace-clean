@@ -38,6 +38,7 @@ const VerifyPage        = lazy(() => import("@/pages/verify"));
 const ForgotPassword    = lazy(() => import("@/pages/forgot-password"));
 const Products          = lazy(() => import("@/pages/products"));
 const ProductDetail     = lazy(() => import("@/pages/products/[id]"));
+const SearchPage        = lazy(() => import("@/pages/search"));
 const Cart              = lazy(() => import("@/pages/cart"));
 const Checkout          = lazy(() => import("@/pages/checkout"));
 const OrderHistory      = lazy(() => import("@/pages/orders"));
@@ -191,6 +192,7 @@ function Router() {
             <Route path="/register" component={Register} />
             <Route path="/verify" component={VerifyPage} />
             <Route path="/forgot-password" component={ForgotPassword} />
+            <Route path="/search" component={SearchPage} />
             <Route path="/products" component={Products} />
             <Route path="/products/:id" component={ProductDetail} />
 
