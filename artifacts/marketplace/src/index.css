@@ -305,7 +305,7 @@
        1920px vs 1280px difference: 18px vs 13.6px = 24% — clearly visible.
        ─────────────────────────────────────────────────────────────────── */
     font-size: clamp(10px, calc(4px + 0.75vw), 18px);
-    scrollbar-gutter: stable;
+    scrollbar-gutter: stable both-edges;
     -webkit-text-size-adjust: 100%;
   }
 
