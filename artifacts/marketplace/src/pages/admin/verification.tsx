@@ -18,10 +18,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { SellerTrustBadge, TrustScoreBar, type VerificationLevel } from "@/components/SellerTrustBadge";
 import {
-  Shield, ShieldCheck, Award, ShieldX, Store,
-  RefreshCw, Search,
+  Shield, ShieldCheck, Award, ShieldX, Store, RefreshCw, Search,
 } from "lucide-react";
-import { Link } from "wouter";
 import { format } from "date-fns";
 
 interface SellerVerificationRow {
@@ -39,26 +37,12 @@ interface SellerVerificationRow {
   createdAt: string;
 }
 
-const VERIFY_TIERS: { value: VerificationLevel; label: string; desc: string; icon: React.ElementType; color: string }[] = [
-  { value: "basic",    label: "Basic Verified",    desc: "Phone/email confirmed.",                           icon: Shield,      color: "text-blue-600" },
-  { value: "verified", label: "ID Verified",       desc: "Government ID checked and confirmed.",             icon: ShieldCheck, color: "text-emerald-600" },
-  { value: "business", label: "Business Verified", desc: "Business license and commercial registration.",    icon: Award,       color: "text-violet-600" },
-];
-
-const FILTER_OPTIONS = [
-  { value: "all",      label: "All sellers" },
-  { value: "verified", label: "Verified" },
-  { value: "unverified", label: "Unverified" },
-  { value: "basic",    label: "Basic" },
-  { value: "id_verified", label: "ID Verified" },
-  { value: "business", label: "Business" },
-];
-
 export default function AdminVerificationPage() {
   const { t } = useTranslation();
   const { token } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [verifyTarget, setVerifyTarget] = useState<SellerVerificationRow | null>(null);
@@ -66,6 +50,24 @@ export default function AdminVerificationPage() {
   const [unverifyTarget, setUnverifyTarget] = useState<SellerVerificationRow | null>(null);
   const [recomputeId, setRecomputeId] = useState<number | null>(null);
 
+  // ── Tier options (inside component so t() is in scope) ─────────────────────
+  const VERIFY_TIERS: { value: VerificationLevel; label: string; desc: string; icon: React.ElementType; color: string }[] = [
+    { value: "basic",    label: t("admin.tier_basic_label"),    desc: t("admin.tier_basic_desc"),    icon: Shield,      color: "text-blue-600" },
+    { value: "verified", label: t("admin.tier_id_label"),       desc: t("admin.tier_id_desc"),       icon: ShieldCheck, color: "text-emerald-600" },
+    { value: "business", label: t("admin.tier_business_label"), desc: t("admin.tier_business_desc"), icon: Award,       color: "text-violet-600" },
+  ];
+
+  // ── Filter options (inside component so t() is in scope) ───────────────────
+  const FILTER_OPTIONS = [
+    { value: "all",        label: t("admin.filter_all_sellers") },
+    { value: "verified",   label: t("admin.filter_verified") },
+    { value: "unverified", label: t("admin.filter_unverified") },
+    { value: "basic",      label: t("admin.filter_basic") },
+    { value: "id_verified",label: t("admin.filter_id_verified") },
+    { value: "business",   label: t("admin.filter_business") },
+  ];
+
+  // ── Data ───────────────────────────────────────────────────────────────────
   const { data: sellers = [], isLoading, refetch } = useQuery<SellerVerificationRow[]>({
     queryKey: ["admin-verification-list"],
     queryFn: async () => {
@@ -78,6 +80,7 @@ export default function AdminVerificationPage() {
     enabled: !!token,
   });
 
+  // ── Mutations ──────────────────────────────────────────────────────────────
   const verifyMutation = useMutation({
     mutationFn: async ({ id, level }: { id: number; level: VerificationLevel }) => {
       const res = await fetch(`/api/admin/sellers/${id}/verification`, {
@@ -89,11 +92,11 @@ export default function AdminVerificationPage() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Seller verified" });
+      toast({ title: t("admin.toast_seller_verified") });
       setVerifyTarget(null);
       queryClient.invalidateQueries({ queryKey: ["admin-verification-list"] });
     },
-    onError: () => toast({ title: "Failed to verify", variant: "destructive" }),
+    onError: () => toast({ title: t("admin.toast_verify_failed"), variant: "destructive" }),
   });
 
   const unverifyMutation = useMutation({
@@ -107,11 +110,11 @@ export default function AdminVerificationPage() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Verification removed" });
+      toast({ title: t("admin.toast_unverified") });
       setUnverifyTarget(null);
       queryClient.invalidateQueries({ queryKey: ["admin-verification-list"] });
     },
-    onError: () => toast({ title: "Failed to remove verification", variant: "destructive" }),
+    onError: () => toast({ title: t("admin.toast_unverify_failed"), variant: "destructive" }),
   });
 
   const recomputeMutation = useMutation({
@@ -124,13 +127,14 @@ export default function AdminVerificationPage() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast({ title: `Trust score updated: ${data.trustScore}/100` });
+      toast({ title: t("admin.toast_trust_updated", { score: data.trustScore }) });
       setRecomputeId(null);
       queryClient.invalidateQueries({ queryKey: ["admin-verification-list"] });
     },
-    onError: () => toast({ title: "Failed to recompute trust score", variant: "destructive" }),
+    onError: () => toast({ title: t("admin.toast_recompute_failed"), variant: "destructive" }),
   });
 
+  // ── Filtering ──────────────────────────────────────────────────────────────
   const filtered = sellers.filter((s) => {
     const matchesSearch =
       !search ||
@@ -140,11 +144,11 @@ export default function AdminVerificationPage() {
 
     const matchesFilter =
       filter === "all" ||
-      (filter === "verified" && s.isVerified) ||
+      (filter === "verified"   && s.isVerified) ||
       (filter === "unverified" && !s.isVerified) ||
-      (filter === "basic" && s.verificationLevel === "basic") ||
-      (filter === "id_verified" && s.verificationLevel === "verified") ||
-      (filter === "business" && s.verificationLevel === "business");
+      (filter === "basic"      && s.verificationLevel === "basic") ||
+      (filter === "id_verified"&& s.verificationLevel === "verified") ||
+      (filter === "business"   && s.verificationLevel === "business");
 
     return matchesSearch && matchesFilter;
   });
@@ -152,6 +156,14 @@ export default function AdminVerificationPage() {
   const verifiedCount   = sellers.filter((s) => s.isVerified).length;
   const unverifiedCount = sellers.filter((s) => !s.isVerified).length;
   const businessCount   = sellers.filter((s) => s.verificationLevel === "business").length;
+
+  // ── Stats (inside render so t() works) ────────────────────────────────────
+  const STATS = [
+    { label: t("admin.stat_total_sellers"), value: sellers.length,  color: "text-foreground" },
+    { label: t("admin.stat_verified"),       value: verifiedCount,   color: "text-emerald-600" },
+    { label: t("admin.stat_unverified"),     value: unverifiedCount, color: "text-amber-600" },
+    { label: t("admin.stat_business_tier"),  value: businessCount,   color: "text-violet-600" },
+  ];
 
   return (
     <AdminLayout>
@@ -161,28 +173,23 @@ export default function AdminVerificationPage() {
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pt-2">
           <div className="space-y-1.5">
             <h1 className="text-3xl font-black tracking-tight text-foreground leading-tight">
-              {t("admin.verification_title", "Seller Verification")}
+              {t("admin.verification_title")}
             </h1>
             <p className="text-base text-muted-foreground leading-relaxed max-w-lg">
-              {t("admin.verification_desc", "Manage seller verification tiers and trust scores.")}
+              {t("admin.verification_desc")}
             </p>
           </div>
           <div className="shrink-0 pt-1">
             <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2 h-9 px-4">
               <RefreshCw className="h-3.5 w-3.5" />
-              {t("admin.refresh", "Refresh")}
+              {t("admin.refresh")}
             </Button>
           </div>
         </div>
 
         {/* ── Stats ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: "Total sellers",  value: sellers.length,  color: "text-foreground" },
-            { label: "Verified",       value: verifiedCount,   color: "text-emerald-600" },
-            { label: "Unverified",     value: unverifiedCount, color: "text-amber-600" },
-            { label: "Business tier",  value: businessCount,   color: "text-violet-600" },
-          ].map(({ label, value, color }) => (
+          {STATS.map(({ label, value, color }) => (
             <div
               key={label}
               className="bg-card border border-border/70 rounded-2xl p-5 shadow-sm flex flex-col gap-2"
@@ -202,7 +209,7 @@ export default function AdminVerificationPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("admin.search_sellers", "Search sellers...")}
+              placeholder={t("admin.search_sellers")}
               className="ps-10 h-10"
             />
           </div>
@@ -232,7 +239,7 @@ export default function AdminVerificationPage() {
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
               <Store className="h-10 w-10 opacity-25" />
-              <p className="text-sm font-medium">{t("admin.no_sellers_found", "No sellers found")}</p>
+              <p className="text-sm font-medium">{t("admin.no_sellers_found")}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -240,19 +247,19 @@ export default function AdminVerificationPage() {
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
                     <th className="text-start px-6 py-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                      {t("admin.col_seller", "Seller")}
+                      {t("admin.col_seller")}
                     </th>
                     <th className="text-start px-6 py-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                      {t("admin.col_verification", "Verification")}
+                      {t("admin.col_verification")}
                     </th>
                     <th className="text-start px-6 py-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                      {t("trust.trust_score", "Trust Score")}
+                      {t("trust.trust_score")}
                     </th>
                     <th className="text-start px-6 py-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                      {t("admin.col_verified_at", "Verified At")}
+                      {t("admin.col_verified_at")}
                     </th>
                     <th className="text-end px-6 py-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                      {t("admin.col_actions", "Actions")}
+                      {t("admin.col_actions")}
                     </th>
                   </tr>
                 </thead>
@@ -274,7 +281,7 @@ export default function AdminVerificationPage() {
                             </div>
                             <div className="space-y-0.5">
                               <p className="font-semibold text-foreground leading-snug">{seller.name}</p>
-                              <p className="text-xs text-muted-foreground">{seller.email}</p>
+                              <p className="text-xs text-muted-foreground" translate="no">{seller.email}</p>
                               {seller.storeName && (
                                 <p className="text-xs text-muted-foreground/70">{seller.storeName}</p>
                               )}
@@ -288,7 +295,7 @@ export default function AdminVerificationPage() {
                             <SellerTrustBadge level={level} isVerified={seller.isVerified} size="sm" />
                           ) : (
                             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                              {t("admin.unverified", "Unverified")}
+                              {t("admin.unverified")}
                             </span>
                           )}
                         </td>
@@ -306,7 +313,7 @@ export default function AdminVerificationPage() {
 
                         {/* Verified at */}
                         <td className="px-6 py-4">
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-sm text-muted-foreground" translate="no">
                             {seller.verifiedAt
                               ? format(new Date(seller.verifiedAt), "dd MMM yyyy")
                               : "—"}
@@ -325,7 +332,7 @@ export default function AdminVerificationPage() {
                                 recomputeMutation.mutate(seller.userId);
                               }}
                               disabled={recomputeMutation.isPending}
-                              title="Recompute trust score"
+                              title={t("admin.tooltip_recompute")}
                             >
                               <RefreshCw className="h-3.5 w-3.5" />
                             </Button>
@@ -335,7 +342,7 @@ export default function AdminVerificationPage() {
                                 size="sm"
                                 className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                                 onClick={() => setUnverifyTarget(seller)}
-                                title="Remove verification"
+                                title={t("admin.tooltip_remove_verif")}
                               >
                                 <ShieldX className="h-3.5 w-3.5" />
                               </Button>
@@ -347,7 +354,7 @@ export default function AdminVerificationPage() {
                               onClick={() => { setVerifyTarget(seller); setVerifyLevel("basic"); }}
                             >
                               <ShieldCheck className="h-3.5 w-3.5" />
-                              {seller.isVerified ? t("admin.change_tier", "Change") : t("admin.verify_action", "Verify")}
+                              {seller.isVerified ? t("admin.change_tier") : t("admin.verify_action")}
                             </Button>
                           </div>
                         </td>
@@ -366,10 +373,10 @@ export default function AdminVerificationPage() {
         <DialogContent className="sm:max-w-md rounded-2xl" aria-describedby={undefined}>
           <DialogHeader className="space-y-2 pb-2">
             <DialogTitle className="text-xl font-bold">
-              {t("admin.verify_user_title", "Verify Seller")}
+              {t("admin.verify_user_title")}
             </DialogTitle>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {t("admin.verify_user_desc_name", "Select verification tier for {{name}}:", { name: verifyTarget?.name })}
+              {t("admin.verify_user_desc_name", { name: verifyTarget?.name })}
             </p>
           </DialogHeader>
 
@@ -403,13 +410,13 @@ export default function AdminVerificationPage() {
 
           <DialogFooter className="gap-2 pt-2">
             <Button variant="outline" onClick={() => setVerifyTarget(null)}>
-              {t("admin.cancel", "Cancel")}
+              {t("admin.cancel")}
             </Button>
             <Button
               onClick={() => verifyTarget && verifyMutation.mutate({ id: verifyTarget.userId, level: verifyLevel })}
               disabled={verifyMutation.isPending}
             >
-              {verifyMutation.isPending ? t("admin.saving", "Saving…") : t("admin.verify_action", "Verify")}
+              {verifyMutation.isPending ? t("admin.saving") : t("admin.verify_action")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -420,23 +427,19 @@ export default function AdminVerificationPage() {
         <AlertDialogContent className="rounded-2xl sm:max-w-md">
           <AlertDialogHeader className="space-y-2">
             <AlertDialogTitle className="text-xl font-bold">
-              {t("admin.unverify_confirm_title", "Remove Verification")}
+              {t("admin.unverify_confirm_title")}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm leading-relaxed">
-              {t(
-                "admin.unverify_confirm_desc",
-                "This will remove all verification from {{name}} and recompute their trust score.",
-                { name: unverifyTarget?.name }
-              )}
+              {t("admin.unverify_confirm_desc", { name: unverifyTarget?.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 pt-2">
-            <AlertDialogCancel>{t("admin.cancel", "Cancel")}</AlertDialogCancel>
+            <AlertDialogCancel>{t("admin.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
               onClick={() => unverifyTarget && unverifyMutation.mutate(unverifyTarget.userId)}
             >
-              {t("admin.remove_verification", "Remove")}
+              {t("admin.remove_verification")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
