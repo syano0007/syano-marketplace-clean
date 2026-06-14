@@ -241,7 +241,7 @@ export default function Products() {
 
   return (
     <Layout>
-      <div className="container py-5 md:py-8 space-y-0">
+      <div className="w-full max-w-[80rem] mx-auto px-4 sm:px-6 lg:px-8 py-5 md:py-8 space-y-0">
 
         <div className="mb-5">
           <h1 className="heading-section">{t("products.title")}</h1>
