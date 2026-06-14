@@ -177,7 +177,7 @@
 
   /* ── Light Theme: image brightness — near-full brightness, image-first ── */
   --img-dim-hero:     0.97;
-  --img-dim-category: 0.93;
+  --img-dim-category: 0.97;
   --img-dim-product:  1.0;
   --img-dim-store:    0.95;
   --img-dim-arrival:  0.95;
@@ -255,7 +255,7 @@
 
   /* ── Dark Theme: image brightness (heavier overlays for drama) ───── */
   --img-dim-hero:     0.60;
-  --img-dim-category: 0.45;
+  --img-dim-category: 0.72;
   --img-dim-product:  0.88;
   --img-dim-store:    0.50;
   --img-dim-arrival:  0.55;
@@ -952,8 +952,8 @@
 }
 .dark .sy-overlay-category {
   background: linear-gradient(to top,
-    rgba(0,0,0,0.92) 0%,
-    rgba(0,0,0,0.32) 55%,
+    rgba(0,0,0,0.68) 0%,
+    rgba(0,0,0,0.18) 55%,
     transparent 100%);
 }
 

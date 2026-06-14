@@ -4,14 +4,14 @@ import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 
 const categoryDefs = [
-  { nameKey: "home.categories.electronics", countKey: "home.categories.count_electronics", img: "https://images.unsplash.com/photo-1684395882817-030e24c0322a?w=500&h=360&fit=crop&auto=format&q=80", color: "#3b82f6", slug: "Electronics" },
-  { nameKey: "home.categories.fashion", countKey: "home.categories.count_fashion", img: "https://images.unsplash.com/photo-1704775986112-281c826c3ebd?w=500&h=360&fit=crop&auto=format&q=80", color: "#ec4899", slug: "Fashion" },
-  { nameKey: "home.categories.beauty", countKey: "home.categories.count_beauty", img: "https://images.unsplash.com/photo-1760860992203-85ca32536788?w=500&h=360&fit=crop&auto=format&q=80", color: "#f59e0b", slug: "Beauty & Personal Care" },
-  { nameKey: "home.categories.home_decor", countKey: "home.categories.count_home_decor", img: "https://images.unsplash.com/photo-1724582586529-62622e50c0b3?w=500&h=360&fit=crop&auto=format&q=80", color: "#8b5cf6", slug: "Home & Kitchen" },
-  { nameKey: "home.categories.sports", countKey: "home.categories.count_sports", img: "https://images.unsplash.com/photo-1656164753657-8ff832063a71?w=500&h=360&fit=crop&auto=format&q=80", color: "#10b981", slug: "Sports & Fitness" },
-  { nameKey: "home.categories.watches", countKey: "home.categories.count_watches", img: "https://images.unsplash.com/photo-1772949399808-7020b02896b9?w=500&h=360&fit=crop&auto=format&q=80", color: "#f97316", slug: "Accessories" },
-  { nameKey: "home.categories.phones", countKey: "home.categories.count_phones", img: "https://images.unsplash.com/photo-1625780289233-321883d99ac1?w=500&h=360&fit=crop&auto=format&q=80", color: "#06b6d4", slug: "Electronics" },
-  { nameKey: "home.categories.computers", countKey: "home.categories.count_computers", img: "https://images.unsplash.com/photo-1587318684001-b29074817e81?w=500&h=360&fit=crop&auto=format&q=80", color: "#a855f7", slug: "Electronics" },
+  { nameKey: "home.categories.electronics", countKey: "home.categories.count_electronics", img: "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=500&h=360&fit=crop&auto=format&q=85", color: "#3b82f6", slug: "Electronics" },
+  { nameKey: "home.categories.fashion",     countKey: "home.categories.count_fashion",     img: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=500&h=360&fit=crop&auto=format&q=85", color: "#ec4899", slug: "Fashion" },
+  { nameKey: "home.categories.beauty",      countKey: "home.categories.count_beauty",      img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&h=360&fit=crop&auto=format&q=85", color: "#f59e0b", slug: "Beauty & Personal Care" },
+  { nameKey: "home.categories.home_decor",  countKey: "home.categories.count_home_decor",  img: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&h=360&fit=crop&auto=format&q=85", color: "#8b5cf6", slug: "Home & Kitchen" },
+  { nameKey: "home.categories.sports",      countKey: "home.categories.count_sports",      img: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=500&h=360&fit=crop&auto=format&q=85", color: "#10b981", slug: "Sports & Fitness" },
+  { nameKey: "home.categories.watches",     countKey: "home.categories.count_watches",     img: "https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=500&h=360&fit=crop&auto=format&q=85", color: "#f97316", slug: "Accessories" },
+  { nameKey: "home.categories.phones",      countKey: "home.categories.count_phones",      img: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&h=360&fit=crop&auto=format&q=85", color: "#06b6d4", slug: "Electronics" },
+  { nameKey: "home.categories.computers",   countKey: "home.categories.count_computers",   img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&h=360&fit=crop&auto=format&q=85", color: "#a855f7", slug: "Electronics" },
 ];
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
