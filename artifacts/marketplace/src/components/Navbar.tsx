@@ -101,9 +101,11 @@ export function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const debouncedSearch = useDebounce(searchQuery, 300);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const debouncedSearch = useDebounce(searchQuery, 200);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const flatItemsRef = useRef<Array<{ id: string; action: () => void }>>([]);
 
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem("syano_recent_searches") || "[]"); } catch { return []; }
@@ -155,6 +157,35 @@ export function Navbar() {
     });
   }, []);
 
+  // Reset highlight when query changes
+  useEffect(() => { setHighlightedIndex(-1); }, [debouncedSearch]);
+
+  // Scroll highlighted item into view
+  useEffect(() => {
+    if (highlightedIndex >= 0) {
+      const id = flatItemsRef.current[highlightedIndex]?.id;
+      if (id) document.getElementById(id)?.scrollIntoView({ block: "nearest" });
+    }
+  }, [highlightedIndex]);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      setSearchOpen(false); setSearchQuery(""); setHighlightedIndex(-1); return;
+    }
+    const items = flatItemsRef.current;
+    if (!searchOpen || items.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex(prev => Math.min(prev + 1, items.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex(prev => Math.max(prev - 1, -1));
+    } else if (e.key === "Enter" && highlightedIndex >= 0 && items[highlightedIndex]) {
+      e.preventDefault();
+      items[highlightedIndex].action();
+    }
+  }, [searchOpen, highlightedIndex]);
+
   const { data: cart } = useGetCart({ query: { queryKey: getGetCartQueryKey(), enabled: isCustomer } });
   const cartItemCount = cart?.itemCount || 0;
   const { guestTotal } = useGuestCart();
@@ -182,6 +213,46 @@ export function Navbar() {
     setSearchOpen(false);
     setSearchQuery("");
   }, [navigate, saveRecentSearch]);
+
+  // Sync navigable items to ref whenever suggestions / query / dropdown state changes
+  useEffect(() => {
+    if (!searchOpen) { flatItemsRef.current = []; return; }
+    if (debouncedSearch.length < 2) {
+      flatItemsRef.current = recentSearches.map((s, i) => ({
+        id: `nav-opt-${i}`,
+        action: () => { setSearchQuery(s); },
+      }));
+      return;
+    }
+    const suggs = (suggestions.suggestions ?? []).slice(0, 6);
+    const strs  = (suggestions.stores  ?? []).slice(0, 3);
+    const items: Array<{ id: string; action: () => void }> = [];
+    suggs.forEach((s, i) => {
+      const text = isRtl && s.textAr ? s.textAr : s.text;
+      items.push({ id: `nav-opt-${i}`, action: () => handleSuggestionTextClick(text) });
+    });
+    strs.forEach((s, i) => {
+      items.push({
+        id: `nav-opt-${suggs.length + i}`,
+        action: () => {
+          trackSearchClick(s.storeName, "store");
+          navigate(s.storeSlug ? `/store/${s.storeSlug}` : `/shop?sellerId=${s.userId}`);
+          setSearchOpen(false); setSearchQuery("");
+        },
+      });
+    });
+    items.push({
+      id: `nav-opt-${suggs.length + strs.length}`,
+      action: () => {
+        if (debouncedSearch.trim()) {
+          saveRecentSearch(debouncedSearch.trim());
+          navigate(`/shop?q=${encodeURIComponent(debouncedSearch.trim())}`);
+          setSearchOpen(false); setSearchQuery("");
+        }
+      },
+    });
+    flatItemsRef.current = items;
+  }, [searchOpen, debouncedSearch, suggestions, recentSearches, isRtl, handleSuggestionTextClick, navigate, saveRecentSearch]);
 
   const AUTH_PATHS = ["/login", "/register"];
   const isAuthPage = AUTH_PATHS.includes(location);
@@ -241,6 +312,10 @@ export function Navbar() {
       { href: "/sellers/directory", label: "Stores" },
       { href: "/shop?hasDiscount=true", label: "Deals" },
     ];
+
+  // Slice helpers so index math is consistent between render & keyboard nav ref
+  const _navSuggsSlice = (suggestions.suggestions ?? []).slice(0, 6);
+  const _navStrsSlice  = (suggestions.stores  ?? []).slice(0, 3);
 
   return (
     <header
@@ -430,7 +505,13 @@ export function Navbar() {
                       value={searchQuery}
                       onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true); }}
                       onFocus={() => setSearchOpen(true)}
+                      onKeyDown={handleSearchKeyDown}
                       placeholder={isRtl ? "ابحث عن منتجات..." : "Search products..."}
+                      role="combobox"
+                      aria-expanded={searchOpen}
+                      aria-autocomplete="list"
+                      aria-controls="nav-search-listbox"
+                      aria-activedescendant={highlightedIndex >= 0 ? (flatItemsRef.current[highlightedIndex]?.id ?? undefined) : undefined}
                       style={{ fontFamily: "'Cairo', sans-serif", fontSize: "0.8125rem", background: "transparent", outline: "none", border: "none", color: navInputColor, flex: 1, minWidth: 0 }}
                     />
                     {searchQuery && (
@@ -442,12 +523,16 @@ export function Navbar() {
                 </form>
 
                 {searchOpen && (debouncedSearch.length >= 2 || recentSearches.length > 0 || trendingSearches.length > 0) && (
-                  <div className={`absolute top-full mt-2 left-0 right-0 ${navDropBg} rounded-2xl shadow-2xl z-50 overflow-hidden`} style={{ minWidth: "22rem", width: "max-content", maxWidth: "28rem" }}>
+                  <div id="nav-search-listbox" role="listbox" className={`absolute top-full mt-2 left-0 right-0 ${navDropBg} rounded-2xl shadow-2xl z-50 overflow-hidden`} style={{ minWidth: "22rem", width: "max-content", maxWidth: "28rem" }}>
                     {debouncedSearch.length >= 2 ? (
                       searchLoading ? (
-                        <div className={`p-4 text-sm ${navDropMeta} text-center flex items-center justify-center gap-2`}>
-                          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-                          {isRtl ? "جاري البحث..." : "Searching..."}
+                        <div className="py-2">
+                          {[0, 1, 2].map(i => (
+                            <div key={i} className="flex items-center gap-3 px-3.5 py-2.5 animate-pulse">
+                              <div className={`h-3.5 w-3.5 rounded-full shrink-0 ${isDark ? "bg-white/[0.08]" : "bg-foreground/[0.08]"}`} />
+                              <div className={`h-3 rounded ${isDark ? "bg-white/[0.08]" : "bg-foreground/[0.08]"}`} style={{ width: `${50 + i * 18}%` }} />
+                            </div>
+                          ))}
                         </div>
                       ) : (suggestions.suggestions?.length ?? 0) === 0 && (suggestions.stores?.length ?? 0) === 0 && (suggestions.categories?.length ?? 0) === 0 ? (
                         <div className={`p-4 text-sm ${navDropMeta} text-center`}>{isRtl ? "لا توجد نتائج" : "No results found"}</div>
@@ -455,14 +540,28 @@ export function Navbar() {
                         <div className="py-1 max-h-[22rem] overflow-y-auto">
 
                           {/* ── Suggested searches ── */}
-                          {(suggestions.suggestions?.length ?? 0) > 0 && (suggestions.suggestions ?? []).slice(0, 6).map((s, i) => {
+                          {(suggestions.suggestions?.length ?? 0) > 0 && _navSuggsSlice.map((s, i) => {
                             const displayText = isRtl && s.textAr ? s.textAr : s.text;
+                            const isHl = highlightedIndex === i;
+                            const itemId = flatItemsRef.current[i]?.id ?? `nav-opt-${i}`;
                             return (
-                              <button key={i} onClick={() => handleSuggestionTextClick(displayText)}
-                                className={`w-full flex items-center gap-3 px-3.5 py-2.5 ${navHoverBg} transition-colors`}
+                              <button key={i}
+                                id={itemId}
+                                role="option"
+                                aria-selected={isHl}
+                                onClick={() => handleSuggestionTextClick(displayText)}
+                                className={`w-full flex items-center gap-3 px-3.5 py-2.5 transition-colors ${isHl ? (isDark ? "bg-white/[0.08]" : "bg-foreground/[0.07]") : navHoverBg}`}
                                 style={{ textAlign: isRtl ? "right" : "left" }}>
-                                <Search className={`h-3.5 w-3.5 ${navDropMeta} shrink-0`} />
+                                <Search className={`h-3.5 w-3.5 ${s.type === "intent" ? "text-amber-400/70" : navDropMeta} shrink-0`} />
                                 <span style={{ fontSize: "0.8125rem" }} className={`${navDropText} truncate flex-1`}>{displayText}</span>
+                                {s.type === "intent" && (
+                                  <span style={{ fontSize: "9px", fontWeight: 700 }} className="shrink-0 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 uppercase">
+                                    {s.meta === "price_asc" ? (isRtl ? "أرخص" : "price") : isRtl ? "الأفضل" : "top"}
+                                  </span>
+                                )}
+                                {s.type !== "intent" && s.meta && (
+                                  <span style={{ fontSize: "10px" }} className={`shrink-0 ${navDropMeta}`}>{s.meta}</span>
+                                )}
                               </button>
                             );
                           })}
@@ -498,10 +597,17 @@ export function Navbar() {
                                   {isRtl ? "متاجر" : "Stores"}
                                 </span>
                               </div>
-                              {(suggestions.stores ?? []).slice(0, 3).map(s => (
+                              {_navStrsSlice.map((s, i) => {
+                                const sIdx = _navSuggsSlice.length + i;
+                                const isHl = highlightedIndex === sIdx;
+                                const itemId = flatItemsRef.current[sIdx]?.id ?? `nav-opt-${sIdx}`;
+                                return (
                                 <button key={s.userId}
+                                  id={itemId}
+                                  role="option"
+                                  aria-selected={isHl}
                                   onClick={() => { trackSearchClick(s.storeName, "store"); navigate(s.storeSlug ? `/store/${s.storeSlug}` : `/shop?sellerId=${s.userId}`); setSearchOpen(false); setSearchQuery(""); }}
-                                  className={`w-full flex items-center gap-3 px-3.5 py-2 ${navHoverBg} transition-colors`}
+                                  className={`w-full flex items-center gap-3 px-3.5 py-2 transition-colors ${isHl ? (isDark ? "bg-white/[0.08]" : "bg-foreground/[0.07]") : navHoverBg}`}
                                   style={{ textAlign: isRtl ? "right" : "left" }}>
                                   {s.storeLogo
                                     ? <img src={s.storeLogo} alt="" className={`h-7 w-7 rounded-lg object-cover border ${navBorder} shrink-0`} />
@@ -513,16 +619,28 @@ export function Navbar() {
                                   </div>
                                   <span style={{ fontSize: "10px" }} className={`${navDropMeta} uppercase font-semibold shrink-0`}>{isRtl ? "متجر" : "Store"}</span>
                                 </button>
-                              ))}
+                                );
+                              })}
                             </>
                           )}
 
                           {/* ── See all results ── */}
-                          <button onClick={handleSearchSubmit as any}
-                            className={`w-full px-3.5 py-2.5 text-sm text-emerald-400 font-semibold ${navHoverBg} transition-colors border-t ${navBorder} flex items-center gap-2`}>
-                            <Search className="h-3.5 w-3.5" />
-                            {isRtl ? `عرض جميع النتائج لـ "${debouncedSearch}"` : `See all results for "${debouncedSearch}"`}
-                          </button>
+                          {(() => {
+                            const seeAllIdx = _navSuggsSlice.length + _navStrsSlice.length;
+                            const isHl = highlightedIndex === seeAllIdx;
+                            const itemId = flatItemsRef.current[seeAllIdx]?.id ?? `nav-opt-${seeAllIdx}`;
+                            return (
+                              <button
+                                id={itemId}
+                                role="option"
+                                aria-selected={isHl}
+                                onClick={handleSearchSubmit as any}
+                                className={`w-full px-3.5 py-2.5 text-sm text-emerald-400 font-semibold transition-colors border-t ${navBorder} flex items-center gap-2 ${isHl ? (isDark ? "bg-white/[0.08]" : "bg-foreground/[0.07]") : navHoverBg}`}>
+                                <Search className="h-3.5 w-3.5" />
+                                {isRtl ? `عرض جميع النتائج لـ "${debouncedSearch}"` : `See all results for "${debouncedSearch}"`}
+                              </button>
+                            );
+                          })()}
                         </div>
                       )
                     ) : (

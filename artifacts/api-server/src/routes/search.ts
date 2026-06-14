@@ -336,10 +336,26 @@ router.get("/search", async (req, res): Promise<void> => {
 /* ═══════════════════════════════════════════════════════════════════════════
    ROUTE 2 — GET /api/search/suggestions
    ═══════════════════════════════════════════════════════════════════════════
-   Text-intent phrases only. Response: { suggestions[], categories[], stores[], trending[] }
+   Step 4 — Autocomplete Engine.
+   Returns: { suggestions[], categories[], stores[], trending[], processingTimeMs }
+   Suggestion items carry optional `type` ('intent'|'product'|'subcategory')
+   and `meta` (e.g. "price_asc", "rating", product count hint).
    ─────────────────────────────────────────────────────────────────────── */
+
+/** Fire-and-forget: log query to `query_logs` for autocomplete analytics */
+function logToQueryLogs(rawTerm: string, lang: string): void {
+  const q = rawTerm.trim().slice(0, 120);
+  if (q.length < 2) return;
+  pool.query(
+    `INSERT INTO query_logs (query, lang) VALUES ($1, $2)`,
+    [q, lang === "en" ? "en" : "ar"],
+  ).catch(() => {});
+}
+
 router.get("/search/suggestions", async (req, res): Promise<void> => {
-  const raw = String(req.query.q ?? "").trim();
+  const t0   = Date.now();
+  const raw  = String(req.query.q ?? "").trim();
+  const lang = String(req.query.lang ?? "ar");
   const term = normalizeArabic(raw);
   const likePattern = `%${term}%`;
 
@@ -350,12 +366,16 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
   if (raw.length < 2) {
     const trending = await trendingPromise;
     res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
-    res.json({ suggestions: [], categories: [], stores: [], trending: trending.rows });
+    res.json({ suggestions: [], categories: [], stores: [], trending: trending.rows, processingTimeMs: Date.now() - t0 });
     return;
   }
 
   const intent = parseIntent(raw);
   const expandedLike = `%${normalizeArabic(intent.expandedQuery)}%`;
+
+  // Fire-and-forget: log to both analytics tables
+  trackQuery(raw);
+  logToQueryLogs(raw, lang);
 
   const [productNamesRes, storesRes, trendingRes] = await Promise.all([
     pool.query<{ name: string; name_ar: string | null; category: string; subcategory: string | null }>(
@@ -387,31 +407,46 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
   ]);
 
   const seen = new Set<string>();
-  const suggestions: { text: string; textAr: string | null }[] = [];
+  const suggestions: { text: string; textAr: string | null; type?: string; meta?: string }[] = [];
 
-  function addSuggestion(text: string, textAr: string | null) {
+  function addSuggestion(text: string, textAr: string | null, type?: string, meta?: string) {
     if (suggestions.length >= 7) return;
-    const key = normalizeArabic(textAr ?? text).slice(0, 50);
+    const key    = normalizeArabic(textAr ?? text).slice(0, 50);
     const engKey = text.toLowerCase().slice(0, 50);
     if (seen.has(key) || seen.has(engKey)) return;
     seen.add(key); seen.add(engKey);
-    suggestions.push({ text, textAr });
+    suggestions.push({ text, textAr, type, meta });
   }
 
+  /* ── Intent suggestions (cheap / premium modifiers) ─────────────────── */
+  if (intent.modifiers.includes("cheap")) {
+    const catAr = intent.mappedCategory ? (CATEGORY_LABELS[intent.mappedCategory]?.ar ?? intent.mappedCategory) : "المنتجات";
+    const catEn = intent.mappedCategory ? (CATEGORY_LABELS[intent.mappedCategory]?.en ?? intent.mappedCategory) : "products";
+    addSuggestion(`cheapest ${catEn}`, `أرخص ${catAr} سعراً`, "intent", "price_asc");
+  }
+  if (intent.modifiers.includes("premium")) {
+    const catAr = intent.mappedCategory ? (CATEGORY_LABELS[intent.mappedCategory]?.ar ?? intent.mappedCategory) : "المنتجات";
+    const catEn = intent.mappedCategory ? (CATEGORY_LABELS[intent.mappedCategory]?.en ?? intent.mappedCategory) : "products";
+    addSuggestion(`top rated ${catEn}`, `أفضل ${catAr} جودةً`, "intent", "rating");
+  }
+
+  /* ── Dialect-expanded keyword suggestions ───────────────────────────── */
   if (intent.expandedTerms.length > 0) {
-    for (const kw of intent.expandedTerms.slice(0, 3)) addSuggestion(kw, null);
+    for (const kw of intent.expandedTerms.slice(0, 3)) addSuggestion(kw, null, "product");
   }
 
+  /* ── Product name matches ───────────────────────────────────────────── */
   for (const row of productNamesRes.rows) {
     const arName = row.name_ar ?? null;
     const enName = row.name;
     if (arName) {
       const normAr = normalizeArabic(arName);
-      if (normAr.includes(term)) { addSuggestion(enName, arName); continue; }
+      if (normAr.includes(term)) { addSuggestion(enName, arName, "product"); continue; }
     }
-    if (enName.toLowerCase().includes(raw.toLowerCase())) addSuggestion(enName, arName);
+    if (enName.toLowerCase().includes(raw.toLowerCase())) addSuggestion(enName, arName, "product");
   }
 
+  /* ── Subcategory fallback with product count hint ───────────────────── */
   if (suggestions.length < 5) {
     const subcatCounts: Record<string, number> = {};
     for (const row of productNamesRes.rows) {
@@ -420,10 +455,15 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
     Object.entries(subcatCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-      .forEach(([sc]) => addSuggestion(`${raw} ${sc}`, null));
+      .forEach(([sc, cnt]) => addSuggestion(
+        `${raw} ${sc}`,
+        null,
+        "subcategory",
+        `${cnt} ${cnt === 1 ? "product" : "products"}`,
+      ));
   }
 
-  const normRaw = normalizeArabic(raw);
+  const normRaw    = normalizeArabic(raw);
   const priorityCat = intent.mappedCategory;
   const categories = [
     ...MAIN_CATEGORY_SLUGS.filter(s => s === priorityCat),
@@ -441,15 +481,15 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
     }));
 
   const stores = storesRes.rows.map(r => ({
-    userId: r.user_id,
+    userId:    r.user_id,
     storeName: r.store_name ?? "",
     storeSlug: r.store_slug ?? null,
     storeLogo: r.store_logo ?? null,
-    city: r.city ?? null,
+    city:      r.city ?? null,
   }));
 
   res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=15");
-  res.json({ suggestions, categories, stores, trending: trendingRes.rows });
+  res.json({ suggestions, categories, stores, trending: trendingRes.rows, processingTimeMs: Date.now() - t0 });
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════

@@ -25,6 +25,10 @@ export interface SearchProduct {
 export interface SuggestionItem {
   text: string;
   textAr: string | null;
+  /** 'intent' = smart modifier suggestion (cheap/premium), 'product' = name match, 'subcategory' = drill-down */
+  type?: "intent" | "product" | "subcategory";
+  /** For intent: 'price_asc'|'rating'; for subcategory: product count hint */
+  meta?: string;
 }
 
 /** A category with bilingual labels. */
@@ -53,6 +57,8 @@ export interface SuggestionResult {
   categories: CategoryItem[];
   stores: SuggestionStore[];
   trending: TrendingQuery[];
+  /** Server-side processing time in milliseconds (Step 4 telemetry) */
+  processingTimeMs?: number;
 }
 
 const EMPTY_SUGGESTIONS: SuggestionResult = {
@@ -152,9 +158,10 @@ export function useSearchSuggestions(rawQuery: string) {
   const dq = rawQuery.trim();
   const { data, isFetching } = useQuery<SuggestionResult>({
     queryKey: ["search/suggestions/v2", dq],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(dq)}`, {
         credentials: "include",
+        signal,
       });
       if (!res.ok) return EMPTY_SUGGESTIONS;
       return res.json() as Promise<SuggestionResult>;

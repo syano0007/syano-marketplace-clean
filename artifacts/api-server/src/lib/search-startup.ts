@@ -134,6 +134,22 @@ export async function runSearchStartup(): Promise<void> {
     `);
 
     logger.info("Search startup: search_queries table ready");
+
+    /* ── Phase 3: query_logs table (Step 4 — typed autocomplete analytics) ── */
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS query_logs (
+        id           SERIAL PRIMARY KEY,
+        query        TEXT NOT NULL,
+        lang         VARCHAR(2) DEFAULT 'ar',
+        result_count INTEGER,
+        clicked      BOOLEAN DEFAULT false,
+        created_at   TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS query_logs_created_idx ON query_logs (created_at DESC);
+      CREATE INDEX IF NOT EXISTS query_logs_query_idx   ON query_logs (query);
+    `);
+
+    logger.info("Search startup phase 3 complete: query_logs table ready");
   } catch (err) {
     logger.warn({ err }, "Search startup non-fatal warning — app continues");
   } finally {
