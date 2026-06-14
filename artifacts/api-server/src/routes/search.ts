@@ -2,6 +2,7 @@
 import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
 import { MAIN_CATEGORY_SLUGS } from "../categories";
+import { processSearchQuery } from "../utils/searchProcessor";
 
 const router: IRouter = Router();
 
@@ -13,17 +14,11 @@ const router: IRouter = Router();
    ─────────────────────────────────────────────────────────────────────── */
 function normalizeArabic(text: string): string {
   return text
-    // Alef variants → bare Alef
     .replace(/[أإآ]/g, "ا")
-    // Taa Marbouta → Haa
     .replace(/ة/g, "ه")
-    // Alef Maqsoura / Yaa → Yaa
     .replace(/ى/g, "ي")
-    // Waw/Hamza, Yaa/Hamza → bare Hamza
     .replace(/[ؤئ]/g, "ء")
-    // Full diacritic range: Fatha, Damma, Kasra, Sukun, Shadda, Tanwin forms, superscript Alef
     .replace(/[\u064B-\u065F\u0670]/g, "")
-    // Collapse duplicate whitespace
     .replace(/\s+/g, " ")
     .toLowerCase()
     .trim();
@@ -111,15 +106,10 @@ type IntentModifier = keyof typeof INTENT_MODIFIERS;
    III. INTENT PARSING PIPELINE
    ═══════════════════════════════════════════════════════════════════════════ */
 interface ParsedIntent {
-  /** Active intent modifiers found in query */
   modifiers: IntentModifier[];
-  /** DB category slug mapped via dialect dictionary (null if no match) */
   mappedCategory: string | null;
-  /** All expanded keywords from dialect mapping */
   expandedTerms: string[];
-  /** Normalized base tokens (dialect words removed) */
   baseTokens: string[];
-  /** Unified expanded search string (all terms joined) */
   expandedQuery: string;
 }
 
@@ -137,7 +127,6 @@ function parseIntent(rawQuery: string): ParsedIntent {
   const expandedTerms: string[] = [];
   const dialectTokens = new Set<string>();
 
-  // Try exact token match against dialect dictionary
   for (const token of tokens) {
     const entry = SYRIAN_DIALECT_DICTIONARY[token];
     if (entry) {
@@ -147,7 +136,6 @@ function parseIntent(rawQuery: string): ParsedIntent {
     }
   }
 
-  // Also try multi-word dialect keys (e.g. "غراض بيت")
   for (const [key, entry] of Object.entries(SYRIAN_DIALECT_DICTIONARY)) {
     if (key.includes(" ") && norm.includes(normalizeArabic(key))) {
       if (!mappedCategory) mappedCategory = entry.category;
@@ -192,7 +180,6 @@ function computeFinalPrice(price: number, discountPercent: number | null): numbe
   return parseFloat((price * (1 - discountPercent / 100)).toFixed(2));
 }
 
-/** Fire-and-forget: upserts search term into search_queries analytics table */
 function trackQuery(rawTerm: string): void {
   const q = rawTerm.trim().toLowerCase().slice(0, 120);
   if (q.length < 2) return;
@@ -206,7 +193,6 @@ function trackQuery(rawTerm: string): void {
   ).catch(() => {});
 }
 
-/** Lightweight dynamic SQL parameter builder — avoids manual $N tracking */
 function makeParamBuilder() {
   const params: unknown[] = [];
   return {
@@ -216,10 +202,46 @@ function makeParamBuilder() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   VI.  NLP HELPERS — tsquery construction
+   ═══════════════════════════════════════════════════════════════════════════
+   Converts an array of NLP-pipeline tokens into a valid PostgreSQL tsquery
+   string for the 'simple' dictionary.
+
+   Rules:
+     • Strip everything except Unicode letters, digits — prevents tsquery
+       syntax injection and ensures 'simple' dictionary accepts each lexeme.
+     • Cap at 30 terms to keep query complexity bounded.
+     • Return null when the cleaned list is empty (triggers trigram-only mode).
+   ─────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Build an OR tsquery string: "term1 | term2 | term3"
+ * Used for the broad expanded-token match (any synonym fires).
+ */
+function buildOrTsQuery(tokens: readonly string[]): string | null {
+  const lexemes = tokens
+    .map(t => t.replace(/[^\p{L}\p{N}]+/gu, "").toLowerCase())
+    .filter(t => t.length > 1);
+  if (lexemes.length === 0) return null;
+  return [...new Set(lexemes)].slice(0, 30).join(" | ");
+}
+
+/**
+ * Build an AND tsquery string: "term1 & term2"
+ * Used for the precision boost — products matching ALL base tokens rank higher.
+ */
+function buildAndTsQuery(tokens: readonly string[]): string | null {
+  const lexemes = tokens
+    .map(t => t.replace(/[^\p{L}\p{N}]+/gu, "").toLowerCase())
+    .filter(t => t.length > 1);
+  if (lexemes.length === 0) return null;
+  return [...new Set(lexemes)].slice(0, 10).join(" & ");
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    ROUTE 1 — GET /api/search
    ═══════════════════════════════════════════════════════════════════════════
-   Legacy search endpoint (used by the web search results page via useSearch
-   hook). Kept for backwards compatibility; now dialect-enhanced.
+   Legacy search endpoint — dialect-enhanced LIKE + trigram scoring.
    ─────────────────────────────────────────────────────────────────────── */
 router.get("/search", async (req, res): Promise<void> => {
   const raw = String(req.query.q ?? "").trim();
@@ -314,9 +336,7 @@ router.get("/search", async (req, res): Promise<void> => {
 /* ═══════════════════════════════════════════════════════════════════════════
    ROUTE 2 — GET /api/search/suggestions
    ═══════════════════════════════════════════════════════════════════════════
-   Returns text-intent phrases ONLY — no product cards, no prices.
-   Dialect-aware: expands Syrian colloquial terms to standard keywords.
-   Response: { suggestions[], categories[], stores[], trending[] }
+   Text-intent phrases only. Response: { suggestions[], categories[], stores[], trending[] }
    ─────────────────────────────────────────────────────────────────────── */
 router.get("/search/suggestions", async (req, res): Promise<void> => {
   const raw = String(req.query.q ?? "").trim();
@@ -366,7 +386,6 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
     trendingPromise,
   ]);
 
-  /* ── Build suggestion phrases ─────────────────────────────────────────── */
   const seen = new Set<string>();
   const suggestions: { text: string; textAr: string | null }[] = [];
 
@@ -379,14 +398,10 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
     suggestions.push({ text, textAr });
   }
 
-  // 1. Dialect-expanded intent phrases (highest priority)
   if (intent.expandedTerms.length > 0) {
-    for (const kw of intent.expandedTerms.slice(0, 3)) {
-      addSuggestion(kw, null);
-    }
+    for (const kw of intent.expandedTerms.slice(0, 3)) addSuggestion(kw, null);
   }
 
-  // 2. Real product names that match
   for (const row of productNamesRes.rows) {
     const arName = row.name_ar ?? null;
     const enName = row.name;
@@ -397,7 +412,6 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
     if (enName.toLowerCase().includes(raw.toLowerCase())) addSuggestion(enName, arName);
   }
 
-  // 3. Subcategory intent expansions (fill up to 7)
   if (suggestions.length < 5) {
     const subcatCounts: Record<string, number> = {};
     for (const row of productNamesRes.rows) {
@@ -409,9 +423,7 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
       .forEach(([sc]) => addSuggestion(`${raw} ${sc}`, null));
   }
 
-  /* ── Categories ─────────────────────────────────────────────────────── */
   const normRaw = normalizeArabic(raw);
-  // Include dialect-mapped category first
   const priorityCat = intent.mappedCategory;
   const categories = [
     ...MAIN_CATEGORY_SLUGS.filter(s => s === priorityCat),
@@ -428,7 +440,6 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
       labelAr: CATEGORY_LABELS[slug]?.ar ?? slug,
     }));
 
-  /* ── Stores ─────────────────────────────────────────────────────────── */
   const stores = storesRes.rows.map(r => ({
     userId: r.user_id,
     storeName: r.store_name ?? "",
@@ -442,16 +453,44 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ROUTE 3 — GET /api/search/results
+   ROUTE 3 — GET /api/search/results  (NLP + FTS + trigram hybrid engine)
    ═══════════════════════════════════════════════════════════════════════════
-   Production-grade paginated search with:
-     • 4-tier relevance scoring (A 1.0 / B 0.6 / C 0.3 / D 0.1)
-     • Syrian dialect expansion
-     • Intent modifiers (cheap → price ASC, premium → high-rated, used → filter)
-     • Optional filters: category, priceMin, priceMax, sortBy
-     • Rating join (product reviews)
-     • hasVariants flag
-     • Strict seller gate: user.status='active' AND seller_application.status='approved'
+
+   ARCHITECTURE — three complementary scoring layers applied per product:
+
+   ┌─────────────────────────────────────────────────────────────────────────┐
+   │ Layer 1 — PostgreSQL Full-Text Search  (ts_rank_cd × 0.65)             │
+   │   • processSearchQuery() produces NLP-expanded tokens                  │
+   │   • Syrian dialect dictionary adds further keyword expansions           │
+   │   • All terms merged into an OR tsquery against fts_vector             │
+   │     (fts_vector is a weighted tsvector: A=name, B=category,            │
+   │      C=search_tokens, D=description — maintained by a DB trigger)      │
+   │   • ts_rank_cd with normalization flag 32 (÷ doc length)               │
+   │                                                                         │
+   │ Layer 2 — AND precision boost  (+0.20 when ALL base tokens match)      │
+   │   • Rewards products mentioning every base concept from the query      │
+   │                                                                         │
+   │ Layer 3 — pg_trgm trigram similarity  (word_similarity × 0.55)        │
+   │   • Fuzzy / typo-tolerant fallback for novel or mis-spelled terms      │
+   │   • Also activates for queries whose tokens produce no FTS hits        │
+   │   • Uses GIN trigram indexes → sub-millisecond                         │
+   │                                                                         │
+   │ final_score = GREATEST(                                                 │
+   │   fts_score * 0.65 + and_boost + trgm_score * 0.25 + cat_score,       │
+   │   trgm_score * 0.45,   ← pure-trigram floor for typos                 │
+   │   cat_score            ← category-intent floor for dialect queries     │
+   │ )                                                                       │
+   └─────────────────────────────────────────────────────────────────────────┘
+
+   SELLER GATE: INNER JOIN users (account_status='active') AND
+                INNER JOIN seller_applications (status='approved')
+
+   INTENT MODIFIERS:
+     cheap   → ORDER BY final_price ASC
+     premium → ORDER BY avg_rating DESC
+     used    → WHERE search_tokens/name LIKE '%مستعمل%' OR '%used%'
+
+   PAGINATION: COUNT(*) OVER() returns total across all matched rows.
 
    Query params:
      q          Search query (required, min 2 chars)
@@ -463,16 +502,21 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
      sortBy     relevance | price_asc | price_desc | newest | rating
    ─────────────────────────────────────────────────────────────────────── */
 router.get("/search/results", async (req, res): Promise<void> => {
+  /* ── 1. Early-exit guard ───────────────────────────────────────────── */
   const raw = String(req.query.q ?? "").trim();
   if (raw.length < 2) {
-    res.json({ results: [], total: 0, page: 1, limit: 20, totalPages: 0, intent: { modifiers: [], mappedCategory: null, expandedTerms: [] } });
+    res.json({
+      results: [], total: 0, page: 1, limit: 20, totalPages: 0,
+      intent: { modifiers: [], mappedCategory: null, expandedTerms: [] },
+    });
     return;
   }
 
+  /* ── 2. Pagination & filter params ─────────────────────────────────── */
   const rawPage  = parseInt(String(req.query.page  ?? "1"),  10);
   const rawLimit = parseInt(String(req.query.limit ?? "20"), 10);
-  const page  = Number.isFinite(rawPage)  && rawPage  >= 1             ? rawPage  : 1;
-  const limit = Number.isFinite(rawLimit) && rawLimit >= 1 && rawLimit <= 50 ? rawLimit : 20;
+  const page   = Number.isFinite(rawPage)  && rawPage  >= 1             ? rawPage  : 1;
+  const limit  = Number.isFinite(rawLimit) && rawLimit >= 1 && rawLimit <= 50 ? rawLimit : 20;
   const offset = (page - 1) * limit;
 
   const filterCategory = req.query.category ? String(req.query.category) : null;
@@ -480,30 +524,49 @@ router.get("/search/results", async (req, res): Promise<void> => {
   const filterPriceMax = req.query.priceMax  ? parseFloat(String(req.query.priceMax))  : null;
   const sortBy = String(req.query.sortBy ?? "relevance");
 
-  const intent = parseIntent(raw);
-  const term   = normalizeArabic(raw);
-  const likePattern    = `%${term}%`;
-  const expandedQuery  = intent.expandedQuery;
-  const expandedLike   = `%${normalizeArabic(expandedQuery)}%`;
+  /* ── 3. Dual NLP pipeline ───────────────────────────────────────────── */
 
-  // Intent modifiers override sortBy
+  // 3a. Dialect dictionary — intent modifiers + dialect category + expanded keywords
+  const intent = parseIntent(raw);
+
+  // 3b. NLP pipeline — Arabic normalization, sticky tokens, cross-language bridge
+  const nlp = processSearchQuery(raw);
+
+  /* ── 4. Merge all expansion sources ────────────────────────────────── */
+  // Union of: NLP expanded tokens + dialect keywords + raw normalized term
+  const term = normalizeArabic(raw);   // kept for trigram scoring
+
+  const allExpandedTokens: string[] = [
+    ...nlp.expandedTokens,
+    ...intent.expandedTerms.map(t => normalizeArabic(t)),
+    term,
+  ];
+
+  // Build PostgreSQL tsquery strings
+  const tsqExpanded = buildOrTsQuery(allExpandedTokens);   // broad OR match
+  const tsqBase     = buildAndTsQuery(nlp.baseTokens);     // precision AND boost
+
+  /* ── 5. Intent modifier overrides ──────────────────────────────────── */
   const effectiveSort =
-    intent.modifiers.includes("cheap")   ? "price_asc"  :
-    intent.modifiers.includes("premium") ? "rating"     :
+    intent.modifiers.includes("cheap")   ? "price_asc" :
+    intent.modifiers.includes("premium") ? "rating"    :
     sortBy;
 
   trackQuery(raw);
 
-  /* ── Build parameterised query ─────────────────────────────────────── */
+  /* ── 6. Parameterised query builder ─────────────────────────────────── */
   const pb = makeParamBuilder();
 
+  // tsquery params (nullable — triggers trigram-only fallback if null)
+  const pTsqExpanded  = pb.add(tsqExpanded);    // used in FTS @@ and ts_rank_cd
+  const pTsqBase      = pb.add(tsqBase);        // used in AND precision boost
+  // Trigram params
   const pTerm         = pb.add(term);
-  const pLike         = pb.add(likePattern);
-  const pExpanded     = pb.add(expandedQuery);
-  const pExpandedLike = pb.add(expandedLike);
-  const pMappedCatLow = pb.add(intent.mappedCategory ? intent.mappedCategory.toLowerCase() : null);
+  const pLike         = pb.add(`%${term}%`);
+  // Dialect category param
+  const pMappedCat    = pb.add(intent.mappedCategory?.toLowerCase() ?? null);
 
-  /* Optional extra WHERE conditions appended as strings */
+  /* Optional extra WHERE filters */
   const extraWhere: string[] = [];
 
   if (intent.modifiers.includes("used")) {
@@ -525,139 +588,196 @@ router.get("/search/results", async (req, res): Promise<void> => {
 
   const extraWhereSQL = extraWhere.length > 0 ? `AND ${extraWhere.join(" AND ")}` : "";
 
-  /* ORDER BY strategy */
+  /* ORDER BY — final_price alias computed in scored CTE */
   const orderBySQL =
-    effectiveSort === "price_asc"  ? "final_price ASC,  score DESC" :
-    effectiveSort === "price_desc" ? "final_price DESC, score DESC" :
-    effectiveSort === "newest"     ? "p_created_at DESC"            :
-    effectiveSort === "rating"     ? "avg_rating DESC, score DESC"  :
-    /* relevance */                  "score DESC, p_featured DESC";
+    effectiveSort === "price_asc"  ? "final_price ASC,  final_score DESC" :
+    effectiveSort === "price_desc" ? "final_price DESC, final_score DESC" :
+    effectiveSort === "newest"     ? "p_created_at DESC"                  :
+    effectiveSort === "rating"     ? "avg_rating DESC, final_score DESC"  :
+    /* relevance */                  "final_score DESC, p_featured DESC";
 
   const pLimit  = pb.add(limit);
   const pOffset = pb.add(offset);
 
+  /* ── 7. Core SQL — NLP + FTS + trigram hybrid ───────────────────────── */
   const { rows } = await pool.query(
-    `WITH ranked AS (
+    `
+    /* ── Pre-compute tsquery objects exactly once ───────────────────────── */
+    WITH ts_params AS (
+      SELECT
+        CASE WHEN ${pTsqExpanded}::text IS NOT NULL
+          THEN to_tsquery('simple', ${pTsqExpanded}::text)
+          ELSE NULL
+        END AS expanded_q,
+        CASE WHEN ${pTsqBase}::text IS NOT NULL
+          THEN to_tsquery('simple', ${pTsqBase}::text)
+          ELSE NULL
+        END AS base_q
+    ),
+
+    /* ── Candidate scan + three-layer scoring ───────────────────────────── */
+    candidate AS (
       SELECT
         p.id,
         p.seller_id,
         p.name,
         p.name_ar,
         p.description,
-        p.price::numeric            AS raw_price,
-        p.discount_percent::numeric AS raw_discount,
-        p.price::numeric * (1.0 - COALESCE(p.discount_percent::numeric, 0) / 100.0) AS final_price,
+        p.price::numeric                                                         AS raw_price,
+        p.discount_percent::numeric                                              AS raw_discount,
+        p.price::numeric * (1.0 - COALESCE(p.discount_percent::numeric, 0) / 100.0)
+                                                                                 AS final_price,
         p.category,
         p.subcategory,
         p.stock,
         p.image_url,
         p.image_urls,
-        p.featured                  AS p_featured,
-        p.created_at                AS p_created_at,
+        p.featured                                                               AS p_featured,
+        p.created_at                                                             AS p_created_at,
         sa.store_name,
         sa.store_slug,
         sa.store_logo,
-        u.name                      AS seller_name,
-        /* ── Tier-weighted relevance scoring ──────────────────────────
-           Tier A (1.0)  Exact dialect-mapped category match
-           Tier B (0.6)  Fuzzy title / title_ar match via pg_trgm
-           Tier C (0.3)  search_tokens / tags / brand / expanded keywords
-           Tier D (0.1)  Description match
-        ───────────────────────────────────────────────────────────── */
+        u.name                                                                   AS seller_name,
+
+        /* Layer 1 — Full-text search (weighted A/B/C/D tsvector, GIN-indexed)  */
+        CASE
+          WHEN tsp.expanded_q IS NOT NULL
+            AND p.fts_vector IS NOT NULL
+            AND p.fts_vector @@ tsp.expanded_q
+          THEN ts_rank_cd(p.fts_vector, tsp.expanded_q, 32)
+          ELSE 0.0
+        END                                                                      AS fts_score,
+
+        /* Layer 2 — AND precision boost: all base tokens present              */
+        CASE
+          WHEN tsp.base_q IS NOT NULL
+            AND p.fts_vector IS NOT NULL
+            AND p.fts_vector @@ tsp.base_q
+          THEN 0.20
+          ELSE 0.0
+        END                                                                      AS and_boost,
+
+        /* Layer 3 — Trigram similarity: typo-tolerant, covers novel terms      */
         GREATEST(
-          /* Tier A — dialect-mapped category */
-          CASE WHEN ${pMappedCatLow}::text IS NOT NULL
-                AND lower(p.category) = ${pMappedCatLow}::text   THEN 1.00 ELSE 0 END,
-          /* Tier B — title/title_ar similarity */
-          CASE WHEN lower(p.name) = ${pTerm}                     THEN 0.95 ELSE 0 END,
-          CASE WHEN lower(p.name) LIKE ${pTerm} || '%'           THEN 0.88 ELSE 0 END,
-          CASE WHEN lower(p.name) LIKE ${pLike}                  THEN 0.75 ELSE 0 END,
-          word_similarity(${pTerm}, lower(p.name))               * 0.60,
-          similarity(${pTerm},      lower(p.name))               * 0.55,
-          CASE WHEN lower(COALESCE(p.name_ar,'')) LIKE ${pLike}  THEN 0.75 ELSE 0 END,
-          word_similarity(${pTerm}, lower(COALESCE(p.name_ar,''))) * 0.60,
-          similarity(${pTerm},      lower(COALESCE(p.name_ar,''))) * 0.55,
-          /* Tier C — search_tokens / expanded dialect keywords */
-          CASE WHEN lower(COALESCE(p.search_tokens,'')) LIKE ${pExpandedLike} THEN 0.30 ELSE 0 END,
-          word_similarity(${pExpanded}, lower(COALESCE(p.search_tokens,''))) * 0.30,
-          similarity(${pExpanded},      lower(COALESCE(p.search_tokens,''))) * 0.25,
-          /* Tier D — description */
-          CASE WHEN lower(p.description) LIKE ${pLike}           THEN 0.10 ELSE 0 END,
-          word_similarity(${pTerm}, lower(p.description))        * 0.10,
-          similarity(${pTerm},      lower(p.description))        * 0.08
-        ) AS score
+          word_similarity(${pTerm}, lower(p.name)),
+          word_similarity(${pTerm}, lower(COALESCE(p.name_ar, ''))),
+          similarity(${pTerm},      lower(p.name))               * 0.85,
+          similarity(${pTerm},      lower(COALESCE(p.name_ar,''))) * 0.85
+        )                                                                        AS trgm_score,
+
+        /* Category intent: dialect dictionary maps query → DB category          */
+        CASE
+          WHEN ${pMappedCat}::text IS NOT NULL
+            AND lower(p.category) = ${pMappedCat}::text
+          THEN 0.80
+          ELSE 0.0
+        END                                                                      AS cat_score
+
       FROM products p
-      /* Strict seller gate: active user + approved seller application */
+      CROSS JOIN ts_params tsp
+      /* ── Strict seller gate ────────────────────────────────────────────── */
       INNER JOIN users u
-        ON u.id = p.seller_id AND u.account_status = 'active'
+        ON  u.id = p.seller_id
+        AND u.account_status = 'active'
       INNER JOIN seller_applications sa
-        ON sa.user_id = p.seller_id AND sa.status = 'approved'
+        ON  sa.user_id = p.seller_id
+        AND sa.status  = 'approved'
       WHERE
         p.stock > 0
+        /* Candidate filter: at least one scoring layer must fire           */
         AND (
-          lower(p.name)                          LIKE ${pLike}
-          OR lower(COALESCE(p.name_ar,''))        LIKE ${pLike}
-          OR lower(COALESCE(p.search_tokens,''))  LIKE ${pExpandedLike}
-          OR lower(p.description)                 LIKE ${pLike}
-          OR (${pMappedCatLow}::text IS NOT NULL AND lower(p.category) = ${pMappedCatLow}::text)
-          OR word_similarity(${pTerm}, lower(p.name))                   > 0.15
-          OR word_similarity(${pTerm}, lower(COALESCE(p.name_ar,'')))   > 0.15
+          /* FTS hit via GIN index — fast, bilingual, NLP-expanded           */
+          (tsp.expanded_q IS NOT NULL AND p.fts_vector IS NOT NULL
+            AND p.fts_vector @@ tsp.expanded_q)
+          /* Trigram fallback — catches typos and terms not in the FTS dict   */
+          OR word_similarity(${pTerm}, lower(p.name))                  > 0.14
+          OR word_similarity(${pTerm}, lower(COALESCE(p.name_ar, ''))) > 0.14
+          /* LIKE fallback — guarantees exact partial matches always appear   */
+          OR lower(p.name)                     LIKE ${pLike}
+          OR lower(COALESCE(p.name_ar, ''))    LIKE ${pLike}
+          /* Dialect category gate — broad match for colloquial category terms */
+          OR (${pMappedCat}::text IS NOT NULL
+              AND lower(p.category) = ${pMappedCat}::text)
         )
         ${extraWhereSQL}
     ),
-    filtered AS (
+
+    /* ── Combine three layers into a single composite score ─────────────── */
+    scored AS (
+      SELECT *,
+        GREATEST(
+          /* Primary path: FTS-led with trigram supplement                   */
+          fts_score * 0.65 + and_boost + trgm_score * 0.25 + cat_score * 0.10,
+          /* Trigram-only floor: activates when FTS has no hit (novel terms)  */
+          trgm_score * 0.45,
+          /* Category-intent floor: dialect queries always show category hits */
+          cat_score
+        ) AS final_score
+      FROM candidate
+    ),
+
+    /* ── Score gate + window-count for pagination metadata ──────────────── */
+    paged AS (
       SELECT *, COUNT(*) OVER() AS total_count
-      FROM ranked
-      WHERE score > 0.04
+      FROM scored
+      WHERE final_score > 0.02
     )
+
+    /* ── Enrich with ratings + variant flag ─────────────────────────────── */
     SELECT
-      f.*,
-      COALESCE(r.avg_rating,    0)::numeric(3,1) AS avg_rating,
-      COALESCE(r.review_count,  0)               AS review_count,
+      pg.*,
+      COALESCE(r.avg_rating,   0)::numeric(3,1) AS avg_rating,
+      COALESCE(r.review_count, 0)               AS review_count,
       EXISTS(
-        SELECT 1 FROM product_variants pv WHERE pv.product_id = f.id LIMIT 1
-      ) AS has_variants
-    FROM filtered f
+        SELECT 1 FROM product_variants pv WHERE pv.product_id = pg.id LIMIT 1
+      )                                         AS has_variants
+    FROM paged pg
     LEFT JOIN (
-      SELECT product_id,
-             AVG(rating)::numeric(3,1) AS avg_rating,
-             COUNT(*)                  AS review_count
+      SELECT
+        product_id,
+        AVG(rating)::numeric(3,1) AS avg_rating,
+        COUNT(*)                  AS review_count
       FROM reviews
       GROUP BY product_id
-    ) r ON r.product_id = f.id
+    ) r ON r.product_id = pg.id
     ORDER BY ${orderBySQL}
-    LIMIT ${pLimit} OFFSET ${pOffset}`,
+    LIMIT ${pLimit} OFFSET ${pOffset}
+    `,
     pb.values,
   );
 
+  /* ── 8. Pagination metadata ─────────────────────────────────────────── */
   const total = rows.length > 0 ? parseInt(String(rows[0].total_count), 10) : 0;
 
+  /* ── 9. Response mapper ─────────────────────────────────────────────── */
   const results = rows.map((r: any) => ({
-    id: r.id,
-    name: r.name,
-    nameAr: r.name_ar ?? null,
-    price: parseFloat(r.raw_price),
-    discountPercent: r.raw_discount ? parseFloat(r.raw_discount) : null,
-    finalPrice: parseFloat(r.final_price),
-    category: r.category,
-    subcategory: r.subcategory ?? null,
-    stock: r.stock,
-    imageUrl: r.image_url ?? null,
-    imageUrls: (r.image_urls ?? []) as string[],
-    featured: r.p_featured,
-    isBestDeal: r.raw_discount ? parseFloat(r.raw_discount) >= 20 : false,
-    hasVariants: !!r.has_variants,
-    averageRating: parseFloat(r.avg_rating),
-    reviewCount: parseInt(String(r.review_count), 10),
+    id:              r.id,
+    name:            r.name,
+    nameAr:          r.name_ar      ?? null,
+    price:           parseFloat(r.raw_price),
+    discountPercent: r.raw_discount  ? parseFloat(r.raw_discount) : null,
+    finalPrice:      parseFloat(r.final_price),
+    category:        r.category,
+    subcategory:     r.subcategory  ?? null,
+    stock:           r.stock,
+    imageUrl:        r.image_url    ?? null,
+    imageUrls:       (r.image_urls  ?? []) as string[],
+    featured:        r.p_featured,
+    isBestDeal:      r.raw_discount ? parseFloat(r.raw_discount) >= 20 : false,
+    hasVariants:     !!r.has_variants,
+    averageRating:   parseFloat(r.avg_rating),
+    reviewCount:     parseInt(String(r.review_count), 10),
     seller: {
-      id: r.seller_id,
-      name: r.seller_name ?? "Unknown",
-      storeName: r.store_name ?? null,
-      storeSlug: r.store_slug ?? null,
-      storeLogo: r.store_logo ?? null,
+      id:        r.seller_id,
+      name:      r.seller_name  ?? "Unknown",
+      storeName: r.store_name   ?? null,
+      storeSlug: r.store_slug   ?? null,
+      storeLogo: r.store_logo   ?? null,
     },
-    createdAt: r.p_created_at instanceof Date ? r.p_created_at.toISOString() : String(r.p_created_at),
-    score: Math.round(parseFloat(r.score) * 1000) / 1000,
+    createdAt: r.p_created_at instanceof Date
+      ? r.p_created_at.toISOString()
+      : String(r.p_created_at),
+    score: Math.round(parseFloat(r.final_score) * 1000) / 1000,
   }));
 
   res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=15");
@@ -668,9 +788,13 @@ router.get("/search/results", async (req, res): Promise<void> => {
     limit,
     totalPages: Math.ceil(total / limit),
     intent: {
-      modifiers: intent.modifiers,
-      mappedCategory: intent.mappedCategory,
-      expandedTerms: intent.expandedTerms,
+      modifiers:       intent.modifiers,
+      mappedCategory:  intent.mappedCategory,
+      expandedTerms:   intent.expandedTerms,
+      /* New fields for frontend intent chips */
+      nlpBaseTokens:   nlp.baseTokens,
+      nlpExpandedCount: nlp.expandedTokens.length,
+      primaryLanguage: nlp.primaryLanguage,
     },
   });
 });
@@ -688,9 +812,7 @@ router.get("/search/trending", async (_req, res): Promise<void> => {
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ROUTE 5 — POST /api/search/track-click
-   ═══════════════════════════════════════════════════════════════════════════
-   Fire-and-forget analytics: records a suggestion/category/store click.
-   ─────────────────────────────────────────────────────────────────────── */
+   ═══════════════════════════════════════════════════════════════════════════ */
 router.post("/search/track-click", async (req, res): Promise<void> => {
   const { term } = req.body as { term?: string };
   if (term && typeof term === "string" && term.trim().length >= 2) trackQuery(term.trim());
