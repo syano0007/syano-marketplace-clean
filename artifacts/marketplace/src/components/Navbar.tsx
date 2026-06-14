@@ -169,7 +169,7 @@ export function Navbar() {
     e.preventDefault();
     if (searchQuery.trim()) {
       saveRecentSearch(searchQuery.trim());
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchOpen(false);
       setSearchQuery("");
     }
@@ -178,7 +178,7 @@ export function Navbar() {
   const handleSuggestionTextClick = useCallback((text: string, type: "suggestion" | "category" | "store" = "suggestion") => {
     saveRecentSearch(text);
     trackSearchClick(text, type);
-    navigate(`/search?q=${encodeURIComponent(text)}`);
+    navigate(`/shop?q=${encodeURIComponent(text)}`);
     setSearchOpen(false);
     setSearchQuery("");
   }, [navigate, saveRecentSearch]);
@@ -565,7 +565,7 @@ export function Navbar() {
                             <div className="px-3.5 pb-2 flex flex-wrap gap-1.5">
                               {trendingSearches.slice(0, 8).map(t => (
                                 <button key={t.query}
-                                  onClick={() => { setSearchQuery(t.query); navigate(`/search?q=${encodeURIComponent(t.query)}`); setSearchOpen(false); setSearchQuery(""); }}
+                                  onClick={() => { setSearchQuery(t.query); navigate(`/shop?q=${encodeURIComponent(t.query)}`); setSearchOpen(false); setSearchQuery(""); }}
                                   className={`px-2.5 py-1 rounded-full text-xs font-medium border ${navBorder} ${navHoverBg} ${navDropText} transition-colors`}>
                                   {t.query}
                                 </button>

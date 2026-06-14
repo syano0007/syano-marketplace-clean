@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useListProducts } from "@workspace/api-client-react";
 import { Layout } from "@/components/Layout";
@@ -32,8 +33,43 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Gem, Baby, Wrench, TreePine, Gift,
 };
 
-type SortOption = "newest" | "price_asc" | "price_desc" | "highest_rated" | "most_discounted" | "best_selling";
+type SortOption = "relevance" | "newest" | "price_asc" | "price_desc" | "highest_rated" | "rating" | "most_discounted" | "best_selling";
 type ActiveTab = "products" | "stores" | "categories";
+
+interface SearchResultProduct {
+  id: number;
+  name: string;
+  nameAr: string | null;
+  price: number;
+  discountPercent: number | null;
+  finalPrice: number;
+  category: string;
+  subcategory: string | null;
+  stock: number;
+  imageUrl: string | null;
+  imageUrls: string[];
+  featured: boolean;
+  isBestDeal: boolean;
+  hasVariants: boolean;
+  averageRating: number;
+  reviewCount: number;
+  seller: { id: number; name: string; storeName: string | null; storeSlug: string | null; storeLogo: string | null };
+  createdAt: string;
+  score: number;
+}
+interface SearchIntent {
+  modifiers: string[];
+  mappedCategory: string | null;
+  expandedTerms: string[];
+}
+interface SearchApiResponse {
+  results: SearchResultProduct[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  intent: SearchIntent;
+}
 
 interface StoreResult {
   userId: number;
@@ -63,7 +99,7 @@ export default function SearchPage() {
     const q = sp2.get("q") || sp2.get("search") || "";
     const cat = sp2.get("category") || undefined;
     const disc = sp2.get("hasDiscount") === "true";
-    const rawSort = sp2.get("sortBy") || sp2.get("sort") || "newest";
+    const rawSort = sp2.get("sortBy") || sp2.get("sort") || (q ? "relevance" : "newest");
     const sort = rawSort === "best_sellers" ? "best_selling" : rawSort as SortOption;
     return { q, cat, disc, sort };
   };
@@ -84,10 +120,15 @@ export default function SearchPage() {
   const [accumulated, setAccumulated] = useState<any[]>([]);
   const prevFilterKey = useRef("");
 
+  const [searchPage, setSearchPage] = useState(1);
+  const [searchAccumulated, setSearchAccumulated] = useState<SearchResultProduct[]>([]);
+  const prevSearchFilterKey = useRef("");
+
   const [stores, setStores] = useState<StoreResult[]>([]);
   const [storesLoading, setStoresLoading] = useState(false);
 
   const debouncedQuery = useDebounce(query, 350);
+  const searchMode = debouncedQuery.length >= 1;
 
   useSEO({
     title: debouncedQuery
@@ -103,7 +144,7 @@ export default function SearchPage() {
     const urlQ = sp2.get("q") || sp2.get("search") || "";
     const urlCat = sp2.get("category") || undefined;
     const urlDisc = sp2.get("hasDiscount") === "true";
-    const rawSort = sp2.get("sortBy") || sp2.get("sort") || "";
+    const rawSort = sp2.get("sortBy") || sp2.get("sort") || (urlQ ? "relevance" : "newest");
     if (urlQ !== query) setQuery(urlQ);
     if (urlCat !== undefined && urlCat !== category) setCategory(urlCat);
     if (urlDisc && !hasDiscount) setHasDiscount(true);
@@ -124,6 +165,48 @@ export default function SearchPage() {
       setAccumulated([]);
     }
   }, [filterKey]);
+
+  const searchFilterKey = [debouncedQuery, category, sortBy].join("|");
+  useEffect(() => {
+    if (prevSearchFilterKey.current !== searchFilterKey) {
+      prevSearchFilterKey.current = searchFilterKey;
+      setSearchPage(1);
+      setSearchAccumulated([]);
+    }
+  }, [searchFilterKey]);
+
+  const searchSortParam = sortBy === "highest_rated" ? "rating" : sortBy === "best_selling" ? "newest" : sortBy === "most_discounted" ? "price_desc" : sortBy;
+
+  const { data: searchData, isLoading: searchResultLoading, isFetching: searchResultFetching } = useQuery<SearchApiResponse>({
+    queryKey: ["search/results/v1", debouncedQuery, searchPage, searchSortParam, category],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        q: debouncedQuery,
+        page: String(searchPage),
+        limit: String(PAGE_SIZE),
+        sortBy: searchSortParam,
+      });
+      if (category && category !== "all") params.set("category", category);
+      const res = await fetch(`/api/search/results?${params.toString()}`);
+      if (!res.ok) throw new Error("Search failed");
+      return res.json() as Promise<SearchApiResponse>;
+    },
+    enabled: searchMode,
+    staleTime: 5000,
+    placeholderData: (prev) => prev,
+  });
+
+  useEffect(() => {
+    if (!searchData) return;
+    if (searchPage === 1) {
+      setSearchAccumulated(searchData.results);
+    } else {
+      setSearchAccumulated((prev) => {
+        const seen = new Set(prev.map((p) => p.id));
+        return [...prev, ...searchData.results.filter((p) => !seen.has(p.id))];
+      });
+    }
+  }, [searchData, searchPage]);
 
   const { data: pageData, isLoading: productsLoading, isFetching } = useListProducts({
     search: debouncedQuery || undefined,
@@ -150,8 +233,17 @@ export default function SearchPage() {
     }
   }, [pageData, offset]);
 
-  const products = accumulated;
-  const hasMoreProducts = (pageData?.length ?? 0) >= PAGE_SIZE;
+  const products = searchMode ? searchAccumulated : accumulated;
+  const isLoadingProducts = searchMode ? (searchResultLoading && searchAccumulated.length === 0) : (productsLoading && accumulated.length === 0);
+  const isFetchingProducts = searchMode ? searchResultFetching : isFetching;
+  const totalResults = searchMode ? (searchData?.total ?? 0) : undefined;
+  const searchIntent = searchMode ? (searchData?.intent ?? null) : null;
+  const hasMoreProducts = searchMode
+    ? (searchPage < (searchData?.totalPages ?? 1))
+    : ((pageData?.length ?? 0) >= PAGE_SIZE);
+  const handleLoadMore = searchMode
+    ? () => setSearchPage((p) => p + 1)
+    : () => setOffset((o) => o + PAGE_SIZE);
 
   useEffect(() => {
     if (!debouncedQuery || debouncedQuery.length < 2) {
@@ -179,18 +271,31 @@ export default function SearchPage() {
     );
   });
 
+  const defaultSort = searchMode ? "relevance" : "newest";
   const activeFilterCount = [
-    category && category !== "all", sortBy !== "newest",
+    category && category !== "all", sortBy !== defaultSort,
     minPriceInput, maxPriceInput, hasDiscount, inStock, minRating > 0,
   ].filter(Boolean).length;
 
   const SORT_LABELS: Record<SortOption, string> = {
+    relevance:       lang === "ar" ? "الأكثر صلة" : "Most Relevant",
     newest:          lang === "ar" ? "الأحدث" : "Newest",
     price_asc:       lang === "ar" ? "السعر: من الأرخص" : "Price: Low to High",
     price_desc:      lang === "ar" ? "السعر: من الأغلى" : "Price: High to Low",
     highest_rated:   lang === "ar" ? "الأعلى تقييماً" : "Highest Rated",
+    rating:          lang === "ar" ? "الأعلى تقييماً" : "Top Rated",
     most_discounted: lang === "ar" ? "أكبر خصم" : "Most Discounted",
     best_selling:    lang === "ar" ? "الأكثر مبيعاً" : "Best Selling",
+  };
+
+  const SEARCH_MODE_SORT_OPTIONS: SortOption[] = ["relevance", "price_asc", "price_desc", "rating", "newest"];
+  const BROWSE_MODE_SORT_OPTIONS: SortOption[] = ["newest", "price_asc", "price_desc", "highest_rated", "most_discounted", "best_selling"];
+  const activeSortOptions = searchMode ? SEARCH_MODE_SORT_OPTIONS : BROWSE_MODE_SORT_OPTIONS;
+
+  const MODIFIER_LABELS: Record<string, string> = {
+    cheap: lang === "ar" ? "رخيص" : "Budget",
+    premium: lang === "ar" ? "فاخر" : "Premium",
+    used: lang === "ar" ? "مستعمل" : "Used",
   };
 
   const TAB_CONFIG: { key: ActiveTab; label: string; count: number; icon: React.ElementType }[] = [
@@ -324,8 +429,8 @@ export default function SearchPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(([k, v]) => (
-                          <SelectItem key={k} value={k}>{v}</SelectItem>
+                        {activeSortOptions.map((k) => (
+                          <SelectItem key={k} value={k}>{SORT_LABELS[k]}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -409,8 +514,8 @@ export default function SearchPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      {activeSortOptions.map((k) => (
+                        <SelectItem key={k} value={k}>{SORT_LABELS[k]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -485,8 +590,45 @@ export default function SearchPage() {
                   </div>
                 )}
 
+                {/* ── Intent chips + result count ──────────────────── */}
+                {searchMode && (searchIntent?.modifiers.length || searchIntent?.mappedCategory || totalResults !== undefined) && (
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    {totalResults !== undefined && (
+                      <span className="text-xs text-muted-foreground">
+                        {isRtl
+                          ? `${totalResults.toLocaleString()} نتيجة`
+                          : `${totalResults.toLocaleString()} result${totalResults !== 1 ? "s" : ""}`}
+                      </span>
+                    )}
+                    {searchIntent?.mappedCategory && (
+                      <button
+                        onClick={() => setCategory(searchIntent.mappedCategory ?? undefined)}
+                        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors"
+                      >
+                        {searchIntent.mappedCategory}
+                        <X className="h-3 w-3 ms-0.5 opacity-70" />
+                      </button>
+                    )}
+                    {(searchIntent?.modifiers ?? []).map((mod) => (
+                      <span key={mod} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        {MODIFIER_LABELS[mod] ?? mod}
+                      </span>
+                    ))}
+                    {debouncedQuery && (
+                      <button
+                        onClick={() => { setQuery(""); navigate("/shop"); }}
+                        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted/80 transition-colors"
+                      >
+                        <Search className="h-3 w-3" />
+                        {debouncedQuery.length > 20 ? `${debouncedQuery.slice(0, 20)}…` : debouncedQuery}
+                        <X className="h-3 w-3 ms-0.5 opacity-70" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Products Grid */}
-                {productsLoading && products.length === 0 ? (
+                {isLoadingProducts && products.length === 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                     {Array.from({ length: 8 }).map((_, i) => (
                       <div key={i} className="rounded-2xl bg-muted/40 animate-pulse aspect-[3/4]" />
@@ -518,10 +660,10 @@ export default function SearchPage() {
                     </div>
                     {hasMoreProducts && (
                       <div className="flex justify-center mt-8">
-                        <Button variant="outline" onClick={() => setOffset((o) => o + PAGE_SIZE)}
-                          disabled={isFetching}
+                        <Button variant="outline" onClick={handleLoadMore}
+                          disabled={isFetchingProducts}
                           className="min-w-[140px]">
-                          {isFetching
+                          {isFetchingProducts
                             ? (lang === "ar" ? "جاري التحميل..." : "Loading...")
                             : (lang === "ar" ? "تحميل المزيد" : "Load more")}
                         </Button>
