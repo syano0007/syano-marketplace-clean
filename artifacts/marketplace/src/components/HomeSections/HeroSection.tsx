@@ -118,7 +118,7 @@ export function HeroSection({ products }: { products: Product[] }) {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}>
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/[0.08] mb-8">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span style={{ fontWeight: 500, fontSize: "12px", letterSpacing: "0.06em" }} className="text-emerald-400 uppercase">
+              <span style={{ fontWeight: 500, fontSize: "var(--font-xs-up)", letterSpacing: "0.06em" }} className="text-emerald-400 uppercase">
                 {t("home.hero.badge")}
               </span>
             </div>
@@ -251,8 +251,8 @@ export function HeroSection({ products }: { products: Product[] }) {
                 >
                   <img src={cards[activeCard].img} alt={cards[activeCard].name} className="w-10 h-10 rounded-lg object-cover border border-border shrink-0" />
                   <div className="min-w-0">
-                    <p style={{ fontWeight: 600, fontSize: "11px", lineHeight: 1.3 }} className="text-foreground/80 truncate">{cards[activeCard].name}</p>
-                    <p style={{ fontWeight: 800, fontSize: "12px" }} className="text-emerald-400 mt-0.5" translate="no">{format(cards[activeCard].priceUsd)}</p>
+                    <p style={{ fontWeight: 600, fontSize: "var(--font-xs)", lineHeight: 1.3 }} className="text-foreground/80 truncate">{cards[activeCard].name}</p>
+                    <p style={{ fontWeight: 800, fontSize: "var(--font-xs-up)" }} className="text-emerald-400 mt-0.5" translate="no">{format(cards[activeCard].priceUsd)}</p>
                   </div>
                 </motion.div>
               </AnimatePresence>
@@ -276,8 +276,8 @@ export function HeroSection({ products }: { products: Product[] }) {
               <div className="flex items-center gap-2.5">
                 <img src={cards[1]?.img ?? FALLBACK_CARDS[1].img} alt="" className="w-10 h-10 rounded-lg object-cover border border-border shrink-0" />
                 <div className="min-w-0">
-                  <p style={{ fontWeight: 500, fontSize: "10px" }} className="text-muted-foreground truncate">{t("home.hero.card_fashion")}</p>
-                  <p style={{ fontWeight: 800, fontSize: "12px" }} className="text-emerald-400" translate="no">{format(cards[1]?.priceUsd ?? FALLBACK_CARDS[1].priceUsd)}</p>
+                  <p style={{ fontWeight: 500, fontSize: "var(--font-2xs)" }} className="text-muted-foreground truncate">{t("home.hero.card_fashion")}</p>
+                  <p style={{ fontWeight: 800, fontSize: "var(--font-xs-up)" }} className="text-emerald-400" translate="no">{format(cards[1]?.priceUsd ?? FALLBACK_CARDS[1].priceUsd)}</p>
                 </div>
               </div>
             </Link>
@@ -294,14 +294,14 @@ export function HeroSection({ products }: { products: Product[] }) {
               <div className="flex items-center gap-2.5">
                 <img src={cards[2]?.img ?? FALLBACK_CARDS[2].img} alt="" className="w-10 h-10 rounded-lg object-cover border border-border shrink-0" />
                 <div className="min-w-0">
-                  <p style={{ fontWeight: 500, fontSize: "10px" }} className="text-muted-foreground truncate">{t("home.hero.card_watch")}</p>
-                  <p style={{ fontWeight: 800, fontSize: "12px" }} className="text-emerald-400" translate="no">{format(cards[2]?.priceUsd ?? FALLBACK_CARDS[2].priceUsd)}</p>
+                  <p style={{ fontWeight: 500, fontSize: "var(--font-2xs)" }} className="text-muted-foreground truncate">{t("home.hero.card_watch")}</p>
+                  <p style={{ fontWeight: 800, fontSize: "var(--font-xs-up)" }} className="text-emerald-400" translate="no">{format(cards[2]?.priceUsd ?? FALLBACK_CARDS[2].priceUsd)}</p>
                 </div>
               </div>
             </Link>
             <div className="flex items-center gap-1 mt-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span style={{ fontSize: "10px", fontWeight: 500 }} className="text-emerald-400/70">{t("home.hero.card_available")}</span>
+              <span style={{ fontSize: "var(--font-2xs)", fontWeight: 500 }} className="text-emerald-400/70">{t("home.hero.card_available")}</span>
             </div>
           </motion.div>
         </motion.div>

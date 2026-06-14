@@ -3,12 +3,29 @@ name: Fluid Scaling System V1
 description: Root clamp font-size + px→rem conversion rules across the marketplace
 ---
 
-## The Engine
-`html { font-size: clamp(13px, calc(8px + 0.5vw), 16px) }` in `artifacts/marketplace/src/index.css`
+## The Engine — VIEWPORT SCALE V1
+`html { font-size: clamp(10px, calc(4px + 0.75vw), 18px) }` in `artifacts/marketplace/src/index.css`
 
-**Why:** Single-source scaling — every `rem` value (Tailwind utilities + explicit conversions) scales automatically as viewport narrows.
+**Why:** Canvas-like scaling — 1920px vs 1280px is 24% different (was 11%). "Figma zoom" effect: identical layout, only scale changes. Spec requires clearly noticeable difference between 1280 and 1920.
 
-**Scale table:** 960px→13px (floor), 1280px→14.4px, 1440px→15.2px, 1600px→16px (cap)
+**Scale table:** ≤800px→10px (floor), 1024px→11.68px, 1280px→13.6px, 1440px→14.8px, 1600px→16px, 1920px→18px (cap)
+
+## CSS Label Vars (NEW in V1)
+Three CSS custom properties in `:root` for small label text that needs a floor + ceiling:
+- `--font-2xs: clamp(9px, 0.5625rem, 10px)` — 9-10px tiny labels
+- `--font-xs: clamp(10px, 0.6875rem, 12px)` — 10-12px small labels
+- `--font-xs-up: clamp(11px, 0.75rem, 14px)` — 11-14px sub-labels
+
+Use `fontSize: "var(--font-2xs)"` in inline styles instead of hardcoded `"10px"`.
+
+## pc-* Override Strategy (V1 update)
+- **Base tier (<640px)**: STAYS in px — absolute minimum readable floors for tiny cards
+- **640px+ tiers**: CONVERTED to rem — scales with root font at desktop
+  - 640px: title=0.75rem, price=0.875rem, btn=0.625rem, rating=0.625rem
+  - 1024px: title=0.8125rem, price=0.9375rem, btn=0.6875rem, rating=0.6875rem
+  - 1536px: title=0.875rem, price=1rem, btn=0.75rem, rating=0.75rem
+  
+At 1920px (18px root): 1536px tier → title=15.75px, price=18px (full natural size)
 
 ## Conversion Rules
 

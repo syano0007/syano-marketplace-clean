@@ -58,7 +58,7 @@ export function HomeFooter() {
               </div>
               <div>
                 <div style={{ fontWeight: 800, letterSpacing: "0.08em" }} className="text-foreground text-lg">SYANO</div>
-                <div style={{ fontWeight: 400, fontSize: "10px" }} className="text-emerald-400/70 tracking-widest">سوق سوريا</div>
+                <div style={{ fontWeight: 400, fontSize: "var(--font-2xs)" }} className="text-emerald-400/70 tracking-widest">سوق سوريا</div>
               </div>
             </div>
             <p style={{ fontWeight: 400, fontSize: "0.875rem", lineHeight: 1.8 }} className="text-muted-foreground mb-8 max-w-[280px]">
@@ -111,15 +111,15 @@ export function HomeFooter() {
           <p style={{ fontWeight: 400, fontSize: "0.8125rem" }} className="text-muted-foreground/60">{t("home.footer.copyright")}</p>
           <div className="flex items-center gap-2 flex-wrap justify-center">
             {paymentMethods.map((method) => (
-              <div key={method} style={{ fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em" }} className="px-2.5 py-1 bg-muted/40 border border-border text-muted-foreground/60 rounded-md">
+              <div key={method} style={{ fontWeight: 700, fontSize: "var(--font-2xs)", letterSpacing: "0.05em" }} className="px-2.5 py-1 bg-muted/40 border border-border text-muted-foreground/60 rounded-md">
                 {method}
               </div>
             ))}
           </div>
           <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-end">
-            <Link href="/privacy-policy" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.privacy")}</Link>
-            <Link href="/terms-of-use" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.terms")}</Link>
-            <Link href="/cookies" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.cookies")}</Link>
+            <Link href="/privacy-policy" style={{ fontWeight: 400, fontSize: "var(--font-xs-up)" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.privacy")}</Link>
+            <Link href="/terms-of-use" style={{ fontWeight: 400, fontSize: "var(--font-xs-up)" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.terms")}</Link>
+            <Link href="/cookies" style={{ fontWeight: 400, fontSize: "var(--font-xs-up)" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.cookies")}</Link>
           </div>
         </div>
       </div>

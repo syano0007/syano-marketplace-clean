@@ -94,6 +94,17 @@
 :root { --navbar-height: 3.75rem; }
 @media (min-width: 768px) { :root { --navbar-height: 4rem; } }
 
+/* ── Fluid small-label font sizes ────────────────────────────────────
+   These clamp values ensure small badge/label text scales with the
+   root font at desktop sizes while staying readable at mobile floor.
+   Use var(--font-2xs/xs/xs-up) in inline styles instead of px literals.
+   ─────────────────────────────────────────────────────────────────── */
+:root {
+  --font-2xs:   clamp(9px, 0.5625rem, 10px);  /* was 9-10px tiny labels  */
+  --font-xs:    clamp(10px, 0.6875rem, 12px); /* was 10-11px small labels */
+  --font-xs-up: clamp(11px, 0.75rem, 14px);  /* was 11-12px sub-labels   */
+}
+
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
@@ -275,25 +286,25 @@
 
 @layer base {
   html {
-    /* ── Fluid root font-size ─────────────────────────────────────────────
-       Every rem unit in the UI (Tailwind spacing, heights, text sizes,
-       container padding, grid gaps) scales proportionally with this single
-       rule. Result: the whole interface "zooms" as viewport narrows rather
-       than staying full-size and clipping.
+    /* ── Fluid root font-size — VIEWPORT SCALE ARCHITECTURE V1 ──────────
+       Every rem unit (Tailwind spacing, heights, text, gaps, radii) scales
+       proportionally with this single rule. The interface behaves like a
+       Figma canvas: identical composition at every viewport, only scale
+       changes. Layout reflow and column reduction are last resorts.
 
-       Range: 13 px at ≤ 960 px viewport → 16 px at ≥ 1600 px viewport.
-       Formula: clamp(min, 8px + 0.5vw, max)
-         960 px  → 8 + 4.8  = 12.8 → clamped to 13 px  (tablets)
-        1024 px  → 8 + 5.12 = 13.12 px                  (small laptop)
-        1280 px  → 8 + 6.4  = 14.4 px                   (common laptop)
-        1440 px  → 8 + 7.2  = 15.2 px                   (wide laptop)
-        1600 px  → 8 + 8    = 16 px  → clamped to 16 px (desktop)
-        1920 px  →                   = 16 px             (large desktop)
+       AGGRESSIVE SCALING: 1920px is clearly larger than 1280px (24% diff).
+       Formula: clamp(10px, 4px + 0.75vw, 18px)
+         ≤800 px → 10 px floor         (mobile — minimum readable)
+         1024 px → 4 + 7.68  = 11.68px (small laptop — scaled down)
+         1280 px → 4 + 9.6   = 13.6 px (common laptop)
+         1440 px → 4 + 10.8  = 14.8 px (wide laptop)
+         1600 px → 4 + 12    = 16.0 px (desktop reference)
+         1920 px → 4 + 14.4  = 18.0 px (large desktop — cap, clearly bigger)
+         2560 px → 18 px cap           (ultrawide — stays at cap)
 
-       Mobile (< 640 px) also gets the 13 px floor — a comfortable minimum
-       that keeps 0.875 rem text at ≈ 11.4 px (still readable in 2-col
-       product cards which are ~166 px wide). ────────────────────────────── */
-    font-size: clamp(13px, calc(8px + 0.5vw), 16px);
+       1920px vs 1280px difference: 18px vs 13.6px = 24% — clearly visible.
+       ─────────────────────────────────────────────────────────────────── */
+    font-size: clamp(10px, calc(4px + 0.75vw), 18px);
     scrollbar-gutter: stable;
     -webkit-text-size-adjust: 100%;
   }
@@ -639,46 +650,50 @@
 .product-grid .pc-cart-btn    { font-size: 9px !important; padding: 0.25rem 0.4375rem !important; gap: 0.2rem !important; border-radius: 0.5rem !important; }
 .product-grid .pc-cart-btn svg { width: 0.5625rem !important; height: 0.5625rem !important; }
 
-/* 640px tier: 3-col ~200px cards — moderate */
+/* 640px tier: 3-col ~200px cards — moderate
+   Font sizes converted to rem so they scale with root font (Viewport Scale V1).
+   Absolute px values remain only for supplementary tiny text (strike-through, etc.) */
 @media (min-width: 640px) {
   .product-grid .pc-body        { padding: 0.625rem !important; }
   .product-grid .pc-cat-row     { margin-bottom: 0.25rem !important; }
-  .product-grid .pc-title       { font-size: 12px !important; min-height: 2.5em !important; margin-bottom: 0.375rem !important; }
+  .product-grid .pc-title       { font-size: 0.75rem !important; min-height: 2.5em !important; margin-bottom: 0.375rem !important; }
   .product-grid .pc-rating-row  { margin-bottom: 0.375rem !important; min-height: 14px !important; gap: 0.25rem !important; }
   .product-grid .pc-stars svg   { width: 0.5625rem !important; height: 0.5625rem !important; }
-  .product-grid .pc-rating-text { font-size: 10px !important; }
+  .product-grid .pc-rating-text { font-size: 0.625rem !important; }
   .product-grid .pc-price-row   { gap: 0.375rem !important; }
-  .product-grid .pc-price-main  { font-size: 14px !important; }
+  .product-grid .pc-price-main  { font-size: 0.875rem !important; }
   .product-grid .pc-price-orig  { font-size: 9px !important; }
-  .product-grid .pc-cart-btn    { font-size: 10px !important; padding: 0.3125rem 0.5625rem !important; gap: 0.25rem !important; }
+  .product-grid .pc-cart-btn    { font-size: 0.625rem !important; padding: 0.3125rem 0.5625rem !important; gap: 0.25rem !important; }
   .product-grid .pc-cart-btn svg { width: 0.625rem !important; height: 0.625rem !important; }
 }
 
-/* 1024px tier: 5-col ~192px cards — comfortable */
+/* 1024px tier: 5-col ~192px cards — comfortable
+   Rem units scale with root: at 1280px root≈13.6px → title=11px, price=12.75px */
 @media (min-width: 1024px) {
   .product-grid .pc-body        { padding: 0.75rem !important; }
   .product-grid .pc-cat-row     { margin-bottom: 0.3rem !important; }
-  .product-grid .pc-title       { font-size: 13px !important; min-height: 2.6em !important; margin-bottom: 0.4rem !important; }
+  .product-grid .pc-title       { font-size: 0.8125rem !important; min-height: 2.6em !important; margin-bottom: 0.4rem !important; }
   .product-grid .pc-rating-row  { margin-bottom: 0.4rem !important; min-height: 15px !important; gap: 0.25rem !important; }
   .product-grid .pc-stars svg   { width: 0.625rem !important; height: 0.625rem !important; }
-  .product-grid .pc-rating-text { font-size: 11px !important; }
+  .product-grid .pc-rating-text { font-size: 0.6875rem !important; }
   .product-grid .pc-price-row   { gap: 0.4rem !important; }
-  .product-grid .pc-price-main  { font-size: 15px !important; }
+  .product-grid .pc-price-main  { font-size: 0.9375rem !important; }
   .product-grid .pc-price-orig  { font-size: 10px !important; }
-  .product-grid .pc-cart-btn    { font-size: 11px !important; padding: 0.375rem 0.625rem !important; gap: 0.25rem !important; }
+  .product-grid .pc-cart-btn    { font-size: 0.6875rem !important; padding: 0.375rem 0.625rem !important; gap: 0.25rem !important; }
   .product-grid .pc-cart-btn svg { width: 0.6875rem !important; height: 0.6875rem !important; }
 }
 
-/* 1536px tier: 6-col ~232px cards — near-natural sizing */
+/* 1536px tier: 6-col ~232px cards — near-natural sizing
+   At 1920px root=18px → title=15.75px, price=18px (full natural size) */
 @media (min-width: 1536px) {
   .product-grid .pc-body        { padding: 0.875rem !important; }
-  .product-grid .pc-title       { font-size: 14px !important; min-height: 2.8em !important; margin-bottom: 0.5rem !important; }
+  .product-grid .pc-title       { font-size: 0.875rem !important; min-height: 2.8em !important; margin-bottom: 0.5rem !important; }
   .product-grid .pc-rating-row  { margin-bottom: 0.5rem !important; min-height: 16px !important; }
   .product-grid .pc-stars svg   { width: 0.6875rem !important; height: 0.6875rem !important; }
-  .product-grid .pc-rating-text { font-size: 12px !important; }
-  .product-grid .pc-price-main  { font-size: 16px !important; }
+  .product-grid .pc-rating-text { font-size: 0.75rem !important; }
+  .product-grid .pc-price-main  { font-size: 1rem !important; }
   .product-grid .pc-price-orig  { font-size: 10px !important; }
-  .product-grid .pc-cart-btn    { font-size: 12px !important; padding: 0.4375rem 0.75rem !important; gap: 0.3rem !important; }
+  .product-grid .pc-cart-btn    { font-size: 0.75rem !important; padding: 0.4375rem 0.75rem !important; gap: 0.3rem !important; }
   .product-grid .pc-cart-btn svg { width: 0.75rem !important; height: 0.75rem !important; }
 }
 

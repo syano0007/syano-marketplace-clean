@@ -31,7 +31,7 @@ export function JoinSection() {
               className="text-center mb-12"
             >
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.07] mb-6">
-                <span style={{ fontWeight: 600, fontSize: "12px", letterSpacing: "0.08em" }} className="text-emerald-400 uppercase">{t("home.join.badge")}</span>
+                <span style={{ fontWeight: 600, fontSize: "var(--font-xs-up)", letterSpacing: "0.08em" }} className="text-emerald-400 uppercase">{t("home.join.badge")}</span>
               </div>
               <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3.5vw, 42px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground mb-4">
                 {t("home.join.title")}

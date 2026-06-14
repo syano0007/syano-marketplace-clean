@@ -86,12 +86,12 @@ export function NewArrivals({ newArrivals }: { newArrivals?: Product[] }) {
               <img src={main.img} alt={main.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(var(--img-dim-arrival)) contrast(1.1)" }} />
               <div className="absolute inset-0 sy-overlay-heavy" />
               <div className="absolute top-5 start-5">
-                <div style={{ fontWeight: 700, fontSize: "12px" }} className="flex items-center gap-1.5 bg-emerald-500 text-black px-3 py-1.5 rounded-full">
+                <div style={{ fontWeight: 700, fontSize: "var(--font-xs-up)" }} className="flex items-center gap-1.5 bg-emerald-500 text-black px-3 py-1.5 rounded-full">
                   <Zap className="w-3 h-3" /> {t("home.arrivals.new_since", { count: main.daysAgo })}
                 </div>
               </div>
               <div className="absolute bottom-0 start-0 end-0 p-7">
-                <p style={{ fontWeight: 500, fontSize: "12px", letterSpacing: "0.06em" }} className="text-emerald-400 uppercase mb-2">{main.categoryLabel}</p>
+                <p style={{ fontWeight: 500, fontSize: "var(--font-xs-up)", letterSpacing: "0.06em" }} className="text-emerald-400 uppercase mb-2">{main.categoryLabel}</p>
                 <h3 style={{ fontWeight: 800, fontSize: "1.75rem", lineHeight: 1.3, letterSpacing: "-0.01em" }} className="text-white mb-3">{main.name}</h3>
                 <div className="flex items-center gap-4">
                   <div style={{ fontWeight: 800, fontSize: "1.5rem" }} className="text-emerald-400" translate="no">
