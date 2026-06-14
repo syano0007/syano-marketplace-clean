@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTheme } from "next-themes";
 import {
   Bell, BellRing, CheckCheck,
   ShoppingBag, ShoppingCart, Zap, Truck, CheckCircle2, XCircle,
@@ -8,7 +9,6 @@ import {
   UserPlus, Bike, Star, MessageSquare,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
 import { cn, localizeNotif } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -175,6 +175,13 @@ export function NotificationCenter() {
   const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  /* Identical token to navSettingsBtn in Navbar.tsx */
+  const btnCls = isDark
+    ? "text-white/50 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.14]"
+    : "text-foreground/55 hover:text-foreground hover:bg-foreground/[0.05] border border-foreground/[0.09] hover:border-foreground/[0.16]";
 
   const { data: countData } = useGetNotificationCount({
     query: {
@@ -217,18 +224,23 @@ export function NotificationCenter() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-10 w-10">
+        <button
+          className={cn(
+            "relative h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200",
+            btnCls
+          )}
+          aria-label={t("notifications.title")}
+        >
           {unreadCount > 0
-            ? <BellRing className="h-[1.1rem] w-[1.1rem] text-primary" />
-            : <Bell className="h-[1.1rem] w-[1.1rem]" />
+            ? <BellRing className="h-[1.0625rem] w-[1.0625rem]" />
+            : <Bell    className="h-[1.0625rem] w-[1.0625rem]" />
           }
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -end-1 flex h-[18px] min-w-[18px] px-0.5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground leading-none animate-in zoom-in-50 duration-200">
+            <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white pointer-events-none">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
-          <span className="sr-only">{t("notifications.title")}</span>
-        </Button>
+        </button>
       </PopoverTrigger>
 
       <PopoverContent
