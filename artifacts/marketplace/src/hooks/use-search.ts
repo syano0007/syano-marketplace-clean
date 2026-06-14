@@ -21,16 +21,17 @@ export interface SearchProduct {
   score: number;
 }
 
-export interface SuggestionProduct {
-  id: number;
-  name: string;
-  nameAr: string | null;
-  category: string;
-  imageUrl: string | null;
-  price: number;
-  finalPrice: number;
-  discountPercent: number | null;
-  score: number;
+/** A text-phrase search intent (no images, no prices). */
+export interface SuggestionItem {
+  text: string;
+  textAr: string | null;
+}
+
+/** A category with bilingual labels. */
+export interface CategoryItem {
+  slug: string;
+  labelEn: string;
+  labelAr: string;
 }
 
 export interface SuggestionStore {
@@ -38,20 +39,28 @@ export interface SuggestionStore {
   storeName: string;
   storeSlug: string | null;
   storeLogo: string | null;
-  categories: string[];
   city: string | null;
-}
-
-export interface SuggestionResult {
-  products: SuggestionProduct[];
-  stores: SuggestionStore[];
-  categories: string[];
 }
 
 export interface TrendingQuery {
   query: string;
   count: number;
 }
+
+/** Shape returned by GET /api/search/suggestions (v2) */
+export interface SuggestionResult {
+  suggestions: SuggestionItem[];
+  categories: CategoryItem[];
+  stores: SuggestionStore[];
+  trending: TrendingQuery[];
+}
+
+const EMPTY_SUGGESTIONS: SuggestionResult = {
+  suggestions: [],
+  categories: [],
+  stores: [],
+  trending: [],
+};
 
 async function fetchSearchTerm(term: string, limit: number): Promise<SearchProduct[]> {
   const url = `/api/search?q=${encodeURIComponent(term)}&limit=${limit}`;
@@ -133,28 +142,30 @@ export function useSearch(rawQuery: string, { limit = 8 }: { limit?: number } = 
 }
 
 /**
- * Single-call suggestions hook for the Navbar overlay.
- * Returns { products, stores, categories } from GET /api/search/suggestions.
+ * Marketplace-grade search suggestion hook for the Navbar overlay.
+ *
+ * Returns { suggestions, categories, stores, trending } — NO product cards.
+ * suggestions = text intent phrases derived from real product names.
+ * Implements debounce-friendly staleTime and placeholder data.
  */
 export function useSearchSuggestions(rawQuery: string) {
   const dq = rawQuery.trim();
   const { data, isFetching } = useQuery<SuggestionResult>({
-    queryKey: ["search/suggestions", dq],
+    queryKey: ["search/suggestions/v2", dq],
     queryFn: async () => {
-      if (dq.length < 2) return { products: [], stores: [], categories: [] };
       const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(dq)}`, {
         credentials: "include",
       });
-      if (!res.ok) return { products: [], stores: [], categories: [] };
+      if (!res.ok) return EMPTY_SUGGESTIONS;
       return res.json() as Promise<SuggestionResult>;
     },
-    enabled: dq.length >= 2,
+    enabled: dq.length >= 1,
     staleTime: 30_000,
     placeholderData: (prev) => prev,
   });
   return {
-    suggestions: data ?? { products: [], stores: [], categories: [] },
-    isLoading: isFetching,
+    suggestions: data ?? EMPTY_SUGGESTIONS,
+    isLoading: isFetching && !data,
     hasQuery: dq.length >= 2,
   };
 }
@@ -173,4 +184,17 @@ export function useSearchTrending() {
     staleTime: 5 * 60_000,
   });
   return data ?? [];
+}
+
+/**
+ * Track a suggestion / category / store click for analytics.
+ * Fire-and-forget — does not affect UI.
+ */
+export function trackSearchClick(term: string, type: "suggestion" | "category" | "store") {
+  fetch("/api/search/track-click", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ term, type }),
+    credentials: "include",
+  }).catch(() => {});
 }

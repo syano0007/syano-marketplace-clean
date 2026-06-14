@@ -1,6 +1,40 @@
 # SYANO — Current Project State
-**Last Updated:** June 14, 2026 (Session 11 — Navbar Polish & Consistency Pass)  
-**Updated By:** Global Navbar Polish Pass — all inconsistencies fixed, 0 TS errors
+**Last Updated:** June 14, 2026 (Session 12 — Search Suggestions Engine)  
+**Updated By:** Search Suggestions Engine — Amazon/Noon style, text-intent phrases only, 0 TS errors
+
+---
+
+## ✅ Search Suggestions Engine — COMPLETE (June 14, 2026)
+
+### Architecture
+- **Backend:** `GET /api/search/suggestions?q=<term>` returns `{ suggestions[], categories[], stores[], trending[] }`
+  - `suggestions` = text-intent phrases derived from real product `name`/`name_ar` fields — **no images, no prices**
+  - `categories` = matching category slugs with `labelEn`/`labelAr` (17 categories, full Arabic labels)
+  - `stores` = approved stores matching query by name/description (limit 3)
+  - `trending` = top search terms from `search_queries` table (always included, cap 6)
+  - Arabic normalizer: `أإآ→ا`, `ة→ه`, `ى→ي`, strips diacritics — enables fuzzy Arabic matching
+  - Analytics: `POST /api/search/track-click` logs clicks (fire-and-forget, feeds trending)
+  - Query tracking: every suggestion call tracks `q` in `search_queries` via upsert
+  - Query key: `["search/suggestions/v2", dq]` — avoids stale cache from old v1 shape
+- **Frontend hook:** `artifacts/marketplace/src/hooks/use-search.ts` — `useSearchSuggestions()` returns `SuggestionResult` with `suggestions/categories/stores/trending`; `trackSearchClick()` is a fire-and-forget helper
+- **Navbar desktop dropdown:** Shows Suggested Searches (Search icon + text) → Categories (badge chips with AR/EN labels) → Stores (store logo/icon) → "See all results" footer — **no product cards, no prices**
+- **Navbar mobile dropdown:** Same structure, more compact, rendered as absolute overlay below the search bar
+- **Mobile (`index.tsx`):** Inline suggestion list appears below search bar inside `ListHeaderComponent` when `searchFocused && search.length >= 2`; tapping a suggestion fills the search input and triggers inline product filter; `getBaseUrl()` for API calls
+
+### Guard Pattern (HMR-safe)
+All `suggestions.*` accesses use `(suggestions.suggestions?.length ?? 0)` / `(suggestions.suggestions ?? []).slice(...)` — safe against HMR state shape mismatches.
+
+### TypeScript: ✅ 0 errors — marketplace, api-server, mobile all clean
+
+### Test Results
+```
+GET /api/search/suggestions?q=phone
+→ { suggestions: ["Sony WH-1000XM5 Wireless Headphones", ...], categories: [], stores: [], trending: ["phone"] }
+
+GET /api/search/suggestions?q=electronics
+→ { suggestions: [...subcategory phrases], categories: [{ slug: "Electronics", labelEn: "Electronics", labelAr: "إلكترونيات" }], stores: [{ storeName: "Ahmad Electronics", ... }], trending: [...] }
+```
+Response times: **2–32ms**
 
 ---
 

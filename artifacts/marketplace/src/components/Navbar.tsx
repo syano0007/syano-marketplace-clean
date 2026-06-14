@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { applyDirection } from "@/i18n";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
-import { useSearchSuggestions, useSearchTrending } from "@/hooks/use-search";
+import { useSearchSuggestions, useSearchTrending, trackSearchClick } from "@/hooks/use-search";
 
 /* ── MobileNavLink ─────────────────────────────────────────────────────────── */
 interface MobileNavLinkProps {
@@ -175,9 +175,10 @@ export function Navbar() {
     }
   }, [searchQuery, navigate, saveRecentSearch]);
 
-  const handleSuggestionClick = useCallback((productId: number, productName?: string) => {
-    if (productName) saveRecentSearch(productName);
-    navigate(`/products/${productId}`);
+  const handleSuggestionTextClick = useCallback((text: string, type: "suggestion" | "category" | "store" = "suggestion") => {
+    saveRecentSearch(text);
+    trackSearchClick(text, type);
+    navigate(`/search?q=${encodeURIComponent(text)}`);
     setSearchOpen(false);
     setSearchQuery("");
   }, [navigate, saveRecentSearch]);
@@ -329,39 +330,40 @@ export function Navbar() {
                   </button>
                 )}
               </form>
-              {searchOpen && debouncedSearch.length >= 2 && (suggestions.products.length > 0 || suggestions.stores.length > 0) && (
-                <div className={`absolute top-full mt-1 left-0 right-0 ${navDropBg} rounded-xl shadow-2xl z-50 overflow-hidden`}>
-                  {suggestions.products.slice(0, 4).map(p => (
-                    <button key={p.id} onClick={() => handleSuggestionClick(p.id, p.name)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 ${navHoverBg} text-start`}>
-                      {p.imageUrl
-                        ? <img src={p.imageUrl} alt="" className={`h-8 w-8 rounded-lg object-cover border ${navBorder} shrink-0`} />
-                        : <div className={`h-8 w-8 rounded-lg border ${navBorder} shrink-0 flex items-center justify-center`}><Package className={`h-4 w-4 ${navDropMeta}`} /></div>
-                      }
-                      <div className="flex-1 min-w-0">
-                        <div style={{ fontSize: "0.8125rem", fontWeight: 600 }} className={`${navDropText} truncate`}>{p.name}</div>
-                        <div style={{ fontSize: "11px" }} className={navDropSub}>{p.category}</div>
-                      </div>
+              {searchOpen && debouncedSearch.length >= 2 && ((suggestions.suggestions?.length ?? 0) > 0 || (suggestions.stores?.length ?? 0) > 0 || (suggestions.categories?.length ?? 0) > 0) && (
+                <div className={`absolute top-full mt-1 left-0 right-0 ${navDropBg} border ${navBorder} rounded-xl shadow-2xl z-50 overflow-hidden`}>
+                  {(suggestions.suggestions ?? []).slice(0, 4).map((s, i) => {
+                    const displayText = isRtl && s.textAr ? s.textAr : s.text;
+                    return (
+                      <button key={i} onClick={() => handleSuggestionTextClick(displayText)}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 ${navHoverBg} text-start transition-colors`}>
+                        <Search className={`h-3.5 w-3.5 ${navDropMeta} shrink-0`} />
+                        <span style={{ fontSize: "0.8125rem" }} className={`${navDropText} truncate`}>{displayText}</span>
+                      </button>
+                    );
+                  })}
+                  {(suggestions.categories ?? []).slice(0, 2).map(cat => (
+                    <button key={cat.slug}
+                      onClick={() => { trackSearchClick(cat.slug, "category"); navigate(`/shop?category=${encodeURIComponent(cat.slug)}`); setSearchOpen(false); setSearchQuery(""); }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 ${navHoverBg} border-t ${navBorder} text-start transition-colors`}>
+                      <Layers className={`h-3.5 w-3.5 text-blue-400 shrink-0`} />
+                      <span style={{ fontSize: "0.8125rem" }} className={`${navDropText} truncate`}>{isRtl ? cat.labelAr : cat.labelEn}</span>
+                      <span style={{ fontSize: "10px" }} className={`ms-auto ${navDropMeta} uppercase font-semibold shrink-0`}>{isRtl ? "فئة" : "Cat"}</span>
                     </button>
                   ))}
-                  {suggestions.stores.slice(0, 2).map(s => (
+                  {(suggestions.stores ?? []).slice(0, 2).map(s => (
                     <button key={s.userId}
-                      onClick={() => { navigate(s.storeSlug ? `/store/${s.storeSlug}` : `/shop?sellerId=${s.userId}`); setSearchOpen(false); setSearchQuery(""); }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 ${navHoverBg} border-t ${navBorder} text-start`}>
-                      {s.storeLogo
-                        ? <img src={s.storeLogo} alt="" className={`h-7 w-7 rounded-lg object-cover border ${navBorder} shrink-0`} />
-                        : <div className="h-7 w-7 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0"><Store className="h-3.5 w-3.5 text-emerald-500" /></div>
-                      }
-                      <div className="flex-1 min-w-0">
-                        <div style={{ fontSize: "0.8125rem", fontWeight: 600 }} className={`${navDropText} truncate`}>{s.storeName}</div>
-                      </div>
-                      <Store className={`h-3.5 w-3.5 ${navDropMeta} shrink-0`} />
+                      onClick={() => { trackSearchClick(s.storeName, "store"); navigate(s.storeSlug ? `/store/${s.storeSlug}` : `/shop?sellerId=${s.userId}`); setSearchOpen(false); setSearchQuery(""); }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 ${navHoverBg} border-t ${navBorder} text-start transition-colors`}>
+                      <Store className={`h-3.5 w-3.5 text-emerald-500 shrink-0`} />
+                      <span style={{ fontSize: "0.8125rem" }} className={`${navDropText} truncate`}>{s.storeName}</span>
+                      <span style={{ fontSize: "10px" }} className={`ms-auto ${navDropMeta} uppercase font-semibold shrink-0`}>{isRtl ? "متجر" : "Store"}</span>
                     </button>
                   ))}
                   <button onClick={handleSearchSubmit as any}
-                    className={`w-full px-3 py-2 text-xs text-emerald-400 font-semibold ${navHoverBg} border-t ${navBorder} flex items-center gap-1.5`}>
+                    className={`w-full px-3 py-2 text-xs text-emerald-400 font-semibold ${navHoverBg} border-t ${navBorder} flex items-center gap-1.5 transition-colors`}>
                     <Search className="h-3 w-3" />
-                    {isRtl ? `كل النتائج` : `All results`}
+                    {isRtl ? `عرض نتائج "${debouncedSearch}"` : `Search "${debouncedSearch}"`}
                   </button>
                 </div>
               )}
@@ -442,88 +444,80 @@ export function Navbar() {
                 {searchOpen && (debouncedSearch.length >= 2 || recentSearches.length > 0 || trendingSearches.length > 0) && (
                   <div className={`absolute top-full mt-2 left-0 right-0 ${navDropBg} rounded-2xl shadow-2xl z-50 overflow-hidden`} style={{ minWidth: "22rem", width: "max-content", maxWidth: "28rem" }}>
                     {debouncedSearch.length >= 2 ? (
-                      searchLoading && suggestions.products.length === 0 ? (
+                      searchLoading ? (
                         <div className={`p-4 text-sm ${navDropMeta} text-center flex items-center justify-center gap-2`}>
                           <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
                           {isRtl ? "جاري البحث..." : "Searching..."}
                         </div>
-                      ) : suggestions.products.length === 0 && suggestions.stores.length === 0 && suggestions.categories.length === 0 ? (
+                      ) : (suggestions.suggestions?.length ?? 0) === 0 && (suggestions.stores?.length ?? 0) === 0 && (suggestions.categories?.length ?? 0) === 0 ? (
                         <div className={`p-4 text-sm ${navDropMeta} text-center`}>{isRtl ? "لا توجد نتائج" : "No results found"}</div>
                       ) : (
-                        <div className="py-1.5 max-h-80 overflow-y-auto">
-                          {/* Products */}
-                          {suggestions.products.length > 0 && (
-                            <>
-                              <div className={`px-3.5 pt-2 pb-1 flex items-center gap-1.5`}>
-                                <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className={`${navDropMeta} uppercase`}>
-                                  {isRtl ? "منتجات" : "Products"}
-                                </span>
-                              </div>
-                              {suggestions.products.slice(0, 4).map(p => (
-                                <button key={p.id} onClick={() => handleSuggestionClick(p.id, p.name)}
-                                  className={`w-full flex items-center gap-3 px-3.5 py-2 ${navHoverBg} transition-colors`} style={{ textAlign: isRtl ? "right" : "left" }}>
-                                  {p.imageUrl
-                                    ? <img src={p.imageUrl} alt="" className={`h-8 w-8 rounded-lg object-cover border ${navBorder} shrink-0`} />
-                                    : <div className={`h-8 w-8 rounded-lg border ${navBorder} shrink-0 flex items-center justify-center`}><Package className={`h-4 w-4 ${navDropMeta}`} /></div>
-                                  }
-                                  <div className="flex-1 min-w-0">
-                                    <div style={{ fontSize: "0.8125rem", fontWeight: 600 }} className={`${navDropText} truncate`}>{p.name}</div>
-                                    <div style={{ fontSize: "11px" }} className={navDropSub}>{p.category}</div>
-                                  </div>
-                                  <div style={{ fontSize: "0.8125rem", fontWeight: 700 }} className="text-emerald-400 shrink-0 tabular-nums">{p.finalPrice.toLocaleString()} ل.س</div>
-                                </button>
-                              ))}
-                            </>
-                          )}
+                        <div className="py-1 max-h-[22rem] overflow-y-auto">
 
-                          {/* Stores */}
-                          {suggestions.stores.length > 0 && (
+                          {/* ── Suggested searches ── */}
+                          {(suggestions.suggestions?.length ?? 0) > 0 && (suggestions.suggestions ?? []).slice(0, 6).map((s, i) => {
+                            const displayText = isRtl && s.textAr ? s.textAr : s.text;
+                            return (
+                              <button key={i} onClick={() => handleSuggestionTextClick(displayText)}
+                                className={`w-full flex items-center gap-3 px-3.5 py-2.5 ${navHoverBg} transition-colors`}
+                                style={{ textAlign: isRtl ? "right" : "left" }}>
+                                <Search className={`h-3.5 w-3.5 ${navDropMeta} shrink-0`} />
+                                <span style={{ fontSize: "0.8125rem" }} className={`${navDropText} truncate flex-1`}>{displayText}</span>
+                              </button>
+                            );
+                          })}
+
+                          {/* ── Categories ── */}
+                          {(suggestions.categories?.length ?? 0) > 0 && (
                             <>
                               <div className={`px-3.5 pt-2.5 pb-1 border-t ${navBorder} flex items-center gap-1.5`}>
-                                <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className={`${navDropMeta} uppercase`}>
-                                  {isRtl ? "متاجر" : "Stores"}
-                                </span>
-                              </div>
-                              {suggestions.stores.slice(0, 3).map(s => (
-                                <button key={s.userId}
-                                  onClick={() => { navigate(s.storeSlug ? `/store/${s.storeSlug}` : `/shop?sellerId=${s.userId}`); setSearchOpen(false); setSearchQuery(""); }}
-                                  className={`w-full flex items-center gap-3 px-3.5 py-2 ${navHoverBg} transition-colors`} style={{ textAlign: isRtl ? "right" : "left" }}>
-                                  {s.storeLogo
-                                    ? <img src={s.storeLogo} alt="" className={`h-8 w-8 rounded-lg object-cover border ${navBorder} shrink-0`} />
-                                    : <div className={`h-8 w-8 rounded-lg border ${navBorder} shrink-0 flex items-center justify-center bg-emerald-500/10`}><Store className="h-4 w-4 text-emerald-500" /></div>
-                                  }
-                                  <div className="flex-1 min-w-0">
-                                    <div style={{ fontSize: "0.8125rem", fontWeight: 600 }} className={`${navDropText} truncate`}>{s.storeName}</div>
-                                    {s.city && <div style={{ fontSize: "11px" }} className={navDropSub}>{s.city}</div>}
-                                  </div>
-                                  <Store className={`h-3.5 w-3.5 ${navDropMeta} shrink-0`} />
-                                </button>
-                              ))}
-                            </>
-                          )}
-
-                          {/* Categories */}
-                          {suggestions.categories.length > 0 && (
-                            <>
-                              <div className={`px-3.5 pt-2.5 pb-1 border-t ${navBorder} flex items-center gap-1.5`}>
+                                <Layers className={`h-3 w-3 ${navDropMeta}`} />
                                 <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className={`${navDropMeta} uppercase`}>
                                   {isRtl ? "فئات" : "Categories"}
                                 </span>
                               </div>
                               <div className="px-3.5 pb-2 flex flex-wrap gap-1.5">
-                                {suggestions.categories.slice(0, 4).map(cat => (
-                                  <button key={cat}
-                                    onClick={() => { navigate(`/shop?category=${encodeURIComponent(cat)}`); setSearchOpen(false); setSearchQuery(""); }}
+                                {(suggestions.categories ?? []).slice(0, 4).map(cat => (
+                                  <button key={cat.slug}
+                                    onClick={() => { trackSearchClick(cat.slug, "category"); navigate(`/shop?category=${encodeURIComponent(cat.slug)}`); setSearchOpen(false); setSearchQuery(""); }}
                                     className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${navBorder} ${navHoverBg} ${navDropText} transition-colors flex items-center gap-1`}>
-                                    <Layers className="h-3 w-3 shrink-0" />
-                                    {cat}
+                                    <Layers className="h-3 w-3 shrink-0 text-blue-400" />
+                                    {isRtl ? cat.labelAr : cat.labelEn}
                                   </button>
                                 ))}
                               </div>
                             </>
                           )}
 
-                          {/* See all results */}
+                          {/* ── Stores ── */}
+                          {(suggestions.stores?.length ?? 0) > 0 && (
+                            <>
+                              <div className={`px-3.5 pt-2.5 pb-1 border-t ${navBorder} flex items-center gap-1.5`}>
+                                <Store className={`h-3 w-3 ${navDropMeta}`} />
+                                <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className={`${navDropMeta} uppercase`}>
+                                  {isRtl ? "متاجر" : "Stores"}
+                                </span>
+                              </div>
+                              {(suggestions.stores ?? []).slice(0, 3).map(s => (
+                                <button key={s.userId}
+                                  onClick={() => { trackSearchClick(s.storeName, "store"); navigate(s.storeSlug ? `/store/${s.storeSlug}` : `/shop?sellerId=${s.userId}`); setSearchOpen(false); setSearchQuery(""); }}
+                                  className={`w-full flex items-center gap-3 px-3.5 py-2 ${navHoverBg} transition-colors`}
+                                  style={{ textAlign: isRtl ? "right" : "left" }}>
+                                  {s.storeLogo
+                                    ? <img src={s.storeLogo} alt="" className={`h-7 w-7 rounded-lg object-cover border ${navBorder} shrink-0`} />
+                                    : <div className={`h-7 w-7 rounded-lg shrink-0 flex items-center justify-center bg-emerald-500/10`}><Store className="h-3.5 w-3.5 text-emerald-500" /></div>
+                                  }
+                                  <div className="flex-1 min-w-0">
+                                    <div style={{ fontSize: "0.8125rem", fontWeight: 600 }} className={`${navDropText} truncate`}>{s.storeName}</div>
+                                    {s.city && <div style={{ fontSize: "11px" }} className={navDropSub}>{s.city}</div>}
+                                  </div>
+                                  <span style={{ fontSize: "10px" }} className={`${navDropMeta} uppercase font-semibold shrink-0`}>{isRtl ? "متجر" : "Store"}</span>
+                                </button>
+                              ))}
+                            </>
+                          )}
+
+                          {/* ── See all results ── */}
                           <button onClick={handleSearchSubmit as any}
                             className={`w-full px-3.5 py-2.5 text-sm text-emerald-400 font-semibold ${navHoverBg} transition-colors border-t ${navBorder} flex items-center gap-2`}>
                             <Search className="h-3.5 w-3.5" />

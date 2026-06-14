@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import {
@@ -18,13 +19,19 @@ import {
   useGetSellerDashboard,
   useListCategories,
   useListProducts,
+  getBaseUrl,
 } from "@workspace/api-client-react";
 import type { Product } from "@workspace/api-client-react";
+
 import { ProductCard } from "@/components/ProductCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useScreenLayout } from "@/hooks/useScreenLayout";
 import { t } from "../../src/i18n";
+
+interface SuggestionItem { text: string; textAr: string | null }
+interface CategorySuggestion { slug: string; labelEn: string; labelAr: string }
+interface MobileSuggestions { suggestions: SuggestionItem[]; categories: CategorySuggestion[] }
 
 export default function HomeScreen() {
   const { isSeller } = useAuth();
@@ -37,8 +44,10 @@ function CustomerShop() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [mobileSuggestions, setMobileSuggestions] = useState<MobileSuggestions>({ suggestions: [], categories: [] });
   const addToCart = useAddToCart();
-
+  const suggestTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function handleSearchChange(text: string) {
@@ -46,6 +55,27 @@ function CustomerShop() {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => setDebouncedSearch(text), 400);
   }
+
+  // Fetch suggestions when typing ≥ 2 chars
+  useEffect(() => {
+    if (suggestTimeout.current) clearTimeout(suggestTimeout.current);
+    if (debouncedSearch.length < 2) {
+      setMobileSuggestions({ suggestions: [], categories: [] });
+      return;
+    }
+    suggestTimeout.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${getBaseUrl()}/search/suggestions?q=${encodeURIComponent(debouncedSearch)}`);
+        if (!res.ok) return;
+        const data = await res.json() as { suggestions?: SuggestionItem[]; categories?: CategorySuggestion[] };
+        setMobileSuggestions({
+          suggestions: data.suggestions ?? [],
+          categories: data.categories ?? [],
+        });
+      } catch { /* network error — stay silent */ }
+    }, 100);
+    return () => { if (suggestTimeout.current) clearTimeout(suggestTimeout.current); };
+  }, [debouncedSearch]);
 
   const { data: categories = [] } = useListCategories();
   const {
@@ -99,6 +129,8 @@ function CustomerShop() {
           value={search}
           onChangeText={handleSearchChange}
           returnKeyType="search"
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
         />
         {!!search && (
           <Pressable
@@ -111,6 +143,53 @@ function CustomerShop() {
           </Pressable>
         )}
       </View>
+
+      {/* ── Search suggestion overlay ── */}
+      {searchFocused && search.length >= 2 && (mobileSuggestions.suggestions.length > 0 || mobileSuggestions.categories.length > 0) && (
+        <View style={[suggStyles.overlay, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {mobileSuggestions.suggestions.slice(0, 5).map((s, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[suggStyles.row, { borderBottomColor: colors.border }]}
+              onPress={() => {
+                const text = s.text;
+                setSearch(text);
+                setDebouncedSearch(text);
+                setSearchFocused(false);
+                setMobileSuggestions({ suggestions: [], categories: [] });
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="search-outline" size={14} color={colors.mutedForeground} />
+              <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>
+                {s.text}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          {mobileSuggestions.categories.slice(0, 2).map((cat) => (
+            <TouchableOpacity
+              key={cat.slug}
+              style={[suggStyles.row, { borderBottomColor: colors.border }]}
+              onPress={() => {
+                setSearchFocused(false);
+                setSearch("");
+                setDebouncedSearch("");
+                setMobileSuggestions({ suggestions: [], categories: [] });
+                router.push(`/(tabs)/shop?category=${encodeURIComponent(cat.slug)}` as any);
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="layers-outline" size={14} color="#60a5fa" />
+              <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>
+                {cat.labelEn}
+              </Text>
+              <Text style={[suggStyles.catBadge, { color: colors.mutedForeground, borderColor: colors.border }]}>
+                category
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       <ScrollView
         horizontal
@@ -370,6 +449,34 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   emptyText: { fontSize: 15 },
+});
+
+const suggStyles = StyleSheet.create({
+  overlay: {
+    borderWidth: 1,
+    borderRadius: 10,
+    overflow: "hidden",
+    marginTop: -4,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  rowText: { flex: 1, fontSize: 13.5 },
+  catBadge: {
+    fontSize: 10,
+    fontWeight: "600" as const,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
 });
 
 const statStyles = StyleSheet.create({

@@ -32,6 +32,48 @@ interface StoreRow {
   description: string | null;
 }
 
+interface ProductNameRow {
+  name: string;
+  name_ar: string | null;
+  category: string;
+  subcategory: string | null;
+}
+
+/* ── Arabic normalizer ──────────────────────────────────────────────────────
+   Normalizes common Arabic letter variants for fuzzy matching.
+   أ إ آ → ا  |  ة → ه  |  ى → ي  |  strips diacritics
+─────────────────────────────────────────────────────────────────────────── */
+function normalizeAr(s: string): string {
+  return s
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+/* ── Category labels (EN + AR) ──────────────────────────────────────────── */
+const CATEGORY_LABELS: Record<string, { en: string; ar: string }> = {
+  "Electronics":            { en: "Electronics",            ar: "إلكترونيات" },
+  "Fashion":                { en: "Fashion",                ar: "أزياء وموضة" },
+  "Beauty & Personal Care": { en: "Beauty & Personal Care", ar: "جمال وعناية" },
+  "Home & Kitchen":         { en: "Home & Kitchen",         ar: "منزل ومطبخ" },
+  "Supermarket & Grocery":  { en: "Supermarket & Grocery",  ar: "بقالة وسوبرماركت" },
+  "Sports & Fitness":       { en: "Sports & Fitness",       ar: "رياضة ولياقة" },
+  "Automotive":             { en: "Automotive",             ar: "سيارات ومركبات" },
+  "Gaming & Entertainment": { en: "Gaming & Entertainment", ar: "ألعاب وترفيه" },
+  "Books & Stationery":     { en: "Books & Stationery",     ar: "كتب وقرطاسية" },
+  "Pet Supplies":           { en: "Pet Supplies",           ar: "مستلزمات حيوانات" },
+  "Digital Products":       { en: "Digital Products",       ar: "منتجات رقمية" },
+  "Handmade & Crafts":      { en: "Handmade & Crafts",      ar: "مصنوعات يدوية" },
+  "Jewelry & Luxury":       { en: "Jewelry & Luxury",       ar: "مجوهرات وكماليات" },
+  "Baby & Kids":            { en: "Baby & Kids",            ar: "أطفال ورضع" },
+  "Tools & Construction":   { en: "Tools & Construction",   ar: "أدوات وبناء" },
+  "Garden & Outdoor":       { en: "Garden & Outdoor",       ar: "حديقة وخارجي" },
+  "Gifts & Events":         { en: "Gifts & Events",         ar: "هدايا ومناسبات" },
+};
+
 function computeFinalPrice(price: string, discount: string | null): number {
   const p = parseFloat(price);
   if (!discount) return p;
@@ -161,96 +203,163 @@ router.get("/search", async (req, res): Promise<void> => {
 /**
  * GET /api/search/suggestions?q=<term>
  *
- * Combined instant-search endpoint used by the Navbar overlay.
- * Returns { products[], stores[], categories[] } in a single round trip.
+ * Marketplace-grade search suggestion engine (Amazon / Noon style).
+ * Returns search INTENTS — text phrases to search for — NOT product cards.
+ *
+ * Response shape:
+ *   { suggestions[], categories[], stores[], trending[] }
+ *
+ * suggestions: text phrases derived from real product names & categories
+ * categories:  matching main categories with EN + AR labels
+ * stores:      matching approved stores
+ * trending:    popular search terms (always included, capped at 6)
+ *
+ * No product images, prices, or ratings are returned.
  */
 router.get("/search/suggestions", async (req, res): Promise<void> => {
   const raw = String(req.query.q ?? "").trim();
+  const term = raw.toLowerCase();
+  const normTerm = normalizeAr(term);
+  const likePattern = `%${term}%`;
+
+  /* ── Trending (always returned) ─────────────────────────────────────── */
+  const trendingPromise = pool.query<{ query: string; count: number }>(
+    `SELECT query, count FROM search_queries ORDER BY count DESC, last_searched DESC LIMIT 6`,
+  );
+
   if (raw.length < 2) {
-    res.json({ products: [], stores: [], categories: [] });
+    const trending = await trendingPromise;
+    res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+    res.json({
+      suggestions: [],
+      categories: [],
+      stores: [],
+      trending: trending.rows.map((r) => ({ query: r.query, count: r.count })),
+    });
     return;
   }
 
-  const term = raw.toLowerCase();
-  const likePattern = `%${term}%`;
-
-  const [productsRes, storesRes] = await Promise.all([
-    pool.query<SearchRow>(
-      `WITH scored AS (
-        SELECT
-          p.id, p.seller_id, u.name AS seller_name,
-          p.name, p.description, p.price::text, p.discount_percent::text,
-          p.category, p.subcategory, p.stock, p.image_url, p.featured,
-          p.name_ar, p.created_at,
-          GREATEST(
-            CASE WHEN lower(p.name) = $1          THEN 1.00 ELSE 0 END,
-            CASE WHEN lower(p.name) LIKE $1||'%'  THEN 0.95 ELSE 0 END,
-            CASE WHEN lower(p.name) LIKE $2        THEN 0.85 ELSE 0 END,
-            word_similarity($1, lower(p.name))     * 0.90,
-            CASE WHEN lower(COALESCE(p.name_ar,'')) LIKE $2 THEN 0.85 ELSE 0 END,
-            CASE WHEN lower(COALESCE(p.search_tokens,'')) LIKE $2 THEN 0.75 ELSE 0 END,
-            CASE WHEN lower(p.category) LIKE $2   THEN 0.65 ELSE 0 END,
-            CASE WHEN lower(p.description) LIKE $2 THEN 0.40 ELSE 0 END
-          ) AS score
-        FROM products p
-        INNER JOIN users u ON u.id = p.seller_id
-        WHERE p.stock > 0
-          AND (
-            lower(p.name)                          LIKE $2
-            OR lower(COALESCE(p.name_ar,''))        LIKE $2
-            OR lower(COALESCE(p.search_tokens,''))  LIKE $2
-            OR lower(p.category)                    LIKE $2
-            OR lower(p.description)                 LIKE $2
-            OR word_similarity($1, lower(p.name)) > 0.20
-          )
-      )
-      SELECT * FROM scored WHERE score > 0 ORDER BY score DESC LIMIT 5`,
+  /* ── Parallel fetches ────────────────────────────────────────────────── */
+  const [productNamesRes, storesRes, trendingRes] = await Promise.all([
+    /* Product names — for intent generation */
+    pool.query<ProductNameRow>(
+      `SELECT DISTINCT p.name, p.name_ar, p.category, p.subcategory
+       FROM products p
+       WHERE p.stock > 0
+         AND (
+           lower(p.name)                          LIKE $2
+           OR lower(COALESCE(p.name_ar,''))        LIKE $2
+           OR lower(COALESCE(p.search_tokens,''))  LIKE $2
+           OR lower(p.category)                    LIKE $2
+           OR lower(COALESCE(p.subcategory,''))     LIKE $2
+           OR word_similarity($1, lower(p.name))  > 0.25
+         )
+       LIMIT 24`,
       [term, likePattern],
     ),
+    /* Stores */
     pool.query<StoreRow>(
-      `SELECT
-         sa.user_id, sa.store_name, sa.store_slug, sa.store_logo,
-         sa.categories, sa.city, sa.description
+      `SELECT sa.user_id, sa.store_name, sa.store_slug, sa.store_logo, sa.city
        FROM seller_applications sa
        WHERE sa.status = 'approved'
          AND sa.store_name IS NOT NULL
          AND (
-           lower(COALESCE(sa.store_name, '')) LIKE $1
-           OR lower(COALESCE(sa.description, '')) LIKE $1
+           lower(COALESCE(sa.store_name,''))   LIKE $1
+           OR lower(COALESCE(sa.description,'')) LIKE $1
          )
        ORDER BY lower(sa.store_name) ASC
-       LIMIT 4`,
+       LIMIT 3`,
       [likePattern],
     ),
+    trendingPromise,
   ]);
 
-  const categories = MAIN_CATEGORY_SLUGS.filter((slug) =>
-    slug.toLowerCase().includes(term),
-  ).slice(0, 4);
+  /* ── Build suggestion phrases from real product data ─────────────────── */
+  const seenNorm = new Set<string>();
+  const suggestions: { text: string; textAr: string | null }[] = [];
 
-  const products = productsRes.rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    nameAr: r.name_ar ?? null,
-    category: r.category,
-    imageUrl: r.image_url ?? null,
-    price: parseFloat(r.price),
-    finalPrice: computeFinalPrice(r.price, r.discount_percent),
-    discountPercent: r.discount_percent ? parseFloat(r.discount_percent) : null,
-    score: Math.round((r.score ?? 0) * 100) / 100,
-  }));
+  function addSuggestion(text: string, textAr: string | null) {
+    if (suggestions.length >= 7) return;
+    // Deduplicate by normalized key (use whichever text is available)
+    const key = normalizeAr(textAr ?? text).slice(0, 50);
+    const engKey = text.toLowerCase().slice(0, 50);
+    if (seenNorm.has(key) || seenNorm.has(engKey)) return;
+    seenNorm.add(key);
+    seenNorm.add(engKey);
+    suggestions.push({ text, textAr });
+  }
 
+  for (const row of productNamesRes.rows) {
+    const arName = row.name_ar ?? null;
+    const enName = row.name;
+
+    // Arabic name matches the query (normalized comparison)
+    if (arName) {
+      const normAr = normalizeAr(arName);
+      if (normAr.includes(normTerm) || normTerm.length >= 3 && normAr.includes(normTerm.slice(0, -1))) {
+        addSuggestion(enName, arName);
+        continue;
+      }
+    }
+    // English name matches
+    if (enName.toLowerCase().includes(term)) {
+      addSuggestion(enName, arName);
+    }
+  }
+
+  // Category-level suggestions: "{query} in {subcategory}" from matched products
+  // Only add if we have fewer than 5 suggestions so far
+  if (suggestions.length < 5) {
+    const subcatCounts: Record<string, number> = {};
+    for (const row of productNamesRes.rows) {
+      if (row.subcategory) {
+        subcatCounts[row.subcategory] = (subcatCounts[row.subcategory] ?? 0) + 1;
+      }
+    }
+    const topSubcats = Object.entries(subcatCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([sc]) => sc);
+
+    for (const subcat of topSubcats) {
+      if (suggestions.length >= 7) break;
+      const combined = `${raw} ${subcat}`;
+      addSuggestion(combined, null);
+    }
+  }
+
+  /* ── Category matches with EN + AR labels ────────────────────────────── */
+  const normTermFull = normalizeAr(raw);
+  const categories = MAIN_CATEGORY_SLUGS.filter((slug) => {
+    const label = CATEGORY_LABELS[slug];
+    if (!label) return false;
+    return (
+      slug.toLowerCase().includes(term) ||
+      label.en.toLowerCase().includes(term) ||
+      normalizeAr(label.ar).includes(normTermFull)
+    );
+  })
+    .slice(0, 4)
+    .map((slug) => ({
+      slug,
+      labelEn: CATEGORY_LABELS[slug]?.en ?? slug,
+      labelAr: CATEGORY_LABELS[slug]?.ar ?? slug,
+    }));
+
+  /* ── Stores ──────────────────────────────────────────────────────────── */
   const stores = storesRes.rows.map((r) => ({
     userId: r.user_id,
     storeName: r.store_name ?? "",
     storeSlug: r.store_slug ?? null,
     storeLogo: r.store_logo ?? null,
-    categories: r.categories ?? [],
     city: r.city ?? null,
   }));
 
+  /* ── Trending ────────────────────────────────────────────────────────── */
+  const trending = trendingRes.rows.map((r) => ({ query: r.query, count: r.count }));
+
   res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=15");
-  res.json({ products, stores, categories });
+  res.json({ suggestions, categories, stores, trending });
 });
 
 /**
@@ -264,6 +373,20 @@ router.get("/search/trending", async (_req, res): Promise<void> => {
   );
   res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
   res.json(rows.map((r) => ({ query: r.query, count: r.count })));
+});
+
+/**
+ * POST /api/search/track-click
+ *
+ * Analytics foundation — track suggestion/category/store clicks.
+ * Body: { term: string, type: 'suggestion' | 'category' | 'store' }
+ */
+router.post("/search/track-click", async (req, res): Promise<void> => {
+  const { term, type } = req.body as { term?: string; type?: string };
+  if (term && typeof term === "string" && term.trim().length >= 2) {
+    trackQuery(term.trim());
+  }
+  res.json({ ok: true });
 });
 
 export default router;
