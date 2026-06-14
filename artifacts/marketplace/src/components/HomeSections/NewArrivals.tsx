@@ -1,4 +1,4 @@
-import { Star, ArrowLeft, Zap } from "lucide-react";
+import { ArrowLeft, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -7,20 +7,11 @@ import type { Product } from "@workspace/api-client-react";
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
-const STATIC = [
-  { id: 1, nameAr: "مجموعة تقنية بريميوم 2025", categoryKey: "home.categories.electronics", price: 435000, rating: 4.8, reviews: 12, daysAgo: 2, img: "https://images.unsplash.com/photo-1741851547702-cac24b2a0d13?w=600&h=450&fit=crop&auto=format&q=85" },
-  { id: 2, nameAr: "عطر الأوبسيديان الليلي", categoryKey: "home.categories.beauty", price: 89500, rating: 5.0, reviews: 7, daysAgo: 1, img: "https://images.unsplash.com/photo-1772191399367-91ed8d95664b?w=400&h=450&fit=crop&auto=format&q=85" },
-  { id: 3, nameAr: "ديكور منزلي مودرن", categoryKey: "home.categories.home_decor", price: 56000, rating: 4.7, reviews: 23, daysAgo: 3, img: "https://images.unsplash.com/photo-1724582586529-62622e50c0b3?w=400&h=220&fit=crop&auto=format&q=85" },
-  { id: 4, nameAr: "فستان سهرة أنيق", categoryKey: "home.categories.fashion", price: 78000, rating: 4.9, reviews: 18, daysAgo: 1, img: "https://images.unsplash.com/photo-1704775986112-281c826c3ebd?w=400&h=220&fit=crop&auto=format&q=85" },
-];
-
 interface ArrivalData {
   id: number;
   name: string;
   categoryLabel: string;
   price: number;
-  rating: number;
-  reviews: number;
   daysAgo: number;
   img: string;
   productId?: number;
@@ -30,33 +21,22 @@ export function NewArrivals({ newArrivals }: { newArrivals?: Product[] }) {
   const { t, i18n } = useTranslation();
   const { format } = useCurrency();
 
-  const items: ArrivalData[] = newArrivals && newArrivals.length >= 4
+  const items: ArrivalData[] = (newArrivals && newArrivals.length >= 4
     ? newArrivals.slice(0, 4).map((p, i) => {
         const imgs = (p as any).imageUrls as string[] | undefined;
-        const s = STATIC[i % 4];
         return {
           id: p.id,
           productId: p.id,
           name: p.name,
-          categoryLabel: p.category ?? t(s.categoryKey),
-          price: Number(p.price),
-          rating: s.rating,
-          reviews: s.reviews,
+          categoryLabel: p.category ?? "",
+          price: (p as any).finalPrice ? Number((p as any).finalPrice) : Number(p.price),
           daysAgo: Math.floor(i / 2) + 1,
-          img: imgs?.[0] ?? s.img,
+          img: imgs?.[0] ?? "",
         };
       })
-    : STATIC.map(s => ({
-        id: s.id,
-        productId: s.id,
-        name: s.nameAr,
-        categoryLabel: t(s.categoryKey),
-        price: s.price,
-        rating: s.rating,
-        reviews: s.reviews,
-        daysAgo: s.daysAgo,
-        img: s.img,
-      }));
+    : []);
+
+  if (items.length < 4) return null;
 
   const main = items[0];
   const rest = items.slice(1, 4);
@@ -93,15 +73,8 @@ export function NewArrivals({ newArrivals }: { newArrivals?: Product[] }) {
               <div className="absolute bottom-0 start-0 end-0 p-7">
                 <p style={{ fontWeight: 500, fontSize: "var(--font-xs-up)", letterSpacing: "0.06em" }} className="text-emerald-400 uppercase mb-2">{main.categoryLabel}</p>
                 <h3 style={{ fontWeight: 800, fontSize: "1.75rem", lineHeight: 1.3, letterSpacing: "-0.01em" }} className="text-white mb-3">{main.name}</h3>
-                <div className="flex items-center gap-4">
-                  <div style={{ fontWeight: 800, fontSize: "1.5rem" }} className="text-emerald-400" translate="no">
-                    {format(main.price)}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    <span style={{ fontWeight: 700, fontSize: "0.875rem" }} className="text-white/70">{main.rating}</span>
-                    <span style={{ fontWeight: 400, fontSize: "0.8125rem" }} className="text-white/30">({main.reviews} {t("home.arrivals.reviews")})</span>
-                  </div>
+                <div style={{ fontWeight: 800, fontSize: "1.5rem" }} className="text-emerald-400" translate="no">
+                  {format(main.price)}
                 </div>
               </div>
             </Link>

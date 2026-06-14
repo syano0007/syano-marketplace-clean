@@ -1,4 +1,4 @@
-import { Star, ArrowLeft, Timer, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Timer, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "wouter";
@@ -10,13 +10,6 @@ import { useAddToCart, getGetCartQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@workspace/api-client-react";
-
-const STATIC_DEALS = [
-  { id: 0, nameAr: "ساعة كلاسيكية ذهبية", categoryKey: "home.categories.watches", price: 142500, originalPrice: 237000, discount: 40, rating: 4.9, reviews: 284, img: "https://images.unsplash.com/photo-1772949399808-7020b02896b9?w=400&h=400&fit=crop&auto=format&q=85", badgeKey: "home.deals.badge_bestseller", badgeColor: "#f59e0b" },
-  { id: 0, nameAr: "حذاء نايكي رياضي", categoryKey: "home.categories.sports", price: 58000, originalPrice: 82000, discount: 29, rating: 4.7, reviews: 512, img: "https://images.unsplash.com/photo-1585232004423-244e0e6904e3?w=400&h=400&fit=crop&auto=format&q=85", badgeKey: "home.deals.badge_limited", badgeColor: "#10b981" },
-  { id: 0, nameAr: "مجموعة تقنية متكاملة", categoryKey: "home.categories.electronics", price: 385000, originalPrice: 550000, discount: 30, rating: 4.8, reviews: 196, img: "https://images.unsplash.com/photo-1741851547702-cac24b2a0d13?w=400&h=400&fit=crop&auto=format&q=85", badgeKey: "home.deals.badge_new", badgeColor: "#3b82f6" },
-  { id: 0, nameAr: "عطر أوبسيديان إليكسير", categoryKey: "home.categories.beauty", price: 96000, originalPrice: 148000, discount: 35, rating: 4.6, reviews: 89, img: "https://images.unsplash.com/photo-1772191399367-91ed8d95664b?w=400&h=400&fit=crop&auto=format&q=85", badgeKey: "home.deals.badge_exclusive", badgeColor: "#8b5cf6" },
-];
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
@@ -55,13 +48,9 @@ interface DealCardData {
   name: string;
   categoryLabel: string;
   price: number;
-  originalPrice: number;
-  discount: number;
-  rating: number;
-  reviews: number;
+  originalPrice: number | null;
+  discount: number | null;
   img: string;
-  badge: string;
-  badgeColor: string;
 }
 
 function DealCard({ deal, i }: { deal: DealCardData; i: number }) {
@@ -105,6 +94,7 @@ function DealCard({ deal, i }: { deal: DealCardData; i: number }) {
   }, [deal, isAuthenticated, isCustomer, isSeller, isAdmin, isCourier, addGuestItem, navigate, t]);
 
   const href = deal.id > 0 ? `/products/${deal.id}` : "/products";
+  const hasDiscount = !!(deal.originalPrice && deal.discount && deal.discount > 0);
 
   return (
     <motion.div
@@ -119,36 +109,32 @@ function DealCard({ deal, i }: { deal: DealCardData; i: number }) {
         <div className="relative aspect-square bg-muted overflow-hidden cursor-pointer">
           <img src={deal.img} alt={deal.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(var(--img-dim-product)) contrast(1.05)" }} />
           <div className="absolute inset-0 sy-overlay-medium" />
-          <div className="absolute top-3 end-3">
-            <div style={{ fontWeight: 800, fontSize: "0.8125rem", backgroundColor: "#10b981" }} className="text-black px-2.5 py-1 rounded-full shadow-lg">
-              -{deal.discount}%
+          {hasDiscount && (
+            <div className="absolute top-3 end-3">
+              <div style={{ fontWeight: 800, fontSize: "0.8125rem", backgroundColor: "#10b981" }} className="text-black px-2.5 py-1 rounded-full shadow-lg">
+                -{deal.discount}%
+              </div>
             </div>
-          </div>
-          <div className="absolute top-3 start-3">
-            <div style={{ fontWeight: 600, fontSize: "11px", backgroundColor: `${deal.badgeColor}22`, color: deal.badgeColor, border: `1px solid ${deal.badgeColor}44` }} className="px-2.5 py-1 rounded-full backdrop-blur-sm">
-              {deal.badge}
-            </div>
-          </div>
+          )}
         </div>
       </Link>
       <div className="p-5">
         <p style={{ fontWeight: 500, fontSize: "11px" }} className="text-muted-foreground mb-1.5">{deal.categoryLabel}</p>
         <Link href={href}>
-          <h3 style={{ fontWeight: 700, fontSize: "1rem", lineHeight: 1.4 }} className="text-foreground mb-3 group-hover:text-emerald-400 transition-colors duration-200 cursor-pointer">
+          <h3 style={{ fontWeight: 700, fontSize: "1rem", lineHeight: 1.4 }} className="text-foreground mb-4 group-hover:text-emerald-400 transition-colors duration-200 cursor-pointer line-clamp-2">
             {deal.name}
           </h3>
         </Link>
-        <div className="flex items-center gap-1.5 mb-4">
-          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 flex-shrink-0" />
-          <span style={{ fontWeight: 700, fontSize: "0.8125rem" }} className="text-foreground/80">{deal.rating}</span>
-          <span style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground">({deal.reviews})</span>
-        </div>
         <div className="flex items-center justify-between">
           <div>
             <div style={{ fontWeight: 800, fontSize: "1.25rem", letterSpacing: "-0.02em" }} className="text-emerald-400" translate="no">
               {format(deal.price)}
             </div>
-            <div style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground line-through mt-0.5" translate="no">{format(deal.originalPrice)}</div>
+            {hasDiscount && (
+              <div style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground line-through mt-0.5" translate="no">
+                {format(deal.originalPrice!)}
+              </div>
+            )}
           </div>
           <button
             onClick={handleAddToCart}
@@ -168,40 +154,23 @@ function DealCard({ deal, i }: { deal: DealCardData; i: number }) {
 export function FeaturedDeals({ hotDeals }: { hotDeals?: Product[] }) {
   const { t, i18n } = useTranslation();
 
-  const deals: DealCardData[] = hotDeals && hotDeals.length > 0
-    ? hotDeals.slice(0, 4).map((p, i) => {
-        const imgs = (p as any).imageUrls as string[] | undefined;
-        const orig = (p as any).compareAtPrice ? Number((p as any).compareAtPrice) : null;
-        const curr = Number(p.price);
-        const disc = orig ? Math.round((1 - curr / orig) * 100) : STATIC_DEALS[i % 4].discount;
-        const s = STATIC_DEALS[i % 4];
-        return {
-          id: p.id,
-          name: p.name,
-          categoryLabel: p.category ?? t(s.categoryKey),
-          price: curr,
-          originalPrice: orig ?? s.originalPrice,
-          discount: disc > 0 ? disc : s.discount,
-          rating: s.rating,
-          reviews: s.reviews,
-          img: imgs?.[0] ?? s.img,
-          badge: t(s.badgeKey),
-          badgeColor: s.badgeColor,
-        };
-      })
-    : STATIC_DEALS.map(s => ({
-        id: s.id,
-        name: s.nameAr,
-        categoryLabel: t(s.categoryKey),
-        price: s.price,
-        originalPrice: s.originalPrice,
-        discount: s.discount,
-        rating: s.rating,
-        reviews: s.reviews,
-        img: s.img,
-        badge: t(s.badgeKey),
-        badgeColor: s.badgeColor,
-      }));
+  if (!hotDeals || hotDeals.length === 0) return null;
+
+  const deals: DealCardData[] = hotDeals.slice(0, 4).map((p) => {
+    const imgs = (p as any).imageUrls as string[] | undefined;
+    const finalPrice = (p as any).finalPrice ? Number((p as any).finalPrice) : Number(p.price);
+    const compareAt = (p as any).compareAtPrice ? Number((p as any).compareAtPrice) : null;
+    const discPct = (p as any).discountPercent ? Number((p as any).discountPercent) : null;
+    return {
+      id: p.id,
+      name: p.name,
+      categoryLabel: p.category ?? "",
+      price: finalPrice,
+      originalPrice: compareAt,
+      discount: discPct,
+      img: imgs?.[0] ?? "",
+    };
+  });
 
   return (
     <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="sy-section-alt py-12 md:py-20 lg:py-28 border-t border-border">

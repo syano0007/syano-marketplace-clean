@@ -8,7 +8,11 @@ const DEFAULT_RATE = 14500;
 interface CurrencyContextValue {
   currency: Currency;
   setCurrency: (c: Currency) => void;
-  format: (usdAmount: number) => string;
+  /** Format an amount stored in SYP (Syrian Pounds).
+   *  SYP mode: displays as "250,000 ل.س"
+   *  USD mode: divides by exchange rate → "$17.24"
+   */
+  format: (sypAmount: number) => string;
   symbol: string;
   exchangeRate: number;
 }
@@ -34,20 +38,18 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const format = useCallback(
-    (usdAmount: number): string => {
+    (sypAmount: number): string => {
       if (currency === "SYP") {
-        const syp = usdAmount * exchangeRate;
-        return `${syp.toLocaleString("en-US", { maximumFractionDigits: 0 })} ل.س`;
+        return `${sypAmount.toLocaleString("en-US", { maximumFractionDigits: 0 })} ل.س`;
       }
-      return `$${usdAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const usd = sypAmount / exchangeRate;
+      return `$${usd.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     },
     [currency, exchangeRate]
   );
 
   const symbol = currency === "SYP" ? "ل.س" : "$";
 
-  /* Memoize the context value so consumers only re-render when currency or
-     exchange rate actually changes — not on every CurrencyProvider render. */
   const contextValue = useMemo<CurrencyContextValue>(
     () => ({ currency, setCurrency, format, symbol, exchangeRate }),
     [currency, setCurrency, format, symbol, exchangeRate]

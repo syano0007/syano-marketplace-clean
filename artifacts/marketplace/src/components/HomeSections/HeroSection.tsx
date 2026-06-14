@@ -1,70 +1,46 @@
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Product } from "@workspace/api-client-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
 /* ── Hero carousel slides ─────────────────────────────────────────────
-   Future-ready: same shape as hero_banners table row.
-   When DB banners are available, swap HERO_SLIDES for the API response.
+   Built dynamically from real marketplace products (one per category).
+   FALLBACK_SLIDES use the actual Pexels product images from the DB —
+   they are the same images stored as product imageUrls.
 ──────────────────────────────────────────────────────────────────────── */
 interface HeroSlide {
   id: string;
   image: string;
   category: string;
+  productId: number;
 }
 
-const HERO_SLIDES: HeroSlide[] = [
-  {
-    id: "electronics",
-    image: "https://images.unsplash.com/photo-1741851547702-cac24b2a0d13?w=900&h=900&fit=crop&auto=format&q=90",
-    category: "electronics",
-  },
-  {
-    id: "fashion",
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&h=900&fit=crop&auto=format&q=90",
-    category: "fashion",
-  },
-  {
-    id: "home",
-    image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=900&h=900&fit=crop&auto=format&q=90",
-    category: "home",
-  },
-  {
-    id: "beauty",
-    image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=900&h=900&fit=crop&auto=format&q=90",
-    category: "beauty",
-  },
-  {
-    id: "grocery",
-    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=900&h=900&fit=crop&auto=format&q=90",
-    category: "grocery",
-  },
-  {
-    id: "sports",
-    image: "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=900&h=900&fit=crop&auto=format&q=90",
-    category: "sports",
-  },
-  {
-    id: "automotive",
-    image: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=900&h=900&fit=crop&auto=format&q=90",
-    category: "automotive",
-  },
+/** Actual product image URLs from the DB — used as fallback before API loads */
+const FALLBACK_SLIDES: HeroSlide[] = [
+  { id: "electronics", image: "https://images.pexels.com/photos/1649771/pexels-photo-1649771.jpeg?auto=compress&cs=tinysrgb&w=900&h=900&fit=crop", category: "Electronics", productId: 1 },
+  { id: "fashion", image: "https://images.pexels.com/photos/1926769/pexels-photo-1926769.jpeg?auto=compress&cs=tinysrgb&w=900&h=900&fit=crop", category: "Fashion", productId: 10 },
+  { id: "home", image: "https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=900&h=900&fit=crop", category: "Home & Living", productId: 17 },
+  { id: "beauty", image: "https://images.pexels.com/photos/3059609/pexels-photo-3059609.jpeg?auto=compress&cs=tinysrgb&w=900&h=900&fit=crop", category: "Beauty", productId: 24 },
+  { id: "sports", image: "https://images.pexels.com/photos/3775549/pexels-photo-3775549.jpeg?auto=compress&cs=tinysrgb&w=900&h=900&fit=crop", category: "Sports & Fitness", productId: 31 },
+  { id: "jewelry", image: "https://images.pexels.com/photos/1407305/pexels-photo-1407305.jpeg?auto=compress&cs=tinysrgb&w=900&h=900&fit=crop", category: "Jewelry", productId: 35 },
 ];
 
+const CAROUSEL_CATEGORIES = ["Electronics", "Fashion", "Home & Living", "Beauty", "Sports & Fitness", "Jewelry"];
 const CAROUSEL_INTERVAL = 5000;
 
+/** Fallback cards use real product data (SYP prices, real IDs, real Pexels images) */
 const FALLBACK_CARDS = [
-  { id: 0, name: "عطر دبور سوفاج", priceUsd: 5.17, img: "https://images.unsplash.com/photo-1760860992203-85ca32536788?w=280&h=280&fit=crop&auto=format&q=90", available: true },
-  { id: 0, name: "ساعة ذهبية فاخرة", priceUsd: 9.79, img: "https://images.unsplash.com/photo-1772949399808-7020b02896b9?w=280&h=280&fit=crop&auto=format&q=90", available: true },
-  { id: 0, name: "موضة راقية", priceUsd: 2.66, img: "https://images.unsplash.com/photo-1704775986112-281c826c3ebd?w=280&h=280&fit=crop&auto=format&q=90", available: true },
+  { id: 30, name: "Tom Ford Tobacco Vanille EDP", price: 375000, img: "https://images.pexels.com/photos/965989/pexels-photo-965989.jpeg?auto=compress&cs=tinysrgb&w=280&h=280&fit=crop", available: true },
+  { id: 35, name: "Rolex Submariner Style Watch", price: 142000, img: "https://images.pexels.com/photos/1407305/pexels-photo-1407305.jpeg?auto=compress&cs=tinysrgb&w=280&h=280&fit=crop", available: true },
+  { id: 10, name: "Floral Maxi Dress — Summer 2025", price: 65000, img: "https://images.pexels.com/photos/1926769/pexels-photo-1926769.jpeg?auto=compress&cs=tinysrgb&w=280&h=280&fit=crop", available: true },
 ];
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
-interface CardData { id: number; name: string; priceUsd: number; img: string; available: boolean; }
+interface CardData { id: number; name: string; price: number; img: string; available: boolean; }
 
 export function HeroSection({ products }: { products: Product[] }) {
   const [activeCard, setActiveCard] = useState(0);
@@ -72,18 +48,38 @@ export function HeroSection({ products }: { products: Product[] }) {
   const { format } = useCurrency();
   const { t, i18n } = useTranslation();
 
+  /* Build real product cards from API — first 3 products */
   const cards: CardData[] = products.length >= 3
     ? products.slice(0, 3).map(p => {
         const imgs = (p as any).imageUrls as string[] | undefined;
         return {
           id: p.id,
           name: p.name,
-          priceUsd: Number(p.price),
+          price: (p as any).finalPrice ? Number((p as any).finalPrice) : Number(p.price),
           img: imgs?.[0] ?? FALLBACK_CARDS[0].img,
           available: ((p as any).stock ?? 1) > 0,
         };
       })
     : FALLBACK_CARDS;
+
+  /* Build carousel slides from real products — one per category */
+  const heroSlides: HeroSlide[] = useMemo(() => {
+    if (products.length === 0) return FALLBACK_SLIDES;
+    const seen = new Set<string>();
+    const result: HeroSlide[] = [];
+    for (const p of products) {
+      const cat = (p as any).category as string ?? "";
+      const imgs = (p as any).imageUrls as string[] | undefined;
+      if (imgs?.[0] && CAROUSEL_CATEGORIES.includes(cat) && !seen.has(cat)) {
+        seen.add(cat);
+        result.push({ id: String(p.id), image: imgs[0], category: cat, productId: p.id });
+      }
+    }
+    return result.length > 0 ? result : FALLBACK_SLIDES;
+  }, [products]);
+
+  /* Reset slide index when slide set changes */
+  useEffect(() => { setSlideIndex(0); }, [heroSlides.length]);
 
   /* Auto-rotate floating product cards */
   useEffect(() => {
@@ -94,11 +90,14 @@ export function HeroSection({ products }: { products: Product[] }) {
   /* Auto-rotate hero background carousel */
   useEffect(() => {
     const timer = setInterval(
-      () => setSlideIndex(i => (i + 1) % HERO_SLIDES.length),
+      () => setSlideIndex(i => (i + 1) % heroSlides.length),
       CAROUSEL_INTERVAL
     );
     return () => clearInterval(timer);
-  }, []);
+  }, [heroSlides.length]);
+
+  const currentSlideIdx = heroSlides.length > 0 ? slideIndex % heroSlides.length : 0;
+  const currentSlide = heroSlides[currentSlideIdx] ?? FALLBACK_SLIDES[0];
 
   return (
     <section
@@ -199,7 +198,7 @@ export function HeroSection({ products }: { products: Product[] }) {
           transition={{ duration: 0.9, delay: 0.15, ease }}
           className="flex w-full md:flex-[0_0_44%] lg:flex-1 relative min-w-0 items-center justify-center pb-6 md:pb-0"
         >
-          {/* ── Hero image carousel ─────────────────────────────────── */}
+          {/* ── Hero image carousel — real product images from DB ── */}
           <div
             className="relative w-full rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden border border-border shadow-lg sm:shadow-2xl shadow-black/40 aspect-[4/3] md:aspect-[500/520]"
           >
@@ -207,9 +206,9 @@ export function HeroSection({ products }: { products: Product[] }) {
             {/* Carousel images — fade + subtle zoom transition */}
             <AnimatePresence mode="wait">
               <motion.img
-                key={HERO_SLIDES[slideIndex].id}
-                src={HERO_SLIDES[slideIndex].image}
-                alt={HERO_SLIDES[slideIndex].category}
+                key={currentSlide.id}
+                src={currentSlide.image}
+                alt={currentSlide.category}
                 initial={{ opacity: 0, scale: 1.06 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.97 }}
@@ -231,13 +230,13 @@ export function HeroSection({ products }: { products: Product[] }) {
 
             {/* Carousel progress dots */}
             <div className="absolute bottom-5 start-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-              {HERO_SLIDES.map((_, i) => (
+              {heroSlides.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setSlideIndex(i)}
                   aria-label={`Slide ${i + 1}`}
                   className={`h-1 rounded-full transition-all duration-400 ${
-                    i === slideIndex
+                    i === currentSlideIdx
                       ? "bg-emerald-400 w-5"
                       : "bg-white/30 w-1.5 hover:bg-white/50"
                   }`}
@@ -245,7 +244,7 @@ export function HeroSection({ products }: { products: Product[] }) {
               ))}
             </div>
 
-            {/* Floating product card — top right (visible on all screen sizes, synced to activeCard) */}
+            {/* Floating product card — top right (synced to activeCard, all screen sizes) */}
             <div className="absolute top-6 end-6 w-[10.625rem] bg-card/80 backdrop-blur-md border border-border rounded-2xl p-3 z-10">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -259,7 +258,7 @@ export function HeroSection({ products }: { products: Product[] }) {
                   <img src={cards[activeCard].img} alt={cards[activeCard].name} className="w-10 h-10 rounded-lg object-cover border border-border shrink-0" />
                   <div className="min-w-0">
                     <p style={{ fontWeight: 600, fontSize: "var(--font-xs)", lineHeight: 1.3 }} className="text-foreground/80 truncate">{cards[activeCard].name}</p>
-                    <p style={{ fontWeight: 800, fontSize: "var(--font-xs-up)" }} className="text-emerald-400 mt-0.5" translate="no">{format(cards[activeCard].priceUsd)}</p>
+                    <p style={{ fontWeight: 800, fontSize: "var(--font-xs-up)" }} className="text-emerald-400 mt-0.5" translate="no">{format(cards[activeCard].price)}</p>
                   </div>
                 </motion.div>
               </AnimatePresence>
@@ -283,8 +282,8 @@ export function HeroSection({ products }: { products: Product[] }) {
               <div className="flex items-center gap-2.5">
                 <img src={cards[1]?.img ?? FALLBACK_CARDS[1].img} alt="" className="w-10 h-10 rounded-lg object-cover border border-border shrink-0" />
                 <div className="min-w-0">
-                  <p style={{ fontWeight: 500, fontSize: "var(--font-2xs)" }} className="text-muted-foreground truncate">{t("home.hero.card_fashion")}</p>
-                  <p style={{ fontWeight: 800, fontSize: "var(--font-xs-up)" }} className="text-emerald-400" translate="no">{format(cards[1]?.priceUsd ?? FALLBACK_CARDS[1].priceUsd)}</p>
+                  <p style={{ fontWeight: 500, fontSize: "var(--font-2xs)" }} className="text-muted-foreground truncate">{cards[1]?.name ?? FALLBACK_CARDS[1].name}</p>
+                  <p style={{ fontWeight: 800, fontSize: "var(--font-xs-up)" }} className="text-emerald-400" translate="no">{format(cards[1]?.price ?? FALLBACK_CARDS[1].price)}</p>
                 </div>
               </div>
             </Link>
@@ -301,8 +300,8 @@ export function HeroSection({ products }: { products: Product[] }) {
               <div className="flex items-center gap-2.5">
                 <img src={cards[2]?.img ?? FALLBACK_CARDS[2].img} alt="" className="w-10 h-10 rounded-lg object-cover border border-border shrink-0" />
                 <div className="min-w-0">
-                  <p style={{ fontWeight: 500, fontSize: "var(--font-2xs)" }} className="text-muted-foreground truncate">{t("home.hero.card_watch")}</p>
-                  <p style={{ fontWeight: 800, fontSize: "var(--font-xs-up)" }} className="text-emerald-400" translate="no">{format(cards[2]?.priceUsd ?? FALLBACK_CARDS[2].priceUsd)}</p>
+                  <p style={{ fontWeight: 500, fontSize: "var(--font-2xs)" }} className="text-muted-foreground truncate">{cards[2]?.name ?? FALLBACK_CARDS[2].name}</p>
+                  <p style={{ fontWeight: 800, fontSize: "var(--font-xs-up)" }} className="text-emerald-400" translate="no">{format(cards[2]?.price ?? FALLBACK_CARDS[2].price)}</p>
                 </div>
               </div>
             </Link>

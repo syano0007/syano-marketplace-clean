@@ -29,13 +29,15 @@ export interface TrendingProductData {
   name: string;
   categoryLabel: string;
   store: string;
-  /** Display price — final price after discount, or regular price */
+  /** Display price — final price after discount, or regular price (SYP) */
   price: number;
-  /** Original price before discount — triggers strikethrough + discount badge */
+  /** Original price before discount — triggers strikethrough + discount badge (SYP) */
   originalPrice?: number;
   /** Discount percent, e.g. 30 for 30% off */
   discountPercent?: number;
+  /** Real average rating (null / 0 = no reviews yet, hides rating row) */
   rating: number;
+  /** Real review count (0 = no reviews yet) */
   reviews: number;
   img: string;
   /** Show trending badge when true (and no discount badge is shown) */
@@ -63,6 +65,7 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
   const hasDiscount = !!(product.originalPrice && product.discountPercent && product.discountPercent > 0);
   const outOfStock = typeof product.stock === "number" && product.stock <= 0;
   const lowStock = typeof product.stock === "number" && product.stock > 0 && product.stock <= 5;
+  const hasRealRating = product.rating > 0;
 
   const addToCartMutation = useAddToCart({
     mutation: {
@@ -195,9 +198,11 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
           <p style={{ fontWeight: 500, fontSize: "11px" }} className="text-muted-foreground truncate">
             {product.categoryLabel}
           </p>
-          <p style={{ fontWeight: 400, fontSize: "11px" }} className="text-muted-foreground/70 truncate ms-2 shrink-0 max-w-[45%]">
-            {product.store}
-          </p>
+          {product.store && (
+            <p style={{ fontWeight: 400, fontSize: "11px" }} className="text-muted-foreground/70 truncate ms-2 shrink-0 max-w-[45%]">
+              {product.store}
+            </p>
+          )}
         </div>
 
         {/* Title — 2-line clamp, fixed height for grid alignment */}
@@ -208,27 +213,29 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
           {product.name}
         </h3>
 
-        {/* Rating — always rendered so all cards have equal height */}
-        <div className="flex items-center gap-2 mb-4 pc-rating-row" style={{ minHeight: "1.125rem" }}>
-          <div className="flex items-center gap-0.5 pc-stars">
-            {[...Array(5)].map((_, j) => (
-              <Star
-                key={j}
-                className={cn(
-                  "w-3 h-3",
-                  product.rating > 0 && j < Math.floor(product.rating)
-                    ? "fill-amber-400 text-amber-400"
-                    : "text-foreground/10"
-                )}
-              />
-            ))}
+        {/* Rating — only rendered when real review data exists; spacer preserves grid height */}
+        {hasRealRating ? (
+          <div className="flex items-center gap-2 mb-4 pc-rating-row" style={{ minHeight: "1.125rem" }}>
+            <div className="flex items-center gap-0.5 pc-stars">
+              {[...Array(5)].map((_, j) => (
+                <Star
+                  key={j}
+                  className={cn(
+                    "w-3 h-3",
+                    j < Math.floor(product.rating)
+                      ? "fill-amber-400 text-amber-400"
+                      : "text-foreground/10"
+                  )}
+                />
+              ))}
+            </div>
+            <span style={{ fontWeight: 600, fontSize: "12px" }} className="text-foreground/50 pc-rating-text">
+              {product.rating.toFixed(1)}{product.reviews > 0 ? ` (${product.reviews})` : ""}
+            </span>
           </div>
-          <span style={{ fontWeight: 600, fontSize: "12px" }} className="text-foreground/50 pc-rating-text">
-            {product.rating > 0
-              ? `${product.rating.toFixed ? product.rating.toFixed(1) : product.rating}${product.reviews > 0 ? ` (${product.reviews})` : ""}`
-              : "—"}
-          </span>
-        </div>
+        ) : (
+          <div className="mb-4" style={{ minHeight: "1.125rem" }} />
+        )}
 
         {/* Price + Add-to-cart */}
         <div className="flex items-center justify-between mt-auto gap-2 pc-price-row">
