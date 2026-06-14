@@ -49,9 +49,9 @@ export function HomeFooter() {
 
   return (
     <footer dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="bg-background border-t border-border">
-      <div className="max-w-[1400px] mx-auto px-10">
-        <div className="py-16 grid grid-cols-12 gap-10">
-          <div className="col-span-4">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+        <div className="py-10 md:py-16 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-12 gap-6 lg:gap-10">
+          <div className="col-span-2 md:col-span-3 lg:col-span-4">
             <div className="flex items-center gap-2.5 mb-5">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
                 <span style={{ fontFamily: "'Cairo', sans-serif", fontWeight: 800 }} className="text-black text-sm">S</span>
@@ -73,10 +73,10 @@ export function HomeFooter() {
             </div>
           </div>
 
-          <div className="col-span-1" />
+          <div className="hidden lg:block lg:col-span-1" />
 
           {Object.entries(footerLinks).map(([key, section]) => (
-            <div key={key} className="col-span-2">
+            <div key={key} className="lg:col-span-2">
               <h4 style={{ fontWeight: 700, fontSize: "14px", letterSpacing: "0.02em" }} className="text-foreground mb-5">{t(section.titleKey)}</h4>
               <ul className="flex flex-col gap-3">
                 {section.links.map((link) => (
@@ -90,7 +90,7 @@ export function HomeFooter() {
             </div>
           ))}
 
-          <div className="col-span-3">
+          <div className="col-span-2 md:col-span-3 lg:col-span-3">
             <h4 style={{ fontWeight: 700, fontSize: "14px" }} className="text-foreground mb-2">{t("home.footer.newsletter_title")}</h4>
             <p style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground mb-4 leading-relaxed">{t("home.footer.newsletter_desc")}</p>
             <div className="flex flex-col gap-2">
@@ -107,16 +107,16 @@ export function HomeFooter() {
           </div>
         </div>
 
-        <div className="py-6 border-t border-border flex items-center justify-between">
+        <div className="py-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0 text-center sm:text-start">
           <p style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground/60">{t("home.footer.copyright")}</p>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 flex-wrap justify-center">
             {paymentMethods.map((method) => (
               <div key={method} style={{ fontWeight: 700, fontSize: "10px", letterSpacing: "0.05em" }} className="px-2.5 py-1 bg-muted/40 border border-border text-muted-foreground/60 rounded-md">
                 {method}
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-end">
             <Link href="/privacy-policy" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.privacy")}</Link>
             <Link href="/terms-of-use" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.terms")}</Link>
             <Link href="/cookies" style={{ fontWeight: 400, fontSize: "12px" }} className="text-muted-foreground/60 hover:text-foreground/50 transition-colors">{t("home.footer.cookies")}</Link>

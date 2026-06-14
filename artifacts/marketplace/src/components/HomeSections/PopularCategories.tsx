@@ -20,19 +20,19 @@ export function PopularCategories() {
   const { t, i18n } = useTranslation();
 
   return (
-    <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="bg-background py-28">
-      <div className="max-w-[1400px] mx-auto px-10">
-        <div className="flex items-end justify-between mb-14">
+    <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="bg-background py-12 md:py-20 lg:py-28">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-8 md:mb-10 lg:mb-14">
           <div>
             <p style={{ fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.categories.eyebrow")}</p>
-            <h2 style={{ fontWeight: 800, fontSize: "38px", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground">{t("home.categories.title")}</h2>
+            <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3vw, 38px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground">{t("home.categories.title")}</h2>
           </div>
           <Link href="/products" style={{ fontWeight: 600, fontSize: "14px" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
             {t("home.categories.see_all")} <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {categoryDefs.map((cat, i) => (
             <motion.div
               key={cat.slug + i}

@@ -12,8 +12,8 @@ export function JoinSection() {
   const { handleBecomeCourier } = useCourierOnboarding();
 
   return (
-    <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="bg-background py-24 border-t border-border">
-      <div className="max-w-[1400px] mx-auto px-10">
+    <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="bg-background py-12 md:py-20 lg:py-24 border-t border-border">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
         <div className="relative rounded-3xl overflow-hidden bg-card border border-border">
           <div className="absolute inset-0">
             <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `linear-gradient(hsl(var(--foreground) / 0.5) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / 0.5) 1px, transparent 1px)`, backgroundSize: "40px 40px" }} />
@@ -22,7 +22,7 @@ export function JoinSection() {
             <div className="absolute top-1/2 end-0 -translate-y-1/2 w-[300px] h-[200px] rounded-full bg-emerald-600/[0.04] blur-[80px]" />
           </div>
 
-          <div className="relative z-10 py-16 px-16">
+          <div className="relative z-10 py-8 px-6 sm:py-12 sm:px-10 lg:py-16 lg:px-16">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -33,7 +33,7 @@ export function JoinSection() {
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.07] mb-6">
                 <span style={{ fontWeight: 600, fontSize: "12px", letterSpacing: "0.08em" }} className="text-emerald-400 uppercase">{t("home.join.badge")}</span>
               </div>
-              <h2 style={{ fontWeight: 800, fontSize: "42px", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground mb-4">
+              <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3.5vw, 42px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground mb-4">
                 {t("home.join.title")}
               </h2>
               <p style={{ fontWeight: 400, fontSize: "16px", lineHeight: 1.7 }} className="text-muted-foreground max-w-[500px] mx-auto">
@@ -41,7 +41,7 @@ export function JoinSection() {
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-2 gap-5 max-w-[780px] mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-[780px] mx-auto">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}

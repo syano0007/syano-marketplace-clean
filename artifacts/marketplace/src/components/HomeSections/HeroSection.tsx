@@ -113,8 +113,8 @@ export function HeroSection({ products }: { products: Product[] }) {
       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-emerald-500/[0.07] blur-[120px] pointer-events-none" />
       <div className="absolute left-1/4 bottom-0 w-[400px] h-[400px] rounded-full bg-emerald-600/[0.05] blur-[100px] pointer-events-none" />
 
-      <div className="max-w-[1400px] mx-auto px-10 w-full flex items-center gap-16 min-h-[calc(100vh-72px)]">
-        <div className="flex-1 max-w-[560px] py-20">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 w-full flex flex-col lg:flex-row items-center gap-8 lg:gap-16 min-h-[calc(100vh-72px)] py-16 lg:py-0">
+        <div className="flex-1 w-full max-w-full lg:max-w-[560px] py-0">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}>
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/[0.08] mb-8">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
@@ -143,7 +143,7 @@ export function HeroSection({ products }: { products: Product[] }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.22, ease }}
             style={{ fontWeight: 400, fontSize: "17px", lineHeight: 1.75 }}
-            className="text-muted-foreground mb-10 max-w-[440px]"
+            className="text-muted-foreground mb-10 max-w-full lg:max-w-[440px]"
           >
             {t("home.hero.subtext")}
           </motion.p>
@@ -173,7 +173,7 @@ export function HeroSection({ products }: { products: Product[] }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.5 }}
-            className="flex items-center gap-8 mt-14 pt-10 border-t border-border"
+            className="flex items-center gap-6 lg:gap-8 mt-8 lg:mt-14 pt-8 lg:pt-10 border-t border-border"
           >
             {[
               { value: "+500", labelKey: "home.hero.stat_stores" },
@@ -181,7 +181,7 @@ export function HeroSection({ products }: { products: Product[] }) {
               { value: "+12,000", labelKey: "home.hero.stat_customers" },
             ].map((stat) => (
               <div key={stat.labelKey}>
-                <div style={{ fontWeight: 800, fontSize: "26px", letterSpacing: "-0.02em" }} className="text-foreground">{stat.value}</div>
+                <div style={{ fontWeight: 800, fontSize: "clamp(18px, 2vw, 26px)", letterSpacing: "-0.02em" }} className="text-foreground">{stat.value}</div>
                 <div style={{ fontWeight: 400, fontSize: "13px" }} className="text-muted-foreground mt-0.5">{t(stat.labelKey)}</div>
               </div>
             ))}
@@ -192,7 +192,7 @@ export function HeroSection({ products }: { products: Product[] }) {
           initial={{ opacity: 0, x: -40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.9, delay: 0.15, ease }}
-          className="flex-1 relative h-[600px] flex items-center justify-center"
+          className="hidden lg:flex flex-1 relative h-[500px] xl:h-[600px] items-center justify-center"
         >
           {/* ── Hero image carousel ─────────────────────────────────── */}
           <div className="relative w-[500px] h-[520px] rounded-3xl overflow-hidden border border-border shadow-2xl shadow-black/40">

@@ -62,25 +62,25 @@ export function NewArrivals({ newArrivals }: { newArrivals?: Product[] }) {
   const rest = items.slice(1, 4);
 
   return (
-    <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="bg-background py-28 border-t border-border">
-      <div className="max-w-[1400px] mx-auto px-10">
-        <div className="flex items-end justify-between mb-14">
+    <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="bg-background py-12 md:py-20 lg:py-28 border-t border-border">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-8 md:mb-10 lg:mb-14">
           <div>
             <p style={{ fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.arrivals.eyebrow")}</p>
-            <h2 style={{ fontWeight: 800, fontSize: "38px", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground">{t("home.arrivals.title")}</h2>
+            <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3vw, 38px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground">{t("home.arrivals.title")}</h2>
           </div>
           <Link href="/products" style={{ fontWeight: 600, fontSize: "14px" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
             {t("home.arrivals.see_all")} <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-3 grid-rows-2 gap-5 h-[560px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2 gap-5 lg:h-[560px]">
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.6, ease }}
-            className="col-span-2 row-span-2 group relative bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 sy-card-elevated"
+            className="sm:col-span-2 lg:col-span-2 lg:row-span-2 group relative bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 sy-card-elevated min-h-[280px] sm:min-h-[360px] lg:min-h-0"
           >
             <Link href={main.productId ? `/products/${main.productId}` : "/products"} className="block w-full h-full">
               <img src={main.img} alt={main.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" style={{ filter: "brightness(var(--img-dim-arrival)) contrast(1.1)" }} />
@@ -114,7 +114,7 @@ export function NewArrivals({ newArrivals }: { newArrivals?: Product[] }) {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.5, delay: i * 0.1, ease }}
-              className="group relative bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 sy-card-elevated"
+              className="group relative bg-card border border-border hover:border-border/80 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 sy-card-elevated min-h-[200px] lg:min-h-0"
             >
               <Link href={product.productId ? `/products/${product.productId}` : "/products"} className="block w-full h-full">
                 <img src={product.img} alt={product.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" style={{ filter: "brightness(var(--img-dim-arrival)) contrast(1.1)" }} />

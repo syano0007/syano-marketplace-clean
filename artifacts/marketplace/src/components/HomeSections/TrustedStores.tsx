@@ -150,18 +150,18 @@ export function TrustedStores() {
   }));
 
   return (
-    <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="sy-section-alt py-28 border-t border-border">
-      <div className="max-w-[1400px] mx-auto px-10">
-        <div className="flex items-end justify-between mb-14">
+    <section dir={i18n.dir()} style={{ fontFamily: "'Cairo', sans-serif" }} className="sy-section-alt py-12 md:py-20 lg:py-28 border-t border-border">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-8 md:mb-10 lg:mb-14">
           <div>
             <p style={{ fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em" }} className="text-emerald-400 uppercase mb-3">{t("home.stores.eyebrow")}</p>
-            <h2 style={{ fontWeight: 800, fontSize: "38px", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground">{t("home.stores.title")}</h2>
+            <h2 style={{ fontWeight: 800, fontSize: "clamp(24px, 3vw, 38px)", letterSpacing: "-0.02em", lineHeight: 1.2 }} className="text-foreground">{t("home.stores.title")}</h2>
           </div>
           <Link href="/sellers/directory" style={{ fontWeight: 600, fontSize: "14px" }} className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors pb-1">
             {t("home.stores.see_all")} <ArrowLeft className="w-4 h-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayStores.map((store, i) => <StoreCard key={store.id} store={store} i={i} />)}
         </div>
       </div>
