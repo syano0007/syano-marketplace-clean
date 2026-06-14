@@ -104,7 +104,7 @@ export function HeroSection({ products }: { products: Product[] }) {
     <section
       dir={i18n.dir()}
       style={{ fontFamily: "'Cairo', sans-serif" }}
-      className="relative min-h-screen w-full bg-background flex items-center overflow-hidden pt-[72px]"
+      className="relative md:min-h-screen w-full bg-background flex items-center overflow-hidden pt-[72px]"
     >
       <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
         backgroundImage: `linear-gradient(hsl(var(--foreground) / 0.6) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / 0.6) 1px, transparent 1px)`,
@@ -113,8 +113,11 @@ export function HeroSection({ products }: { products: Product[] }) {
       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-emerald-500/[0.07] blur-[120px] pointer-events-none" />
       <div className="absolute left-1/4 bottom-0 w-[400px] h-[400px] rounded-full bg-emerald-600/[0.05] blur-[100px] pointer-events-none" />
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 w-full flex flex-row items-center gap-3 sm:gap-8 lg:gap-16 min-h-[calc(100vh-72px)] py-8 sm:py-12 lg:py-0">
-        <div className="flex-1 min-w-0 py-0">
+      {/* ── Inner container: stacked on mobile, side-by-side md+ ── */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 w-full flex flex-col md:flex-row items-center gap-8 md:gap-8 lg:gap-16 md:min-h-[calc(100vh-72px)] py-8 md:py-10 lg:py-0">
+
+        {/* ── LEFT: Text panel ── */}
+        <div className="w-full md:flex-1 min-w-0">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}>
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/[0.08] mb-8">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
@@ -169,11 +172,12 @@ export function HeroSection({ products }: { products: Product[] }) {
             </Link>
           </motion.div>
 
+          {/* Statistics */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.5 }}
-            className="flex items-center gap-6 lg:gap-8 mt-8 lg:mt-14 pt-8 lg:pt-10 border-t border-border"
+            className="flex flex-wrap items-center gap-x-4 gap-y-3 md:gap-x-6 lg:gap-x-8 mt-8 lg:mt-14 pt-6 md:pt-8 lg:pt-10 border-t border-border"
           >
             {[
               { value: "+500", labelKey: "home.hero.stat_stores" },
@@ -188,16 +192,16 @@ export function HeroSection({ products }: { products: Product[] }) {
           </motion.div>
         </div>
 
+        {/* ── RIGHT: Carousel + floating cards ── */}
         <motion.div
           initial={{ opacity: 0, x: -40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.9, delay: 0.15, ease }}
-          className="flex flex-[0_0_44%] sm:flex-1 sm:w-auto relative min-w-0 items-center justify-center"
+          className="flex w-full md:flex-[0_0_44%] lg:flex-1 relative min-w-0 items-center justify-center pb-6 md:pb-0"
         >
           {/* ── Hero image carousel ─────────────────────────────────── */}
           <div
-            className="relative w-full rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden border border-border shadow-lg sm:shadow-2xl shadow-black/40"
-            style={{ aspectRatio: "500 / 520" }}
+            className="relative w-full rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden border border-border shadow-lg sm:shadow-2xl shadow-black/40 aspect-[4/3] md:aspect-[500/520]"
           >
 
             {/* Carousel images — fade + subtle zoom transition */}
@@ -241,7 +245,7 @@ export function HeroSection({ products }: { products: Product[] }) {
               ))}
             </div>
 
-            {/* Floating product card — top right */}
+            {/* Floating product card — top right (visible on all screen sizes, synced to activeCard) */}
             <div className="absolute top-6 end-6 w-[10.625rem] bg-card/80 backdrop-blur-md border border-border rounded-2xl p-3 z-10">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -268,12 +272,12 @@ export function HeroSection({ products }: { products: Product[] }) {
             </div>
           </div>
 
-          {/* Floating bottom-left card */}
+          {/* Floating bottom-left card — tablet + desktop only */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4, ease }}
-            className="hidden sm:block absolute bottom-16 start-0 w-[10.625rem] bg-card/90 backdrop-blur-md border border-border rounded-2xl p-3 shadow-2xl shadow-black/30"
+            className="hidden md:block absolute bottom-16 start-0 w-[10.625rem] bg-card/90 backdrop-blur-md border border-border rounded-2xl p-3 shadow-2xl shadow-black/30"
           >
             <Link href={cards[1]?.id ? `/products/${cards[1].id}` : "/products"} className="block">
               <div className="flex items-center gap-2.5">
@@ -286,12 +290,12 @@ export function HeroSection({ products }: { products: Product[] }) {
             </Link>
           </motion.div>
 
-          {/* Floating bottom-right card */}
+          {/* Floating bottom-right card — tablet + desktop only */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.55, ease }}
-            className="hidden sm:block absolute bottom-4 end-6 w-[10rem] bg-card/90 backdrop-blur-md border border-border rounded-2xl p-3 shadow-2xl shadow-black/30"
+            className="hidden md:block absolute bottom-4 end-6 w-[10rem] bg-card/90 backdrop-blur-md border border-border rounded-2xl p-3 shadow-2xl shadow-black/30"
           >
             <Link href={cards[2]?.id ? `/products/${cards[2].id}` : "/products"} className="block">
               <div className="flex items-center gap-2.5">
