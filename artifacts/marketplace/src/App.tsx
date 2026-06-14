@@ -63,7 +63,8 @@ const AdminOrders       = lazy(() => import("@/pages/admin/orders"));
 const AdminSettings     = lazy(() => import("@/pages/admin/settings"));
 const AdminLogs         = lazy(() => import("@/pages/admin/logs"));
 const AdminSellers      = lazy(() => import("@/pages/admin/sellers"));
-const AdminAnalytics    = lazy(() => import("@/pages/admin/analytics"));
+const AdminAnalytics       = lazy(() => import("@/pages/admin/analytics"));
+const AdminSearchAnalytics = lazy(() => import("@/pages/admin/SearchAnalytics"));
 const SellerApply       = lazy(() => import("@/pages/seller/apply"));
 const ApplicationStatus = lazy(() => import("@/pages/seller/application-status"));
 const AdminDelivery                  = lazy(() => import("@/pages/admin/delivery"));
@@ -283,6 +284,9 @@ function Router() {
             </Route>
             <Route path="/admin/analytics">
               <ProtectedRoute allowedRoles={["admin"]}><AdminAnalytics /></ProtectedRoute>
+            </Route>
+            <Route path="/admin/search-analytics">
+              <ProtectedRoute allowedRoles={["admin"]}><AdminSearchAnalytics /></ProtectedRoute>
             </Route>
             <Route path="/admin/courier-applications/:id">
               <ProtectedRoute allowedRoles={["admin"]}><AdminCourierApplicationDetail /></ProtectedRoute>

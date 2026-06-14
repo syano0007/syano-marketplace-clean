@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, count, sum, desc, asc, inArray, gte, lte, lt, and, sql } from "drizzle-orm";
-import { db, usersTable, productsTable, ordersTable, orderItemsTable, cartItemsTable, platformSettingsTable, adminAuditLogTable, sellerApplicationsTable, orderStatusHistoryTable, reviewsTable, deliveryZonesTable, couriersTable, courierAssignmentsTable } from "@workspace/db";
+import { db, pool, usersTable, productsTable, ordersTable, orderItemsTable, cartItemsTable, platformSettingsTable, adminAuditLogTable, sellerApplicationsTable, orderStatusHistoryTable, reviewsTable, deliveryZonesTable, couriersTable, courierAssignmentsTable } from "@workspace/db";
 import { requireAuth, requireRole } from "../middlewares/auth";
 import { createNotification, kickSseUser, bi } from "../lib/notif";
 
@@ -1687,6 +1687,204 @@ router.get("/admin/store-settings-health/:sellerId", requireAuth, requireRole("a
     storeName: app?.storeName ?? null,
     storeSlug: app?.storeSlug ?? null,
   });
+});
+
+// ─── SEARCH ANALYTICS ────────────────────────────────────────────────────────
+
+router.get("/admin/search-analytics/overview", async (_req, res): Promise<void> => {
+  const t0 = Date.now();
+  try {
+    const [res7, res30, resLang] = await Promise.all([
+      pool.query<{
+        total_searches: string;
+        zero_result_count: string;
+        clicked_count: string;
+        avg_results_count: string;
+      }>(`
+        SELECT
+          COUNT(*)::text                                                    AS total_searches,
+          SUM(CASE WHEN result_count = 0 THEN 1 ELSE 0 END)::text          AS zero_result_count,
+          SUM(CASE WHEN clicked = true  THEN 1 ELSE 0 END)::text           AS clicked_count,
+          AVG(COALESCE(result_count, 0))::text                             AS avg_results_count
+        FROM query_logs
+        WHERE created_at >= NOW() - INTERVAL '7 days'
+      `),
+      pool.query<{
+        total_searches: string;
+        zero_result_count: string;
+        clicked_count: string;
+        avg_results_count: string;
+      }>(`
+        SELECT
+          COUNT(*)::text                                                    AS total_searches,
+          SUM(CASE WHEN result_count = 0 THEN 1 ELSE 0 END)::text          AS zero_result_count,
+          SUM(CASE WHEN clicked = true  THEN 1 ELSE 0 END)::text           AS clicked_count,
+          AVG(COALESCE(result_count, 0))::text                             AS avg_results_count
+        FROM query_logs
+        WHERE created_at >= NOW() - INTERVAL '30 days'
+      `),
+      pool.query<{ lang: string; cnt: string }>(`
+        SELECT COALESCE(lang, 'ar') AS lang, COUNT(*)::text AS cnt
+        FROM query_logs
+        WHERE created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY COALESCE(lang, 'ar')
+      `),
+    ]);
+
+    function buildPeriod(row: { total_searches: string; zero_result_count: string; clicked_count: string; avg_results_count: string }) {
+      const total = parseInt(row.total_searches ?? "0", 10) || 0;
+      const zero  = parseInt(row.zero_result_count ?? "0", 10) || 0;
+      const clicked = parseInt(row.clicked_count ?? "0", 10) || 0;
+      return {
+        totalSearches: total,
+        zeroResultCount: zero,
+        zeroResultRate: total > 0 ? parseFloat(((zero / total) * 100).toFixed(2)) : 0,
+        clickThroughRate: total > 0 ? parseFloat(((clicked / total) * 100).toFixed(2)) : 0,
+        avgResultsCount: parseFloat(parseFloat(row.avg_results_count ?? "0").toFixed(2)),
+      };
+    }
+
+    const langMap: Record<string, number> = {};
+    for (const r of resLang.rows) langMap[r.lang] = parseInt(r.cnt, 10) || 0;
+    const arabic  = langMap["ar"] ?? 0;
+    const english = langMap["en"] ?? 0;
+    const langTotal = arabic + english;
+
+    res.json({
+      period7:  buildPeriod(res7.rows[0]  ?? { total_searches: "0", zero_result_count: "0", clicked_count: "0", avg_results_count: "0" }),
+      period30: buildPeriod(res30.rows[0] ?? { total_searches: "0", zero_result_count: "0", clicked_count: "0", avg_results_count: "0" }),
+      languageBreakdown: {
+        arabic,
+        english,
+        arabicPct:  langTotal > 0 ? parseFloat(((arabic  / langTotal) * 100).toFixed(2)) : 0,
+        englishPct: langTotal > 0 ? parseFloat(((english / langTotal) * 100).toFixed(2)) : 0,
+      },
+      processingTimeMs: Date.now() - t0,
+    });
+  } catch (error) {
+    console.error("[search-analytics/overview]", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/admin/search-analytics/top-queries", async (req, res): Promise<void> => {
+  const t0 = Date.now();
+  try {
+    const days  = Math.min(90, Math.max(1, parseInt(String(req.query.days  ?? "7"),  10) || 7));
+    const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "20"), 10) || 20));
+
+    const { rows } = await pool.query<{
+      query: string;
+      lang: string;
+      count: string;
+      avg_results_count: string;
+      ctr: string;
+    }>(`
+      SELECT
+        query,
+        COALESCE(lang, 'ar') AS lang,
+        COUNT(*)::text                                                             AS count,
+        AVG(result_count)::text                                                    AS avg_results_count,
+        (SUM(CASE WHEN clicked THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*),0))::text AS ctr
+      FROM query_logs
+      WHERE created_at >= NOW() - ($1 || ' days')::INTERVAL
+      GROUP BY query, COALESCE(lang, 'ar')
+      ORDER BY COUNT(*) DESC
+      LIMIT $2
+    `, [days, limit]);
+
+    res.json({
+      queries: rows.map((r) => ({
+        query: r.query,
+        lang: r.lang,
+        count: parseInt(r.count, 10) || 0,
+        zeroResults: r.avg_results_count !== null && parseFloat(r.avg_results_count) === 0,
+        avgResultsCount: r.avg_results_count !== null ? parseFloat(parseFloat(r.avg_results_count).toFixed(2)) : 0,
+        clickThroughRate: parseFloat(parseFloat(r.ctr ?? "0").toFixed(2)),
+      })),
+      processingTimeMs: Date.now() - t0,
+    });
+  } catch (error) {
+    console.error("[search-analytics/top-queries]", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/admin/search-analytics/zero-results", async (req, res): Promise<void> => {
+  const t0 = Date.now();
+  try {
+    const days  = Math.min(90, Math.max(1, parseInt(String(req.query.days  ?? "7"),  10) || 7));
+    const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "20"), 10) || 20));
+
+    const { rows } = await pool.query<{
+      query: string;
+      lang: string;
+      count: string;
+      last_searched: string;
+    }>(`
+      SELECT
+        query,
+        COALESCE(lang, 'ar') AS lang,
+        COUNT(*)::text                AS count,
+        MAX(created_at)::text         AS last_searched
+      FROM query_logs
+      WHERE result_count = 0
+        AND created_at >= NOW() - ($1 || ' days')::INTERVAL
+      GROUP BY query, COALESCE(lang, 'ar')
+      ORDER BY COUNT(*) DESC
+      LIMIT $2
+    `, [days, limit]);
+
+    res.json({
+      queries: rows.map((r) => ({
+        query: r.query,
+        lang: r.lang,
+        count: parseInt(r.count, 10) || 0,
+        lastSearched: r.last_searched,
+      })),
+      processingTimeMs: Date.now() - t0,
+    });
+  } catch (error) {
+    console.error("[search-analytics/zero-results]", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/admin/search-analytics/trends", async (req, res): Promise<void> => {
+  const t0 = Date.now();
+  try {
+    const days = Math.min(90, Math.max(1, parseInt(String(req.query.days ?? "30"), 10) || 30));
+
+    const { rows } = await pool.query<{
+      date: string;
+      total_searches: string;
+      zero_results: string;
+      unique_queries: string;
+    }>(`
+      SELECT
+        DATE(created_at AT TIME ZONE 'UTC')::text                             AS date,
+        COUNT(*)::text                                                         AS total_searches,
+        SUM(CASE WHEN result_count = 0 THEN 1 ELSE 0 END)::text               AS zero_results,
+        COUNT(DISTINCT query)::text                                            AS unique_queries
+      FROM query_logs
+      WHERE created_at >= NOW() - ($1 || ' days')::INTERVAL
+      GROUP BY DATE(created_at AT TIME ZONE 'UTC')
+      ORDER BY date ASC
+    `, [days]);
+
+    res.json({
+      trends: rows.map((r) => ({
+        date: r.date,
+        totalSearches: parseInt(r.total_searches, 10) || 0,
+        zeroResults: parseInt(r.zero_results, 10) || 0,
+        uniqueQueries: parseInt(r.unique_queries, 10) || 0,
+      })),
+      processingTimeMs: Date.now() - t0,
+    });
+  } catch (error) {
+    console.error("[search-analytics/trends]", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;
