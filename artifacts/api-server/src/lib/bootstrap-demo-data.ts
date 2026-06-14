@@ -570,10 +570,10 @@ export async function bootstrapDemoMarketplaceData(): Promise<void> {
       const createdAt = daysAgo(i * 4 + 2).toISOString();
       await client.query(
         `INSERT INTO seller_reviews
-           (seller_id, customer_id, rating, comment, created_at)
-         VALUES ($1,$2,$3,$4,$5)
+           (seller_id, customer_id, communication_rating, shipping_rating, professionalism_rating, comment, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
          ON CONFLICT (seller_id, customer_id) DO NOTHING`,
-        [sellerId, customerId, rating, sellerReviewTexts[i % sellerReviewTexts.length], createdAt]
+        [sellerId, customerId, rating, rating, rating, sellerReviewTexts[i % sellerReviewTexts.length], createdAt]
       );
       sReviewCount++;
     }
