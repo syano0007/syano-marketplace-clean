@@ -188,10 +188,10 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
       </div>
 
       {/* ── Card body ─────────────────────────────────────── */}
-      <div className="p-5 flex flex-col flex-1">
+      <div className="p-5 flex flex-col flex-1 pc-body">
 
         {/* Category · Store */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 pc-cat-row">
           <p style={{ fontWeight: 500, fontSize: "11px" }} className="text-muted-foreground truncate">
             {product.categoryLabel}
           </p>
@@ -203,14 +203,14 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
         {/* Title — 2-line clamp, fixed height for grid alignment */}
         <h3
           style={{ fontWeight: 700, fontSize: "16px", lineHeight: 1.4, minHeight: "2.8em" }}
-          className="text-foreground mb-3 group-hover:text-emerald-400 transition-colors duration-200 line-clamp-2"
+          className="text-foreground mb-3 group-hover:text-emerald-400 transition-colors duration-200 line-clamp-2 pc-title"
         >
           {product.name}
         </h3>
 
         {/* Rating — always rendered so all cards have equal height */}
-        <div className="flex items-center gap-2 mb-4" style={{ minHeight: "18px" }}>
-          <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-2 mb-4 pc-rating-row" style={{ minHeight: "18px" }}>
+          <div className="flex items-center gap-0.5 pc-stars">
             {[...Array(5)].map((_, j) => (
               <Star
                 key={j}
@@ -223,7 +223,7 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
               />
             ))}
           </div>
-          <span style={{ fontWeight: 600, fontSize: "12px" }} className="text-foreground/50">
+          <span style={{ fontWeight: 600, fontSize: "12px" }} className="text-foreground/50 pc-rating-text">
             {product.rating > 0
               ? `${product.rating.toFixed ? product.rating.toFixed(1) : product.rating}${product.reviews > 0 ? ` (${product.reviews})` : ""}`
               : "—"}
@@ -231,17 +231,17 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
         </div>
 
         {/* Price + Add-to-cart */}
-        <div className="flex items-center justify-between mt-auto gap-2">
+        <div className="flex items-center justify-between mt-auto gap-2 pc-price-row">
           <div className="min-w-0">
             {/* Strikethrough original price */}
             {hasDiscount && (
-              <p className="text-[11px] text-muted-foreground line-through leading-none mb-0.5" translate="no">
+              <p className="text-[11px] text-muted-foreground line-through leading-none mb-0.5 pc-price-orig" translate="no">
                 {format(product.originalPrice!)}
               </p>
             )}
             <div
               style={{ fontWeight: 800, fontSize: "20px", letterSpacing: "-0.02em" }}
-              className="text-emerald-400"
+              className="text-emerald-400 pc-price-main"
               translate="no"
             >
               {format(product.price)}
@@ -253,7 +253,7 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
               onClick={handleAddToCart}
               disabled={adding || outOfStock}
               style={{ fontWeight: 600, fontSize: "13px" }}
-              className="flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white px-4 py-2 rounded-xl transition-all duration-200 border border-emerald-500/20 hover:border-emerald-500 disabled:opacity-50 shrink-0"
+              className="flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white px-4 py-2 rounded-xl transition-all duration-200 border border-emerald-500/20 hover:border-emerald-500 disabled:opacity-50 shrink-0 pc-cart-btn"
               aria-label={product.hasVariants ? t("products.choose_options") : t("product_detail.add_to_cart")}
             >
               {adding

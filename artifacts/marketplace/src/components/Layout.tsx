@@ -20,7 +20,7 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
         {t("nav.skip_to_content")}
       </a>
       <Navbar />
-      <main id="main-content" className="grow w-full min-w-0" style={{ paddingTop: "var(--navbar-height)" }}>
+      <main id="main-content" className="grow w-full min-w-0 overflow-x-hidden" style={{ paddingTop: "var(--navbar-height)" }}>
         {children}
       </main>
       {!hideFooter && <Footer />}
