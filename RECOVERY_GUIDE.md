@@ -1,5 +1,5 @@
 # SYANO — Recovery Guide
-**Last Updated:** June 14, 2026 (Session 13 — Hybrid NLP Search Step 3 complete)
+**Last Updated:** June 14, 2026 (Session 13 — Phase 8 Search 8-Axis Audit complete)
 
 This guide restores the project to a fully working state from scratch.
 

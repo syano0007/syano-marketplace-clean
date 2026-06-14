@@ -31,6 +31,8 @@ function normalizeArabic(text: string): string {
    ─────────────────────────────────────────────────────────────────────── */
 const SYRIAN_DIALECT_DICTIONARY: Record<string, { category: string; keywords: string[] }> = {
   // Shoes
+  "شنط":     { category: "Fashion", keywords: ["حقائب", "شنطة", "حقيبة يد", "حقيبة ظهر"] },
+  "شنطة":    { category: "Fashion", keywords: ["حقائب", "حقيبة يد", "حقيبة كتف"] },
   "بواط":   { category: "Fashion", keywords: ["أحذية", "أحذية رياضية", "بوط", "سناكرز"] },
   "بوط":    { category: "Fashion", keywords: ["أحذية", "أحذية رياضية", "سبور"] },
   "شحاطات": { category: "Fashion", keywords: ["أحذية", "شحاطة", "صنادل", "نعال"] },
@@ -53,12 +55,18 @@ const SYRIAN_DIALECT_DICTIONARY: Record<string, { category: string; keywords: st
   "كنزة":    { category: "Fashion", keywords: ["ملابس", "بلوزة", "سويتر", "تيشيرت"] },
   "تناوير":  { category: "Fashion", keywords: ["ملابس نسائية", "تنورة"] },
   "فستان":   { category: "Fashion", keywords: ["ملابس نسائية", "فساتين", "سهرة"] },
+  "فساتين":  { category: "Fashion", keywords: ["ملابس نسائية", "فستان", "سهرة"] },
+  "بدلة":    { category: "Fashion", keywords: ["ملابس رجالية", "بدلة رسمية", "سموكن"] },
+  "بدل":     { category: "Fashion", keywords: ["ملابس رجالية", "بدلة رسمية"] },
+  "تياب":    { category: "Fashion", keywords: ["ملابس", "ثياب", "أزياء"] },
   "دشاديش":  { category: "Fashion", keywords: ["ملابس رجالية", "جلابيات"] },
   "كلابية":  { category: "Fashion", keywords: ["ملابس", "جلابية"] },
   "بجامة":   { category: "Fashion", keywords: ["ملابس نوم", "بيجامات", "ترينغ"] },
   "ترينغ":   { category: "Fashion", keywords: ["ملابس رياضية", "بيجامة سبور"] },
   // Electronics
   "موبايل":   { category: "Electronics", keywords: ["هواتف ذكية", "جوالات", "موبايلات"] },
+  "موبايلات": { category: "Electronics", keywords: ["هواتف ذكية", "جوالات", "موبايل"] },
+  "موبايلة":  { category: "Electronics", keywords: ["هواتف ذكية", "موبايل"] },
   "جوال":     { category: "Electronics", keywords: ["هواتف ذكية", "موبايل"] },
   "خليوي":    { category: "Electronics", keywords: ["هواتف ذكية", "جوال"] },
   "تليفون":   { category: "Electronics", keywords: ["هواتف ذكية", "موبايلات"] },
@@ -69,7 +77,12 @@ const SYRIAN_DIALECT_DICTIONARY: Record<string, { category: string; keywords: st
   "وصلة":     { category: "Electronics", keywords: ["كابلات", "شواحن", "وصلة شحن"] },
   "باوربانك": { category: "Electronics", keywords: ["بنك طاقة", "شاحن سفري"] },
   "سماعات":   { category: "Electronics", keywords: ["سماعات أذن", "هيدفون", "ايربودز"] },
+  // Automotive
+  "عربيات":   { category: "Automotive", keywords: ["سيارات", "إكسسوارات سيارات", "قطع غيار"] },
+  "موتوسيكل": { category: "Sports & Outdoors", keywords: ["دراجات نارية", "موتو", "هيلمت"] },
+  "دراجات":   { category: "Sports & Outdoors", keywords: ["دراجة هوائية", "سكيت", "رياضة"] },
   // Home & Kitchen
+  "ديكور":    { category: "Home & Kitchen", keywords: ["ديكور منزل", "لوحات", "إكسسوارات ديكور"] },
   "غراض بيت": { category: "Home & Kitchen", keywords: ["أدوات منزلية", "ديكور", "أثاث"] },
   "طناجر":    { category: "Home & Kitchen", keywords: ["أدوات المطبخ", "طنجرة", "قدور طبخ"] },
   "صحون":     { category: "Home & Kitchen", keywords: ["أدوات المطبخ", "أطباق"] },
@@ -91,13 +104,19 @@ const SYRIAN_DIALECT_DICTIONARY: Record<string, { category: string; keywords: st
   "حمرة":     { category: "Beauty & Personal Care", keywords: ["أحمر شفاه", "مكياج"] },
   "ريحة":     { category: "Beauty & Personal Care", keywords: ["عطور", "برفيوم"] },
   "عطورات":   { category: "Beauty & Personal Care", keywords: ["عطور", "برفيوم"] },
+  "برفانات":  { category: "Beauty & Personal Care", keywords: ["عطور", "برفيوم", "كولونيا"] },
+  "برفان":    { category: "Beauty & Personal Care", keywords: ["عطور", "برفيوم"] },
+  "كريمات":   { category: "Beauty & Personal Care", keywords: ["كريم", "مرطب", "عناية بالبشرة"] },
+  "كريمه":    { category: "Beauty & Personal Care", keywords: ["كريم مرطب", "عناية بالبشرة"] },
 };
 
 /* Intent modifiers: detected in query to adjust sort/filter strategy */
 const INTENT_MODIFIERS = {
-  cheap:   ["رخيص", "لقطة", "ببلاش", "على قد الايد", "اقتصادي", "حرق", "تنزيلات", "عروض", "كسر", "cheap", "budget"],
-  premium: ["غالي", "فخم", "اصلي", "نخب اول", "ماركة", "براند", "ملوكي", "ممتاز", "وكالة", "premium", "luxury", "branded"],
+  cheap:   ["رخيص", "لقطة", "ببلاش", "على قد الايد", "اقتصادي", "حرق", "تنزيلات", "عروض", "كسر", "cheap", "budget", "affordable", "discount", "sale", "offer", "bargain"],
+  premium: ["غالي", "فخم", "فاخر", "اصلي", "نخب اول", "ماركة", "براند", "ملوكي", "ممتاز", "وكالة", "premium", "luxury", "branded", "original", "authentic", "high-end", "professional"],
   used:    ["مستعمل", "شغال", "نضيف", "نص عمر", "بحالة الوكالة", "used", "second hand"],
+  rating:  ["أفضل تقييم", "الأعلى تقييم", "موثوق", "مضمون", "مجرب", "أنصح به", "ينصح", "أكثر مبيعاً", "الأكثر طلباً", "best rated", "top rated", "top reviewed", "recommended", "trusted", "most popular", "bestseller"],
+  newest:  ["جديد", "أحدث", "اخر اصدار", "حديث", "latest", "newest", "just arrived", "new arrival", "2025", "2026"],
 } as const;
 
 type IntentModifier = keyof typeof INTENT_MODIFIERS;
@@ -113,6 +132,11 @@ interface ParsedIntent {
   expandedQuery: string;
 }
 
+/* Normalized dict key lookup — handles taa-marbouta/alef variants in keys */
+const DIALECT_NORM_MAP: Map<string, { category: string; keywords: string[] }> = new Map(
+  Object.entries(SYRIAN_DIALECT_DICTIONARY).map(([k, v]) => [normalizeArabic(k), v])
+);
+
 function parseIntent(rawQuery: string): ParsedIntent {
   const norm = normalizeArabic(rawQuery);
   const tokens = norm.split(/\s+/).filter(Boolean);
@@ -120,7 +144,11 @@ function parseIntent(rawQuery: string): ParsedIntent {
   const modifiers: IntentModifier[] = [];
   for (const [mod, words] of Object.entries(INTENT_MODIFIERS) as [IntentModifier, readonly string[]][]) {
     const normWords = words.map(normalizeArabic);
-    if (tokens.some(t => normWords.includes(t))) modifiers.push(mod);
+    /* Check single tokens AND multi-word phrases (e.g. "أفضل تقييم", "best rated") */
+    const hit =
+      tokens.some(t => normWords.includes(t)) ||
+      normWords.some(w => w.includes(" ") && norm.includes(w));
+    if (hit) modifiers.push(mod);
   }
 
   let mappedCategory: string | null = null;
@@ -128,7 +156,8 @@ function parseIntent(rawQuery: string): ParsedIntent {
   const dialectTokens = new Set<string>();
 
   for (const token of tokens) {
-    const entry = SYRIAN_DIALECT_DICTIONARY[token];
+    /* Lookup via normalized key so taa-marbouta and alef variants always resolve */
+    const entry = DIALECT_NORM_MAP.get(token);
     if (entry) {
       if (!mappedCategory) mappedCategory = entry.category;
       expandedTerms.push(...entry.keywords);
@@ -418,7 +447,7 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
     suggestions.push({ text, textAr, type, meta });
   }
 
-  /* ── Intent suggestions (cheap / premium modifiers) ─────────────────── */
+  /* ── Intent suggestions (cheap / premium / rating / newest) ─────────── */
   if (intent.modifiers.includes("cheap")) {
     const catAr = intent.mappedCategory ? (CATEGORY_LABELS[intent.mappedCategory]?.ar ?? intent.mappedCategory) : "المنتجات";
     const catEn = intent.mappedCategory ? (CATEGORY_LABELS[intent.mappedCategory]?.en ?? intent.mappedCategory) : "products";
@@ -428,6 +457,16 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
     const catAr = intent.mappedCategory ? (CATEGORY_LABELS[intent.mappedCategory]?.ar ?? intent.mappedCategory) : "المنتجات";
     const catEn = intent.mappedCategory ? (CATEGORY_LABELS[intent.mappedCategory]?.en ?? intent.mappedCategory) : "products";
     addSuggestion(`top rated ${catEn}`, `أفضل ${catAr} جودةً`, "intent", "rating");
+  }
+  if (intent.modifiers.includes("rating") && !intent.modifiers.includes("premium")) {
+    const catAr = intent.mappedCategory ? (CATEGORY_LABELS[intent.mappedCategory]?.ar ?? intent.mappedCategory) : "المنتجات";
+    const catEn = intent.mappedCategory ? (CATEGORY_LABELS[intent.mappedCategory]?.en ?? intent.mappedCategory) : "products";
+    addSuggestion(`best rated ${catEn}`, `أعلى ${catAr} تقييماً`, "intent", "rating");
+  }
+  if (intent.modifiers.includes("newest")) {
+    const catAr = intent.mappedCategory ? (CATEGORY_LABELS[intent.mappedCategory]?.ar ?? intent.mappedCategory) : "المنتجات";
+    const catEn = intent.mappedCategory ? (CATEGORY_LABELS[intent.mappedCategory]?.en ?? intent.mappedCategory) : "products";
+    addSuggestion(`newest ${catEn}`, `أحدث ${catAr}`, "intent", "newest");
   }
 
   /* ── Dialect-expanded keyword suggestions ───────────────────────────── */
@@ -590,6 +629,8 @@ router.get("/search/results", async (req, res): Promise<void> => {
   const effectiveSort =
     intent.modifiers.includes("cheap")   ? "price_asc" :
     intent.modifiers.includes("premium") ? "rating"    :
+    intent.modifiers.includes("rating")  ? "rating"    :
+    intent.modifiers.includes("newest")  ? "newest"    :
     sortBy;
 
   trackQuery(raw);
