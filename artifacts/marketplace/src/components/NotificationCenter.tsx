@@ -182,7 +182,7 @@ export function NotificationCenter() {
   /* Identical token to navSettingsBtn in Navbar.tsx */
   const btnCls = isDark
     ? "text-white/50 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.14]"
-    : "text-foreground/55 hover:text-foreground hover:bg-foreground/[0.05] border border-foreground/[0.09] hover:border-foreground/[0.16]";
+    : "text-foreground/65 hover:text-foreground hover:bg-foreground/[0.06] border border-foreground/[0.14] hover:border-foreground/[0.25]";
 
   const { data: countData } = useGetNotificationCount({
     query: {

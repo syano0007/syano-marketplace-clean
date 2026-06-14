@@ -66,34 +66,35 @@ export function Navbar() {
 
   /* ── Theme-aware nav tokens ──────────────────────────────────────────── */
   const navFg         = isDark ? "text-white"          : "text-foreground";
-  const navFgMuted    = isDark ? "text-white/50"        : "text-foreground/55";
-  const navFgSub      = isDark ? "text-white/45"        : "text-foreground/50";
+  const navFgMuted    = isDark ? "text-white/50"        : "text-foreground/70";
+  const navFgSub      = isDark ? "text-white/45"        : "text-foreground/60";
+  const navActiveFg   = isDark ? "text-emerald-400"     : "text-emerald-600";
   const navHoverFg    = isDark ? "hover:text-white"     : "hover:text-foreground";
   const navHoverFgMid = isDark ? "hover:text-white/80"  : "hover:text-foreground/80";
-  const navHoverBg    = isDark ? "hover:bg-white/[0.05]" : "hover:bg-foreground/[0.05]";
-  const navDivider    = isDark ? "bg-white/[0.08]"      : "bg-foreground/[0.1]";
-  const navBorder     = isDark ? "border-white/[0.08]"  : "border-foreground/[0.09]";
-  const navBorderHov  = isDark ? "hover:border-white/[0.14]" : "hover:border-foreground/[0.16]";
-  const navInputColor = isDark ? "rgba(255,255,255,0.75)" : "rgba(17,24,39,0.72)";
+  const navHoverBg    = isDark ? "hover:bg-white/[0.05]" : "hover:bg-foreground/[0.06]";
+  const navDivider    = isDark ? "bg-white/[0.08]"      : "bg-foreground/[0.12]";
+  const navBorder     = isDark ? "border-white/[0.08]"  : "border-foreground/[0.12]";
+  const navBorderHov  = isDark ? "hover:border-white/[0.14]" : "hover:border-foreground/[0.2]";
+  const navInputColor = isDark ? "rgba(255,255,255,0.75)" : "rgba(17,24,39,0.88)";
   const navSearchBg   = isDark
     ? "bg-white/[0.06] hover:bg-white/[0.08] focus-within:bg-white/[0.08] border border-white/[0.08] focus-within:border-white/[0.14]"
-    : "bg-foreground/[0.04] hover:bg-foreground/[0.06] focus-within:bg-foreground/[0.06] border border-foreground/[0.09] focus-within:border-foreground/[0.16]";
-  const navSearchIcon  = isDark ? "text-white/30"  : "text-foreground/35";
-  const navXBtn        = isDark ? "text-white/30 hover:text-white/60"  : "text-foreground/35 hover:text-foreground/60";
+    : "bg-foreground/[0.05] hover:bg-foreground/[0.07] focus-within:bg-foreground/[0.07] border border-foreground/[0.14] focus-within:border-foreground/[0.25]";
+  const navSearchIcon  = isDark ? "text-white/30"  : "text-foreground/45";
+  const navXBtn        = isDark ? "text-white/30 hover:text-white/60"  : "text-foreground/45 hover:text-foreground/70";
   const navDropBg      = isDark ? "bg-[#111] border-white/[0.1]"       : "bg-popover border-border";
   const navDropText    = isDark ? "text-white/90"  : "text-foreground/90";
   const navDropSub     = isDark ? "text-white/35"  : "text-muted-foreground";
-  const navDropMeta    = isDark ? "text-white/30"  : "text-foreground/30";
-  const navDropRecent  = isDark ? "text-white/60"  : "text-foreground/65";
+  const navDropMeta    = isDark ? "text-white/30"  : "text-foreground/40";
+  const navDropRecent  = isDark ? "text-white/60"  : "text-foreground/70";
   const navSettingsBtn = isDark
     ? "text-white/50 hover:text-white hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.14]"
-    : "text-foreground/55 hover:text-foreground hover:bg-foreground/[0.05] border border-foreground/[0.09] hover:border-foreground/[0.16]";
+    : "text-foreground/65 hover:text-foreground hover:bg-foreground/[0.06] border border-foreground/[0.14] hover:border-foreground/[0.25]";
   const navUserBtn     = isDark
     ? "bg-white/[0.06] border border-white/[0.1] hover:bg-white/[0.09] hover:border-white/[0.15]"
-    : "bg-foreground/[0.04] border border-foreground/[0.1] hover:bg-foreground/[0.07] hover:border-foreground/[0.15]";
+    : "bg-foreground/[0.05] border border-foreground/[0.14] hover:bg-foreground/[0.09] hover:border-foreground/[0.22]";
   const navLoginLink   = isDark
     ? "text-white/60 hover:text-white hover:bg-white/[0.06]"
-    : "text-foreground/60 hover:text-foreground hover:bg-foreground/[0.05]";
+    : "text-foreground/65 hover:text-foreground hover:bg-foreground/[0.06]";
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -216,12 +217,12 @@ export function Navbar() {
         boxShadow: scrolled ? "0 4px 40px rgba(0,0,0,0.5)" : "none",
       }
     : {
-        background: scrolled ? "rgba(255,255,255,0.97)" : "rgba(255,255,255,0.92)",
+        background: scrolled ? "rgba(255,255,255,0.98)" : "rgba(255,255,255,0.94)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
-        borderBottom: "1px solid rgba(0,0,0,0.07)",
+        borderBottom: scrolled ? "1px solid rgba(0,0,0,0.10)" : "1px solid rgba(0,0,0,0.08)",
         transition: "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
-        boxShadow: scrolled ? "0 2px 20px rgba(0,0,0,0.08), 0 1px 0 rgba(0,0,0,0.04)" : "0 1px 0 rgba(0,0,0,0.05)",
+        boxShadow: scrolled ? "0 4px 24px rgba(0,0,0,0.09), 0 1px 0 rgba(0,0,0,0.05)" : "0 1px 0 rgba(0,0,0,0.06)",
       };
 
   const navLinks = isRtl
@@ -253,14 +254,14 @@ export function Navbar() {
           <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="Syano home">
             <img src="/syano-logo.png" alt="" width={30} height={30}
               className="h-[1.875rem] w-[1.875rem] object-contain drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]" loading="eager" />
-            <span style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "1rem" }} className={` uppercase`}>SYANO</span>
+            <span style={{ fontWeight: 800, letterSpacing: "0.1em", fontSize: "1rem" }} className={`${navFg} uppercase`}>SYANO</span>
           </Link>
 
           <div className="flex items-center gap-1 shrink-0">
             {!isAuthPage && (
               <button onClick={() => setSearchOpen(!searchOpen)}
                 className={`h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
-                <Search className="h-[1.1rem] w-[1.1rem]" />
+                <Search className="h-[1.0625rem] w-[1.0625rem]" />
               </button>
             )}
             {isAuthenticated && <NotificationCenter />}
@@ -270,7 +271,7 @@ export function Navbar() {
                 className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}
                 aria-label={isRtl ? "الرسائل" : "Messages"}
               >
-                <MessageCircle className="h-[1.1rem] w-[1.1rem]" />
+                <MessageCircle className="h-[1.0625rem] w-[1.0625rem]" />
                 {unreadMsgCount > 0 && (
                   <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white pointer-events-none">
                     {unreadMsgCount > 9 ? "9+" : unreadMsgCount}
@@ -280,7 +281,7 @@ export function Navbar() {
             )}
             {!isSeller && !isAdmin && !isCourier && (
               <Link href="/wishlist" className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
-                <Heart className="h-5 w-5" />
+                <Heart className="h-[1.0625rem] w-[1.0625rem]" />
                 {wishlistCount > 0 && (
                   <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
                     {wishlistCount > 99 ? "99+" : wishlistCount}
@@ -290,7 +291,7 @@ export function Navbar() {
             )}
             {!isSeller && !isAdmin && !isCourier && (
               <Link href="/cart" className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
-                <ShoppingCart className="h-5 w-5" />
+                <ShoppingCart className="h-[1.0625rem] w-[1.0625rem]" />
                 {visibleCartCount > 0 && (
                   <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-black">
                     {visibleCartCount}
@@ -370,13 +371,19 @@ export function Navbar() {
             {/* Nav links — immediately left of logo in RTL */}
             <nav className="flex items-center gap-0.5">
               {navLinks.map(link => {
-                const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href.split("?")[0]));
+                const linkBase = link.href.split("?")[0];
+                const linkQuery = link.href.includes("?") ? link.href.split("?")[1] : null;
+                const isActive = linkQuery
+                  ? location === link.href
+                  : location === link.href || (link.href !== "/" && location.startsWith(linkBase));
                 return (
                   <Link key={link.href} href={link.href}
                     style={{ fontWeight: isActive ? 700 : 500, fontSize: "0.8125rem" }}
                     className={cn(
                       "px-3 py-2 rounded-lg transition-colors duration-150 whitespace-nowrap",
-                      isActive ? "text-emerald-400 bg-emerald-500/[0.08]" : `${navFgSub} ${navHoverFgMid} ${navHoverBg}`
+                      isActive
+                        ? `${navActiveFg} ${isDark ? "bg-emerald-500/[0.08]" : "bg-emerald-500/[0.1]"}`
+                        : `${navFgSub} ${navHoverFgMid} ${navHoverBg}`
                     )}>
                     {link.label}
                   </Link>
@@ -529,7 +536,7 @@ export function Navbar() {
                   <Settings className="h-[1.0625rem] w-[1.0625rem]" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" sideOffset={8} className="bg-popover border-border shadow-xl shadow-black/10 w-56 p-0 overflow-hidden">
+              <DropdownMenuContent align="end" sideOffset={8} className="bg-popover border-border shadow-2xl shadow-black/[0.15] w-56 p-0 overflow-hidden rounded-2xl">
 
                 {/* Theme */}
                 <div className="px-3 pt-3 pb-2">
@@ -710,7 +717,7 @@ export function Navbar() {
                   <span className="relative">
                     <MessageCircle className="h-5 w-5 shrink-0" />
                     {unreadMsgCount > 0 && (
-                      <span className="absolute -top-1 -end-1 flex h-[14px] w-[14px] items-center justify-center rounded-full bg-blue-500 text-[8px] font-bold text-white">
+                      <span className="absolute -top-1 -end-1 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white pointer-events-none">
                         {unreadMsgCount > 9 ? "9+" : unreadMsgCount}
                       </span>
                     )}

@@ -1,6 +1,49 @@
 # SYANO — Current Project State
-**Last Updated:** June 14, 2026 (Session 10 — Messaging V2 Audit COMPLETE)  
-**Updated By:** Phase 7 Messaging V2 — 58/58 tests pass, all bugs fixed, COMPLETE
+**Last Updated:** June 14, 2026 (Session 11 — Navbar Polish & Consistency Pass)  
+**Updated By:** Global Navbar Polish Pass — all inconsistencies fixed, 0 TS errors
+
+---
+
+## ✅ Navbar Polish & Consistency Pass — COMPLETE (June 14, 2026)
+
+### Changes Applied
+
+**Light Mode Contrast:**
+- `navFgMuted` light: `/55` → `/70` (icon buttons now crisp, not washed out)
+- `navFgSub` light: `/50` → `/60` (nav link inactive text readable)
+- `navSettingsBtn` light: border `/0.09` → `/0.14`, text `/55` → `/65`
+- `navSearchBg` light: border `/0.09` → `/0.14`, focus border `/0.16` → `/0.25`
+- `navInputColor` light: `0.72` → `0.88` opacity (search text fully readable)
+- `navLoginLink` light: text `/60` → `/65`
+- Header light mode background opacity: `0.92` → `0.94`, border `0.07` → `0.08`
+- Header shadow enhanced in light mode for definition
+
+**Active Nav Link:**
+- Added `navActiveFg` token: dark=`text-emerald-400` / light=`text-emerald-600`
+- Active link background: light mode uses `bg-emerald-500/[0.1]` (more visible)
+- Fixed "Deals" link incorrectly showing as active on `/products` page — links with query params now only match exact URL
+
+**Mobile Wordmark:**
+- Fixed missing `${navFg}` class on mobile SYANO wordmark — now correctly changes color in light mode
+
+**Icon Size Unification (mobile header, all to `h-[1.0625rem] w-[1.0625rem]`):**
+- Search icon: `h-[1.1rem]` → `h-[1.0625rem]`
+- MessageCircle icon: `h-[1.1rem]` → `h-[1.0625rem]`
+- Heart (wishlist) icon: `h-5 w-5` → `h-[1.0625rem] w-[1.0625rem]`
+- Cart icon: `h-5 w-5` → `h-[1.0625rem] w-[1.0625rem]`
+
+**Badge Size Unification:**
+- Mobile drawer message badge: `h-[14px] w-[14px] text-[8px]` → `h-[1rem] w-[1rem] text-[9px]` (matches all other badges)
+- Added missing `pointer-events-none` on drawer badge
+
+**Settings Dropdown:**
+- Shadow: `shadow-xl shadow-black/10` → `shadow-2xl shadow-black/[0.15]`
+- Added `rounded-2xl` for premium feel
+
+**NotificationCenter:**
+- Synced `btnCls` light mode token to match updated `navSettingsBtn`: border `/0.09` → `/0.14`, text `/55` → `/65`
+
+**TypeScript:** ✅ 0 errors — no regressions
 
 ---
 
