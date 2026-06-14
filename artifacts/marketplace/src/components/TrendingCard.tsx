@@ -209,7 +209,7 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
         </h3>
 
         {/* Rating — always rendered so all cards have equal height */}
-        <div className="flex items-center gap-2 mb-4 pc-rating-row" style={{ minHeight: "18px" }}>
+        <div className="flex items-center gap-2 mb-4 pc-rating-row" style={{ minHeight: "1.125rem" }}>
           <div className="flex items-center gap-0.5 pc-stars">
             {[...Array(5)].map((_, j) => (
               <Star

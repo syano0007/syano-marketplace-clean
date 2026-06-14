@@ -73,7 +73,7 @@ function StoreCard({ store, isRTL }: { store: StoreItem; isRTL: boolean }) {
       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
     >
       {/* Banner */}
-      <div className="relative h-[110px] overflow-hidden bg-muted flex-shrink-0">
+      <div className="relative h-[6.875rem] overflow-hidden bg-muted flex-shrink-0">
         {store.storeBanner ? (
           <img
             src={store.storeBanner} alt="" loading="lazy"
@@ -97,7 +97,7 @@ function StoreCard({ store, isRTL }: { store: StoreItem; isRTL: boolean }) {
       </div>
 
       {/* Logo bubble — overlaps banner */}
-      <div className="absolute start-4 top-[70px] w-11 h-11 rounded-xl border-2 border-background overflow-hidden shadow-md"
+      <div className="absolute start-4 top-[4.375rem] w-11 h-11 rounded-xl border-2 border-background overflow-hidden shadow-md"
         style={{ background: `${accent}18` }}>
         {store.storeLogo ? (
           <img src={store.storeLogo} alt={store.storeName} loading="lazy" className="w-full h-full object-cover" />
@@ -125,7 +125,7 @@ function StoreCard({ store, isRTL }: { store: StoreItem; isRTL: boolean }) {
             )}
           </div>
         ) : (
-          <div className="h-[18px]" />
+          <div className="h-[1.125rem]" />
         )}
 
         {/* Stats */}
@@ -170,7 +170,7 @@ function StoreCard({ store, isRTL }: { store: StoreItem; isRTL: boolean }) {
 }
 
 function SkeletonCard() {
-  return <div className="rounded-2xl border bg-muted animate-pulse h-[280px]" />;
+  return <div className="rounded-2xl border bg-muted animate-pulse h-[17.5rem]" />;
 }
 
 export default function StoresPage() {

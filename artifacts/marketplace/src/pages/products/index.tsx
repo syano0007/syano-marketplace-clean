@@ -253,7 +253,7 @@ export default function Products() {
 
           <div className="hidden sm:flex shrink-0 border-e">
             <Select value={category || "all"} onValueChange={(v) => selectCategory(v === "all" ? undefined : v)}>
-              <SelectTrigger className="h-11 w-[148px] rounded-none border-0 bg-muted/30 shadow-none text-sm focus:ring-0 focus:ring-offset-0 truncate">
+              <SelectTrigger className="h-11 w-[9.25rem] rounded-none border-0 bg-muted/30 shadow-none text-sm focus:ring-0 focus:ring-offset-0 truncate">
                 <SelectValue placeholder={t("products.all_categories")} />
               </SelectTrigger>
               <SelectContent className="max-h-[320px]">
@@ -287,7 +287,7 @@ export default function Products() {
 
           <div className="hidden sm:flex shrink-0 border-s">
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-              <SelectTrigger className="h-11 w-[188px] rounded-none border-0 bg-muted/20 shadow-none text-sm focus:ring-0 focus:ring-offset-0">
+              <SelectTrigger className="h-11 w-[11.75rem] rounded-none border-0 bg-muted/20 shadow-none text-sm focus:ring-0 focus:ring-offset-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent align="end">
@@ -321,7 +321,7 @@ export default function Products() {
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
                 <button className="flex items-center px-3 h-full text-muted-foreground hover:text-foreground relative">
-                  <SlidersHorizontal className="h-[18px] w-[18px]" />
+                  <SlidersHorizontal className="h-[1.125rem] w-[1.125rem]" />
                   {activeFilterCount > 0 && (
                     <span className="absolute top-1.5 end-1.5 h-3.5 w-3.5 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center">
                       {activeFilterCount}
@@ -421,7 +421,7 @@ export default function Products() {
                   type="number" min="0" placeholder="0"
                   value={minPriceInput}
                   onChange={(e) => setMinPriceInput(e.target.value)}
-                  className="h-9 w-[120px]"
+                  className="h-9 w-[7.5rem]"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -432,7 +432,7 @@ export default function Products() {
                   type="number" min="0" placeholder="∞"
                   value={maxPriceInput}
                   onChange={(e) => setMaxPriceInput(e.target.value)}
-                  className="h-9 w-[120px]"
+                  className="h-9 w-[7.5rem]"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -666,7 +666,7 @@ export default function Products() {
                   size="lg"
                   onClick={() => setOffset((prev) => prev + PAGE_SIZE)}
                   disabled={isFetching}
-                  className="min-w-[200px]"
+                  className="min-w-[12.5rem]"
                 >
                   {isFetching ? (
                     <span className="flex items-center gap-2">

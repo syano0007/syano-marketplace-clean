@@ -132,7 +132,7 @@ function WishlistItemCard({
         <button
           onClick={() => onMoveToCart(product)}
           disabled={isBusy || outOfStock}
-          className={`w-full flex items-center justify-center gap-2 h-9 rounded-lg text-[13px] transition-all duration-150 ${
+          className={`w-full flex items-center justify-center gap-2 h-9 rounded-lg text-[0.8125rem] transition-all duration-150 ${
             outOfStock
               ? "bg-muted text-muted-foreground cursor-not-allowed"
               : "bg-emerald-500 hover:bg-emerald-400 active:scale-[0.97] text-white"

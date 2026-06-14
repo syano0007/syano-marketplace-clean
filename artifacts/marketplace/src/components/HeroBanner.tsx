@@ -755,8 +755,8 @@ export function HeroBanner() {
   if (loading) {
     return (
       <section className="border-b">
-        <div className="lg:grid lg:grid-cols-[1fr_320px]">
-          <div className="min-h-[60vh] sm:min-h-[65vh] lg:min-h-[520px] bg-muted animate-pulse" />
+        <div className="lg:grid lg:grid-cols-[1fr_20rem]">
+          <div className="min-h-[60vh] sm:min-h-[65vh] lg:min-h-[32.5rem] bg-muted animate-pulse" />
           <div className="hidden lg:block bg-card border-s animate-pulse" />
         </div>
         <div className="border-t bg-background h-12 animate-pulse" />
@@ -770,7 +770,7 @@ export function HeroBanner() {
   return (
     <section className="relative border-b overflow-hidden">
       {/* ─── Main grid: carousel + deals panel ─── */}
-      <div className="lg:grid lg:grid-cols-[1fr_320px] lg:h-[520px]">
+      <div className="lg:grid lg:grid-cols-[1fr_20rem] lg:h-[32.5rem]">
 
         {/* LEFT: Carousel */}
         <div
