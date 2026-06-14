@@ -33,6 +33,14 @@ interface SuggestionItem { text: string; textAr: string | null }
 interface CategorySuggestion { slug: string; labelEn: string; labelAr: string }
 interface MobileSuggestions { suggestions: SuggestionItem[]; categories: CategorySuggestion[] }
 
+function recordMobileSearchClick(searchLogId: number): void {
+  fetch(`${getBaseUrl()}/search/click`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ searchLogId }),
+  }).catch(() => {});
+}
+
 export default function HomeScreen() {
   const { isSeller } = useAuth();
   return isSeller ? <SellerDashboard /> : <CustomerShop />;
@@ -46,6 +54,7 @@ function CustomerShop() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [mobileSuggestions, setMobileSuggestions] = useState<MobileSuggestions>({ suggestions: [], categories: [] });
+  const [searchLogId, setSearchLogId] = useState<number | null>(null);
   const addToCart = useAddToCart();
   const suggestTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -56,22 +65,24 @@ function CustomerShop() {
     searchTimeout.current = setTimeout(() => setDebouncedSearch(text), 400);
   }
 
-  // Fetch suggestions when typing ≥ 2 chars
+  // Fetch suggestions when typing ≥ 2 chars; also captures searchLogId for CTR
   useEffect(() => {
     if (suggestTimeout.current) clearTimeout(suggestTimeout.current);
     if (debouncedSearch.length < 2) {
       setMobileSuggestions({ suggestions: [], categories: [] });
+      setSearchLogId(null);
       return;
     }
     suggestTimeout.current = setTimeout(async () => {
       try {
         const res = await fetch(`${getBaseUrl()}/search/suggestions?q=${encodeURIComponent(debouncedSearch)}`);
         if (!res.ok) return;
-        const data = await res.json() as { suggestions?: SuggestionItem[]; categories?: CategorySuggestion[] };
+        const data = await res.json() as { suggestions?: SuggestionItem[]; categories?: CategorySuggestion[]; searchLogId?: number | null };
         setMobileSuggestions({
           suggestions: data.suggestions ?? [],
           categories: data.categories ?? [],
         });
+        setSearchLogId(typeof data.searchLogId === "number" ? data.searchLogId : null);
       } catch { /* network error — stay silent */ }
     }, 100);
     return () => { if (suggestTimeout.current) clearTimeout(suggestTimeout.current); };
@@ -96,9 +107,13 @@ function CustomerShop() {
 
   const renderProductItem = useCallback(({ item }: { item: Product }) => (
     <View style={styles.cardWrapper}>
-      <ProductCard product={item} onAddToCart={handleAddToCart} />
+      <ProductCard
+        product={item}
+        onAddToCart={handleAddToCart}
+        onCardPress={debouncedSearch.length >= 2 && searchLogId != null ? () => recordMobileSearchClick(searchLogId) : undefined}
+      />
     </View>
-  ), [handleAddToCart]);
+  ), [handleAddToCart, debouncedSearch, searchLogId]);
 
   // Shop header lives inside the FlatList as ListHeaderComponent so it
   // scrolls naturally with the product list instead of being pinned above it.

@@ -14,9 +14,10 @@ import { useColors } from "@/hooks/useColors";
 interface ProductCardProps {
   product: Product;
   onAddToCart?: (product: Product) => void;
+  onCardPress?: () => void;
 }
 
-export const ProductCard = React.memo(function ProductCard({ product, onAddToCart }: ProductCardProps) {
+export const ProductCard = React.memo(function ProductCard({ product, onAddToCart, onCardPress }: ProductCardProps) {
   const colors = useColors();
 
   const hasDiscount =
@@ -33,7 +34,7 @@ export const ProductCard = React.memo(function ProductCard({ product, onAddToCar
           opacity: pressed ? 0.92 : 1,
         },
       ]}
-      onPress={() => router.push(`/product/${product.id}`)}
+      onPress={() => { onCardPress?.(); router.push(`/product/${product.id}`); }}
     >
       <View style={[styles.imageContainer, { backgroundColor: colors.muted }]}>
         {product.imageUrl ? (

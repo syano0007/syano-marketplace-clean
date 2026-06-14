@@ -381,6 +381,21 @@ function logToQueryLogs(rawTerm: string, lang: string): void {
   ).catch(() => {});
 }
 
+/** Async: insert into query_logs and return the new row id (or null on failure/timeout) */
+async function logToQueryLogsGetId(rawTerm: string, lang: string): Promise<number | null> {
+  const q = rawTerm.trim().slice(0, 120);
+  if (q.length < 2) return null;
+  try {
+    const { rows } = await pool.query<{ id: number }>(
+      `INSERT INTO query_logs (query, lang) VALUES ($1, $2) RETURNING id`,
+      [q, lang === "en" ? "en" : "ar"],
+    );
+    return rows[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 router.get("/search/suggestions", async (req, res): Promise<void> => {
   const t0   = Date.now();
   const raw  = String(req.query.q ?? "").trim();
@@ -402,9 +417,9 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
   const intent = parseIntent(raw);
   const expandedLike = `%${normalizeArabic(intent.expandedQuery)}%`;
 
-  // Fire-and-forget: log to both analytics tables
+  // Log to both analytics tables; query_logs insert runs concurrently with product queries
   trackQuery(raw);
-  logToQueryLogs(raw, lang);
+  const logIdPromise = logToQueryLogsGetId(raw, lang);
 
   const [productNamesRes, storesRes, trendingRes] = await Promise.all([
     pool.query<{ name: string; name_ar: string | null; category: string; subcategory: string | null }>(
@@ -527,8 +542,10 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
     city:      r.city ?? null,
   }));
 
+  const searchLogId = await logIdPromise;
+
   res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=15");
-  res.json({ suggestions, categories, stores, trending: trendingRes.rows, processingTimeMs: Date.now() - t0 });
+  res.json({ suggestions, categories, stores, trending: trendingRes.rows, processingTimeMs: Date.now() - t0, searchLogId: searchLogId ?? null });
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -634,6 +651,11 @@ router.get("/search/results", async (req, res): Promise<void> => {
     sortBy;
 
   trackQuery(raw);
+
+  /* Log to query_logs concurrently — race caps at 50 ms so it never delays search response */
+  const langDetect = /[\u0600-\u06FF]/.test(raw) ? "ar" : "en";
+  const logInsertPromise = logToQueryLogsGetId(raw, langDetect);
+  const logTimeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 50));
 
   /* ── 6. Parameterised query builder ─────────────────────────────────── */
   const pb = makeParamBuilder();
@@ -861,6 +883,9 @@ router.get("/search/results", async (req, res): Promise<void> => {
     score: Math.round(parseFloat(r.final_score) * 1000) / 1000,
   }));
 
+  /* Capture the query_logs id if insert finished within the 50 ms window */
+  const searchLogId: number | null = await Promise.race([logInsertPromise, logTimeoutPromise]);
+
   res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=15");
   res.json({
     results,
@@ -868,6 +893,7 @@ router.get("/search/results", async (req, res): Promise<void> => {
     page,
     limit,
     totalPages: Math.ceil(total / limit),
+    searchLogId: searchLogId ?? null,
     intent: {
       modifiers:       intent.modifiers,
       mappedCategory:  intent.mappedCategory,
@@ -892,7 +918,29 @@ router.get("/search/trending", async (_req, res): Promise<void> => {
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ROUTE 5 — POST /api/search/track-click
+   ROUTE 5 — POST /api/search/click  (CTR logging — marks query_logs row as clicked)
+   ═══════════════════════════════════════════════════════════════════════════ */
+router.post("/search/click", async (req, res): Promise<void> => {
+  const body = req.body as { searchLogId?: unknown };
+  const rawId = body.searchLogId;
+  if (typeof rawId !== "number" || !Number.isInteger(rawId) || rawId <= 0) {
+    res.status(400).json({ error: "searchLogId must be a positive integer" });
+    return;
+  }
+  try {
+    const result = await pool.query(
+      `UPDATE query_logs SET clicked = true WHERE id = $1 AND clicked = false`,
+      [rawId],
+    );
+    res.json({ success: (result.rowCount ?? 0) > 0 });
+  } catch (error) {
+    console.error("[search-click]", error);
+    res.status(500).json({ success: false });
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROUTE 6 — POST /api/search/track-click
    ═══════════════════════════════════════════════════════════════════════════ */
 router.post("/search/track-click", async (req, res): Promise<void> => {
   const { term } = req.body as { term?: string };

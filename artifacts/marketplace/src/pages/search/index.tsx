@@ -10,6 +10,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { useSEO } from "@/hooks/useSEO";
+import { recordSearchClick } from "@/hooks/use-search";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -71,6 +72,7 @@ interface SearchApiResponse {
   page: number;
   limit: number;
   totalPages: number;
+  searchLogId?: number | null;
   intent: SearchIntent;
 }
 
@@ -243,6 +245,7 @@ export default function SearchPage() {
   const isFetchingProducts = searchMode ? searchResultFetching : isFetching;
   const totalResults = searchMode ? (searchData?.total ?? 0) : undefined;
   const searchIntent = searchMode ? (searchData?.intent ?? null) : null;
+  const searchLogId: number | null = searchMode ? (searchData?.searchLogId ?? null) : null;
   const hasMoreProducts = searchMode
     ? (searchPage < (searchData?.totalPages ?? 1))
     : ((pageData?.length ?? 0) >= PAGE_SIZE);
@@ -705,7 +708,9 @@ export default function SearchPage() {
                   <>
                     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                       {products.map((p: any) => (
-                        <ProductCard key={p.id} product={p} />
+                        <div key={p.id} onClick={() => { if (searchMode && searchLogId != null) recordSearchClick(searchLogId); }}>
+                          <ProductCard product={p} />
+                        </div>
                       ))}
                     </div>
                     {hasMoreProducts && (

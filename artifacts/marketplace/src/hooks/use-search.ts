@@ -205,3 +205,16 @@ export function trackSearchClick(term: string, type: "suggestion" | "category" |
     credentials: "include",
   }).catch(() => {});
 }
+
+/**
+ * Record a search result click for CTR analytics.
+ * Fire-and-forget — must never await this, must never delay navigation.
+ */
+export function recordSearchClick(searchLogId: number): void {
+  if (!searchLogId) return;
+  fetch("/api/search/click", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ searchLogId }),
+  }).catch(() => {});
+}
