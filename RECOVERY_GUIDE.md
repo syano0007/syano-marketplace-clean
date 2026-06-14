@@ -1,5 +1,5 @@
 # SYANO — Recovery Guide
-**Last Updated:** June 13, 2026 (Session 7 — Homepage V7: premium dark navbar + 8 HomeSections + real data)
+**Last Updated:** June 14, 2026 (Session 9 — Full Recovery: fresh DB + TS fixes + bootstrap patch)
 
 This guide restores the project to a fully working state from scratch.
 

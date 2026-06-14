@@ -251,8 +251,8 @@ function MessageBubble({
           </span>
           {isMine && !isDeleted && (
             msg.readAt
-              ? <CheckCheck className="h-3 w-3 text-primary" title={t("messages.read_receipt_icon")} />
-              : <Check className="h-3 w-3 text-muted-foreground" title={t("messages.sent_receipt")} />
+              ? <CheckCheck className="h-3 w-3 text-primary" aria-label={t("messages.read_receipt_icon")} />
+              : <Check className="h-3 w-3 text-muted-foreground" aria-label={t("messages.sent_receipt")} />
           )}
         </div>
       </div>
@@ -628,7 +628,7 @@ function ConvSidebar({
   const archiveMut = useArchiveConversation();
   const muteMut = useMuteConversation();
 
-  const archivedConvs = useGetConversations({ archived: true, query: { enabled: filter === "archived" } });
+  const archivedConvs = useGetConversations({ archived: true, query: { queryKey: ["/api/conversations", "archived"] as const, enabled: filter === "archived" } });
 
   const source = filter === "archived"
     ? (archivedConvs.data ?? [])

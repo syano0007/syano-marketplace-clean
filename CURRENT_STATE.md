@@ -1,6 +1,23 @@
 # SYANO — Current Project State
-**Last Updated:** June 13, 2026 (Session 8)  
-**Updated By:** Navbar fixes + Settings button — RTL layout corrected, floating hero icon removed, Settings dropdown added
+**Last Updated:** June 14, 2026 (Session 9 — Full Recovery)  
+**Updated By:** Full environment recovery — fresh DB restore, all services started, 4 TS errors fixed, bootstrap column bug patched
+
+---
+
+## Migration Note (June 14, 2026 — Session 9 — Full Recovery)
+
+Full recovery performed from empty environment:
+- `pnpm install --force` → packages installed
+- `psql "$DATABASE_URL" -f schema.sql` → base tables created
+- `npx tsc --build lib/db lib/api-zod lib/api-client-react` → clean
+- API server started → `run-migrations.ts` ran migrations → bootstrap accounts created → 42 demo products seeded
+- **Bootstrap bug patched**: `bootstrap-demo-data.ts` line 545: `customer_id` → `user_id` on reviews INSERT (column name mismatch with actual schema)
+- **TS fixes applied** (4 errors → 0):
+  - `MessagingPanel.tsx`: `title` prop on Lucide icons → `aria-label`; `useGetConversations` missing `queryKey` → inlined key
+  - `Navbar.tsx`: `useGetUnreadCount` missing `queryKey` import → inlined key value directly
+  - `NotificationCenter.tsx`: missing `Button` import → added from `@/components/ui/button`
+- Recovery check: **95/100** (heroBannerSystem false negative — expected)
+- TypeScript: **0 errors** across all 6 artifacts
 
 ---
 

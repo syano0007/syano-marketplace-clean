@@ -157,7 +157,7 @@ export function Navbar() {
   const cartItemCount = cart?.itemCount || 0;
   const { guestTotal } = useGuestCart();
   const visibleCartCount = isAuthenticated ? cartItemCount : guestTotal;
-  const { data: unreadData } = useGetUnreadCount({ query: { enabled: isAuthenticated, refetchInterval: 15_000 } });
+  const { data: unreadData } = useGetUnreadCount({ query: { queryKey: ["/api/conversations/unread-count"] as const, enabled: isAuthenticated, refetchInterval: 15_000 } });
   const unreadMsgCount = unreadData?.unread ?? 0;
 
   const { results: suggestions, isLoading: searchLoading } = useSearch(debouncedSearch);
