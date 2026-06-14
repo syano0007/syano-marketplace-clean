@@ -325,6 +325,13 @@
     overscroll-behavior-y: contain;
   }
 
+  /* ── Cinematic dark mode: let page wrappers be transparent so the
+     body's layered background shows through. Cards (bg-card) and
+     popovers (bg-popover) are unaffected — they use different tokens. ── */
+  html.dark .min-h-screen.bg-background {
+    background-color: transparent;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     line-height: 1.25;
     letter-spacing: -0.02em;
@@ -931,4 +938,60 @@
   justify-content: center;
   text-align: center;
   gap: 1.25rem;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   CINEMATIC DARK BACKGROUND SYSTEM
+   Layered atmospheric background for dark mode — premium marketplace feel.
+   Inspired by: Apple Keynotes · Linear · Stripe · Luxury E-commerce
+   Four-layer stack: base gradient → depth → ambient green glow → vignette → noise
+   All effects dark-mode only. Light theme is completely unaffected.
+══════════════════════════════════════════════════════════════════════ */
+
+html.dark body {
+  background-color: #030303;
+  background-image:
+    /* [1] TOP — Micro noise: eliminates flatness, adds perceived surface quality */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.042'/%3E%3C/svg%3E"),
+    /* [2] Vignette — edges recede into darkness, center feels illuminated */
+    radial-gradient(ellipse 130% 130% at 50% 45%, transparent 28%, rgba(0,0,0,0.62) 100%),
+    /* [3] SYANO green ambient glow — upper-left origin, atmospheric, nearly invisible */
+    radial-gradient(ellipse 95% 75% at 10% 18%, rgba(16,185,129,0.038) 0%, transparent 65%),
+    /* [4] SYANO green ambient glow — lower-right echo, even more diffuse */
+    radial-gradient(ellipse 75% 60% at 90% 82%, rgba(16,185,129,0.020) 0%, transparent 62%),
+    /* [5] Depth crown — top region fractionally lighter, creates vertical dimension */
+    radial-gradient(ellipse 120% 70% at 50% -8%, #0f0f0f 0%, #080808 32%, transparent 68%),
+    /* [6] BOTTOM — Base cinematic gradient: non-uniform darkness, no flat zones */
+    linear-gradient(172deg, #0a0a0a 0%, #060606 30%, #030303 58%, #050505 80%, #080808 100%);
+  background-size:
+    180px 180px,   /* noise — tiles across viewport */
+    cover,          /* vignette */
+    cover,          /* green glow 1 */
+    cover,          /* green glow 2 */
+    cover,          /* depth crown */
+    cover;          /* base gradient */
+  background-repeat:
+    repeat,         /* noise tiles */
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat;
+  /* Fixed attachment on desktop: background stays anchored as content scrolls,
+     creating a cinematic parallax depth effect (like Linear / Apple product pages) */
+  background-attachment:
+    fixed,
+    fixed,
+    fixed,
+    fixed,
+    fixed,
+    fixed;
+}
+
+/* Disable fixed attachment on mobile — background-attachment:fixed disables
+   GPU compositing on iOS Safari and causes repaint jank on scroll */
+@media (max-width: 767px) {
+  html.dark body {
+    background-attachment: scroll;
+  }
 }
