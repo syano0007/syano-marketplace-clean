@@ -31,16 +31,20 @@ interface MobileNavLinkProps {
   label: string;
   location: string;
   onClose: () => void;
+  isDark?: boolean;
 }
 
-const MobileNavLink = React.memo(function MobileNavLink({ href, icon: Icon, label, location, onClose }: MobileNavLinkProps) {
+const MobileNavLink = React.memo(function MobileNavLink({ href, icon: Icon, label, location, onClose, isDark = true }: MobileNavLinkProps) {
+  const inactiveCls = isDark
+    ? "text-white/60 hover:text-white hover:bg-white/[0.06]"
+    : "text-foreground/65 hover:text-foreground hover:bg-foreground/[0.05]";
   return (
     <Link href={href} onClick={onClose}>
       <div className={cn(
         "flex items-center gap-3 px-3 rounded-lg text-sm font-medium transition-colors min-h-[44px]",
         location === href || (href !== "/" && location.startsWith(href))
           ? "bg-emerald-500/10 text-emerald-400"
-          : "text-white/60 hover:text-white hover:bg-white/[0.06]",
+          : inactiveCls,
       )}>
         <Icon className="h-5 w-5 shrink-0" />
         {label}
@@ -260,6 +264,20 @@ export function Navbar() {
               </button>
             )}
             {isAuthenticated && <NotificationCenter />}
+            {isAuthenticated && !isCourier && (
+              <Link
+                href={isAdmin ? "/admin/messages" : isSeller ? "/seller/messages" : "/messages"}
+                className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}
+                aria-label={isRtl ? "الرسائل" : "Messages"}
+              >
+                <MessageCircle className="h-[1.1rem] w-[1.1rem]" />
+                {unreadMsgCount > 0 && (
+                  <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white pointer-events-none">
+                    {unreadMsgCount > 9 ? "9+" : unreadMsgCount}
+                  </span>
+                )}
+              </Link>
+            )}
             {!isSeller && !isAdmin && !isCourier && (
               <Link href="/wishlist" className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
                 <Heart className="h-5 w-5" />
@@ -453,6 +471,9 @@ export function Navbar() {
 
           {/* ── COL 3 → renders on the LEFT in RTL: Actions + Auth buttons ──── */}
           <div className="flex items-center gap-1.5 shrink-0">
+
+            {/* Notifications — authenticated users */}
+            {isAuthenticated && <NotificationCenter />}
 
             {/* Messages — authenticated users (not couriers) */}
             {isAuthenticated && !isCourier && (
@@ -650,50 +671,41 @@ export function Navbar() {
 
         {/* ══ MOBILE DRAWER ════════════════════════════════════════════════════ */}
         <SheetContent side={isRtl ? "right" : "left"}
-          className="w-[min(300px,78vw)] p-0 flex flex-col border-white/[0.08]"
-          style={{ background: "#0d0d0d" }}
+          className="w-[min(300px,78vw)] p-0 flex flex-col"
+          style={{
+            background: isDark ? "#0d0d0d" : "white",
+            borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+          }}
           aria-describedby={undefined}>
           <SheetTitle className="sr-only">Menu</SheetTitle>
-          <div className="relative flex flex-col items-center justify-center pt-10 pb-7 border-b border-white/[0.07] shrink-0 overflow-hidden">
+          <div className="relative flex flex-col items-center justify-center pt-10 pb-7 shrink-0 overflow-hidden"
+            style={{ borderBottom: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.07)" }}>
             <div className="absolute top-6 left-1/2 -translate-x-1/2 h-28 w-28 rounded-full bg-emerald-500/10 blur-2xl" />
             <img src="/syano-logo.png" alt="Syano" width={64} height={64}
               className="relative z-10 h-16 w-16 object-contain drop-shadow-[0_0_20px_rgba(16,185,129,0.75)]" loading="eager" />
-            <p className="relative z-10 mt-3 text-xl font-black tracking-[0.28em] text-white uppercase">SYANO</p>
+            <p className="relative z-10 mt-3 text-xl font-black tracking-[0.28em] uppercase"
+              style={{ color: isDark ? "white" : "#111" }}>SYANO</p>
             <p className="relative z-10 mt-1 text-xs font-semibold tracking-[0.12em] text-emerald-400/60 uppercase">سوق سوريا</p>
           </div>
 
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-            <MobileNavLink href="/" icon={Home} label={isRtl ? "الرئيسية" : "Home"} location={location} onClose={closeMobileMenu} />
-            <MobileNavLink href="/products" icon={Package} label={isRtl ? "المنتجات" : "Products"} location={location} onClose={closeMobileMenu} />
-            <MobileNavLink href="/sellers/directory" icon={Store} label={isRtl ? "المتاجر" : "Stores"} location={location} onClose={closeMobileMenu} />
-            {isAdmin && adminLinks.map(l => <MobileNavLink key={l.href} {...l} location={location} onClose={closeMobileMenu} />)}
-            {isSeller && sellerLinks.map(l => <MobileNavLink key={l.href} {...l} location={location} onClose={closeMobileMenu} />)}
-            {isCourier && <MobileNavLink href="/courier/dashboard" icon={Bike} label={isRtl ? "لوحة التوصيل" : "Courier"} location={location} onClose={closeMobileMenu} />}
-            {isCustomer && customerLinks.map(l => <MobileNavLink key={l.href} {...l} location={location} onClose={closeMobileMenu} />)}
-            {isCustomer && <MobileNavLink href="/cart" icon={ShoppingCart} label={isRtl ? "السلة" : "Cart"} location={location} onClose={closeMobileMenu} />}
-            {isCustomer && (
-              <Link href="/messages" onClick={closeMobileMenu}>
+            <MobileNavLink href="/" icon={Home} label={isRtl ? "الرئيسية" : "Home"} location={location} onClose={closeMobileMenu} isDark={isDark} />
+            <MobileNavLink href="/products" icon={Package} label={isRtl ? "المنتجات" : "Products"} location={location} onClose={closeMobileMenu} isDark={isDark} />
+            <MobileNavLink href="/sellers/directory" icon={Store} label={isRtl ? "المتاجر" : "Stores"} location={location} onClose={closeMobileMenu} isDark={isDark} />
+            {isAdmin && adminLinks.map(l => <MobileNavLink key={l.href} {...l} location={location} onClose={closeMobileMenu} isDark={isDark} />)}
+            {isSeller && sellerLinks.map(l => <MobileNavLink key={l.href} {...l} location={location} onClose={closeMobileMenu} isDark={isDark} />)}
+            {isCourier && <MobileNavLink href="/courier/dashboard" icon={Bike} label={isRtl ? "لوحة التوصيل" : "Courier"} location={location} onClose={closeMobileMenu} isDark={isDark} />}
+            {isCustomer && customerLinks.map(l => <MobileNavLink key={l.href} {...l} location={location} onClose={closeMobileMenu} isDark={isDark} />)}
+            {isCustomer && <MobileNavLink href="/cart" icon={ShoppingCart} label={isRtl ? "السلة" : "Cart"} location={location} onClose={closeMobileMenu} isDark={isDark} />}
+            {isAuthenticated && !isCourier && (
+              <Link href={isAdmin ? "/admin/messages" : isSeller ? "/seller/messages" : "/messages"} onClick={closeMobileMenu}>
                 <div className={cn(
                   "flex items-center gap-3 px-3 rounded-lg text-sm font-medium transition-colors min-h-[44px]",
-                  location === "/messages" ? "bg-emerald-500/10 text-emerald-400" : "text-white/60 hover:text-white hover:bg-white/[0.06]",
-                )}>
-                  <span className="relative">
-                    <MessageCircle className="h-5 w-5 shrink-0" />
-                    {unreadMsgCount > 0 && (
-                      <span className="absolute -top-1 -end-1 flex h-[14px] w-[14px] items-center justify-center rounded-full bg-blue-500 text-[8px] font-bold text-white">
-                        {unreadMsgCount > 9 ? "9+" : unreadMsgCount}
-                      </span>
-                    )}
-                  </span>
-                  {isRtl ? "الرسائل" : "Messages"}
-                </div>
-              </Link>
-            )}
-            {isSeller && (
-              <Link href="/seller/messages" onClick={closeMobileMenu}>
-                <div className={cn(
-                  "flex items-center gap-3 px-3 rounded-lg text-sm font-medium transition-colors min-h-[44px]",
-                  location === "/seller/messages" ? "bg-emerald-500/10 text-emerald-400" : "text-white/60 hover:text-white hover:bg-white/[0.06]",
+                  ["/messages", "/seller/messages", "/admin/messages"].includes(location)
+                    ? "bg-emerald-500/10 text-emerald-400"
+                    : isDark
+                      ? "text-white/60 hover:text-white hover:bg-white/[0.06]"
+                      : "text-foreground/65 hover:text-foreground hover:bg-foreground/[0.05]",
                 )}>
                   <span className="relative">
                     <MessageCircle className="h-5 w-5 shrink-0" />
@@ -709,19 +721,28 @@ export function Navbar() {
             )}
           </div>
 
-          <div className="px-3 py-2 border-t border-white/[0.07] space-y-0.5">
-            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }} className="text-white/25 uppercase px-3 mb-1 pt-1">
+          <div className="px-3 py-2 space-y-0.5"
+            style={{ borderTop: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.07)" }}>
+            <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.3)" }}
+              className="uppercase px-3 mb-1 pt-1">
               {isRtl ? "التفضيلات" : "Preferences"}
             </p>
             {/* Language */}
             <div className="grid [grid-template-columns:auto_1fr_auto] items-center gap-x-3 px-3 min-h-[44px]">
-              <Globe className="h-5 w-5 text-white/30" />
-              <span style={{ fontSize: "14px", fontWeight: 500 }} className="text-white/60">{isRtl ? "اللغة" : "Language"}</span>
+              <Globe className="h-5 w-5" style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" }} />
+              <span style={{ fontSize: "14px", fontWeight: 500, color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.6)" }}>
+                {isRtl ? "اللغة" : "Language"}
+              </span>
               <div className="flex gap-1">
                 {["en", "ar"].map(l => (
                   <button key={l} onClick={() => switchLanguage(l)}
                     className={cn("px-2.5 py-0.5 rounded text-xs font-bold transition-colors",
-                      lang === l ? "bg-emerald-500 text-black" : "bg-white/[0.07] text-white/40 hover:bg-white/[0.12]")}>
+                      lang === l
+                        ? "bg-emerald-500 text-black"
+                        : isDark
+                          ? "bg-white/[0.07] text-white/40 hover:bg-white/[0.12]"
+                          : "bg-black/[0.06] text-foreground/50 hover:bg-black/[0.11]"
+                    )}>
                     {l.toUpperCase()}
                   </button>
                 ))}
@@ -729,13 +750,20 @@ export function Navbar() {
             </div>
             {/* Currency */}
             <div className="grid [grid-template-columns:auto_1fr_auto] items-center gap-x-3 px-3 min-h-[44px]">
-              <DollarSign className="h-5 w-5 text-white/30" />
-              <span style={{ fontSize: "14px", fontWeight: 500 }} className="text-white/60">{isRtl ? "العملة" : "Currency"}</span>
+              <DollarSign className="h-5 w-5" style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" }} />
+              <span style={{ fontSize: "14px", fontWeight: 500, color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.6)" }}>
+                {isRtl ? "العملة" : "Currency"}
+              </span>
               <div className="flex gap-1">
                 {["USD", "SYP"].map(c => (
                   <button key={c} onClick={() => setCurrency(c as any)}
                     className={cn("px-2.5 py-0.5 rounded text-xs font-bold transition-colors",
-                      currency === c ? "bg-emerald-500 text-black" : "bg-white/[0.07] text-white/40 hover:bg-white/[0.12]")}>
+                      currency === c
+                        ? "bg-emerald-500 text-black"
+                        : isDark
+                          ? "bg-white/[0.07] text-white/40 hover:bg-white/[0.12]"
+                          : "bg-black/[0.06] text-foreground/50 hover:bg-black/[0.11]"
+                    )}>
                     {c}
                   </button>
                 ))}
@@ -743,13 +771,20 @@ export function Navbar() {
             </div>
             {/* Theme */}
             <div className="grid [grid-template-columns:auto_1fr_auto] items-center gap-x-3 px-3 min-h-[44px]">
-              <Sun className="h-5 w-5 text-white/30" />
-              <span style={{ fontSize: "14px", fontWeight: 500 }} className="text-white/60">{isRtl ? "المظهر" : "Theme"}</span>
+              <Sun className="h-5 w-5" style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" }} />
+              <span style={{ fontSize: "14px", fontWeight: 500, color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.6)" }}>
+                {isRtl ? "المظهر" : "Theme"}
+              </span>
               <div className="flex gap-1">
                 {(["light", "dark", "system"] as const).map(tm => (
                   <button key={tm} onClick={() => setTheme(tm)}
                     className={cn("px-2 py-0.5 rounded text-xs font-bold transition-colors",
-                      theme === tm ? "bg-emerald-500 text-black" : "bg-white/[0.07] text-white/40 hover:bg-white/[0.12]")}>
+                      theme === tm
+                        ? "bg-emerald-500 text-black"
+                        : isDark
+                          ? "bg-white/[0.07] text-white/40 hover:bg-white/[0.12]"
+                          : "bg-black/[0.06] text-foreground/50 hover:bg-black/[0.11]"
+                    )}>
                     {tm[0].toUpperCase()}
                   </button>
                 ))}
@@ -757,7 +792,8 @@ export function Navbar() {
             </div>
           </div>
 
-          <div className="px-3 pb-safe-4 border-t border-white/[0.07] pt-3">
+          <div className="px-3 pb-safe-4 pt-3"
+            style={{ borderTop: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.07)" }}>
             {isAuthenticated ? (
               <>
                 <div className="flex items-center gap-3 px-3 py-2 mb-2">
@@ -767,8 +803,8 @@ export function Navbar() {
                     </span>
                   </div>
                   <div className="min-w-0">
-                    <p style={{ fontSize: "14px", fontWeight: 600 }} className="text-white truncate">{user?.name}</p>
-                    <p style={{ fontSize: "11px" }} className="text-white/30 truncate" translate="no">{user?.email}</p>
+                    <p style={{ fontSize: "14px", fontWeight: 600, color: isDark ? "white" : "#111" }} className="truncate">{user?.name}</p>
+                    <p style={{ fontSize: "11px", color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.4)" }} className="truncate" translate="no">{user?.email}</p>
                   </div>
                 </div>
                 <button
@@ -782,8 +818,12 @@ export function Navbar() {
             ) : (
               <div className="flex flex-col gap-2 px-1">
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}
-                  style={{ fontWeight: 600, fontSize: "14px" }}
-                  className="flex items-center justify-center h-11 rounded-xl border border-white/[0.12] text-white/70 hover:text-white hover:border-white/[0.2] transition-colors">
+                  style={{
+                    fontWeight: 600, fontSize: "14px",
+                    borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)",
+                    color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.7)",
+                  }}
+                  className="flex items-center justify-center h-11 rounded-xl border hover:opacity-80 transition-opacity">
                   {t("nav.login")}
                 </Link>
                 <Link href="/register" onClick={() => setMobileMenuOpen(false)}

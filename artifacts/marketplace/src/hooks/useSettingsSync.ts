@@ -38,10 +38,22 @@ async function pushSettings(token: string, settings: ServerSettings): Promise<vo
   }
 }
 
+function getLocalTheme(): string | null {
+  try { return localStorage.getItem("theme"); } catch { return null; }
+}
+
+function getLocalLang(): string | null {
+  try { return localStorage.getItem("marketplace_lang"); } catch { return null; }
+}
+
 /**
- * Mounts inside all settings providers.
- * - On login/page-load: fetches user's saved settings from server and applies them.
- * - While authenticated: debounces any theme/language/currency change and persists to server.
+ * Settings sync — LOCAL IS ALWAYS THE SOURCE OF TRUTH.
+ *
+ * On login / page reload with token:
+ *   - If localStorage already has a valid preference → keep it, push it to DB.
+ *   - Only apply DB value when localStorage has NO preference for that setting.
+ *
+ * While authenticated: debounce any change and persist to DB.
  */
 export function useSettingsSync() {
   const { token, isAuthenticated } = useAuth();
@@ -49,7 +61,6 @@ export function useSettingsSync() {
   const { currency, setCurrency } = useCurrency();
   const { i18n } = useTranslation();
 
-  // Has the server fetch completed for the current session? Don't save until then.
   const serverLoadedRef = useRef(false);
   const prevTokenRef = useRef<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,19 +73,43 @@ export function useSettingsSync() {
 
       void (async () => {
         const settings = await fetchSettings(token);
-        if (!settings) { serverLoadedRef.current = true; return; }
 
-        if (settings.theme && ["light", "dark", "system"].includes(settings.theme)) {
-          setTheme(settings.theme);
+        if (settings) {
+          const VALID_THEMES = ["light", "dark", "system"];
+          const VALID_LANGS  = ["ar", "en"];
+
+          // ── Theme: local wins ──────────────────────────────────────────────
+          const localTheme = getLocalTheme();
+          if (settings.theme && VALID_THEMES.includes(settings.theme)) {
+            if (!localTheme || !VALID_THEMES.includes(localTheme)) {
+              // No local pref → apply DB value
+              setTheme(settings.theme);
+            }
+            // else: local preference exists and is valid → keep it (will push to DB below)
+          }
+
+          // ── Language: local wins ───────────────────────────────────────────
+          const localLang = getLocalLang() || i18n.language;
+          if (settings.language && VALID_LANGS.includes(settings.language)) {
+            if (!localLang || !VALID_LANGS.includes(localLang)) {
+              void i18n.changeLanguage(settings.language);
+              applyDirection(settings.language);
+              try { localStorage.setItem("marketplace_lang", settings.language); } catch {}
+            }
+          }
+
+          // ── Currency: local wins ───────────────────────────────────────────
+          if (settings.currency === "SYP" || settings.currency === "USD") {
+            // currency context already reads from localStorage — only apply if not set
+            const localCurrency = (() => {
+              try { return localStorage.getItem("syano_currency"); } catch { return null; }
+            })();
+            if (!localCurrency) {
+              setCurrency(settings.currency as "SYP" | "USD");
+            }
+          }
         }
-        if (settings.language && ["ar", "en"].includes(settings.language)) {
-          void i18n.changeLanguage(settings.language);
-          applyDirection(settings.language);
-          try { localStorage.setItem("marketplace_lang", settings.language); } catch {}
-        }
-        if (settings.currency === "SYP" || settings.currency === "USD") {
-          setCurrency(settings.currency as "SYP" | "USD");
-        }
+
         serverLoadedRef.current = true;
       })();
     } else if (!token) {
