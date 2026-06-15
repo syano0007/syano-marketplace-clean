@@ -8,7 +8,8 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "embed:generate": "tsx src/scripts/generateEmbeddings.ts"
+    "embed:generate": "tsx src/scripts/generateEmbeddings.ts",
+    "seed:products": "tsx src/scripts/seedProducts.ts"
   },
   "dependencies": {
     "@types/helmet": "^4.0.0",
