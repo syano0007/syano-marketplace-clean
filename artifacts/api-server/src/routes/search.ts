@@ -448,6 +448,14 @@ function logToQueryLogs(rawTerm: string, lang: string): void {
   ).catch(() => {});
 }
 
+/** Fire-and-forget: update query_logs row with result_count + fallback_level after search */
+function updateQueryLog(id: number, resultCount: number, fallbackLevel: number | null): void {
+  pool.query(
+    `UPDATE query_logs SET result_count = $2, fallback_level = $3 WHERE id = $1`,
+    [id, resultCount, fallbackLevel],
+  ).catch(() => {});
+}
+
 /** Async: insert into query_logs and return the new row id (or null on failure/timeout) */
 async function logToQueryLogsGetId(rawTerm: string, lang: string): Promise<number | null> {
   const q = rawTerm.trim().slice(0, 120);
@@ -696,6 +704,9 @@ router.get("/search/results", async (req, res): Promise<void> => {
 
   /* Debug ranking breakdown — admin-only when ?debug=ranking is present */
   const debugRanking = req.query.debug === "ranking" && (req as any).user?.role === "admin";
+  /* include_out_of_stock — admin/seller only: stock_score=1.0 for all (no OOS penalty) */
+  const includeOOS = req.query.include_out_of_stock === "true" &&
+    ["admin", "seller"].includes((req as any).user?.role ?? "");
 
   /* ── 3. Dual NLP pipeline ───────────────────────────────────────────── */
 
@@ -748,6 +759,8 @@ router.get("/search/results", async (req, res): Promise<void> => {
   const pLike         = pb.add(`%${term}%`);
   // Dialect category param
   const pMappedCat    = pb.add(intent.mappedCategory?.toLowerCase() ?? null);
+  // include_out_of_stock override: when true stock_score=1.0 for all (admin/seller audit mode)
+  const pIncludeOOS   = pb.add(includeOOS);
 
   /* Optional extra WHERE filters */
   const extraWhere: string[] = [];
@@ -911,22 +924,6 @@ router.get("/search/results", async (req, res): Promise<void> => {
       GROUP BY product_id
     ),
 
-    /* ── Global normalization stats — 1 row, CROSS JOINed into candidate ──── */
-    global_stats AS (
-      SELECT
-        GREATEST(MAX(p.sales_count), 1)::float AS max_sales,
-        GREATEST(MAX(p.view_count),  1)::float AS max_views,
-        GREATEST(
-          COALESCE(
-            (SELECT MAX(rc.cnt)::float
-               FROM (SELECT COUNT(*) AS cnt FROM reviews GROUP BY product_id) rc),
-            1.0
-          ),
-          1.0
-        ) AS max_reviews
-      FROM products p
-    ),
-
     /* ── Candidate scan + text scoring ────────────────────────────────────── */
     candidate AS (
       SELECT
@@ -946,8 +943,6 @@ router.get("/search/results", async (req, res): Promise<void> => {
         p.image_urls,
         p.featured                                                         AS p_featured,
         p.created_at                                                       AS p_created_at,
-        p.sales_count::float                                               AS p_sales_count,
-        p.view_count::float                                                AS p_view_count,
         sa.store_name,
         sa.store_slug,
         sa.store_logo,
@@ -955,10 +950,6 @@ router.get("/search/results", async (req, res): Promise<void> => {
         /* Review signals — pre-aggregated, no N+1 */
         COALESCE(ra.avg_rating,   0.0)::float AS avg_rating,
         COALESCE(ra.review_count, 0)::integer  AS review_count,
-        /* Global normalization denominators */
-        gs.max_sales,
-        gs.max_views,
-        gs.max_reviews,
 
         /* ── Layer 1: Full-text search ──────────────────────────────────── */
         CASE
@@ -996,7 +987,6 @@ router.get("/search/results", async (req, res): Promise<void> => {
 
       FROM products p
       CROSS JOIN ts_params tsp
-      CROSS JOIN global_stats gs
       INNER JOIN users u
         ON  u.id = p.seller_id
         AND u.account_status = 'active'
@@ -1004,9 +994,7 @@ router.get("/search/results", async (req, res): Promise<void> => {
         ON  sa.user_id = p.seller_id
         AND sa.status  = 'approved'
       LEFT JOIN rev_agg ra ON ra.product_id = p.id
-      WHERE
-        p.stock > 0
-        AND (
+      WHERE (
           (tsp.expanded_q IS NOT NULL AND p.fts_vector IS NOT NULL
             AND p.fts_vector @@ tsp.expanded_q)
           OR word_similarity(${pTerm}, lower(p.name))                  > 0.14
@@ -1023,46 +1011,45 @@ router.get("/search/results", async (req, res): Promise<void> => {
     scored AS (
       SELECT *,
 
-        /* Text relevance (40%) — existing three-layer formula */
+        /* Text relevance (55%) — three-layer: FTS + AND precision boost + trigram */
         GREATEST(
           fts_score * 0.65 + and_boost + trgm_score * 0.25 + cat_score * 0.10,
           trgm_score * 0.45,
           cat_score
         ) AS text_score,
 
-        /* Quality (25%) — log-normalised review count prevents 1×5★ beating
-           500×4.8★; rating component (0.6) + review volume component (0.4) */
-        LEAST(1.0,
-          0.6 * (avg_rating / 5.0)
-          + 0.4 * (LN(1.0 + review_count::float)
-                   / NULLIF(LN(1.0 + max_reviews), 0.0))
+        /* Quality (20%) — rating×0.6 + volume×0.4, capped at 50 reviews to
+           prevent high-review sellers monopolising results */
+        (
+          COALESCE(avg_rating, 0.0) / 5.0 * 0.6
+          + LEAST(COALESCE(review_count::float, 0.0), 50.0) / 50.0 * 0.4
         ) AS quality_score,
 
-        /* Popularity (20%) — log-normalised so 10k views ≠ 10× better than 1k */
-        LEAST(1.0,
-          0.6 * (LN(1.0 + p_sales_count) / NULLIF(LN(1.0 + max_sales), 0.0))
-          + 0.4 * (LN(1.0 + p_view_count)  / NULLIF(LN(1.0 + max_views),  0.0))
-        ) AS popularity_score,
+        /* Freshness (10%) — linear decay to 0 over 90 days */
+        GREATEST(0.0,
+          1.0 - EXTRACT(EPOCH FROM (NOW() - p_created_at)) / (86400.0 * 90.0)
+        ) AS freshness_score,
 
-        /* Freshness (10%) — full score ≤30 days, linear decay to 0 at ≥180 days */
-        GREATEST(0.0, 1.0 - GREATEST(
-          0.0,
-          EXTRACT(EPOCH FROM (NOW() - p_created_at)) / 86400.0 - 30.0
-        ) / 150.0) AS freshness_score,
+        /* Seller score (8%) — TODO: no trust_level column yet; constant 0.5
+           Replace with CASE sa.trust_level WHEN 'gold' THEN 1.0 ... when added */
+        0.5::float AS seller_score,
 
-        /* Availability multiplier (5%) — soft penalty for low-stock items
-           (stock=0 already excluded by WHERE p.stock > 0) */
-        CASE WHEN stock <= 5 THEN 0.8 ELSE 1.0 END AS availability_mult,
+        /* Stock score (7%) — OOS products now appear in results but rank lower;
+           admin/seller include_out_of_stock override sets all to 1.0 (audit mode) */
+        CASE
+          WHEN ${pIncludeOOS}::boolean THEN 1.0
+          WHEN stock > 10 THEN 1.0
+          WHEN stock > 0  THEN 0.6
+          ELSE 0.0
+        END AS stock_score,
 
         /* Featured boost — additive +0.15 */
         CASE WHEN p_featured THEN 0.15 ELSE 0.0 END AS featured_boost,
 
-        /* New arrival boost — additive +0.10 for brand-new unsold listings
-           (separate from Freshness — boosts initial discoverability only) */
+        /* New arrival boost — additive +0.10 for brand-new unreviewed listings */
         CASE
           WHEN EXTRACT(EPOCH FROM (NOW() - p_created_at)) / 86400.0 <= 7
-           AND p_sales_count = 0
-           AND review_count  = 0
+           AND review_count = 0
           THEN 0.10
           ELSE 0.0
         END AS new_arrival_boost
@@ -1074,12 +1061,11 @@ router.get("/search/results", async (req, res): Promise<void> => {
     scored_final AS (
       SELECT *,
         LEAST(1.0,
-          (
-            text_score         * 0.40
-            + quality_score    * 0.25
-            + popularity_score * 0.20
-            + freshness_score  * 0.10
-          ) * availability_mult
+          text_score      * 0.55
+          + quality_score * 0.20
+          + freshness_score * 0.10
+          + seller_score  * 0.08
+          + stock_score   * 0.07
           + featured_boost
           + new_arrival_boost
         ) AS final_score
@@ -1119,8 +1105,8 @@ router.get("/search/results", async (req, res): Promise<void> => {
     seller: { id: number; name: string; storeName: string | null; storeSlug: string | null; storeLogo: string | null };
     createdAt: string; score: number;
     rankingBreakdown?: {
-      textScore: number; qualityScore: number; popularityScore: number;
-      freshnessScore: number; availabilityMultiplier: number;
+      textScore: number; qualityScore: number;
+      freshnessScore: number; sellerScore: number; stockScore: number;
       featuredBoost: number; newArrivalBoost: number; finalScore: number;
     };
   }
@@ -1158,14 +1144,14 @@ router.get("/search/results", async (req, res): Promise<void> => {
     /* Debug breakdown — only exposed to admins via ?debug=ranking */
     if (debugRanking) {
       base.rankingBreakdown = {
-        textScore:              Math.round(parseFloat(r.text_score)        * 1000) / 1000,
-        qualityScore:           Math.round(parseFloat(r.quality_score)     * 1000) / 1000,
-        popularityScore:        Math.round(parseFloat(r.popularity_score)  * 1000) / 1000,
-        freshnessScore:         Math.round(parseFloat(r.freshness_score)   * 1000) / 1000,
-        availabilityMultiplier: parseFloat(r.availability_mult),
-        featuredBoost:          parseFloat(r.featured_boost),
-        newArrivalBoost:        parseFloat(r.new_arrival_boost),
-        finalScore:             Math.round(parseFloat(r.final_score)       * 1000) / 1000,
+        textScore:      Math.round(parseFloat(r.text_score)       * 1000) / 1000,
+        qualityScore:   Math.round(parseFloat(r.quality_score)    * 1000) / 1000,
+        freshnessScore: Math.round(parseFloat(r.freshness_score)  * 1000) / 1000,
+        sellerScore:    Math.round(parseFloat(r.seller_score)     * 1000) / 1000,
+        stockScore:     Math.round(parseFloat(r.stock_score)      * 1000) / 1000,
+        featuredBoost:  parseFloat(r.featured_boost),
+        newArrivalBoost: parseFloat(r.new_arrival_boost),
+        finalScore:     Math.round(parseFloat(r.final_score)      * 1000) / 1000,
       };
     }
     return base;
@@ -1197,7 +1183,163 @@ router.get("/search/results", async (req, res): Promise<void> => {
 
   const results = total > 20 ? applySellerDiversity(mapped) : mapped;
 
-  /* ── 11. "Did you mean?" — surface only when 0 results ──────────────── */
+  /* ── 10.5. Smart fallback chain — 4 levels when main query returns 0 ── */
+  type FallbackMeta = {
+    level: number;
+    originalQuery?: string;
+    relaxedQuery?: string;
+    matchType?: string;
+    inferredCategory?: string;
+    reason?: string;
+  };
+
+  let fallbackResults: MappedProduct[] = [];
+  let fallbackMeta: FallbackMeta | null = null;
+
+  if (total === 0 && raw.length >= 2) {
+    /* Shared SELECT/FROM fragments for all fallback queries */
+    const FB_SEL = `
+      p.id, p.seller_id, p.name, p.name_ar,
+      p.price::numeric AS raw_price,
+      p.discount_percent::numeric AS raw_discount,
+      p.price::numeric * (1.0 - COALESCE(p.discount_percent::numeric, 0) / 100.0) AS final_price,
+      p.category, p.subcategory, p.stock, p.image_url, p.image_urls, p.featured, p.created_at,
+      sa.store_name, sa.store_slug, sa.store_logo, u.name AS seller_name,
+      COALESCE(ra2.avg_rating, 0.0)::float AS avg_rating,
+      COALESCE(ra2.review_count, 0)::int   AS review_count,
+      EXISTS(SELECT 1 FROM product_variants pv WHERE pv.product_id = p.id LIMIT 1) AS has_variants
+    `;
+    const FB_FROM = `
+      FROM products p
+      INNER JOIN users u ON u.id = p.seller_id AND u.account_status = 'active'
+      INNER JOIN seller_applications sa ON sa.user_id = p.seller_id AND sa.status = 'approved'
+      LEFT JOIN (SELECT product_id, AVG(rating)::float AS avg_rating, COUNT(*)::int AS review_count
+                 FROM reviews GROUP BY product_id) ra2 ON ra2.product_id = p.id
+    `;
+    const mapFbRow = (r: any): MappedProduct => ({
+      id:              r.id,
+      name:            r.name,
+      nameAr:          r.name_ar    ?? null,
+      price:           parseFloat(r.raw_price),
+      discountPercent: r.raw_discount ? parseFloat(r.raw_discount) : null,
+      finalPrice:      parseFloat(r.final_price),
+      category:        r.category,
+      subcategory:     r.subcategory ?? null,
+      stock:           r.stock,
+      imageUrl:        r.image_url   ?? null,
+      imageUrls:       (r.image_urls ?? []) as string[],
+      featured:        !!r.featured,
+      isBestDeal:      r.raw_discount ? parseFloat(r.raw_discount) >= 20 : false,
+      hasVariants:     !!r.has_variants,
+      averageRating:   parseFloat(r.avg_rating   ?? "0"),
+      reviewCount:     parseInt(String(r.review_count ?? "0"), 10),
+      seller: {
+        id:        r.seller_id,
+        name:      r.seller_name  ?? "Unknown",
+        storeName: r.store_name   ?? null,
+        storeSlug: r.store_slug   ?? null,
+        storeLogo: r.store_logo   ?? null,
+      },
+      createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at ?? ""),
+      score: 0,
+    });
+
+    /* Level 1 — Relaxed FTS: remove shortest token, re-run */
+    if (!fallbackMeta && nlp.baseTokens.length >= 2) {
+      const sorted = [...nlp.baseTokens].sort((a, b) => a.length - b.length);
+      const relaxedTokens = nlp.baseTokens.filter(t => t !== sorted[0]);
+      const relaxedTsq = buildOrTsQuery([...relaxedTokens, normalizeArabic(relaxedTokens.join(" "))]);
+      if (relaxedTsq) {
+        const rb1 = makeParamBuilder();
+        const pR1 = rb1.add(relaxedTsq);
+        try {
+          const { rows: fb1 } = await pool.query<any>(
+            `SELECT ${FB_SEL} ${FB_FROM}
+             WHERE p.stock > 0
+               AND p.fts_vector IS NOT NULL
+               AND p.fts_vector @@ to_tsquery('simple', ${pR1})
+             ORDER BY ts_rank_cd(p.fts_vector, to_tsquery('simple', ${pR1})) DESC
+             LIMIT 12`,
+            rb1.values,
+          );
+          if (fb1.length > 0) {
+            fallbackResults = fb1.map(mapFbRow);
+            fallbackMeta = { level: 1, originalQuery: raw, relaxedQuery: relaxedTokens.join(" ") };
+          }
+        } catch { /* try next level */ }
+      }
+    }
+
+    /* Level 2 — Trigram fuzzy (similarity > 0.25 on product titles) */
+    if (!fallbackMeta) {
+      const rb2 = makeParamBuilder();
+      const pF2 = rb2.add(term);
+      try {
+        const { rows: fb2 } = await pool.query<any>(
+          `SELECT ${FB_SEL} ${FB_FROM}
+           WHERE p.stock > 0
+             AND (
+               similarity(${pF2}, lower(p.name)) > 0.25
+               OR similarity(${pF2}, lower(COALESCE(p.name_ar, ''))) > 0.25
+             )
+           ORDER BY GREATEST(
+             similarity(${pF2}, lower(p.name)),
+             similarity(${pF2}, lower(COALESCE(p.name_ar, '')))
+           ) DESC
+           LIMIT 12`,
+          rb2.values,
+        );
+        if (fb2.length > 0) {
+          fallbackResults = fb2.map(mapFbRow);
+          fallbackMeta = { level: 2, matchType: "fuzzy_trigram" };
+        }
+      } catch { /* try next level */ }
+    }
+
+    /* Level 3 — Category inference: route to inferred category top products */
+    if (!fallbackMeta && intent.mappedCategory) {
+      const rb3 = makeParamBuilder();
+      const pCat3 = rb3.add(intent.mappedCategory.toLowerCase());
+      try {
+        const { rows: fb3 } = await pool.query<any>(
+          `SELECT ${FB_SEL} ${FB_FROM}
+           WHERE p.stock > 0
+             AND lower(p.category) = ${pCat3}
+           ORDER BY (
+             COALESCE(ra2.avg_rating, 0.0) / 5.0 * 0.6
+             + GREATEST(0.0, 1.0 - EXTRACT(EPOCH FROM (NOW() - p.created_at)) / (86400.0 * 90.0)) * 0.4
+           ) DESC
+           LIMIT 12`,
+          rb3.values,
+        );
+        if (fb3.length > 0) {
+          fallbackResults = fb3.map(mapFbRow);
+          fallbackMeta = { level: 3, inferredCategory: intent.mappedCategory };
+        }
+      } catch { /* try next level */ }
+    }
+
+    /* Level 4 — Trending: featured or well-rated recent products globally */
+    if (!fallbackMeta) {
+      try {
+        const { rows: fb4 } = await pool.query<any>(
+          `SELECT ${FB_SEL} ${FB_FROM}
+           WHERE p.stock > 0
+             AND (p.featured = true OR ra2.review_count >= 3)
+           ORDER BY (
+             COALESCE(ra2.avg_rating, 0.0) / 5.0 * 0.6
+             + GREATEST(0.0, 1.0 - EXTRACT(EPOCH FROM (NOW() - p.created_at)) / (86400.0 * 90.0)) * 0.4
+           ) DESC
+           LIMIT 12`,
+          [],
+        );
+        fallbackResults = fb4.map(mapFbRow);
+        fallbackMeta = { level: 4, reason: "no_match_found" };
+      } catch { /* fallback gracefully to empty */ }
+    }
+  }
+
+  /* ── 11. "Did you mean?" — surface only when 0 main results ─────────── */
   const didYouMean: string | null =
     total === 0 && dymResult.rows.length > 0
       ? dymResult.rows[0].suggestion
@@ -1205,6 +1347,14 @@ router.get("/search/results", async (req, res): Promise<void> => {
 
   /* Capture the query_logs id if insert finished within the 50 ms window */
   const searchLogId: number | null = await Promise.race([logInsertPromise, logTimeoutPromise]);
+
+  const finalResults = total > 0 ? results : fallbackResults;
+  const finalTotal   = total > 0 ? total   : fallbackResults.length;
+
+  /* Update query_logs with result_count + fallback_level (fire-and-forget) */
+  if (searchLogId !== null) {
+    updateQueryLog(searchLogId, finalTotal, fallbackMeta?.level ?? null);
+  }
 
   const metaRow = metaResult.rows[0];
 
@@ -1220,15 +1370,16 @@ router.get("/search/results", async (req, res): Promise<void> => {
 
   res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=15");
   res.json({
-    results,
-    total,
+    results:    finalResults,
+    total:      finalTotal,
     page,
     limit,
-    totalPages: Math.ceil(total / limit),
+    totalPages: Math.ceil((total > 0 ? total : finalResults.length) / limit),
     searchLogId: searchLogId ?? null,
     didYouMean,
     detectedIntent,
     synonymExpanded,
+    fallback: fallbackMeta,
     filterMeta: {
       priceRange: {
         min: parseFloat(metaRow?.price_min ?? "0"),
@@ -1447,6 +1598,98 @@ router.get("/search/related", async (req, res): Promise<void> => {
 
   res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
   res.json({ related: rows, processingTimeMs: Date.now() - t0 });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROUTE 9 — GET /api/search/suggestions/popular
+   Returns top popular queries for empty-state recovery UI.
+   ═══════════════════════════════════════════════════════════════════════════ */
+router.get("/search/suggestions/popular", async (req, res): Promise<void> => {
+  const limit = Math.min(parseInt(String(req.query.limit ?? "6"), 10) || 6, 20);
+  const { rows } = await pool.query<{ query: string; count: number }>(
+    `SELECT query, count FROM search_queries ORDER BY count DESC LIMIT $1`,
+    [limit],
+  );
+  res.setHeader("Cache-Control", "public, max-age=120, stale-while-revalidate=300");
+  res.json(rows.map(r => ({ query: r.query, count: Number(r.count) })));
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROUTE 10 — POST /api/admin/search/reindex
+   Admin: triggers full fts_vector backfill for all products.
+   ═══════════════════════════════════════════════════════════════════════════ */
+router.post("/admin/search/reindex", async (req, res): Promise<void> => {
+  if ((req as any).user?.role !== "admin") {
+    res.status(403).json({ error: "Admin only" });
+    return;
+  }
+  try {
+    const result = await pool.query(`
+      UPDATE products
+      SET fts_vector =
+        setweight(to_tsvector('simple', coalesce(name, '')),          'A') ||
+        setweight(to_tsvector('simple', coalesce(name_ar, '')),       'A') ||
+        setweight(to_tsvector('simple', coalesce(category, '')),      'B') ||
+        setweight(to_tsvector('simple', coalesce(subcategory, '')),   'B') ||
+        setweight(to_tsvector('simple', coalesce(search_tokens, '')), 'C') ||
+        setweight(to_tsvector('simple', coalesce(description, '')),   'C')
+    `);
+    res.json({ ok: true, updatedCount: result.rowCount ?? 0 });
+  } catch (err) {
+    res.status(500).json({ error: "Reindex failed", detail: String(err) });
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROUTE 11 — GET /api/admin/search/health
+   Admin: returns search index health stats.
+   ═══════════════════════════════════════════════════════════════════════════ */
+router.get("/admin/search/health", async (req, res): Promise<void> => {
+  if ((req as any).user?.role !== "admin") {
+    res.status(403).json({ error: "Admin only" });
+    return;
+  }
+  const [indexStats, queryStats, zeroResultStats] = await Promise.all([
+    pool.query(`
+      SELECT
+        COUNT(*)::int           AS total_products,
+        COUNT(fts_vector)::int  AS indexed_products,
+        COUNT(*) FILTER (WHERE fts_vector IS NULL)::int AS null_fts,
+        COUNT(*) FILTER (WHERE stock > 0)::int          AS in_stock_count,
+        COUNT(*) FILTER (WHERE stock = 0)::int          AS out_of_stock_count
+      FROM products p
+      INNER JOIN users u ON u.id = p.seller_id AND u.account_status = 'active'
+      INNER JOIN seller_applications sa ON sa.user_id = p.seller_id AND sa.status = 'approved'
+    `),
+    pool.query(`
+      SELECT
+        COUNT(*)::int                                           AS total_queries,
+        COUNT(*) FILTER (WHERE result_count = 0)::int          AS zero_result_queries,
+        COUNT(*) FILTER (WHERE fallback_level IS NOT NULL)::int AS fallback_queries,
+        COUNT(*) FILTER (WHERE fallback_level = 1)::int         AS fallback_l1,
+        COUNT(*) FILTER (WHERE fallback_level = 2)::int         AS fallback_l2,
+        COUNT(*) FILTER (WHERE fallback_level = 3)::int         AS fallback_l3,
+        COUNT(*) FILTER (WHERE fallback_level = 4)::int         AS fallback_l4,
+        ROUND(AVG(result_count) FILTER (WHERE result_count > 0), 1) AS avg_results
+      FROM query_logs
+      WHERE created_at > NOW() - INTERVAL '7 days'
+    `),
+    pool.query(`
+      SELECT query, COUNT(*)::int AS freq
+      FROM query_logs
+      WHERE result_count = 0
+        AND fallback_level = 4
+        AND created_at > NOW() - INTERVAL '7 days'
+      GROUP BY query
+      ORDER BY freq DESC
+      LIMIT 20
+    `),
+  ]);
+  res.json({
+    index:        indexStats.rows[0],
+    queryLogs7d:  queryStats.rows[0],
+    topNoResults: zeroResultStats.rows,
+  });
 });
 
 export default router;

@@ -2971,6 +2971,17 @@
       "trending": "الأكثر بحثاً",
       "browseCategories": "تصفّح جميع الفئات",
       "didYouMean": "هل تقصد: {{suggestion}}؟"
+    },
+    "fallback": {
+      "level1Title": "نتائج جزئية",
+      "level1Subtitle": "لا توجد نتائج دقيقة لـ \"{{query}}\". يتم عرض نتائج \"{{relaxedQuery}}\" بدلاً منها.",
+      "level2Title": "منتجات مشابهة",
+      "level2Subtitle": "لم يُعثر على تطابق دقيق. يتم عرض المنتجات الأكثر تشابهاً.",
+      "level3Title": "أفضل المنتجات في هذه الفئة",
+      "level3Subtitle": "لا توجد نتائج مباشرة. يتم عرض أفضل منتجات {{category}}.",
+      "level4Title": "المنتجات الرائجة",
+      "level4Subtitle": "لم يُعثر على نتائج لهذا البحث. إليك بعض المنتجات الشائعة.",
+      "dismiss": "إخفاء"
     }
   },
   "categories": {

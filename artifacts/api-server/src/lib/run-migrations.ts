@@ -481,6 +481,40 @@ export async function runMigrations(): Promise<void> {
       ON CONFLICT DO NOTHING;
     `);
 
+    // ── Phase 6: Search Retrieval improvements ─────────────────────────────────
+    await client.query(`
+      ALTER TABLE query_logs ADD COLUMN IF NOT EXISTS fallback_level INTEGER DEFAULT NULL;
+    `);
+
+    // FTS trigger upgrade: description weight D → C, remove 240-char truncation
+    await client.query(`
+      CREATE OR REPLACE FUNCTION products_fts_rebuild() RETURNS trigger LANGUAGE plpgsql AS $fn$
+      BEGIN
+        NEW.fts_vector :=
+          setweight(to_tsvector('simple', coalesce(NEW.name, '')),          'A') ||
+          setweight(to_tsvector('simple', coalesce(NEW.name_ar, '')),       'A') ||
+          setweight(to_tsvector('simple', coalesce(NEW.category, '')),      'B') ||
+          setweight(to_tsvector('simple', coalesce(NEW.subcategory, '')),   'B') ||
+          setweight(to_tsvector('simple', coalesce(NEW.search_tokens, '')), 'C') ||
+          setweight(to_tsvector('simple', coalesce(NEW.description, '')),   'C');
+        RETURN NEW;
+      END;
+      $fn$;
+    `);
+
+    // Backfill products whose fts_vector is NULL (safety net)
+    await client.query(`
+      UPDATE products
+      SET fts_vector =
+        setweight(to_tsvector('simple', coalesce(name, '')),          'A') ||
+        setweight(to_tsvector('simple', coalesce(name_ar, '')),       'A') ||
+        setweight(to_tsvector('simple', coalesce(category, '')),      'B') ||
+        setweight(to_tsvector('simple', coalesce(subcategory, '')),   'B') ||
+        setweight(to_tsvector('simple', coalesce(search_tokens, '')), 'C') ||
+        setweight(to_tsvector('simple', coalesce(description, '')),   'C')
+      WHERE fts_vector IS NULL;
+    `);
+
     logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns ready");
   } catch (err) {
     logger.error({ err }, "Migration error — server cannot start safely");

@@ -25,7 +25,7 @@ import {
   Star, TrendingUp, Package, Layers, ArrowRight, SearchX,
   Cpu, Shirt, Sparkles, Home as HomeIcon, ShoppingBasket, Dumbbell,
   Car, Gamepad2, BookOpen, PawPrint, Download, Palette,
-  Gem, Baby, Wrench, TreePine, Gift,
+  Gem, Baby, Wrench, TreePine, Gift, Info,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -80,6 +80,14 @@ interface FilterMeta {
     onSale:    boolean;
   };
 }
+interface SearchFallback {
+  level: number;
+  originalQuery?: string;
+  relaxedQuery?: string;
+  matchType?: string;
+  inferredCategory?: string;
+  reason?: string;
+}
 interface SearchApiResponse {
   results: SearchResultProduct[];
   total: number;
@@ -92,6 +100,7 @@ interface SearchApiResponse {
   didYouMean?: string | null;
   detectedIntent?: string | null;
   synonymExpanded?: boolean;
+  fallback?: SearchFallback | null;
 }
 
 interface FilterOption { slug: string; nameEn: string; nameAr: string; productCount: number; }
@@ -338,6 +347,10 @@ export default function SearchPage() {
   const totalResults = searchMode ? (searchData?.total ?? 0) : undefined;
   const searchIntent = searchMode ? (searchData?.intent ?? null) : null;
   const searchLogId: number | null = searchMode ? (searchData?.searchLogId ?? null) : null;
+  const searchFallback = searchMode ? (searchData?.fallback ?? null) : null;
+
+  const [fallbackBannerDismissed, setFallbackBannerDismissed] = useState(false);
+  useEffect(() => { setFallbackBannerDismissed(false); }, [debouncedQuery]);
   const hasMoreProducts = searchMode
     ? (searchPage < (searchData?.totalPages ?? 1))
     : ((pageData?.length ?? 0) >= PAGE_SIZE);
@@ -847,7 +860,21 @@ export default function SearchPage() {
                   </div>
                 ) : products.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center" dir={isRtl ? "rtl" : "ltr"}>
-                    {searchMode ? (
+                    {searchMode && searchFallback ? (
+                      /* Fallback returned products but then they got deduped away — show empty+trending */
+                      <>
+                        <SearchX className="h-16 w-16 text-muted-foreground/30 mb-5" />
+                        <p className="text-xl font-semibold text-foreground mb-2">
+                          {t("search.empty.title", { query: debouncedQuery })}
+                        </p>
+                        <p className="text-sm text-muted-foreground mb-5">
+                          {t("search.empty.subtitle")}
+                        </p>
+                        <Button variant="outline" size="sm" onClick={() => { setQuery(""); navigate("/shop"); }}>
+                          {t("search.empty.clearButton")}
+                        </Button>
+                      </>
+                    ) : searchMode ? (
                       <>
                         <SearchX className="h-16 w-16 text-muted-foreground/30 mb-5" />
                         <p className="text-xl font-semibold text-foreground mb-2">
@@ -915,13 +942,45 @@ export default function SearchPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                    {products.map((p: any) => (
-                      <div key={p.id} onClick={() => { if (searchMode && searchLogId != null) recordSearchClick(searchLogId); }}>
-                        <ProductCard product={p} highlightQuery={debouncedQuery || undefined} />
+                  <>
+                    {/* ── Fallback Banner ───────────────────────────────── */}
+                    {searchMode && searchFallback && !fallbackBannerDismissed && (
+                      <div
+                        className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-400/30 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3 text-sm"
+                        dir={isRtl ? "rtl" : "ltr"}
+                      >
+                        <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-amber-800 dark:text-amber-300">
+                            {t(`search.fallback.level${searchFallback.level}Title`)}
+                          </p>
+                          <p className="text-amber-700/80 dark:text-amber-400/80 leading-snug mt-0.5">
+                            {t(`search.fallback.level${searchFallback.level}Subtitle`, {
+                              query:           debouncedQuery,
+                              relaxedQuery:    searchFallback.relaxedQuery ?? "",
+                              category:        searchFallback.inferredCategory ?? "",
+                            })}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFallbackBannerDismissed(true)}
+                          aria-label={t("search.fallback.dismiss")}
+                          className="shrink-0 rounded p-0.5 text-amber-600/60 hover:text-amber-700 dark:text-amber-400/60 dark:hover:text-amber-300 transition-colors"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                    ))}
-                  </div>
+                    )}
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                      {products.map((p: any) => (
+                        <div key={p.id} onClick={() => { if (searchMode && searchLogId != null) recordSearchClick(searchLogId); }}>
+                          <ProductCard product={p} highlightQuery={debouncedQuery || undefined} />
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
 
                 {/* ── Load more ─────────────────────────────────────── */}

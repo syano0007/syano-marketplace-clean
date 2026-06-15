@@ -2971,6 +2971,17 @@
       "trending": "Trending Searches",
       "browseCategories": "Browse All Categories",
       "didYouMean": "Did you mean: {{suggestion}}?"
+    },
+    "fallback": {
+      "level1Title": "Showing partial results",
+      "level1Subtitle": "No exact results for \"{{query}}\". Showing results for \"{{relaxedQuery}}\" instead.",
+      "level2Title": "Similar products",
+      "level2Subtitle": "No exact match found. Showing the most similar products.",
+      "level3Title": "Top products in this category",
+      "level3Subtitle": "No direct results. Showing top products in {{category}}.",
+      "level4Title": "Trending products",
+      "level4Subtitle": "No results found for this search. Here are some popular products.",
+      "dismiss": "Dismiss"
     }
   },
   "categories": {
