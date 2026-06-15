@@ -70,3 +70,27 @@ SITE_URL = "https://syano.online"
 VITE_SUPPORT_PHONE = "+963-PLACEHOLDER"
 ROOT_ADMIN_PASSWORD = "00Amer00"
 EMBEDDING_SERVICE_URL = "http://localhost:8001"
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 8001
+externalPort = 3000
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
+[[ports]]
+localPort = 18115
+externalPort = 80
+
+[[ports]]
+localPort = 20787
+externalPort = 3001
