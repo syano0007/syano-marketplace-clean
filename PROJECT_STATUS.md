@@ -1,118 +1,99 @@
 # SYANO — Project Status
-**Last Updated:** June 14, 2026 (Session 13 — Phase 8 Search 8-Axis Audit COMPLETE)
+**Last Updated:** June 15, 2026 (Session 15 — Shop Page 3-Bug Surgical Fix)
+**Recovery-Verified:** June 15, 2026 — all services running, 0 TypeScript errors, 95/100 recovery check
 
 SYANO is a production-scale Syrian marketplace platform built with React + Vite (web), Expo (mobile), Express + Drizzle (API), PostgreSQL (DB). Full Arabic/English bilingual, RTL support, dark/light theme.
 
 ---
 
-## Overall Completion: ~96%
+## Overall Completion: ~97%
 
 | Layer | Status | Notes |
 |---|---|---|
 | Core marketplace | ✅ 100% | Auth, products, cart, checkout, orders |
-| Seller ecosystem | ✅ 100% | Dashboard, analytics, orders V2, store pages, variants |
+| Seller ecosystem | ✅ 100% | Dashboard, analytics, orders V2, store pages V4, variants |
 | Admin panel | ✅ 100% | Stats, moderation, user management, delivery, courier mgmt |
 | Trust & verification | ✅ 100% | 0-100 score, tiers, audit log, verification badges |
 | Delivery system | ✅ 100% | 40 Aleppo zones, courier ops, assignment flow |
 | Messaging V2 | ✅ 100% | 19 API endpoints, 58/58 tests, web+mobile+lib complete |
 | Notifications | ✅ 100% | SSE real-time, polling fallback, in-app toasts, web push (VAPID), bilingual |
-| Wishlist | ✅ 100% | Web + heart button; mobile not implemented |
-| Guest cart | ✅ 100% | All entry points wired |
+| Wishlist | ✅ 100% | Web + heart button in ProductCard; mobile not implemented |
+| Guest cart | ✅ 100% | All entry points wired (ProductCard + ProductDetail + Navbar) |
 | Homepage V7 | ✅ 100% | 8 HomeSections, hero carousel, real data, dark glassmorphism navbar |
 | Navbar Polish V1 | ✅ 100% | Light mode contrast, icon unification, active state fix, badge fix, settings dropdown |
 | **Search & Discovery Engine V2** | ✅ 100% | Syrian Dialect Dict (70+ entries post-audit), intent modifiers (5 groups), 4-tier scoring, 3 endpoints, dialect-aware suggestions |
 | **Hybrid NLP Search Engine V1** | ✅ 100% | Steps 1–5 complete + 8-axis audit (48/49 PASS). 5 modifiers: cheap/premium/rating/newest/used. 70+ dialect dict entries. GIN avg 4ms. |
-| i18n (web) | ✅ 100% | 2592 EN / 2592 AR keys, 77 messages.* keys |
+| **Shop Page UX** | ✅ 100% | 3-bug surgical fix (June 15): toolbar overlap, mobile filter layout, NLP banner z-index |
+| i18n (web) | ✅ 100% | **2,832 EN / 2,832 AR keys** (perfectly balanced) |
 | i18n (mobile) | ✅ 100% | Full i18n including 30+ messages.* keys; zero hardcoded strings |
 | Recovery system | ✅ 95% | 21/22 modules pass; heroBannerSystem false negative known |
+| Semantic search / embeddings | 🟡 Implemented, not active | Code exists; requires embedding service pip install (blocked by firewall) |
+
+---
+
+## Last Completed: Session 15 — Shop Page 3-Bug Surgical Fix (June 15, 2026)
+
+Three visual bugs on `/shop` (`artifacts/marketplace/src/pages/search/index.tsx`) fixed:
+
+1. **Desktop Bug (Bug 1):** First product row overlapped by sticky toolbar when no query active — fixed via `ResizeObserver` on toolbar div, dynamic `paddingTop` on tab containers
+2. **Mobile Bug (Bug 2a):** Same overlap on mobile — same fix (shared container)
+3. **Mobile Filter Bug (Bug 2b):** Cramped 2-column filter grid replaced with `space-y-5` vertical layout matching desktop sidebar
+4. **Mobile NLP Bug (Bug 3):** NLP banner and active-filter chips hidden behind sticky filter bar — fixed by reordering JSX (banner before filter bar) and removing sticky positioning from filter bar
+
+All 4 bugs verified across 4 viewport/state combinations. TypeScript: 0 errors.
+
+---
+
+## ✅ Phase 8: Hybrid NLP Search Engine — COMPLETE (June 14, 2026)
+
+**8-Axis Audit: 48/49 PASS.** Full production-grade bilingual search pipeline.
+
+### Search Pipeline (13 steps in searchProcessor.ts)
+1. Validate & sanitize → 2. Language detection → 3. Arabic normalization → 4. English normalization → 5. Stop word removal → 6. Synonym expansion (DB, 5-min cache) → 7. Intent detection → 8. Brand boost → 9. Numeric context → 10. FTS query build → 11. Multi-signal DB ranking → 12. Seller diversity → 13. Return with metadata
+
+### Cache Layer (searchCache.ts)
+- LRU 500-entry in-memory cache (O(1) operations)
+- TTL: 5min normal / 1min sale / 10min fallback-L4
+- Cache key: SHA-256 of query + filters
+
+### Intent Modifiers (5 groups)
+| Modifier | Effect |
+|---|---|
+| `cheap` | `affordable/discount/sale/offer/bargain` → price_asc sort |
+| `premium` | `فاخر/original/authentic/high-end` → quality filter |
+| `rating` | `أفضل تقييم/best rated/recommended` → effectiveSort=rating |
+| `newest` | `جديد/أحدث/latest/new arrival` → effectiveSort=newest |
+| `used` | second-hand / مستعمل → used condition filter |
+| `on_sale` | discount_percent > 0 auto-WHERE |
+| `gift` | gift-related filter |
+
+### Syrian Dialect Dictionary (70+ entries)
+Covers all major product categories: electronics (موبايل→phone), fashion (بواط→shoes, شنط→bags), beauty (برفانات→perfume, كريمات→cream), home (ديكور→decor), sports (موتوسيكل→motorcycle, دراجات→bikes), automotive (عربيات→cars), and more.
+
+### 4-Level Fallback Chain
+Level 1: Relaxed FTS (OR tsquery) → Level 2: Trigram similarity > 0.25 → Level 3: Category match → Level 4: Trending products
+
+### Scoring Formula
+`score = text_score × 0.55 + quality_score × 0.20 + freshness × 0.10 + seller_bonus (0.5 verified) + stock_bonus`
+
+### API Endpoints
+- `GET /api/search/results` — full search with NLP, cache, scoring, fallback
+- `GET /api/search/suggestions` — autocomplete (text/categories/stores/trending, avg 5ms)
+- `GET /api/search` — legacy product list
+- `POST /api/search/track-click` — click analytics
+- `GET /api/suggestions/popular` — trending
+- `POST /api/admin/search/reindex` — force reindex
+- `GET /api/admin/search/health` — system health
 
 ---
 
 ## ✅ Phase 7: Messaging V2 — COMPLETE (June 14, 2026)
 
-**58/58 API tests pass.** Three bugs found and fixed in final audit pass:
+**58/58 API tests pass.**
 
-1. **`PATCH /conversations/:id/read` was missing** → added explicit mark-as-read endpoint; `useMarkConversationRead` hook added to lib; wired into MessagingPanel (web) and messages.tsx (mobile) — unread badge updates immediately when conversation is opened
-2. **Soft-deleted messages weren't returned as tombstones** → removed `isNull(deletedAt)` filter from GET messages queries; deleted messages now appear with `deletedAt` set so clients render "Message deleted" placeholder
-3. Both web and mobile were relying solely on GET /messages auto-mark instead of explicit mark-as-read; now correctly call PATCH /read on conversation open
+19 endpoints in `artifacts/api-server/src/routes/messaging.ts`. Full web + mobile implementation. SSE real-time + polling fallback. 77 i18n keys (EN+AR). Unread badge in Navbar (15s refetch).
 
-### API — 100% (19 endpoints in `artifacts/api-server/src/routes/messaging.ts`)
-
-| Endpoint | Purpose |
-|---|---|
-| `GET /conversations/unread-count` | Global unread badge count |
-| `GET /conversations/search` | Search by partner name or message content |
-| `POST /conversations` | Start or resume a conversation (idempotent) |
-| `GET /conversations` | List with archive filter, last message, unread counts |
-| `GET /conversations/:id` | Single conversation detail |
-| `GET /conversations/:id/messages` | Paginated history (includes soft-delete tombstones) |
-| `POST /conversations/:id/messages` | Send message (optional attachmentId) |
-| `DELETE /conversations/:id/messages/:msgId` | Soft-delete own message (tombstone preserved) |
-| `PATCH /conversations/:id/read` | **[NEW]** Explicitly mark all partner messages as read |
-| `PATCH /conversations/:id/archive` | Toggle archive |
-| `PATCH /conversations/:id/mute` | Toggle mute |
-| `POST /conversations/:id/typing` | Signal typing (in-memory, 4s TTL) |
-| `GET /conversations/:id/typing` | Get currently typing users |
-| `POST /conversations/:id/attachments` | Upload base64 attachment (2MB max, images/PDF/txt) |
-| `GET /conversations/:id/attachments/:attachId` | Serve attachment (buffer with Content-Type) |
-| `POST /conversations/:id/report` | Flag message for review |
-| `GET /admin/conversations` | Admin inbox — all types, search, type filter |
-| `POST /admin/conversations` | Admin initiates support conversation |
-| `PATCH /admin/conversations/:id/block` | Block or unblock conversation |
-
-#### Database Schema — 100%
-
-| Table | Key Columns |
-|---|---|
-| `conversations` | id, customer_id, seller_id, product_id, order_id, type, status (active/archived/blocked), muted, last_message_at |
-| `messages` | id, conversation_id, sender_id, body, read_at, deleted_at, flagged, attachment_id |
-| `message_attachments` | id, conversation_id, filename, mime_type, size, data (base64) |
-
-#### Web Frontend — 100%
-
-- **`MessagingPanel.tsx`** (803 lines, shared for customer + seller):
-  - Sidebar: search input, filter tabs (All / Unread / Archived), archive+mute on hover
-  - Thread: message bubbles, ✓/✓✓ read receipts, inline image preview, file download links
-  - Composer: textarea, drag-drop+paste image upload, file picker, char counter (shows at 1800+), typing emit
-  - Typing indicator: animated 3-dot bounce when partner is typing
-  - Empty states with role-specific hints and Browse Products CTA
-  - Mobile-responsive: sidebar hidden when thread active, back arrow to return
-- **`pages/messages/index.tsx`** — customer inbox at `/messages`
-- **`pages/seller/messages.tsx`** — seller inbox at `/seller/messages`
-- **`pages/admin/messages.tsx`** — admin inbox at `/admin/messages`:
-  - Type filter tabs: All / C↔S / C↔Admin / S↔Admin
-  - Block/unblock and archive actions per conversation
-  - Full thread with delete, read receipts, send
-- **`ContactSellerButton`** on product detail page → starts/resumes conversation → navigate to `/messages`
-- Store page contact button → navigate to `/messages`
-
-#### lib/api-client-react — 100% (20+ exported hooks)
-
-`useGetConversations`, `useGetMessages`, `useSendMessage`, `useDeleteMessage`, `useArchiveConversation`, `useMuteConversation`, `useGetTyping`, `useUploadAttachment`, `useGetAdminConversations`, `useBlockConversation`, `useStartAdminConversation`, `useStartConversation`, `getConversationsQueryKey`, `getMessagesQueryKey`, `getUnreadCountQueryKey`
-
-#### Real-time & Notifications — 100%
-
-- SSE `new_message` event → `NotificationProvider` invalidates `getConversationsQueryKey()` + `/api/conversations/*` prefix
-- Polling fallback: messages every 3s, conversations every 5s
-- Navbar unread badge: blue dot, 15s refetch via `useGetUnreadCount`
-- `createNotification` called on send with bilingual (EN+AR) title
-- i18n: **77 `messages.*` keys** in both `en.json` and `ar.json`
-
-#### Mobile — 100% (COMPLETE as of June 14, 2026)
-
-**All features implemented in `artifacts/mobile/app/(tabs)/messages.tsx`:**
-- Conversation list with FlatList, unread badges, muted indicator, last message preview (with 📎 for attachments)
-- Filter tabs: All / Unread / Archived (archived fetched via separate query with `enabled` guard)
-- Long-press on conversation → Alert with Archive/Unarchive + Mute/Unmute + Cancel options
-- ChatView: message bubbles (mine/theirs), read receipts (✓ sent / ✓✓ read via `readAt`), soft-deleted messages
-- Typing indicators: animated 3-dot bounce using `Animated.loop` + `useGetTyping` polling every 2s
-- Image attachments: `expo-image-picker` → base64 → `useUploadAttachment` → inline `ExpoImage` display with auth headers; 2MB limit enforced
-- File attachments: chip display with filename + document icon
-- Haptic feedback on send and long-press
-- KeyboardAvoidingView for iOS/Android
-- Full i18n: 30+ `messages.*` keys in EN+AR, zero hardcoded strings
-- Auth gate with sign-in CTA
-- Performance: `removeClippedSubviews`, `initialNumToRender`, `windowSize` optimized
+Key features: conversation CRUD, soft-delete tombstones, read receipts (✓/✓✓), typing indicators, base64 attachments (2MB), archive/mute, admin inbox, explicit mark-as-read via `PATCH /conversations/:id/read`.
 
 ---
 
@@ -123,22 +104,35 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 - **Web**: React 18, Vite, TanStack Query, Wouter, Tailwind CSS, Radix UI, shadcn/ui
 - **Mobile**: Expo (React Native), expo-router, TanStack Query
 - **Shared libs**: `lib/db` (Drizzle schema), `lib/api-zod` (Zod validators), `lib/api-client-react` (typed hooks)
-- **i18n**: react-i18next (web), custom t() (mobile), 2592 keys per language
+- **i18n**: react-i18next (web), custom t() (mobile), 2,832 keys per language
 - **Real-time**: SSE for notifications + new_message events
 - **Auth**: JWT (HS256) via SESSION_SECRET; roles: customer, seller, courier, admin
+- **Search**: 13-step NLP pipeline + LRU cache + GIN FTS index
 
 ### Key Files
 | File | Purpose |
 |---|---|
 | `artifacts/api-server/src/index.ts` | App bootstrap, migrations, demo data seeding |
+| `artifacts/api-server/src/utils/searchProcessor.ts` | 13-step NLP search pipeline (859 lines) |
+| `artifacts/api-server/src/services/searchCache.ts` | LRU 500-entry search result cache |
+| `artifacts/api-server/src/routes/search.ts` | Search routes — FTS, suggestions, cache (1,909 lines) |
+| `artifacts/api-server/src/scripts/generateEmbeddings.ts` | Semantic embedding backfill (requires EMBEDDING_SERVICE_URL) |
+| `artifacts/embedding-service/main.py` | FastAPI embedding microservice (requires pip setup) |
 | `artifacts/api-server/src/routes/` | All API routes (25+ route files) |
-| `lib/db/src/schema/` | Drizzle schema (all 29+ tables) |
+| `lib/db/src/schema/` | Drizzle schema (all 33 tables) |
 | `lib/api-client-react/src/` | Typed TanStack Query hooks for all endpoints |
 | `artifacts/marketplace/src/App.tsx` | React router, all lazy-loaded pages |
+| `artifacts/marketplace/src/pages/search/index.tsx` | Shop/search page (1,229 lines) |
 | `artifacts/marketplace/src/components/MessagingPanel.tsx` | Shared messaging UI (web) |
-| `artifacts/marketplace/src/i18n/en.json` | English translations (2592 keys) |
-| `artifacts/marketplace/src/i18n/ar.json` | Arabic translations (2592 keys) |
+| `artifacts/marketplace/src/i18n/en.json` | English translations (2,832 keys) |
+| `artifacts/marketplace/src/i18n/ar.json` | Arabic translations (2,832 keys) |
 | `artifacts/mobile/app/(tabs)/messages.tsx` | Mobile messaging screen |
+
+### Database
+- **33 tables** (21 base schema + 12 via run-migrations.ts)
+- `notification_type` enum: 32 values
+- `order_status` enum: 15 values
+- FTS: `fts_vector` column + `products_fts_gin` GIN index (42/42 products populated)
 
 ### Test Accounts
 
@@ -157,10 +151,10 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 
 | Issue | Severity | Status |
 |---|---|---|
-| Mobile wishlist: not implemented | Low | Open |
-| heroBannerSystem recovery module false negative | Low | Known — expected (banner images require seeded DB) |
-| Demo reviews don't seed on first run (bootstrap bug fixed June 14) | Fixed | `customer_id` → `user_id` column fix applied |
-| Mobile messaging: read receipts, typing, attachments, i18n | All Fixed | Completed June 14, 2026 (Phase 7) |
+| Mobile wishlist | Low | Open — web works; mobile heart button not implemented |
+| heroBannerSystem recovery module false negative | Low | Known expected — homepage V7 uses HeroV4.tsx, not HeroBanner.tsx directly |
+| Semantic search / embedding service | Medium | Code complete; pip install blocked by Replit firewall (disk quota); EMBEDDING_SERVICE_URL not set |
+| Demo reviews bootstrap column bug | Fixed | `customer_id` → `user_id` fix applied June 14 |
 
 ---
 
@@ -173,17 +167,14 @@ pnpm install --force
 # 2. Push schema
 psql "$DATABASE_URL" -f schema.sql
 
-# 3. Fix notification_type enum (if restoring from backup)
-# Run the ALTER TYPE ADD VALUE block in RECOVERY_GUIDE.md Step 3
-
-# 4. Build libs
+# 3. Build libs
 npx tsc --build lib/db lib/api-zod lib/api-client-react
 
-# 5. Start workflows
+# 4. Start workflows
 # API Server → run-migrations.ts runs → bootstrap accounts + 42 demo products seeded
 # Marketplace + Mobile workflows
 ```
 
-Recovery check endpoint: `GET /api/admin/recovery-check` (admin JWT required) → 95/100 expected.
+Expected after recovery: **33 tables**, notification_type=32 enum values, order_status=15, 42 products, 95/100 recovery check.
 
 See `RECOVERY_GUIDE.md` for full step-by-step instructions.

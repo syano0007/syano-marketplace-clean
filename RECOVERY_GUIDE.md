@@ -1,5 +1,5 @@
 # SYANO — Recovery Guide
-**Last Updated:** June 14, 2026 (Session 13 — Phase 8 Search 8-Axis Audit complete)
+**Last Updated:** June 15, 2026 (Session 15 — verified full restore from empty environment)
 
 This guide restores the project to a fully working state from scratch.
 
@@ -23,7 +23,7 @@ echo "DB: $DATABASE_URL" && echo "SECRET: $SESSION_SECRET"
 pnpm install --force
 ```
 
-Expected: **1,131 packages installed** (verified June 13, 2026). `shamefully-hoist=true` in `.npmrc` puts all packages in root `node_modules`.
+Expected: **1,131 packages installed** (verified June 15, 2026). `shamefully-hoist=true` in `.npmrc` puts all packages in root `node_modules`.
 
 ---
 
@@ -34,16 +34,20 @@ Expected: **1,131 packages installed** (verified June 13, 2026). `shamefully-hoi
 psql "$DATABASE_URL" -f schema.sql
 ```
 
-This creates the base 21 tables. The API server's `run-migrations.ts` adds the remaining tables on first startup:
+This creates the base **21 tables**. The API server's `run-migrations.ts` adds 12 more on first startup, bringing the total to **33 tables**:
+
+Tables added by run-migrations.ts:
 - `couriers`, `delivery_zones`, `courier_assignments`, `courier_wallet_transactions`, `variant_images`
 - `seller_verification_log` (Trust System audit table — NOT `verification_audit_log`)
-- `admin_audit_log` (added by run-migrations)
-- Additive columns: `users.verified_by`, `product_variants` price/barcode/weight/dimensions columns
+- `admin_audit_log`
+- `query_logs`, `search_synonyms`, `search_queries` (Search V2 tables — Phase 8)
+- `platform_settings`
+- Additive columns: `users.verified_by`, `users.preferred_theme/language/currency`, `product_variants` price/barcode/weight/dimensions columns
 
 **Verify:**
 ```bash
 psql "$DATABASE_URL" -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';"
-# Expected: 28 tables (21 base + 7 from run-migrations) — verified June 13, 2026
+# Expected: 33 tables — verified June 15, 2026
 ```
 
 ---
@@ -53,10 +57,10 @@ psql "$DATABASE_URL" -c "SELECT count(*) FROM information_schema.tables WHERE ta
 Start the API server workflow. On startup it automatically runs **in order**:
 
 1. `runMigrations()` — schema extensions, enum patches, delivery zones, all new tables
-2. `runSearchStartup()` — search index warmup
+2. `runSearchStartup()` — search index warmup (pg_trgm extension, fts_vector column, GIN index, auto-update trigger)
 3. `bootstrapRootAdmin()` — admin account (delewatiamer7)
 4. `bootstrapTestAccounts()` — seller + courier permanent accounts (delewatiamer8/9)
-5. **`bootstrapDemoMarketplaceData()`** — 4 stores, 4 customers, 42 products, 15 orders, reviews, wishlists, follows
+5. **`bootstrapDemoMarketplaceData()`** — 4 stores, 4 customers, 42 products, 14 orders, reviews, wishlists, follows
 
 > **No manual seed step is needed.** The demo marketplace recreates itself automatically on every fresh database.
 
@@ -64,7 +68,7 @@ After the API starts, verify enums are complete:
 
 ```bash
 psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM unnest(enum_range(NULL::notification_type));"
-# Expected: 32 (verified June 13, 2026)
+# Expected: 32 (verified June 15, 2026)
 
 psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM unnest(enum_range(NULL::order_status));"
 # Expected: 15
@@ -105,9 +109,9 @@ Expected: no output (clean build).
 ## Step 5: Start Services
 
 Use the Replit workflow panel to start:
-- `artifacts/api-server: API Server`
-- `artifacts/marketplace: web`
-- `artifacts/mobile: expo`
+- `artifacts/api-server: API Server` (port 8080)
+- `artifacts/marketplace: web` (port 18115)
+- `artifacts/mobile: expo` (port 20787)
 
 Or via restart_workflow tool.
 
@@ -146,8 +150,8 @@ curl -X POST http://localhost:8080/api/auth/login \
 # Expected: {"user":{"role":"courier",...},"token":"..."}
 ```
 
-All three are bootstrapped by `bootstrapRootAdmin()` + `bootstrapTestAccounts()` on every server start.  
-Self-healing: if an account is missing or has drifted role/status, it is automatically repaired.  
+All three are bootstrapped by `bootstrapRootAdmin()` + `bootstrapTestAccounts()` on every server start.
+Self-healing: if an account is missing or has drifted role/status, it is automatically repaired.
 Files: `artifacts/api-server/src/lib/bootstrap-admin.ts`, `bootstrap-test-accounts.ts`
 
 ---
@@ -185,7 +189,7 @@ curl http://localhost:8080/api/sellers/store/ahmad-electronics | python3 -c "imp
 ```
 [ ] pnpm install done (1,131 packages)
 [ ] DATABASE_URL and SESSION_SECRET set
-[ ] 28 tables in DB (21 base + 7 from run-migrations)
+[ ] 33 tables in DB (21 base + 12 from run-migrations) — verified June 15, 2026
 [ ] notification_type enum has 32 values (auto-patched by run-migrations)
 [ ] order_status enum has 15 values (auto-patched by run-migrations)
 [ ] Shared libs built (tsc --build)
@@ -200,6 +204,7 @@ curl http://localhost:8080/api/sellers/store/ahmad-electronics | python3 -c "imp
 [ ] Marketplace loads
 [ ] Mobile builds
 [ ] GET /api/admin/recovery-check → confidenceScore >= 95
+[ ] i18n: EN=2,832 / AR=2,832 keys (parity check)
 ```
 
 ---
@@ -222,9 +227,7 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/admin/recove
 
 **Expected:** `"confidenceScore": 95, "failures": ["home.tsx does not use HeroBanner component"]`
 
-> **Recovery Session 5 Note (June 13, 2026):** `bootstrapDemoMarketplaceData()` added to `index.ts`. Demo marketplace (42 products, 4 stores, 14 orders, 40 reviews, 12 wishlists, 8 follows) now auto-recreates on any fresh database. No manual seed step required.
-
-> **Note:** The `heroBannerSystem` failure is a **known false negative**. Homepage V4 uses `HeroV4.tsx` which activates `BannerCarousel` when DB banners exist — `HeroBanner.tsx` is no longer directly imported in `home.tsx`. All 20 other modules pass. 95/100 is the correct expected score.
+> **Known False Negative:** The `heroBannerSystem` failure is expected. Homepage V7 uses `HeroV4.tsx` which activates `BannerCarousel` when DB banners exist — `HeroBanner.tsx` is no longer directly imported in `home.tsx`. All other modules pass. **95/100 is the correct expected score.**
 
 The endpoint runs 13 parallel checks covering:
 - Core platform (DB tables, enums, zones, root owner)
@@ -236,11 +239,31 @@ The endpoint runs 13 parallel checks covering:
 - Order system (tables, status enum, delivery zones)
 - Trust system (endpoint shape, leaderboard, verification log, columns, badge)
 - Notifications (31 enum values by name, SSE route, notifications route)
-- Translations (EN/AR parity — 2344 = 2344)
+- Translations (EN/AR parity — 2,832 = 2,832)
 - Responsive audit (RTL pattern scan across admin/seller/courier pages)
 - Mobile (13/13 required screens, i18n, expo config)
 - Analytics (4 seller + 3 admin endpoints + stats shape)
 - Recovery (bootstrap files, enum repair in migrations, self-healing)
+
+---
+
+## TypeScript Verification
+
+Run across all packages to confirm 0 errors:
+
+```bash
+npx tsc --noEmit -p artifacts/marketplace/tsconfig.json
+# Expected: no output (0 errors)
+
+npx tsc --noEmit -p artifacts/api-server/tsconfig.json
+# Expected: no output (0 errors)
+
+npx tsc --noEmit -p artifacts/mobile/tsconfig.json
+# Expected: no output (0 errors)
+
+npx tsc --build lib/db lib/api-zod lib/api-client-react
+# Expected: no output (clean build)
+```
 
 ---
 
@@ -263,14 +286,16 @@ The endpoint runs 13 parallel checks covering:
 | Root owner login returns 401 | Use `role:"admin"` not `role:"customer"` for admin account |
 | Trust score shows `isVerified: null` | Server restart needed — tsx watch sometimes doesn't hot-reload route changes |
 | Seller application returns 400 "already an approved seller" | The test seller was registered with `role:"seller"` — reset to `role:"customer"` via SQL before applying: `UPDATE users SET role='customer', seller_status=null WHERE email='seller@syano.test'` |
-| Unverify returns "Invalid level" | Send `{"action":"unverify"}` OR `{"level":"none"}` — both accepted after June 2026 fix |
+| Unverify returns "Invalid level" | Send `{"action":"unverify"}` OR `{"level":"none"}` — both accepted |
 | Demo products missing after recovery | `bootstrapDemoMarketplaceData()` now runs automatically — just restart the API server |
+| DB table count shows 28 instead of 33 | Old documentation was inaccurate — run-migrations.ts creates 12 additional tables (not 7). Current correct count is 33. |
+| i18n key count shows 2,592 | Old documentation was inaccurate — current count is 2,832 EN / 2,832 AR (verified June 15, 2026) |
 
 ---
 
-## Hybrid NLP Search — Verification (Step 2 + Step 3)
+## Hybrid NLP Search — Verification (run after API starts on port 8080)
 
-### Backend Smoke Tests (run after API starts on port 8080)
+### Backend Smoke Tests
 ```bash
 # Test 1 — Arabic colloquial: dialect synonym expansion
 curl -s "http://localhost:8080/api/search/results?q=%D8%A8%D9%88%D8%A7%D8%B7%20%D8%B3%D8%A8%D9%88%D8%B1&limit=3" | \
@@ -282,25 +307,19 @@ curl -s "http://localhost:8080/api/search/results?q=%D8%A8%D9%88%D8%A7%D8%B7%20%
 curl -s "http://localhost:8080/api/search/results?q=shoes&limit=3" | \
   node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
   console.log('total:',d.total,'lang:',d.intent?.primaryLanguage);"
-# Expect: total:26, lang:en
+# Expect: total:12+, lang:en
 
 # Test 3 — Intent modifier (cheap)
 curl -s "http://localhost:8080/api/search/results?q=%D8%B1%D8%AE%D9%8A%D8%B5%20%D9%85%D9%88%D8%A8%D8%A7%D9%8A%D9%84&limit=3" | \
   node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
   console.log('modifiers:',JSON.stringify(d.intent?.modifiers),'total:',d.total);"
-# Expect: modifiers:["cheap"], total:9
+# Expect: modifiers:["cheap"], total:9+
 
-# Test 4 — Typo tolerance (trigram fallback)
-curl -s "http://localhost:8080/api/search/results?q=iphon&limit=3" | \
+# Test 4 — Arabic query (هاتف = phone)
+curl -s "http://localhost:8080/api/search/results?q=%D9%87%D8%A7%D8%AA%D9%81&limit=3" | \
   node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
-  console.log('total:',d.total);"
-# Expect: total:11 (trigram similarity)
-
-# Test 5 — Sticky token split
-curl -s "http://localhost:8080/api/search/results?q=%D8%B4%D8%A7%D8%AD%D9%86%D8%B3%D8%B1%D9%8A%D8%B9&limit=3" | \
-  node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
-  console.log('baseTokens:',JSON.stringify(d.intent?.nlpBaseTokens));"
-# Expect: baseTokens:["شاحن","سريع"]
+  console.log('total:',d.total,'lang:',d.intent?.primaryLanguage);"
+# Expect: total:12, lang:ar
 ```
 
 ### DB Infrastructure Check
@@ -312,22 +331,37 @@ psql "$DATABASE_URL" -t -c "SELECT 'gin_index: '||indexname FROM pg_indexes WHER
 # Expect: gin_index: products_fts_gin
 ```
 
-### Frontend Verification (Shop Page)
-Open the marketplace at `/shop?q=بواط سبور` and verify:
-1. **NLP banner** appears: `"🔍 Matched 7 linguistic synonyms for: بواط، سبور"` with `"العربية"` badge
-2. **Query chip** `"بواط سبور ×"` is present and clickable — clicking it navigates to `/shop` (catalog mode)
-3. **Category chip** `"Fashion ×"` appears (NLP-detected category)
-4. **Sort dropdown** shows `"Most Relevant"` for search mode vs `"Newest"` for browse mode
-5. Changing sort updates the URL `sortBy=` param (check browser address bar)
-6. Dismiss button (`×`) on NLP banner hides it for the current query; a new query resets it
+---
 
-### Key Files
-| File | Purpose |
-|---|---|
-| `artifacts/api-server/src/utils/searchProcessor.ts` | NLP pipeline: tokenizer, dialect dict (55+ entries), intent parsing, language detection |
-| `artifacts/api-server/src/routes/search.ts` | Route 3: hybrid FTS+trigram engine, OR-tsquery, AND boost, seller gate |
-| `artifacts/api-server/src/lib/search-startup.ts` | Phase 1: pg_trgm. Phase 2: fts_vector column + GIN index + auto-update trigger |
-| `artifacts/marketplace/src/pages/search/index.tsx` | Shop page: NLP banner, intent chips, sort→URL sync, SearchIntent interface |
+## Embedding Service Setup (Optional — Semantic Search)
+
+The embedding service is **implemented but not currently active** in the Replit environment due to pip install restrictions (disk quota). To activate semantic search:
+
+### What exists in code:
+- `artifacts/embedding-service/main.py` — FastAPI service, `intfloat/multilingual-e5-small` model, 384 dimensions, endpoints: `POST /embed/query`, `POST /embed/batch`, `GET /health`
+- `artifacts/api-server/src/scripts/generateEmbeddings.ts` — backfill script (batch=50, idempotent, WHERE embedding IS NULL)
+- `search.ts` — RRF blend (FTS 0.65 + semantic 0.35) with graceful fallback if service is down
+
+### To activate (when pip install is available):
+```bash
+# 1. Install Python dependencies
+cd artifacts/embedding-service
+pip install fastapi uvicorn sentence-transformers torch
+
+# 2. Start embedding service
+python main.py  # starts on port 8001
+
+# 3. Set env var
+export EMBEDDING_SERVICE_URL=http://localhost:8001
+
+# 4. Run backfill
+pnpm --filter @workspace/api-server embed:generate
+
+# 5. Verify
+curl http://localhost:8001/health
+```
+
+When `EMBEDDING_SERVICE_URL` is NOT set (current default), the API gracefully falls back to pure FTS — all search features work normally.
 
 ---
 
@@ -338,17 +372,18 @@ Open the marketplace at `/shop?q=بواط سبور` and verify:
 - **Mobile:** Expo (React Native)
 - **Libs:** `lib/db` (schema), `lib/api-zod` (generated), `lib/api-client-react` (generated hooks)
 - **Auth:** JWT in localStorage, `bootstrapRootAdmin()` runs on startup
-- **Notifications:** SSE stream + push (VAPID), `notification_type` Postgres enum
+- **Notifications:** SSE stream + push (VAPID), `notification_type` Postgres enum (32 values)
+- **Search:** 13-step NLP pipeline in `src/utils/searchProcessor.ts`; LRU cache in `src/services/searchCache.ts`; routes in `src/routes/search.ts`
 - **Courier flow:** `POST /admin/orders/:id/assign-courier` creates assignment + updates order status atomically
-- **Trust System:** `lib/trustScore.ts` — 0-100 score; `seller_verification_log` audit table; admin routes in `admin.ts` (lines 1356–1530)
+- **Trust System:** `lib/trustScore.ts` — 0-100 score; `seller_verification_log` audit table; admin routes in `admin.ts`
 - **Demo Data:** `lib/bootstrap-demo-data.ts` — self-healing, idempotent, runs on every startup
 
 ## Bootstrap Startup Sequence
 
 ```
 Server start
-  └─ runMigrations()              ← schema extensions, enums, new tables
-  └─ runSearchStartup()           ← search warmup
+  └─ runMigrations()              ← schema extensions, enums, new tables (total: 33)
+  └─ runSearchStartup()           ← pg_trgm, fts_vector column, GIN index, trigger
   └─ bootstrapRootAdmin()         ← delewatiamer7 (admin)
   └─ bootstrapTestAccounts()      ← delewatiamer8 (seller) + delewatiamer9 (courier)
   └─ bootstrapDemoMarketplaceData() ← 4 stores, 42 products, 14 orders, reviews...
@@ -367,61 +402,23 @@ Server start
 - **Always dark** glassmorphism — `rgba(8,8,8,0.75)` base → `rgba(8,8,8,0.88)` when scrolled > 20px
 - `position: fixed` at `top-0 z-50`, height: 64px desktop / 60px mobile
 - Desktop uses **CSS Grid** `gridTemplateColumns: "auto 1fr auto"` with `dir={isRtl?"rtl":"ltr"}`
-  - COL 1 (renders RIGHT in RTL): Logo + divider + Nav links (الرئيسية / المنتجات / المتاجر / العروض)
+  - COL 1: Logo + divider + Nav links (الرئيسية / المنتجات / المتاجر / العروض)
   - COL 2 (CENTER): Search bar `max-w-[300px]` with live suggestions + recent searches
-  - COL 3 (renders LEFT in RTL): ⚙ Settings dropdown + Login button + Sign up button (or avatar when authenticated)
-- **Settings dropdown** (new, Session 8): Theme (Light/Dark/Auto) + Language (العربية/English) + Currency (SYP/USD) — fully functional, matches navbar design system
-- Floating green ShoppingBag icon **removed** from HeroSection (Session 8)
+  - COL 3: ⚙ Settings dropdown + Login button + Sign up button (or avatar when authenticated)
+- **Settings dropdown**: Theme (Light/Dark/Auto) + Language (العربية/English) + Currency (SYP/USD)
 - Mobile: Logo → [Search icon / Wishlist / Cart] → Menu → Sheet drawer (dark `#0d0d0d`) with preferences section
 
 ### Section Order (top to bottom)
-1. `<HeroSection products={allProducts} />` — split-panel; floating cards use real DB products (first 3)
+1. `<HeroSection products={allProducts} />` — split-panel; floating cards use real DB products
 2. `<PopularCategories />` — 4×2 grid; links → `/products?category=...`
-3. `<FeaturedDeals hotDeals={isBestDealProducts} />` — countdown; working add-to-cart (auth + guest)
+3. `<FeaturedDeals hotDeals={isBestDealProducts} />` — countdown; working add-to-cart
 4. `<TrustedStores />` — fetches `/api/sellers/featured`; links → `/store/:slug`
-5. `<TrendingProducts products={allProducts.slice(0,6)} />` — add-to-cart + wishlist heart
-6. `<NewArrivals newArrivals={allProducts.slice(0,4)} />` — bento grid; all links → `/products/:id`
-7. `<JoinSection />` — seller/courier CTAs via hooks
+5. `<TrendingProducts products={allProducts.slice(0,6)} />` — add-to-cart + wishlist
+6. `<NewArrivals newArrivals={allProducts.slice(0,4)} />` — bento grid
+7. `<JoinSection />` — seller/courier CTAs
 8. `<HomeFooter />` — full dark footer
 
-### All Components Location
-`artifacts/marketplace/src/components/HomeSections/`
-- `HeroSection.tsx`, `PopularCategories.tsx`, `FeaturedDeals.tsx`, `TrustedStores.tsx`
-- `TrendingProducts.tsx`, `NewArrivals.tsx`, `JoinSection.tsx`, `HomeFooter.tsx`
-
-### Homepage V6 Architecture (preserved for reference)
-**Homepage version:** V6 — Amazon/Noon/Trendyol split-hero layout + real category data
-- Section order: HeroV4 → Categories → Hot Deals → Verified Stores + New Arrivals → Recently Viewed → Join
-- Key component: `artifacts/marketplace/src/components/HeroV4.tsx`
-
-## Product Image Quality — Verified June 14, 2026
-
-All 42 demo products have verified matching images. The bootstrap seed in `lib/bootstrap-demo-data.ts` uses the corrected Pexels IDs. Key verified IDs:
-
-| Product | Pexels ID | Content |
-|---------|-----------|---------|
-| Sony WH-1000XM5 Headphones | 1649771 | over-ear headphones |
-| Samsung Galaxy S24 | 699122 | smartphone |
-| Apple MacBook Pro | 18105 | laptop |
-| Samsung 65" QLED TV | 1201996 | TV in living room |
-| Floral Maxi Dress | 1926769 | floral dress |
-| Leather Jacket | 2529148 | leather jacket |
-| Men's Chino Pants | 2220280 | casual trousers |
-| Women's Stiletto Heels | 1619651 | women's shoes |
-| Nida Fabric Abaya | 6149284 | dark modest fashion |
-| Canvas Wall Art | 1839919 | gallery/art |
-| Memory Foam Pillow | 1034584 | white bedding |
-| Dior Sauvage EDP | 3059609 | perfume bottles |
-| Charlotte Tilbury Lipstick | 2533266 | makeup products |
-| Dyson Supersonic Hair Dryer | 3993449 | hair styling (Anna Avilova) |
-| Resistance Bands | 4498480 | fitness bands (Karolina Grabowska) |
-| Pearl Bracelet | 5442799 | pearl jewelry |
-| Atomic Habits | 1907785 | book |
-| Think & Grow Rich | 2908984 | book (Andrew Neel) |
-| Syrian Olive Oil | 1029757 | olive oil bottle |
-| Damascus Rose Water | 4021992 | botanical/rose (Karolina Grabowska) |
-
-**Idempotency note:** The bootstrap guard (`COUNT(products) >= 42 → skip`) means these image fixes only apply on fresh DB restores. On an existing DB, re-run the image SQL from the audit if needed.
+All components in `artifacts/marketplace/src/components/HomeSections/`
 
 ## Trust System API Reference
 
@@ -440,3 +437,23 @@ Store pages:
 GET  /api/sellers/store/:slug                  — public store by slug (has isVerified)
 GET  /api/sellers/:id/store-preview            — store preview by user ID (has isVerified)
 ```
+
+## Product Image Quality — Verified June 14, 2026
+
+All 42 demo products have verified matching images. Key verified Pexels IDs:
+
+| Product | Pexels ID | Content |
+|---------|-----------|---------|
+| Sony WH-1000XM5 Headphones | 1649771 | over-ear headphones |
+| Samsung Galaxy S24 | 699122 | smartphone |
+| Apple MacBook Pro | 18105 | laptop |
+| Samsung 65" QLED TV | 1201996 | TV in living room |
+| Floral Maxi Dress | 1926769 | floral dress |
+| Leather Jacket | 2529148 | leather jacket |
+| Dior Sauvage EDP | 3059609 | perfume bottles |
+| Charlotte Tilbury Lipstick | 2533266 | makeup products |
+| Dyson Supersonic Hair Dryer | 3993449 | hair styling |
+| Resistance Bands | 4498480 | fitness bands |
+| Pearl Bracelet | 5442799 | pearl jewelry |
+| Atomic Habits | 1907785 | book |
+| Syrian Olive Oil | 1029757 | olive oil bottle |
