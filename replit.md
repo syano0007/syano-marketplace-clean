@@ -19,7 +19,7 @@ curl -s http://localhost:8080/api/healthz && echo "API OK"
 |---|---|---|
 | `artifacts/api-server: API Server` | 8080 | Express API + auto-migrations + demo data |
 | `Start application` | 5000 | Marketplace web preview (webview) |
-| `Embedding Service` | 8001 | Python TF-IDF/LSA embedding microservice |
+| `Embedding Service` | 8001 | sentence-transformers (paraphrase-multilingual-MiniLM-L12-v2) embedding service |
 | `artifacts/marketplace: web` | 20787 | Marketplace artifact view |
 | `artifacts/mobile: expo` | 18115 | Expo mobile dev server |
 | `artifacts/mockup-sandbox: Component Preview Server` | 8081 | UI component sandbox |
@@ -29,7 +29,7 @@ curl -s http://localhost:8080/api/healthz && echo "API OK"
 - ❌ Creating a new "Start application" on port 5000 → duplicate conflict
 - ❌ Running `pnpm dev` at workspace root → wrong, use workflow restart
 - ❌ Running `psql -f schema.sql` if DB already has 33 tables → will fail/corrupt
-- ❌ Installing `sentence-transformers` or `torch` → blocked by Replit firewall (disk quota)
+- ❌ Installing `sentence-transformers` or `torch` via Replit package manager (uv) → fails on Linux; use `pip install --no-cache-dir` directly instead
 - ❌ Running `tsc --noEmit` on marketplace/api-server without building libs first → spurious TS6305 errors
 
 ### If the environment is fresh (empty DB / packages missing):
@@ -86,9 +86,9 @@ pnpm --filter @workspace/api-server embed:generate
 - **Mobile:** Expo (React Native) + expo-router
 - **Validation:** Zod (v4), drizzle-zod
 - **Auth:** JWT (HS256) in localStorage, SESSION_SECRET env var
-- **Search:** 13-step NLP pipeline (Arabic + English), LRU cache, GIN FTS index, pgvector semantic (TF-IDF/LSA)
+- **Search:** 13-step NLP pipeline (Arabic + English), LRU cache, GIN FTS index, pgvector semantic (sentence-transformers)
 - **Real-time:** SSE for notifications + new_message; polling fallback
-- **Embeddings:** TF-IDF/LSA service (port 8001) — NOT sentence-transformers (Replit firewall blocks it)
+- **Embeddings:** sentence-transformers (paraphrase-multilingual-MiniLM-L12-v2, port 8001) — model.safetensors loaded from local disk, TF-IDF+LSA fallback if missing
 
 ---
 
@@ -119,8 +119,9 @@ artifacts/
     vite.config.ts        → Vite config — has /api proxy to port 8080 (CRITICAL)
 
   embedding-service/
-    main.py               → FastAPI TF-IDF/LSA service (342 lines)
-    requirements.txt      → numpy, scikit-learn, fastapi, uvicorn ONLY
+    main.py               → FastAPI sentence-transformers service (graceful TF-IDF fallback)
+    requirements.txt      → fastapi, uvicorn, numpy, scikit-learn, sentence-transformers, torch
+    model/                → paraphrase-multilingual-MiniLM-L12-v2 model files (model.safetensors 449MB)
 
   mobile/                 → Expo app
   mockup-sandbox/         → Component preview sandbox
@@ -136,7 +137,7 @@ artifacts/
 - **Role selector on login:** Admin accounts bypass role-mismatch — enter admin credentials while "Customer" is selected.
 - **Numeric prices:** DB stores prices as `numeric`/`decimal` in SYP (Syrian Pounds). `finalPrice` computed server-side. `format(sypAmount)` divides by exchange rate for USD display — never multiply.
 - **Vite /api proxy:** `artifacts/marketplace/vite.config.ts` proxies `/api/*` → `localhost:8080`. Without this, API calls return HTML from Vite.
-- **Embedding service:** Uses TF-IDF/LSA (NOT sentence-transformers). Same 384-dim vector API. Starts in < 1 second, no model download needed.
+- **Embedding service:** Uses `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` loaded from `artifacts/embedding-service/model/model.safetensors` (449MB). Falls back to TF-IDF+LSA if model file missing. Load time ~10s on first start.
 - **Demo data self-healing:** `bootstrapDemoMarketplaceData()` runs on every API startup. Idempotent — skips if 42+ products exist.
 
 ---
@@ -147,7 +148,7 @@ artifacts/
 - `notification_type` enum: **32 values**
 - `order_status` enum: **15 values**
 - FTS: `fts_vector` + `products_fts_gin` GIN index — **42/42 products**
-- Semantic: `embedding` vector(384) — **42/42 products** (TF-IDF/LSA backend)
+- Semantic: `embedding` vector(384) — **42/42 products** (sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2)
 
 ---
 
@@ -187,7 +188,8 @@ Set in `.replit` `[userenv.shared]` — no manual setup needed:
 - **DB push:** Use `pnpm --filter @workspace/db run push` — never `drizzle-kit push` directly (requires TTY)
 - **Port 8080 in use:** Only ONE api-server workflow should exist. If you see EADDRINUSE, a duplicate workflow is running.
 - **heroBannerSystem recovery module:** Reports false negative (95/100 is correct). Homepage V7 uses HeroV4.tsx, not HeroBanner.tsx.
-- **Embedding service backend:** `requirements.txt` contains ONLY: `fastapi`, `uvicorn`, `numpy`, `scikit-learn`. The `sentence-transformers` and `torch` packages are NOT installed and NOT needed.
+- **Embedding service backend:** Uses `sentence-transformers` + `torch==2.4.0+cpu` (installed via `pip install --no-cache-dir`, NOT via uv/Replit package manager which fails on Linux). Model loaded from `model/model.safetensors`. Use `pytorch_model.bin` (legacy format) only if you also upgrade torch to ≥2.6 (sentence-transformers v5.5+ blocks it on older torch due to CVE-2025-32434).
+- **Embedding service recovery:** If `model.safetensors` is missing, service starts with TF-IDF+LSA fallback. Re-download: `curl -L -o artifacts/embedding-service/model/model.safetensors "https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/model.safetensors"` then restart workflow + reset embeddings + run `pnpm --filter @workspace/api-server embed:generate`.
 
 ---
 
