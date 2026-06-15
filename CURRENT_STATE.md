@@ -1,26 +1,42 @@
 # SYANO — Current Project State
-**Last Updated:** June 15, 2026 (Session 14 — Shop Page Sticky Header Overlap Fix)  
-**Updated By:** Fixed sticky-toolbar overlap on /shop page (mobile filter bar now sticky; desktop sidebar top auto-measured)
+**Last Updated:** June 15, 2026 (Session 15 — Shop Page 3-Bug Surgical Fix)  
+**Updated By:** Fixed 3 confirmed visual bugs on /shop: desktop first-row overlap (Bug 1), mobile first-row overlap + expanded filter spacing (Bug 2a+2b), NLP chips hidden behind sticky filter bar (Bug 3)
 
 ---
 
-## ✅ Shop Page Sticky-Header Overlap Fix — COMPLETE (June 15, 2026)
+## ✅ Shop Page 3-Bug Surgical Fix — COMPLETE (June 15, 2026)
 
-### Problem
-On `/shop`, the sticky search toolbar (`sticky z-30 top: --navbar-height`) covered the mobile filter bar and the top of product cards when the user scrolled even ~30 px. The filter bar had no sticky behavior and no z-index, so it disappeared behind the toolbar immediately.
+### Bugs Fixed
 
-### Fix Applied (`artifacts/marketplace/src/pages/search/index.tsx`)
-1. **`toolbarRef` + `ResizeObserver`** — measures the live height of the sticky search toolbar and stores it in `toolbarHeight` state (updates on resize/query changes).
-2. **`belowToolbar`** computed value: `calc(var(--navbar-height) + ${toolbarHeight}px)` — a single source of truth for "top of content area".
-3. **Mobile filter bar** (`lg:hidden`): upgraded from static `mb-4` block to `sticky z-[25] bg-background/95 backdrop-blur-sm -mx-4 px-4 py-2 border-b border-border/30` with `style={{ top: belowToolbar }}`. It now remains permanently visible below the search toolbar while the user scrolls through results.
-4. **Desktop sidebar**: replaced hardcoded `top: calc(var(--navbar-height) + 9rem)` with dynamic `style={{ top: belowToolbar }}` so the sidebar anchors exactly at the toolbar's measured bottom edge.
+**Bug 1 — Desktop, no-query: first product row overlapped by toolbar**  
+Root cause: tab containers used static `py-6` padding — too small when the toolbar renders without a query (shorter height). The first row of product cards was visually behind the sticky toolbar.  
+Fix: Replaced `py-6` with `pb-6` + `style={{ paddingTop: \`${searchHeaderHeight}px\` }}` on the Products/Stores/Categories tab containers. `searchHeaderHeight` is live-measured via `ResizeObserver` on the toolbar div.
 
-### Verified
-- 320 px (no query): filter bar visible ✅
-- 390 px (q=phone): filter bar + first product row fully visible ✅
-- 414 px RTL Arabic (q=موبايل): filter bar visible, RTL preserved ✅
-- 1280 px desktop (q=phone): sidebar anchored correctly, first row fully visible ✅
-- TypeScript: 0 new errors in `search/index.tsx` ✅
+**Bug 2a — Mobile, no-query: same overlap**  
+Same root cause, same fix (shared Element B container). First product row now starts exactly at the toolbar's measured bottom edge.
+
+**Bug 2b — Mobile, expanded filters: cramped 2-column grid**  
+Old layout packed Category and Price controls into a `grid-cols-2 gap-3` side-by-side slab. Replaced with `space-y-5` vertical sections matching the desktop sidebar (Category → Price → Rating → Availability), each with a `text-[11px] font-semibold uppercase` label and full-width controls.
+
+**Bug 3 — Mobile, NLP banner + chips hidden behind sticky filter bar**  
+Root cause: a prior session made the mobile filter bar `sticky z-[25]`, which covered the NLP banner and active-chip row that were rendered *after* it in JSX. Fix: moved the NLP insights banner and active-filter chips **before** the mobile filter bar in JSX, then removed the sticky positioning from the filter bar (it is now a plain static block). NLP banner and chips are now fully visible above the filter controls.
+
+### Implementation Details (`artifacts/marketplace/src/pages/search/index.tsx`)
+- `useLayoutEffect` (not `useEffect`) for ResizeObserver — fires synchronously before paint, eliminates flash of misaligned content
+- Ref renamed `searchHeaderRef`, state renamed `searchHeaderHeight`, initial value `144` (reasonable pre-measure fallback matching with-query toolbar height)
+- Second `useLayoutEffect` syncs `document.documentElement.style.scrollPaddingTop` to `calc(var(--navbar-height) + ${searchHeaderHeight + 8}px)` — keeps anchor-scrolled headings from landing under the toolbar
+- `belowToolbar` simplified to `calc(var(--navbar-height) + ${searchHeaderHeight}px)` — used only by desktop sidebar `top` now
+
+### Verification Matrix (all PASS)
+
+| Viewport | State | Result |
+|---|---|---|
+| 1280 × 800 | No query | Toolbar tabs visible; first product row fully visible ✅ |
+| 1280 × 800 | q=رخيص | NLP banner + chips above sidebar; first product visible ✅ |
+| 375 × 812 | No query | Filter bar (Filters + sort) visible; first 2 cards visible ✅ |
+| 375 × 812 | q=رخيص | NLP banner → chips → filter bar → product card — correct order ✅ |
+
+TypeScript: 0 errors in `search/index.tsx` ✅ (only 2 pre-existing errors in unrelated button-group.tsx + calendar.tsx)
 
 ---
 

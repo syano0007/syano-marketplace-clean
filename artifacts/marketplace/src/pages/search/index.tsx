@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useListProducts } from "@workspace/api-client-react";
@@ -122,24 +122,29 @@ export default function SearchPage() {
   const isRtl = lang === "ar";
   const [location, navigate] = useLocation();
 
-  /* ── Toolbar height measurement (for sticky offset calculations) ── */
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const [toolbarHeight, setToolbarHeight] = useState(0);
+  /* ── Toolbar height measurement (ResizeObserver — dynamic, no static values) ── */
+  const searchHeaderRef = useRef<HTMLDivElement>(null);
+  const [searchHeaderHeight, setSearchHeaderHeight] = useState(144);
 
-  useEffect(() => {
-    const el = toolbarRef.current;
+  useLayoutEffect(() => {
+    const el = searchHeaderRef.current;
     if (!el) return;
-    const update = () => setToolbarHeight(el.getBoundingClientRect().height);
-    update();
-    const ro = new ResizeObserver(update);
+    setSearchHeaderHeight(el.getBoundingClientRect().height);
+    const ro = new ResizeObserver((entries) => {
+      setSearchHeaderHeight(entries[0]?.contentRect.height ?? el.getBoundingClientRect().height);
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  /* Computed sticky top for elements that must sit just below the toolbar */
-  const belowToolbar = toolbarHeight > 0
-    ? `calc(var(--navbar-height) + ${toolbarHeight}px)`
-    : "calc(var(--navbar-height) + 8rem)";
+  useLayoutEffect(() => {
+    document.documentElement.style.scrollPaddingTop =
+      `calc(var(--navbar-height) + ${searchHeaderHeight + 8}px)`;
+    return () => { document.documentElement.style.scrollPaddingTop = ""; };
+  }, [searchHeaderHeight]);
+
+  /* Sticky top for sidebar + any sticky sub-elements */
+  const belowToolbar = `calc(var(--navbar-height) + ${searchHeaderHeight}px)`;
 
   const getInitialParams = () => {
     const sp2 = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
@@ -418,7 +423,7 @@ export default function SearchPage() {
     <Layout>
       <div className="min-h-screen bg-background" dir={isRtl ? "rtl" : "ltr"}>
         {/* ── Search Header ─────────────────────────────────────── */}
-        <div ref={toolbarRef} className="border-b border-border/60 bg-card/90 backdrop-blur-sm sticky z-30" style={{ top: "var(--navbar-height)" }}>
+        <div ref={searchHeaderRef} className="border-b border-border/60 bg-card/90 backdrop-blur-sm sticky z-30" style={{ top: "var(--navbar-height)" }}>
           <div className="container py-3 px-4">
             <form onSubmit={handleSearch} className="flex items-center gap-2 max-w-2xl">
               <div className="flex items-center gap-2 flex-1 bg-background border border-border/70 rounded-xl px-3.5 h-10 focus-within:border-emerald-500/60 transition-colors">
@@ -478,7 +483,7 @@ export default function SearchPage() {
 
         {/* ── Products Tab ─────────────────────────────────────── */}
         {activeTab === "products" && (
-          <div className="container px-4 py-6">
+          <div className="container px-4 pb-6" style={{ paddingTop: `${searchHeaderHeight}px` }}>
             <div className="flex flex-col lg:flex-row gap-6">
 
               {/* Sidebar Filters — desktop */}
@@ -625,11 +630,80 @@ export default function SearchPage() {
 
               {/* Main content */}
               <div className="flex-1 min-w-0">
-                {/* Mobile filter bar — sticky below the search toolbar */}
-                <div
-                  className="flex items-center gap-2 mb-2 lg:hidden sticky z-[25] bg-background/95 backdrop-blur-sm -mx-4 px-4 py-2 border-b border-border/30"
-                  style={{ top: belowToolbar }}
-                >
+
+                {/* ── NLP Insights Banner — above filter controls (Bug 3 fix) ── */}
+                {searchMode && !nlpBannerDismissed && (searchIntent?.nlpExpandedCount ?? 0) > 0 && (
+                  <div
+                    dir={isRtl ? "rtl" : "ltr"}
+                    className="flex items-center gap-2.5 mb-3 px-3.5 py-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-xs"
+                  >
+                    <span className="shrink-0 text-base leading-none" aria-hidden="true">🔍</span>
+                    <span className="flex-1 text-violet-700 dark:text-violet-300 leading-snug">
+                      {isRtl
+                        ? `تم مطابقة ${searchIntent!.nlpExpandedCount} مرادفات لغوية لـ: ${(searchIntent!.nlpBaseTokens ?? []).join("، ")}`
+                        : `Matched ${searchIntent!.nlpExpandedCount} linguistic synonyms for: ${(searchIntent!.nlpBaseTokens ?? []).join(", ")}`
+                      }
+                    </span>
+                    <span
+                      className="shrink-0 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold border border-blue-500/20 tracking-wide"
+                      title={isRtl ? "لغة الاستعلام" : "Query language"}
+                    >
+                      {searchIntent!.primaryLanguage === "ar" ? "العربية" : "English"}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={isRtl ? "إخفاء" : "Dismiss"}
+                      onClick={() => setNlpBannerDismissed(true)}
+                      className="shrink-0 text-muted-foreground hover:text-foreground transition-colors rounded-full p-0.5 hover:bg-violet-500/10"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+
+                {/* ── Active filter chips + result count — above filter controls (Bug 3 fix) ── */}
+                {searchMode && (searchIntent?.modifiers.length || searchIntent?.mappedCategory || debouncedQuery || totalResults !== undefined) && (
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    {totalResults !== undefined && (
+                      <span className="text-xs text-muted-foreground">
+                        {isRtl
+                          ? `${totalResults.toLocaleString()} نتيجة`
+                          : `${totalResults.toLocaleString()} result${totalResults !== 1 ? "s" : ""}`}
+                      </span>
+                    )}
+                    {debouncedQuery && (
+                      <button
+                        type="button"
+                        onClick={() => { setQuery(""); navigate("/shop"); }}
+                        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
+                      >
+                        <Search className="h-3 w-3 shrink-0" />
+                        <span className="max-w-[120px] truncate">
+                          {debouncedQuery.length > 22 ? `${debouncedQuery.slice(0, 22)}…` : debouncedQuery}
+                        </span>
+                        <X className="h-3 w-3 ms-0.5 opacity-70 shrink-0" />
+                      </button>
+                    )}
+                    {searchIntent?.mappedCategory && (
+                      <button
+                        type="button"
+                        onClick={() => setCategory(searchIntent.mappedCategory ?? undefined)}
+                        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 hover:bg-sky-500/15 transition-colors"
+                      >
+                        {searchIntent.mappedCategory}
+                        <X className="h-3 w-3 ms-0.5 opacity-70" />
+                      </button>
+                    )}
+                    {(searchIntent?.modifiers ?? []).map((mod) => (
+                      <span key={mod} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        {MODIFIER_LABELS[mod] ?? mod}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── Mobile filter bar — static, below chips (Bug 3 fix: no sticky) ── */}
+                <div className="flex items-center gap-2 mb-4 lg:hidden">
                   <button onClick={() => setFiltersOpen(!filtersOpen)}
                     className={cn(
                       "flex items-center gap-1.5 h-9 px-3.5 rounded-lg border text-sm font-medium transition-colors",
@@ -662,141 +736,67 @@ export default function SearchPage() {
                   )}
                 </div>
 
-                {/* Mobile expanded filters */}
+                {/* ── Mobile expanded filters — space-y-5 matching desktop sidebar (Bug 2b fix) ── */}
                 {filtersOpen && (
-                  <div className="lg:hidden mb-4 p-4 bg-card rounded-xl border border-border/60 space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                          {lang === "ar" ? "الفئة" : "Category"}
-                        </Label>
-                        <Select value={category ?? "all"} onValueChange={(v) => setCategory(v === "all" ? undefined : v)}>
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue placeholder={lang === "ar" ? "جميع الفئات" : "All"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">{lang === "ar" ? "الكل" : "All"}</SelectItem>
-                            {CATEGORIES.map((c) => (
-                              <SelectItem key={c.slug} value={c.slug}>{lang === "ar" ? c.ar : c.en}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                          {lang === "ar" ? "السعر" : "Price"} ({symbol})
-                        </Label>
-                        <div className="flex gap-1">
-                          <Input type="number" min="0" value={minPriceInput}
-                            onChange={(e) => setMinPriceInput(e.target.value)}
-                            placeholder={lang === "ar" ? "من" : "Min"} className="h-9 text-sm" />
-                          <Input type="number" min="0" value={maxPriceInput}
-                            onChange={(e) => setMaxPriceInput(e.target.value)}
-                            placeholder={lang === "ar" ? "إلى" : "Max"} className="h-9 text-sm" />
-                        </div>
+                  <div className="lg:hidden mb-4 p-4 bg-card rounded-xl border border-border/60 space-y-5">
+                    <div>
+                      <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
+                        {lang === "ar" ? "الفئة" : "Category"}
+                      </Label>
+                      <Select value={category ?? "all"} onValueChange={(v) => setCategory(v === "all" ? undefined : v)}>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder={lang === "ar" ? "جميع الفئات" : "All categories"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{lang === "ar" ? "جميع الفئات" : "All categories"}</SelectItem>
+                          {CATEGORIES.map((c) => (
+                            <SelectItem key={c.slug} value={c.slug}>{lang === "ar" ? c.ar : c.en}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
+                        {lang === "ar" ? "السعر" : "Price"} ({symbol})
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input type="number" min="0" value={minPriceInput}
+                          onChange={(e) => setMinPriceInput(e.target.value)}
+                          placeholder={lang === "ar" ? "من" : "Min"} className="h-9 text-sm" />
+                        <Input type="number" min="0" value={maxPriceInput}
+                          onChange={(e) => setMaxPriceInput(e.target.value)}
+                          placeholder={lang === "ar" ? "إلى" : "Max"} className="h-9 text-sm" />
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-3">
+                    <div>
+                      <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
+                        {lang === "ar" ? "التقييم" : "Rating"}
+                      </Label>
+                      <div className="flex gap-1 flex-wrap">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button key={star} type="button" onClick={() => setMinRating(minRating === star ? 0 : star)}
+                            className={cn(
+                              "flex items-center gap-0.5 px-2 py-1 rounded-lg text-xs font-medium border transition-colors",
+                              minRating === star
+                                ? "bg-amber-50 border-amber-300 text-amber-600 dark:bg-amber-950/50 dark:border-amber-600/60 dark:text-amber-400"
+                                : "border-border text-muted-foreground"
+                            )}>
+                            <Star className={cn("h-3 w-3", minRating === star ? "fill-amber-500 text-amber-500" : "")} />
+                            {star}+
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-3">
                       <div className="flex items-center gap-2">
                         <Checkbox id="mOnSale" checked={hasDiscount} onCheckedChange={(c) => setHasDiscount(!!c)} />
-                        <label htmlFor="mOnSale" className="text-sm">{lang === "ar" ? "عروض فقط" : "On Sale"}</label>
+                        <label htmlFor="mOnSale" className="text-sm">{lang === "ar" ? "عروض فقط" : "On Sale Only"}</label>
                       </div>
                       <div className="flex items-center gap-2">
                         <Checkbox id="mInStock" checked={inStock} onCheckedChange={(c) => setInStock(!!c)} />
                         <label htmlFor="mInStock" className="text-sm">{t("search.filters.inStock")}</label>
                       </div>
                     </div>
-                    <div className="flex gap-1 flex-wrap">
-                      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider me-1 self-center">
-                        {lang === "ar" ? "تقييم:" : "Rating:"}
-                      </span>
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button key={star} type="button" onClick={() => setMinRating(minRating === star ? 0 : star)}
-                          className={cn(
-                            "flex items-center gap-0.5 px-2 py-1 rounded-lg text-xs font-medium border transition-colors",
-                            minRating === star
-                              ? "bg-amber-50 border-amber-300 text-amber-600 dark:bg-amber-950/50 dark:border-amber-600/60 dark:text-amber-400"
-                              : "border-border text-muted-foreground"
-                          )}>
-                          <Star className={cn("h-3 w-3", minRating === star ? "fill-amber-500 text-amber-500" : "")} />
-                          {star}+
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* ── NLP Insights Banner ───────────────────────────── */}
-                {searchMode && !nlpBannerDismissed && (searchIntent?.nlpExpandedCount ?? 0) > 0 && (
-                  <div
-                    dir={isRtl ? "rtl" : "ltr"}
-                    className="flex items-center gap-2.5 mb-3 px-3.5 py-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-xs"
-                  >
-                    <span className="shrink-0 text-base leading-none" aria-hidden="true">🔍</span>
-                    <span className="flex-1 text-violet-700 dark:text-violet-300 leading-snug">
-                      {isRtl
-                        ? `تم مطابقة ${searchIntent!.nlpExpandedCount} مرادفات لغوية لـ: ${(searchIntent!.nlpBaseTokens ?? []).join("، ")}`
-                        : `Matched ${searchIntent!.nlpExpandedCount} linguistic synonyms for: ${(searchIntent!.nlpBaseTokens ?? []).join(", ")}`
-                      }
-                    </span>
-                    <span
-                      className="shrink-0 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold border border-blue-500/20 tracking-wide"
-                      title={isRtl ? "لغة الاستعلام" : "Query language"}
-                    >
-                      {searchIntent!.primaryLanguage === "ar" ? "العربية" : "English"}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label={isRtl ? "إخفاء" : "Dismiss"}
-                      onClick={() => setNlpBannerDismissed(true)}
-                      className="shrink-0 text-muted-foreground hover:text-foreground transition-colors rounded-full p-0.5 hover:bg-violet-500/10"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-
-                {/* ── Active filter chips + result count ───────────── */}
-                {searchMode && (searchIntent?.modifiers.length || searchIntent?.mappedCategory || debouncedQuery || totalResults !== undefined) && (
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    {totalResults !== undefined && (
-                      <span className="text-xs text-muted-foreground">
-                        {isRtl
-                          ? `${totalResults.toLocaleString()} نتيجة`
-                          : `${totalResults.toLocaleString()} result${totalResults !== 1 ? "s" : ""}`}
-                      </span>
-                    )}
-                    {/* Active query chip — dismissible */}
-                    {debouncedQuery && (
-                      <button
-                        type="button"
-                        onClick={() => { setQuery(""); navigate("/shop"); }}
-                        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
-                      >
-                        <Search className="h-3 w-3 shrink-0" />
-                        <span className="max-w-[120px] truncate">
-                          {debouncedQuery.length > 22 ? `${debouncedQuery.slice(0, 22)}…` : debouncedQuery}
-                        </span>
-                        <X className="h-3 w-3 ms-0.5 opacity-70 shrink-0" />
-                      </button>
-                    )}
-                    {/* Category intent chip */}
-                    {searchIntent?.mappedCategory && (
-                      <button
-                        type="button"
-                        onClick={() => setCategory(searchIntent.mappedCategory ?? undefined)}
-                        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 hover:bg-sky-500/15 transition-colors"
-                      >
-                        {searchIntent.mappedCategory}
-                        <X className="h-3 w-3 ms-0.5 opacity-70" />
-                      </button>
-                    )}
-                    {/* Modifier chips */}
-                    {(searchIntent?.modifiers ?? []).map((mod) => (
-                      <span key={mod} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                        {MODIFIER_LABELS[mod] ?? mod}
-                      </span>
-                    ))}
                   </div>
                 )}
 
@@ -876,7 +876,7 @@ export default function SearchPage() {
 
         {/* ── Stores Tab ───────────────────────────────────────── */}
         {activeTab === "stores" && (
-          <div className="container px-4 py-6">
+          <div className="container px-4 pb-6" style={{ paddingTop: `${searchHeaderHeight}px` }}>
             {storesLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {Array.from({ length: 8 }).map((_, i) => (
@@ -941,7 +941,7 @@ export default function SearchPage() {
 
         {/* ── Categories Tab ───────────────────────────────────── */}
         {activeTab === "categories" && (
-          <div className="container px-4 py-6">
+          <div className="container px-4 pb-6" style={{ paddingTop: `${searchHeaderHeight}px` }}>
             {matchedCategories.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <Layers className="h-12 w-12 text-muted-foreground/40 mb-4" />
