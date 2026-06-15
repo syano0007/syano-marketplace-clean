@@ -10,7 +10,8 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { useSEO } from "@/hooks/useSEO";
-import { recordSearchClick } from "@/hooks/use-search";
+import { recordSearchClick, useSearchTrending, type TrendingQuery } from "@/hooks/use-search";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import {
   Search, SlidersHorizontal, X, Store, ChevronRight,
-  Star, TrendingUp, Package, Layers, ArrowRight,
+  Star, TrendingUp, Package, Layers, ArrowRight, SearchX,
   Cpu, Shirt, Sparkles, Home as HomeIcon, ShoppingBasket, Dumbbell,
   Car, Gamepad2, BookOpen, PawPrint, Download, Palette,
   Gem, Baby, Wrench, TreePine, Gift,
@@ -353,6 +354,8 @@ export default function SearchPage() {
       .catch(() => setStores([]))
       .finally(() => setStoresLoading(false));
   }, [debouncedQuery]);
+
+  const trendingSearches = useSearchTrending();
 
   const matchedCategories = CATEGORIES.filter((c) => {
     if (!debouncedQuery || debouncedQuery.length < 2) return false;
@@ -804,29 +807,84 @@ export default function SearchPage() {
                 {isLoadingProducts && products.length === 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                     {Array.from({ length: 8 }).map((_, i) => (
-                      <div key={i} className="rounded-2xl bg-muted/40 animate-pulse aspect-[3/4]" />
+                      <div key={i} className="rounded-2xl bg-card border border-border/40 overflow-hidden">
+                        <Skeleton className="aspect-square w-full rounded-none" />
+                        <div className="p-3 space-y-2">
+                          <Skeleton className="h-2.5 w-2/3" />
+                          <Skeleton className="h-3.5 w-full" />
+                          <Skeleton className="h-3.5 w-4/5" />
+                          <div className="pt-2">
+                            <Skeleton className="h-5 w-1/2" />
+                          </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 ) : products.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <Package className="h-12 w-12 text-muted-foreground/40 mb-4" />
-                    <p className="text-lg font-semibold text-foreground mb-1">
-                      {activeFilterCount > 0 ? t("search.results.noResultsWithFilters") : (lang === "ar" ? "لا توجد منتجات" : "No products found")}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {t("search.results.tryReducingFilters")}
-                    </p>
-                    {activeFilterCount > 0 && (
-                      <Button variant="outline" size="sm" onClick={clearFilters} className="mt-4">
-                        {t("search.filters.clearAll")}
-                      </Button>
+                  <div className="flex flex-col items-center justify-center py-20 text-center" dir={isRtl ? "rtl" : "ltr"}>
+                    {searchMode ? (
+                      <>
+                        <SearchX className="h-16 w-16 text-muted-foreground/30 mb-5" />
+                        <p className="text-xl font-semibold text-foreground mb-2">
+                          {t("search.empty.title", { query: debouncedQuery })}
+                        </p>
+                        <p className="text-sm text-muted-foreground mb-5">
+                          {t("search.empty.subtitle")}
+                        </p>
+                        <Button variant="outline" size="sm" onClick={() => { setQuery(""); navigate("/shop"); }}>
+                          {t("search.empty.clearButton")}
+                        </Button>
+                        {activeFilterCount > 0 && (
+                          <Button variant="ghost" size="sm" onClick={clearFilters} className="mt-2">
+                            {t("search.filters.clearAll")}
+                          </Button>
+                        )}
+                        {trendingSearches.length >= 3 && (
+                          <div className="mt-8">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                              {t("search.empty.trending")}
+                            </p>
+                            <div className="flex flex-wrap justify-center gap-2">
+                              {trendingSearches.slice(0, 5).map((tr: TrendingQuery) => (
+                                <button
+                                  key={tr.query}
+                                  type="button"
+                                  onClick={() => { setQuery(tr.query); navigate(`/shop?q=${encodeURIComponent(tr.query)}`); }}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-border/70 text-foreground/75 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-500/5 transition-colors"
+                                >
+                                  <TrendingUp className="h-3 w-3 shrink-0 opacity-60" />
+                                  {tr.query}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <Link href="/categories" className="mt-6 text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors">
+                          {t("search.empty.browseCategories")}
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <Package className="h-12 w-12 text-muted-foreground/40 mb-4" />
+                        <p className="text-lg font-semibold text-foreground mb-1">
+                          {activeFilterCount > 0 ? t("search.results.noResultsWithFilters") : (lang === "ar" ? "لا توجد منتجات" : "No products found")}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {t("search.results.tryReducingFilters")}
+                        </p>
+                        {activeFilterCount > 0 && (
+                          <Button variant="outline" size="sm" onClick={clearFilters} className="mt-4">
+                            {t("search.filters.clearAll")}
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                     {products.map((p: any) => (
                       <div key={p.id} onClick={() => { if (searchMode && searchLogId != null) recordSearchClick(searchLogId); }}>
-                        <ProductCard product={p} />
+                        <ProductCard product={p} highlightQuery={debouncedQuery || undefined} />
                       </div>
                     ))}
                   </div>

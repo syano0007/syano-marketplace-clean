@@ -17,6 +17,7 @@ interface ProductCardProps {
   product: Product;
   flashSaleEndsIn?: string;
   index?: number;
+  highlightQuery?: string;
 }
 
 function toTrendingData(product: Product, flashSaleEndsIn?: string): TrendingProductData {
@@ -48,6 +49,7 @@ export const ProductCard = React.memo(function ProductCard({
   product,
   flashSaleEndsIn,
   index = 0,
+  highlightQuery,
 }: ProductCardProps) {
   const queryClient = useQueryClient();
   const prefetchedRef = React.useRef(false);
@@ -88,7 +90,7 @@ export const ProductCard = React.memo(function ProductCard({
 
   return (
     <div ref={cardRef} onMouseEnter={handleMouseEnter}>
-      <TrendingCard product={cardData} i={index} />
+      <TrendingCard product={cardData} i={index} highlightQuery={highlightQuery} />
     </div>
   );
 });

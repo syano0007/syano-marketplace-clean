@@ -2954,6 +2954,13 @@
     },
     "related": {
       "title": "عمليات بحث مشابهة"
+    },
+    "empty": {
+      "title": "لا توجد نتائج لـ \"{{query}}\"",
+      "subtitle": "جرّب كلمة مختلفة أو تصفّح الفئات",
+      "clearButton": "مسح البحث",
+      "trending": "الأكثر بحثاً",
+      "browseCategories": "تصفّح جميع الفئات"
     }
   },
   "categories": {

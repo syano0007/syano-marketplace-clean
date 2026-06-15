@@ -2954,6 +2954,13 @@
     },
     "related": {
       "title": "Related Searches"
+    },
+    "empty": {
+      "title": "No results for \"{{query}}\"",
+      "subtitle": "Try a different word or browse categories",
+      "clearButton": "Clear Search",
+      "trending": "Trending Searches",
+      "browseCategories": "Browse All Categories"
     }
   },
   "categories": {

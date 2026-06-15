@@ -10,7 +10,8 @@
 
 import { Star, Heart, TrendingUp, ShoppingCart, Timer } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
+import { highlightMatch } from "@/utils/highlightMatch";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,7 +51,7 @@ export interface TrendingProductData {
   flashSaleEndsIn?: string;
 }
 
-export function TrendingCard({ product, i = 0 }: { product: TrendingProductData; i?: number }) {
+export function TrendingCard({ product, i = 0, highlightQuery }: { product: TrendingProductData; i?: number; highlightQuery?: string }) {
   const [, navigate] = useLocation();
   const { t } = useTranslation();
   const { format } = useCurrency();
@@ -210,7 +211,13 @@ export function TrendingCard({ product, i = 0 }: { product: TrendingProductData;
           style={{ fontWeight: 700, fontSize: "1rem", lineHeight: 1.4, minHeight: "2.8em" }}
           className="text-foreground mb-3 group-hover:text-emerald-400 transition-colors duration-200 line-clamp-2 pc-title"
         >
-          {product.name}
+          {highlightQuery
+            ? highlightMatch(product.name, highlightQuery).map((seg, idx) =>
+                seg.highlight
+                  ? <mark key={idx} className="bg-primary/20 text-primary rounded-sm px-0.5 not-italic">{seg.part}</mark>
+                  : <span key={idx}>{seg.part}</span>
+              )
+            : product.name}
         </h3>
 
         {/* Rating — only rendered when real review data exists; spacer preserves grid height */}
