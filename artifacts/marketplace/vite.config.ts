@@ -128,6 +128,7 @@ export default defineConfig({
     // Forward /sitemap*.xml requests to the API server so Vite serves
     // live, DB-driven XML instead of the static fallback in public/.
     proxy: {
+      "/api": { target: `http://localhost:${process.env.API_PORT ?? 8080}`, changeOrigin: true },
       "/sitemap.xml":            { target: `http://localhost:${process.env.API_PORT ?? 8080}`, changeOrigin: true },
       "/sitemap-index.xml":      { target: `http://localhost:${process.env.API_PORT ?? 8080}`, changeOrigin: true },
       "/sitemap-pages.xml":      { target: `http://localhost:${process.env.API_PORT ?? 8080}`, changeOrigin: true },
