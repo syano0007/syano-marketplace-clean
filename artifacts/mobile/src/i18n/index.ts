@@ -218,6 +218,9 @@ const en = {
     title: "Shop",
     all: "All",
     no_products: "No products found",
+    related_searches: "Related Searches",
+    in_stock: "In Stock",
+    clear_filters: "Clear",
   },
   auth: {
     welcome_back: "Welcome back",
@@ -487,6 +490,9 @@ const ar: DeepLeaf<typeof en> = {
     title: "المتجر",
     all: "الكل",
     no_products: "لا توجد منتجات",
+    related_searches: "عمليات بحث مشابهة",
+    in_stock: "متوفر",
+    clear_filters: "مسح",
   },
   auth: {
     welcome_back: "مرحباً بعودتك",

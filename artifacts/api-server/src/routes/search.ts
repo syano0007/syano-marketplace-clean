@@ -616,6 +616,7 @@ router.get("/search/results", async (req, res): Promise<void> => {
   const offset = (page - 1) * limit;
 
   const filterCategory  = req.query.category  ? String(req.query.category)  : null;
+  const filterDiscount  = req.query.hasDiscount === "true";
   const filterPriceMin  = req.query.priceMin  ? parseFloat(String(req.query.priceMin))  : null;
   const filterPriceMax  = req.query.priceMax  ? parseFloat(String(req.query.priceMax))  : null;
   const sortBy          = String(req.query.sortBy ?? "relevance");
@@ -696,6 +697,9 @@ router.get("/search/results", async (req, res): Promise<void> => {
   }
   if (filterStoreId !== null) {
     extraWhere.push(`p.seller_id = ${pb.add(filterStoreId)}`);
+  }
+  if (filterDiscount) {
+    extraWhere.push(`p.discount_percent IS NOT NULL AND p.discount_percent > 0`);
   }
   if (filterMinRating !== null && filterMinRating > 0) {
     // subquery per candidate — acceptable since candidate set is already narrow
@@ -953,6 +957,7 @@ router.get("/search/results", async (req, res): Promise<void> => {
         category:   filterCategory,
         storeId:    filterStoreId,
         inStock:    req.query.inStock === "true",
+        onSale:     filterDiscount,
       },
     },
     intent: {

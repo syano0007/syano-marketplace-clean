@@ -27,7 +27,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useScreenLayout } from "@/hooks/useScreenLayout";
-import { t } from "../../src/i18n";
+import { t, getLocale } from "../../src/i18n";
 
 interface SuggestionItem { text: string; textAr: string | null }
 interface CategorySuggestion { slug: string; labelEn: string; labelAr: string }
@@ -306,7 +306,7 @@ function CustomerShop() {
               onPress={() => setSortBy(opt)}
             >
               <Text style={[styles.sortChipText, { color: active ? "#10B981" : colors.mutedForeground }]}>
-                {MOBILE_SORT_LABELS[opt].en}
+                {MOBILE_SORT_LABELS[opt][getLocale()] ?? MOBILE_SORT_LABELS[opt].en}
               </Text>
             </Pressable>
           );
@@ -333,7 +333,7 @@ function CustomerShop() {
           onPress={() => setInStock((v) => !v)}
         >
           <Text style={[styles.sortChipText, { color: inStock ? "#10B981" : colors.mutedForeground }]}>
-            ✓ In Stock
+            ✓ {t("shop.in_stock")}
           </Text>
         </Pressable>
         {/* Rating chips */}
@@ -367,7 +367,7 @@ function CustomerShop() {
             ]}
             onPress={() => { setMinRating(0); setInStock(false); setSortBy("newest"); }}
           >
-            <Text style={[styles.sortChipText, { color: colors.mutedForeground }]}>✕ Clear</Text>
+            <Text style={[styles.sortChipText, { color: colors.mutedForeground }]}>✕ {t("shop.clear_filters")}</Text>
           </Pressable>
         )}
       </ScrollView>
@@ -376,7 +376,7 @@ function CustomerShop() {
 
   const relatedSearchesFooter = debouncedSearch.length >= 2 && relatedSearches.length > 0 ? (
     <View style={[relStyles.container, { borderTopColor: colors.border }]}>
-      <Text style={[relStyles.title, { color: colors.mutedForeground }]}>Related Searches</Text>
+      <Text style={[relStyles.title, { color: colors.mutedForeground }]}>{t("shop.related_searches")}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={relStyles.chipRow}>
         {relatedSearches.map((r) => (
           <Pressable

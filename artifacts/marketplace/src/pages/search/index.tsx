@@ -76,6 +76,7 @@ interface FilterMeta {
     category:  string | null;
     storeId:   number | null;
     inStock:   boolean;
+    onSale:    boolean;
   };
 }
 interface SearchApiResponse {
@@ -223,6 +224,7 @@ export default function SearchPage() {
       if (maxPriceSYP !== undefined) params.set("maxPrice", String(Math.round(maxPriceSYP * (currency === "USD" ? exchangeRate : 1))));
       if (minRating > 0) params.set("minRating", String(minRating));
       if (inStock) params.set("inStock", "true");
+      if (hasDiscount) params.set("hasDiscount", "true");
       if (storeId !== null) params.set("storeId", String(storeId));
       const res = await fetch(`/api/search/results?${params.toString()}`);
       if (!res.ok) throw new Error("Search failed");
@@ -346,12 +348,12 @@ export default function SearchPage() {
   ].filter(Boolean).length;
 
   const SORT_LABELS: Record<SortOption, string> = {
-    relevance:       lang === "ar" ? "الأكثر صلة" : "Most Relevant",
-    newest:          lang === "ar" ? "الأحدث" : "Newest",
-    price_asc:       lang === "ar" ? "السعر: من الأرخص" : "Price: Low to High",
-    price_desc:      lang === "ar" ? "السعر: من الأغلى" : "Price: High to Low",
-    highest_rated:   lang === "ar" ? "الأعلى تقييماً" : "Highest Rated",
-    rating:          lang === "ar" ? "الأعلى تقييماً" : "Top Rated",
+    relevance:       t("search.sort.relevance"),
+    newest:          t("search.sort.newest"),
+    price_asc:       t("search.sort.priceLow"),
+    price_desc:      t("search.sort.priceHigh"),
+    highest_rated:   t("search.sort.rating"),
+    rating:          t("search.sort.rating"),
     most_discounted: lang === "ar" ? "أكبر خصم" : "Most Discounted",
     best_selling:    lang === "ar" ? "الأكثر مبيعاً" : "Best Selling",
   };
@@ -395,7 +397,7 @@ export default function SearchPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background" dir={isRtl ? "rtl" : "ltr"}>
         {/* ── Search Header ─────────────────────────────────────── */}
         <div className="border-b border-border/60 bg-card/40 sticky top-[4rem] z-30">
           <div className="container py-3 px-4">
@@ -467,10 +469,10 @@ export default function SearchPage() {
               )}>
                 <div className="sticky top-[10rem] space-y-5">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-foreground">{lang === "ar" ? "الفلاتر" : "Filters"}</span>
+                    <span className="text-sm font-semibold text-foreground">{t("search.filters.title")}</span>
                     {activeFilterCount > 0 && (
                       <button onClick={clearFilters} className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline">
-                        {lang === "ar" ? "مسح الكل" : "Clear all"}
+                        {t("search.filters.clearAll")}
                       </button>
                     )}
                   </div>
@@ -478,7 +480,7 @@ export default function SearchPage() {
                   {/* Category */}
                   <div>
                     <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
-                      {lang === "ar" ? "الفئة" : "Category"}
+                      {t("search.filters.category")}
                     </Label>
                     <Select value={category ?? "all"} onValueChange={(v) => setCategory(v === "all" ? undefined : v)}>
                       <SelectTrigger className="h-9 text-sm">
@@ -515,22 +517,22 @@ export default function SearchPage() {
                   {/* Price */}
                   <div>
                     <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
-                      {lang === "ar" ? "نطاق السعر" : "Price Range"} ({symbol})
+                      {t("search.filters.price")} ({symbol})
                     </Label>
                     <div className="flex gap-2">
                       <Input type="number" min="0" value={minPriceInput}
                         onChange={(e) => setMinPriceInput(e.target.value)}
-                        placeholder={lang === "ar" ? "من" : "Min"} className="h-8 text-sm" />
+                        placeholder={t("search.filters.priceFrom")} className="h-8 text-sm" />
                       <Input type="number" min="0" value={maxPriceInput}
                         onChange={(e) => setMaxPriceInput(e.target.value)}
-                        placeholder={lang === "ar" ? "إلى" : "Max"} className="h-8 text-sm" />
+                        placeholder={t("search.filters.priceTo")} className="h-8 text-sm" />
                     </div>
                   </div>
 
                   {/* Rating */}
                   <div>
                     <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
-                      {lang === "ar" ? "الحد الأدنى للتقييم" : "Min Rating"}
+                      {t("search.filters.rating")}
                     </Label>
                     <div className="flex gap-1 flex-wrap">
                       {[1, 2, 3, 4, 5].map((star) => (
@@ -598,7 +600,7 @@ export default function SearchPage() {
                     <div className="flex items-center gap-2">
                       <Checkbox id="inStock" checked={inStock} onCheckedChange={(c) => setInStock(!!c)} />
                       <label htmlFor="inStock" className="text-sm cursor-pointer select-none">
-                        {lang === "ar" ? "متوفر في المخزون" : "In Stock Only"}
+                        {t("search.filters.inStock")}
                       </label>
                     </div>
                   </div>
@@ -636,7 +638,7 @@ export default function SearchPage() {
                   </Select>
                   {activeFilterCount > 0 && (
                     <button onClick={clearFilters} className="h-9 px-3 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors">
-                      {lang === "ar" ? "مسح" : "Clear"}
+                      {t("search.filters.clearAll")}
                     </button>
                   )}
                 </div>
@@ -682,7 +684,7 @@ export default function SearchPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Checkbox id="mInStock" checked={inStock} onCheckedChange={(c) => setInStock(!!c)} />
-                        <label htmlFor="mInStock" className="text-sm">{lang === "ar" ? "متوفر" : "In Stock"}</label>
+                        <label htmlFor="mInStock" className="text-sm">{t("search.filters.inStock")}</label>
                       </div>
                     </div>
                     <div className="flex gap-1 flex-wrap">
@@ -790,65 +792,63 @@ export default function SearchPage() {
                   <div className="flex flex-col items-center justify-center py-20 text-center">
                     <Package className="h-12 w-12 text-muted-foreground/40 mb-4" />
                     <p className="text-lg font-semibold text-foreground mb-1">
-                      {lang === "ar" ? "لا توجد منتجات" : "No products found"}
+                      {activeFilterCount > 0 ? t("search.results.noResultsWithFilters") : (lang === "ar" ? "لا توجد منتجات" : "No products found")}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {lang === "ar"
-                        ? "حاول تغيير كلمات البحث أو الفلاتر"
-                        : "Try different search terms or filters"}
+                      {t("search.results.tryReducingFilters")}
                     </p>
                     {activeFilterCount > 0 && (
                       <Button variant="outline" size="sm" onClick={clearFilters} className="mt-4">
-                        {lang === "ar" ? "مسح الفلاتر" : "Clear filters"}
+                        {t("search.filters.clearAll")}
                       </Button>
                     )}
                   </div>
                 ) : (
-                  <>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                      {products.map((p: any) => (
-                        <div key={p.id} onClick={() => { if (searchMode && searchLogId != null) recordSearchClick(searchLogId); }}>
-                          <ProductCard product={p} />
-                        </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {products.map((p: any) => (
+                      <div key={p.id} onClick={() => { if (searchMode && searchLogId != null) recordSearchClick(searchLogId); }}>
+                        <ProductCard product={p} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── Load more ─────────────────────────────────────── */}
+                {products.length > 0 && hasMoreProducts && (
+                  <div className="flex justify-center mt-8">
+                    <Button variant="outline" onClick={handleLoadMore}
+                      disabled={isFetchingProducts}
+                      className="min-w-[140px]">
+                      {isFetchingProducts
+                        ? (lang === "ar" ? "جاري التحميل..." : "Loading...")
+                        : (lang === "ar" ? "تحميل المزيد" : "Load more")}
+                    </Button>
+                  </div>
+                )}
+
+                {/* ── Related Searches — shown for any result count ── */}
+                {searchMode && relatedSearches.length > 0 && (
+                  <div className="mt-10 pt-6 border-t border-border/60" dir={isRtl ? "rtl" : "ltr"}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[11px]">
+                        {t("search.related.title")}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {relatedSearches.map((r) => (
+                        <button
+                          key={r.query}
+                          type="button"
+                          onClick={() => { setQuery(r.query); navigate(`/shop?q=${encodeURIComponent(r.query)}`); }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-border/70 text-foreground/75 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-500/5 transition-colors"
+                        >
+                          <Search className="h-3 w-3 shrink-0 opacity-60" />
+                          {r.query}
+                        </button>
                       ))}
                     </div>
-                    {hasMoreProducts && (
-                      <div className="flex justify-center mt-8">
-                        <Button variant="outline" onClick={handleLoadMore}
-                          disabled={isFetchingProducts}
-                          className="min-w-[140px]">
-                          {isFetchingProducts
-                            ? (lang === "ar" ? "جاري التحميل..." : "Loading...")
-                            : (lang === "ar" ? "تحميل المزيد" : "Load more")}
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* ── Related Searches ──────────────────────────── */}
-                    {searchMode && relatedSearches.length > 0 && (
-                      <div className="mt-10 pt-6 border-t border-border/60" dir={isRtl ? "rtl" : "ltr"}>
-                        <div className="flex items-center gap-2 mb-3">
-                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[11px]">
-                            {t("search.related.title")}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {relatedSearches.map((r) => (
-                            <button
-                              key={r.query}
-                              type="button"
-                              onClick={() => { setQuery(r.query); navigate(`/shop?q=${encodeURIComponent(r.query)}`); }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-border/70 text-foreground/75 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-500/5 transition-colors"
-                            >
-                              <Search className="h-3 w-3 shrink-0 opacity-60" />
-                              {r.query}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
+                  </div>
                 )}
               </div>
             </div>
