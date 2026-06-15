@@ -36,6 +36,24 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   }
 }
 
+/**
+ * Optional JWT authentication — populates req.user if a valid Bearer token is present.
+ * Never returns 401 — silently skips if no/invalid token. Use for routes that are
+ * public but expose extra features to authenticated users (e.g., debug ranking).
+ */
+export function optionalAuth(req: Request, _res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const payload = jwt.verify(authHeader.slice(7), JWT_SECRET) as JwtPayload;
+      req.user = payload;
+    } catch {
+      /* ignore invalid tokens — user stays unauthenticated */
+    }
+  }
+  next();
+}
+
 export function requireRole(role: "customer" | "seller" | "admin" | "courier") {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {

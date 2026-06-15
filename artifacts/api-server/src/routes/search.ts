@@ -3,6 +3,7 @@ import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
 import { MAIN_CATEGORY_SLUGS } from "../categories";
 import { processSearchQuery } from "../utils/searchProcessor";
+import { optionalAuth, requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -672,7 +673,7 @@ router.get("/search/suggestions", async (req, res): Promise<void> => {
      priceMax   Maximum price (SYP)
      sortBy     relevance | price_asc | price_desc | newest | rating
    ─────────────────────────────────────────────────────────────────────── */
-router.get("/search/results", async (req, res): Promise<void> => {
+router.get("/search/results", optionalAuth, async (req, res): Promise<void> => {
   /* ── 1. Early-exit guard ───────────────────────────────────────────── */
   const raw = String(req.query.q ?? "").trim();
   if (raw.length < 2) {
@@ -1618,7 +1619,7 @@ router.get("/search/suggestions/popular", async (req, res): Promise<void> => {
    ROUTE 10 — POST /api/admin/search/reindex
    Admin: triggers full fts_vector backfill for all products.
    ═══════════════════════════════════════════════════════════════════════════ */
-router.post("/admin/search/reindex", async (req, res): Promise<void> => {
+router.post("/admin/search/reindex", requireAuth, async (req, res): Promise<void> => {
   if ((req as any).user?.role !== "admin") {
     res.status(403).json({ error: "Admin only" });
     return;
@@ -1644,7 +1645,7 @@ router.post("/admin/search/reindex", async (req, res): Promise<void> => {
    ROUTE 11 — GET /api/admin/search/health
    Admin: returns search index health stats.
    ═══════════════════════════════════════════════════════════════════════════ */
-router.get("/admin/search/health", async (req, res): Promise<void> => {
+router.get("/admin/search/health", requireAuth, async (req, res): Promise<void> => {
   if ((req as any).user?.role !== "admin") {
     res.status(403).json({ error: "Admin only" });
     return;
