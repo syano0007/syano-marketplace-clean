@@ -627,6 +627,9 @@ router.get("/search/results", async (req, res): Promise<void> => {
   const filterStoreId   = _rawStoreId !== null && !isNaN(_rawStoreId) && _rawStoreId > 0 ? _rawStoreId : null;
   // filterInStock: p.stock > 0 is always applied, but accept param for API completeness
 
+  /* Debug ranking breakdown — admin-only when ?debug=ranking is present */
+  const debugRanking = req.query.debug === "ranking" && (req as any).user?.role === "admin";
+
   /* ── 3. Dual NLP pipeline ───────────────────────────────────────────── */
 
   // 3a. Dialect dictionary — intent modifiers + dialect category + expanded keywords
@@ -739,7 +742,37 @@ router.get("/search/results", async (req, res): Promise<void> => {
     metaPb.values,
   );
 
-  /* ORDER BY — final_price alias computed in scored CTE */
+  /* ── "Did you mean?" — cheap trigram query runs in parallel ──────────── */
+  const dymPb = makeParamBuilder();
+  const pDymTerm = dymPb.add(term);
+  const pDymRaw  = dymPb.add(raw.toLowerCase());
+  const didYouMeanPromise = pool.query<{ suggestion: string; sim: number }>(
+    `SELECT suggestion, sim FROM (
+       (SELECT query AS suggestion,
+               word_similarity(${pDymTerm}, lower(query)) AS sim
+        FROM search_queries
+        WHERE word_similarity(${pDymTerm}, lower(query)) > 0.28
+          AND lower(query) != ${pDymRaw}
+        ORDER BY sim DESC LIMIT 1)
+       UNION ALL
+       (SELECT name AS suggestion,
+               GREATEST(
+                 word_similarity(${pDymTerm}, lower(name)),
+                 word_similarity(${pDymTerm}, lower(COALESCE(name_ar, '')))
+               ) AS sim
+        FROM products
+        WHERE GREATEST(
+                word_similarity(${pDymTerm}, lower(name)),
+                word_similarity(${pDymTerm}, lower(COALESCE(name_ar, '')))
+              ) > 0.28
+          AND lower(name) != ${pDymRaw}
+        ORDER BY 2 DESC LIMIT 1)
+     ) dym
+     ORDER BY sim DESC LIMIT 1`,
+    dymPb.values,
+  );
+
+  /* ORDER BY — aliases resolved through the CTE chain */
   const orderBySQL =
     effectiveSort === "price_asc"  ? "final_price ASC,  final_score DESC" :
     effectiveSort === "price_desc" ? "final_price DESC, final_score DESC" :
@@ -750,10 +783,34 @@ router.get("/search/results", async (req, res): Promise<void> => {
   const pLimit  = pb.add(limit);
   const pOffset = pb.add(offset);
 
-  /* ── 7. Core SQL — NLP + FTS + trigram hybrid (parallel with filterMeta) */
-  const [{ rows }, metaResult] = await Promise.all([pool.query(
+  /* ── 7. Core SQL — multi-signal ranking (parallel with filterMeta + DYM)
+   *
+   * ════════════════════════════════════════════════════════════════════════
+   * RANKING FORMULA — weighted multi-signal score
+   * ────────────────────────────────────────────────────────────────────────
+   * Signal          Weight  DB columns
+   * ─────────────── ──────  ──────────────────────────────────────────────
+   * Text Relevance    40%   fts_vector, name, name_ar (FTS+trigram)
+   * Quality           25%   reviews.avg_rating, reviews.count
+   * Popularity        20%   products.sales_count, products.view_count
+   * Freshness         10%   products.created_at
+   * Availability       5%   products.stock  (as multiplier, not additive)
+   * ─────────────── ──────
+   * Featured Boost  +0.15  products.featured  (additive, capped at 1.0)
+   * New Arrival     +0.10  created_at ≤7 days + 0 sales + 0 reviews (add.)
+   *
+   * base_score = 0.40·text + 0.25·quality + 0.20·popularity + 0.10·freshness
+   * final_score = LEAST(1.0, base_score × availability_mult
+   *                          + featured_boost + new_arrival_boost)
+   *
+   * All signals normalized to [0,1]. Log-normalization prevents one product
+   * with huge sales/reviews from dominating. Global max values computed once
+   * in global_stats CTE — no N+1 queries.
+   * Seller trust boost skipped: verification column absent from schema.
+   * ════════════════════════════════════════════════════════════════════════ */
+  const [{ rows }, metaResult, dymResult] = await Promise.all([pool.query(
     `
-    /* ── Pre-compute tsquery objects exactly once ───────────────────────── */
+    /* ── Pre-compute tsquery objects exactly once ─────────────────────────── */
     WITH ts_params AS (
       SELECT
         CASE WHEN ${pTsqExpanded}::text IS NOT NULL
@@ -766,7 +823,33 @@ router.get("/search/results", async (req, res): Promise<void> => {
         END AS base_q
     ),
 
-    /* ── Candidate scan + three-layer scoring ───────────────────────────── */
+    /* ── Aggregate reviews once — single pass, no per-row subquery ────────── */
+    rev_agg AS (
+      SELECT
+        product_id,
+        AVG(rating)::float   AS avg_rating,
+        COUNT(*)::integer     AS review_count
+      FROM reviews
+      GROUP BY product_id
+    ),
+
+    /* ── Global normalization stats — 1 row, CROSS JOINed into candidate ──── */
+    global_stats AS (
+      SELECT
+        GREATEST(MAX(p.sales_count), 1)::float AS max_sales,
+        GREATEST(MAX(p.view_count),  1)::float AS max_views,
+        GREATEST(
+          COALESCE(
+            (SELECT MAX(rc.cnt)::float
+               FROM (SELECT COUNT(*) AS cnt FROM reviews GROUP BY product_id) rc),
+            1.0
+          ),
+          1.0
+        ) AS max_reviews
+      FROM products p
+    ),
+
+    /* ── Candidate scan + text scoring ────────────────────────────────────── */
     candidate AS (
       SELECT
         p.id,
@@ -774,162 +857,273 @@ router.get("/search/results", async (req, res): Promise<void> => {
         p.name,
         p.name_ar,
         p.description,
-        p.price::numeric                                                         AS raw_price,
-        p.discount_percent::numeric                                              AS raw_discount,
+        p.price::numeric                                                   AS raw_price,
+        p.discount_percent::numeric                                        AS raw_discount,
         p.price::numeric * (1.0 - COALESCE(p.discount_percent::numeric, 0) / 100.0)
-                                                                                 AS final_price,
+                                                                           AS final_price,
         p.category,
         p.subcategory,
         p.stock,
         p.image_url,
         p.image_urls,
-        p.featured                                                               AS p_featured,
-        p.created_at                                                             AS p_created_at,
+        p.featured                                                         AS p_featured,
+        p.created_at                                                       AS p_created_at,
+        p.sales_count::float                                               AS p_sales_count,
+        p.view_count::float                                                AS p_view_count,
         sa.store_name,
         sa.store_slug,
         sa.store_logo,
-        u.name                                                                   AS seller_name,
+        u.name                                                             AS seller_name,
+        /* Review signals — pre-aggregated, no N+1 */
+        COALESCE(ra.avg_rating,   0.0)::float AS avg_rating,
+        COALESCE(ra.review_count, 0)::integer  AS review_count,
+        /* Global normalization denominators */
+        gs.max_sales,
+        gs.max_views,
+        gs.max_reviews,
 
-        /* Layer 1 — Full-text search (weighted A/B/C/D tsvector, GIN-indexed)  */
+        /* ── Layer 1: Full-text search ──────────────────────────────────── */
         CASE
           WHEN tsp.expanded_q IS NOT NULL
             AND p.fts_vector IS NOT NULL
             AND p.fts_vector @@ tsp.expanded_q
           THEN ts_rank_cd(p.fts_vector, tsp.expanded_q, 32)
           ELSE 0.0
-        END                                                                      AS fts_score,
+        END                                                                AS fts_score,
 
-        /* Layer 2 — AND precision boost: all base tokens present              */
+        /* ── Layer 2: AND precision boost ───────────────────────────────── */
         CASE
           WHEN tsp.base_q IS NOT NULL
             AND p.fts_vector IS NOT NULL
             AND p.fts_vector @@ tsp.base_q
           THEN 0.20
           ELSE 0.0
-        END                                                                      AS and_boost,
+        END                                                                AS and_boost,
 
-        /* Layer 3 — Trigram similarity: typo-tolerant, covers novel terms      */
+        /* ── Layer 3: Trigram similarity ────────────────────────────────── */
         GREATEST(
           word_similarity(${pTerm}, lower(p.name)),
           word_similarity(${pTerm}, lower(COALESCE(p.name_ar, ''))),
           similarity(${pTerm},      lower(p.name))               * 0.85,
           similarity(${pTerm},      lower(COALESCE(p.name_ar,''))) * 0.85
-        )                                                                        AS trgm_score,
+        )                                                                  AS trgm_score,
 
-        /* Category intent: dialect dictionary maps query → DB category          */
+        /* ── Category intent ────────────────────────────────────────────── */
         CASE
           WHEN ${pMappedCat}::text IS NOT NULL
             AND lower(p.category) = ${pMappedCat}::text
           THEN 0.80
           ELSE 0.0
-        END                                                                      AS cat_score
+        END                                                                AS cat_score
 
       FROM products p
       CROSS JOIN ts_params tsp
-      /* ── Strict seller gate ────────────────────────────────────────────── */
+      CROSS JOIN global_stats gs
       INNER JOIN users u
         ON  u.id = p.seller_id
         AND u.account_status = 'active'
       INNER JOIN seller_applications sa
         ON  sa.user_id = p.seller_id
         AND sa.status  = 'approved'
+      LEFT JOIN rev_agg ra ON ra.product_id = p.id
       WHERE
         p.stock > 0
-        /* Candidate filter: at least one scoring layer must fire           */
         AND (
-          /* FTS hit via GIN index — fast, bilingual, NLP-expanded           */
           (tsp.expanded_q IS NOT NULL AND p.fts_vector IS NOT NULL
             AND p.fts_vector @@ tsp.expanded_q)
-          /* Trigram fallback — catches typos and terms not in the FTS dict   */
           OR word_similarity(${pTerm}, lower(p.name))                  > 0.14
           OR word_similarity(${pTerm}, lower(COALESCE(p.name_ar, ''))) > 0.14
-          /* LIKE fallback — guarantees exact partial matches always appear   */
           OR lower(p.name)                     LIKE ${pLike}
           OR lower(COALESCE(p.name_ar, ''))    LIKE ${pLike}
-          /* Dialect category gate — broad match for colloquial category terms */
           OR (${pMappedCat}::text IS NOT NULL
               AND lower(p.category) = ${pMappedCat}::text)
         )
         ${extraWhereSQL}
     ),
 
-    /* ── Combine three layers into a single composite score ─────────────── */
+    /* ── Per-signal score computation ────────────────────────────────────── */
     scored AS (
       SELECT *,
+
+        /* Text relevance (40%) — existing three-layer formula */
         GREATEST(
-          /* Primary path: FTS-led with trigram supplement                   */
           fts_score * 0.65 + and_boost + trgm_score * 0.25 + cat_score * 0.10,
-          /* Trigram-only floor: activates when FTS has no hit (novel terms)  */
           trgm_score * 0.45,
-          /* Category-intent floor: dialect queries always show category hits */
           cat_score
-        ) AS final_score
+        ) AS text_score,
+
+        /* Quality (25%) — log-normalised review count prevents 1×5★ beating
+           500×4.8★; rating component (0.6) + review volume component (0.4) */
+        LEAST(1.0,
+          0.6 * (avg_rating / 5.0)
+          + 0.4 * (LN(1.0 + review_count::float)
+                   / NULLIF(LN(1.0 + max_reviews), 0.0))
+        ) AS quality_score,
+
+        /* Popularity (20%) — log-normalised so 10k views ≠ 10× better than 1k */
+        LEAST(1.0,
+          0.6 * (LN(1.0 + p_sales_count) / NULLIF(LN(1.0 + max_sales), 0.0))
+          + 0.4 * (LN(1.0 + p_view_count)  / NULLIF(LN(1.0 + max_views),  0.0))
+        ) AS popularity_score,
+
+        /* Freshness (10%) — full score ≤30 days, linear decay to 0 at ≥180 days */
+        GREATEST(0.0, 1.0 - GREATEST(
+          0.0,
+          EXTRACT(EPOCH FROM (NOW() - p_created_at)) / 86400.0 - 30.0
+        ) / 150.0) AS freshness_score,
+
+        /* Availability multiplier (5%) — soft penalty for low-stock items
+           (stock=0 already excluded by WHERE p.stock > 0) */
+        CASE WHEN stock <= 5 THEN 0.8 ELSE 1.0 END AS availability_mult,
+
+        /* Featured boost — additive +0.15 */
+        CASE WHEN p_featured THEN 0.15 ELSE 0.0 END AS featured_boost,
+
+        /* New arrival boost — additive +0.10 for brand-new unsold listings
+           (separate from Freshness — boosts initial discoverability only) */
+        CASE
+          WHEN EXTRACT(EPOCH FROM (NOW() - p_created_at)) / 86400.0 <= 7
+           AND p_sales_count = 0
+           AND review_count  = 0
+          THEN 0.10
+          ELSE 0.0
+        END AS new_arrival_boost
+
       FROM candidate
     ),
 
-    /* ── Score gate + window-count for pagination metadata ──────────────── */
+    /* ── Combine all signals into final_score ────────────────────────────── */
+    scored_final AS (
+      SELECT *,
+        LEAST(1.0,
+          (
+            text_score         * 0.40
+            + quality_score    * 0.25
+            + popularity_score * 0.20
+            + freshness_score  * 0.10
+          ) * availability_mult
+          + featured_boost
+          + new_arrival_boost
+        ) AS final_score
+      FROM scored
+    ),
+
+    /* ── Score gate + window-count for pagination ────────────────────────── */
     paged AS (
       SELECT *, COUNT(*) OVER() AS total_count
-      FROM scored
+      FROM scored_final
       WHERE final_score > 0.02
     )
 
-    /* ── Enrich with ratings + variant flag ─────────────────────────────── */
     SELECT
       pg.*,
-      COALESCE(r.avg_rating,   0)::numeric(3,1) AS avg_rating,
-      COALESCE(r.review_count, 0)               AS review_count,
       EXISTS(
         SELECT 1 FROM product_variants pv WHERE pv.product_id = pg.id LIMIT 1
-      )                                         AS has_variants
+      ) AS has_variants
     FROM paged pg
-    LEFT JOIN (
-      SELECT
-        product_id,
-        AVG(rating)::numeric(3,1) AS avg_rating,
-        COUNT(*)                  AS review_count
-      FROM reviews
-      GROUP BY product_id
-    ) r ON r.product_id = pg.id
     ORDER BY ${orderBySQL}
     LIMIT ${pLimit} OFFSET ${pOffset}
     `,
     pb.values,
-  ), filterMetaPromise]);
+  ), filterMetaPromise, didYouMeanPromise]);
 
   /* ── 8. Pagination metadata ─────────────────────────────────────────── */
   const total = rows.length > 0 ? parseInt(String(rows[0].total_count), 10) : 0;
 
   /* ── 9. Response mapper ─────────────────────────────────────────────── */
-  const results = rows.map((r: any) => ({
-    id:              r.id,
-    name:            r.name,
-    nameAr:          r.name_ar      ?? null,
-    price:           parseFloat(r.raw_price),
-    discountPercent: r.raw_discount  ? parseFloat(r.raw_discount) : null,
-    finalPrice:      parseFloat(r.final_price),
-    category:        r.category,
-    subcategory:     r.subcategory  ?? null,
-    stock:           r.stock,
-    imageUrl:        r.image_url    ?? null,
-    imageUrls:       (r.image_urls  ?? []) as string[],
-    featured:        r.p_featured,
-    isBestDeal:      r.raw_discount ? parseFloat(r.raw_discount) >= 20 : false,
-    hasVariants:     !!r.has_variants,
-    averageRating:   parseFloat(r.avg_rating),
-    reviewCount:     parseInt(String(r.review_count), 10),
-    seller: {
-      id:        r.seller_id,
-      name:      r.seller_name  ?? "Unknown",
-      storeName: r.store_name   ?? null,
-      storeSlug: r.store_slug   ?? null,
-      storeLogo: r.store_logo   ?? null,
-    },
-    createdAt: r.p_created_at instanceof Date
-      ? r.p_created_at.toISOString()
-      : String(r.p_created_at),
-    score: Math.round(parseFloat(r.final_score) * 1000) / 1000,
-  }));
+  interface MappedProduct {
+    id: number; name: string; nameAr: string | null;
+    price: number; discountPercent: number | null; finalPrice: number;
+    category: string; subcategory: string | null;
+    stock: number; imageUrl: string | null; imageUrls: string[];
+    featured: boolean; isBestDeal: boolean; hasVariants: boolean;
+    averageRating: number; reviewCount: number;
+    seller: { id: number; name: string; storeName: string | null; storeSlug: string | null; storeLogo: string | null };
+    createdAt: string; score: number;
+    rankingBreakdown?: {
+      textScore: number; qualityScore: number; popularityScore: number;
+      freshnessScore: number; availabilityMultiplier: number;
+      featuredBoost: number; newArrivalBoost: number; finalScore: number;
+    };
+  }
+
+  const mapped: MappedProduct[] = rows.map((r: any) => {
+    const base: MappedProduct = {
+      id:              r.id,
+      name:            r.name,
+      nameAr:          r.name_ar      ?? null,
+      price:           parseFloat(r.raw_price),
+      discountPercent: r.raw_discount  ? parseFloat(r.raw_discount) : null,
+      finalPrice:      parseFloat(r.final_price),
+      category:        r.category,
+      subcategory:     r.subcategory  ?? null,
+      stock:           r.stock,
+      imageUrl:        r.image_url    ?? null,
+      imageUrls:       (r.image_urls  ?? []) as string[],
+      featured:        r.p_featured,
+      isBestDeal:      r.raw_discount ? parseFloat(r.raw_discount) >= 20 : false,
+      hasVariants:     !!r.has_variants,
+      averageRating:   parseFloat(r.avg_rating),
+      reviewCount:     parseInt(String(r.review_count), 10),
+      seller: {
+        id:        r.seller_id,
+        name:      r.seller_name  ?? "Unknown",
+        storeName: r.store_name   ?? null,
+        storeSlug: r.store_slug   ?? null,
+        storeLogo: r.store_logo   ?? null,
+      },
+      createdAt: r.p_created_at instanceof Date
+        ? r.p_created_at.toISOString()
+        : String(r.p_created_at),
+      score: Math.round(parseFloat(r.final_score) * 1000) / 1000,
+    };
+    /* Debug breakdown — only exposed to admins via ?debug=ranking */
+    if (debugRanking) {
+      base.rankingBreakdown = {
+        textScore:              Math.round(parseFloat(r.text_score)        * 1000) / 1000,
+        qualityScore:           Math.round(parseFloat(r.quality_score)     * 1000) / 1000,
+        popularityScore:        Math.round(parseFloat(r.popularity_score)  * 1000) / 1000,
+        freshnessScore:         Math.round(parseFloat(r.freshness_score)   * 1000) / 1000,
+        availabilityMultiplier: parseFloat(r.availability_mult),
+        featuredBoost:          parseFloat(r.featured_boost),
+        newArrivalBoost:        parseFloat(r.new_arrival_boost),
+        finalScore:             Math.round(parseFloat(r.final_score)       * 1000) / 1000,
+      };
+    }
+    return base;
+  });
+
+  /* ── 10. Seller diversity — max 3 results per seller in first 20 ─────── */
+  function applySellerDiversity(list: MappedProduct[]): MappedProduct[] {
+    const counts = new Map<number, number>();
+    const top: MappedProduct[]      = [];
+    const overflow: MappedProduct[] = [];
+    for (const p of list.slice(0, 20)) {
+      const c = counts.get(p.seller.id) ?? 0;
+      if (c < 3) { top.push(p); counts.set(p.seller.id, c + 1); }
+      else overflow.push(p);
+    }
+    /* Fill empty top-20 slots with the next best products from other sellers */
+    const topIds = new Set(top.map(p => p.id));
+    for (const p of list.slice(20)) {
+      if (top.length >= 20) break;
+      const c = counts.get(p.seller.id) ?? 0;
+      if (c < 3 && !topIds.has(p.id)) {
+        top.push(p); counts.set(p.seller.id, c + 1); topIds.add(p.id);
+      }
+    }
+    const usedIds = new Set(top.map(p => p.id));
+    const tail = [...overflow, ...list.slice(20)].filter(p => !usedIds.has(p.id));
+    return [...top, ...tail];
+  }
+
+  const results = total > 20 ? applySellerDiversity(mapped) : mapped;
+
+  /* ── 11. "Did you mean?" — surface only when 0 results ──────────────── */
+  const didYouMean: string | null =
+    total === 0 && dymResult.rows.length > 0
+      ? dymResult.rows[0].suggestion
+      : null;
 
   /* Capture the query_logs id if insert finished within the 50 ms window */
   const searchLogId: number | null = await Promise.race([logInsertPromise, logTimeoutPromise]);
@@ -944,6 +1138,7 @@ router.get("/search/results", async (req, res): Promise<void> => {
     limit,
     totalPages: Math.ceil(total / limit),
     searchLogId: searchLogId ?? null,
+    didYouMean,
     filterMeta: {
       priceRange: {
         min: parseFloat(metaRow?.price_min ?? "0"),

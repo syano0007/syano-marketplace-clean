@@ -2960,7 +2960,8 @@
       "subtitle": "Try a different word or browse categories",
       "clearButton": "Clear Search",
       "trending": "Trending Searches",
-      "browseCategories": "Browse All Categories"
+      "browseCategories": "Browse All Categories",
+      "didYouMean": "Did you mean: {{suggestion}}?"
     }
   },
   "categories": {

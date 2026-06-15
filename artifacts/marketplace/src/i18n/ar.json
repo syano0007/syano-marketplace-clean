@@ -2960,7 +2960,8 @@
       "subtitle": "جرّب كلمة مختلفة أو تصفّح الفئات",
       "clearButton": "مسح البحث",
       "trending": "الأكثر بحثاً",
-      "browseCategories": "تصفّح جميع الفئات"
+      "browseCategories": "تصفّح جميع الفئات",
+      "didYouMean": "هل تقصد: {{suggestion}}؟"
     }
   },
   "categories": {

@@ -89,6 +89,7 @@ interface SearchApiResponse {
   searchLogId?: number | null;
   filterMeta?: FilterMeta;
   intent: SearchIntent;
+  didYouMean?: string | null;
 }
 
 interface FilterOption { slug: string; nameEn: string; nameAr: string; productCount: number; }
@@ -831,6 +832,15 @@ export default function SearchPage() {
                         <p className="text-sm text-muted-foreground mb-5">
                           {t("search.empty.subtitle")}
                         </p>
+                        {searchData?.didYouMean && (
+                          <button
+                            type="button"
+                            onClick={() => { setQuery(searchData.didYouMean!); navigate(`/shop?q=${encodeURIComponent(searchData.didYouMean!)}`); }}
+                            className="mb-4 px-4 py-2 rounded-xl text-sm bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                          >
+                            {t("search.empty.didYouMean", { suggestion: searchData.didYouMean })}
+                          </button>
+                        )}
                         <Button variant="outline" size="sm" onClick={() => { setQuery(""); navigate("/shop"); }}>
                           {t("search.empty.clearButton")}
                         </Button>
