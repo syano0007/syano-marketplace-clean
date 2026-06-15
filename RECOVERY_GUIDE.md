@@ -1,6 +1,66 @@
 # SYANO — Recovery Guide
 **Last Updated:** June 15, 2026 (Replit Migration — verified full restore in Replit environment)
 
+---
+
+## ⚡ FOR ANY NEW AGENT — START HERE
+
+**Before doing ANYTHING, run this single check:**
+```bash
+curl -s http://localhost:8080/api/healthz
+```
+
+| Result | Action |
+|---|---|
+| `{"status":"ok"}` | ✅ Everything is running. Read the task at hand and start working. Do NOT touch workflows or run setup commands. |
+| Connection refused / error | ❌ Environment is fresh or broken. Follow the steps below IN ORDER. |
+
+### If the environment needs recovery — exact commands in exact order:
+
+```bash
+# 1. Install Node packages
+pnpm install --frozen-lockfile
+
+# 2. Push DB schema (creates all 33 tables)
+pnpm --filter @workspace/db run push
+
+# 3. Build shared TypeScript libs (MUST be done before any tsc check)
+npx tsc --build lib/db lib/api-zod lib/api-client-react
+```
+
+Then start these workflows via the Replit workflow panel (restart_workflow tool or UI):
+1. `artifacts/api-server: API Server` ← starts on port 8080; auto-runs migrations + seeds 42 products
+2. `Embedding Service` ← starts on port 8001 (Python TF-IDF/LSA)
+3. `Start application` ← starts on port 5000 (marketplace webview)
+
+Python packages (if Embedding Service fails to start):
+```bash
+# Install via Replit code_execution tool:
+await installLanguagePackages({ language: "python", packages: ["numpy", "scikit-learn", "fastapi", "uvicorn"] })
+```
+
+**DO NOT install `sentence-transformers` or `torch` — they are blocked by Replit firewall.**
+
+### Expected state after recovery:
+- `curl http://localhost:8080/api/healthz` → `{"status":"ok"}`
+- `psql $DATABASE_URL -c "SELECT COUNT(*) FROM products;"` → `42`
+- `psql $DATABASE_URL -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';"` → `33`
+- `curl http://localhost:8001/health` → `{"backend":"tfidf-lsa","vector_dimensions":384}`
+- TypeScript: 0 errors across all packages
+- Recovery check: 95/100 (heroBannerSystem false negative is expected — not a bug)
+
+### 6 workflows that MUST exist — do NOT create duplicates:
+| Workflow Name | Port |
+|---|---|
+| `artifacts/api-server: API Server` | 8080 |
+| `Start application` | 5000 |
+| `Embedding Service` | 8001 |
+| `artifacts/marketplace: web` | 20787 |
+| `artifacts/mobile: expo` | 18115 |
+| `artifacts/mockup-sandbox: Component Preview Server` | 8081 |
+
+---
+
 This guide restores the project to a fully working state from scratch in the Replit environment.
 
 ---

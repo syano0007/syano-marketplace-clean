@@ -1,72 +1,199 @@
-# Marketplace
+# SYANO — Syrian Digital Marketplace
 
-A full-stack marketplace/ecommerce app with role-based auth (Seller/Customer), cart/order/inventory/discount system, and a premium emerald green design with AMOLED dark mode.
+---
+
+## ⚠️ FOR ANY NEW AGENT — READ THIS BEFORE DOING ANYTHING
+
+**This project has been fully set up and verified. DO NOT recreate workflows, reinstall packages, or run schema commands unless you have confirmed the environment is broken.**
+
+### Before touching anything, run this check:
+```bash
+curl -s http://localhost:8080/api/healthz && echo "API OK"
+```
+
+- If you get `{"status":"ok"}` → **everything is running, do not touch anything**
+- If the API is down → follow `RECOVERY_GUIDE.md` step by step
+
+### The 6 workflows that MUST exist (do not create new ones, do not rename):
+| Workflow Name | Port | Purpose |
+|---|---|---|
+| `artifacts/api-server: API Server` | 8080 | Express API + auto-migrations + demo data |
+| `Start application` | 5000 | Marketplace web preview (webview) |
+| `Embedding Service` | 8001 | Python TF-IDF/LSA embedding microservice |
+| `artifacts/marketplace: web` | 20787 | Marketplace artifact view |
+| `artifacts/mobile: expo` | 18115 | Expo mobile dev server |
+| `artifacts/mockup-sandbox: Component Preview Server` | 8081 | UI component sandbox |
+
+### Things that will BREAK the project if you do them:
+- ❌ Creating a new "API Server" workflow → port 8080 conflict, both die
+- ❌ Creating a new "Start application" on port 5000 → duplicate conflict
+- ❌ Running `pnpm dev` at workspace root → wrong, use workflow restart
+- ❌ Running `psql -f schema.sql` if DB already has 33 tables → will fail/corrupt
+- ❌ Installing `sentence-transformers` or `torch` → blocked by Replit firewall (disk quota)
+- ❌ Running `tsc --noEmit` on marketplace/api-server without building libs first → spurious TS6305 errors
+
+### If the environment is fresh (empty DB / packages missing):
+Read `RECOVERY_GUIDE.md` — it has the exact commands in the exact order.
+**Expected final state:** 33 tables, 42 products, 42/42 embeddings, `GET /api/healthz → {"status":"ok"}`, recovery check 95/100.
+
+---
+
+## Project: SYANO
+
+Full-stack Syrian marketplace platform with role-based auth (Seller / Customer / Courier / Admin), cart/order/inventory/discount system, hybrid NLP Arabic/English search, semantic embeddings, real-time messaging, courier delivery system, and a premium emerald green AMOLED dark design.
+
+**Recovery-Verified:** June 15, 2026 — full restore in Replit environment, 0 TypeScript errors, all services running.
+
+---
+
+## Key Files (Read These First When Debugging)
+
+| File | Purpose |
+|---|---|
+| `RECOVERY_GUIDE.md` | Step-by-step recovery for any new agent or fresh environment |
+| `CURRENT_STATE.md` | Full state of all features, endpoints, pages, DB tables |
+| `PROJECT_STATUS.md` | Feature completion matrix and architecture summary |
+
+---
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/scripts run seed:admin` — seed admin demo account (idempotent)
-- Required env: `DATABASE_URL` — Postgres connection string, `SESSION_SECRET` — JWT signing secret
+> **Always use workflow restart, not shell commands, to start services.**
+
+```bash
+# TypeScript check (build libs first!)
+npx tsc --build lib/db lib/api-zod lib/api-client-react
+npx tsc --noEmit -p artifacts/marketplace/tsconfig.json
+npx tsc --noEmit -p artifacts/api-server/tsconfig.json
+
+# Push DB schema changes (dev only — Drizzle push, not psql)
+pnpm --filter @workspace/db run push
+
+# Regenerate API hooks and Zod schemas (after OpenAPI spec changes)
+pnpm --filter @workspace/api-spec run codegen
+
+# Run embedding backfill manually (if products are missing embeddings)
+pnpm --filter @workspace/api-server embed:generate
+```
+
+---
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- Frontend: React + Vite + Tailwind CSS + shadcn/ui, TanStack Query, wouter
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- Auth: JWT (jsonwebtoken + bcryptjs), stored in localStorage
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- **Monorepo:** pnpm workspaces, Node.js 24, TypeScript 5.9
+- **Frontend:** React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui + TanStack Query + Wouter
+- **API:** Express 5, Drizzle ORM, PostgreSQL
+- **Mobile:** Expo (React Native) + expo-router
+- **Validation:** Zod (v4), drizzle-zod
+- **Auth:** JWT (HS256) in localStorage, SESSION_SECRET env var
+- **Search:** 13-step NLP pipeline (Arabic + English), LRU cache, GIN FTS index, pgvector semantic (TF-IDF/LSA)
+- **Real-time:** SSE for notifications + new_message; polling fallback
+- **Embeddings:** TF-IDF/LSA service (port 8001) — NOT sentence-transformers (Replit firewall blocks it)
 
-## Where things live
+---
 
-- `lib/api-spec/openapi.yaml` — source-of-truth OpenAPI contract
-- `lib/api-zod/src/index.ts` — generated Zod schemas (do not edit manually)
-- `lib/api-client-react/src/` — generated React Query hooks (do not edit manually)
-- `lib/db/src/schema/` — Drizzle ORM schema (users, products, cart_items, orders, order_items)
-- `artifacts/api-server/src/routes/` — Express route handlers
-- `artifacts/api-server/src/middlewares/auth.ts` — JWT sign/verify/requireAuth/requireRole
-- `artifacts/marketplace/src/` — React frontend
-- `artifacts/marketplace/src/contexts/AuthContext.tsx` — auth state management
-- `artifacts/marketplace/src/lib/api-setup.ts` — API token injection
+## Where Things Live
 
-## Architecture decisions
+```
+lib/
+  db/src/schema/          → Drizzle ORM schema (33 tables)
+  api-spec/openapi.yaml   → Source-of-truth OpenAPI contract
+  api-zod/src/index.ts    → Generated Zod schemas (DO NOT EDIT)
+  api-client-react/src/   → Generated React Query hooks (DO NOT EDIT)
 
-- **Contract-first API**: OpenAPI spec drives Zod validation schemas AND React Query hooks via Orval codegen. Never hand-write API call code.
-- **JWT in localStorage**: Token stored under `localStorage.token`, user under `localStorage.user`. `setAuthTokenGetter` injects it into all generated hooks.
-- **Stock-on-delivery**: Inventory only decreases when a seller marks an order as "delivered" — not at checkout. Implemented in `orders.ts` status-update handler.
-- **Role selector on login**: Login form shows Customer and Seller only. Admin accounts bypass role-mismatch validation server-side — entering admin credentials while "Customer" is selected grants admin access and redirects to /admin.
-- **Numeric prices**: DB stores prices as `numeric`/`decimal`; route handlers use `parseFloat()` for JSON serialization. `finalPrice` is computed server-side.
+artifacts/
+  api-server/src/
+    index.ts              → App bootstrap (migrations + seeding + startup)
+    routes/               → All 25+ Express route files
+    utils/searchProcessor.ts → 13-step NLP search pipeline (860 lines)
+    services/searchCache.ts  → LRU 500-entry search cache (205 lines)
+    routes/search.ts      → FTS + semantic search routes (1,910 lines)
+    scripts/generateEmbeddings.ts → Embedding backfill script
 
-## Product
+  marketplace/src/
+    App.tsx               → React router + all lazy pages
+    pages/search/index.tsx → Shop/search page (1,229 lines)
+    pages/home.tsx        → Homepage V7 (renders Navbar directly, NO Layout)
+    i18n/en.json          → English translations (2,832 keys)
+    i18n/ar.json          → Arabic translations (2,832 keys)
+    vite.config.ts        → Vite config — has /api proxy to port 8080 (CRITICAL)
 
-- **Customers**: Browse/search/filter products by category, add to cart, checkout, view order history, track order status.
-- **Sellers**: Manage product inventory (add/edit/delete/discount), view orders, update order statuses (pending → processing → shipped → delivered), view dashboard stats.
-- **Auth**: Role-based registration and login (Customer / Seller). JWT-secured API with per-route role guards.
+  embedding-service/
+    main.py               → FastAPI TF-IDF/LSA service (342 lines)
+    requirements.txt      → numpy, scikit-learn, fastapi, uvicorn ONLY
 
-## Demo accounts
+  mobile/                 → Expo app
+  mockup-sandbox/         → Component preview sandbox
+```
 
-- Admin: `delewatiamer7@gmail.com` / `00Amer00` (log in via Customer button)
-- Seller: `seller@demo.com` / `password123`
-- Customer: `customer@demo.com` / `password123`
-- 12 seed products across Electronics, Sports, Home, Fashion categories (some with discounts)
+---
 
-## User preferences
+## Architecture Decisions
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- **Contract-first API:** OpenAPI spec → Orval codegen → Zod schemas + React Query hooks. Never hand-write API call code.
+- **JWT in localStorage:** Token under `localStorage.token`, user under `localStorage.user`. `setAuthTokenGetter` injects into all generated hooks.
+- **Stock-on-delivery:** Inventory only decreases when seller marks "delivered" — not at checkout.
+- **Role selector on login:** Admin accounts bypass role-mismatch — enter admin credentials while "Customer" is selected.
+- **Numeric prices:** DB stores prices as `numeric`/`decimal` in SYP (Syrian Pounds). `finalPrice` computed server-side. `format(sypAmount)` divides by exchange rate for USD display — never multiply.
+- **Vite /api proxy:** `artifacts/marketplace/vite.config.ts` proxies `/api/*` → `localhost:8080`. Without this, API calls return HTML from Vite.
+- **Embedding service:** Uses TF-IDF/LSA (NOT sentence-transformers). Same 384-dim vector API. Starts in < 1 second, no model download needed.
+- **Demo data self-healing:** `bootstrapDemoMarketplaceData()` runs on every API startup. Idempotent — skips if 42+ products exist.
+
+---
+
+## Database (Verified June 15, 2026)
+
+- **33 tables total** (21 base in schema.sql + 12 added by run-migrations.ts on first API start)
+- `notification_type` enum: **32 values**
+- `order_status` enum: **15 values**
+- FTS: `fts_vector` + `products_fts_gin` GIN index — **42/42 products**
+- Semantic: `embedding` vector(384) — **42/42 products** (TF-IDF/LSA backend)
+
+---
+
+## Demo / Test Accounts
+
+| Role | Email | Password |
+|---|---|---|
+| Admin (Root Owner) | delewatiamer7@gmail.com | 00Amer00 |
+| Permanent Seller | delewatiamer8@gmail.com | 00Amer00 |
+| Permanent Courier | delewatiamer9@gmail.com | 00Amer00 |
+| Seller (dev) | seller@syano.test | Seller@2026 |
+| Customer (dev) | customer@syano.test | Customer@2026 |
+| Courier (dev) | courier@syano.test | Courier@2026 |
+
+Admin login: use "Customer" role selector on the login form (admin bypasses role check server-side).
+
+---
+
+## Environment Variables
+
+Auto-provisioned by Replit — no manual setup needed:
+- `DATABASE_URL` — PostgreSQL connection string
+- `SESSION_SECRET` — JWT signing secret
+
+Set in `.replit` `[userenv.shared]` — no manual setup needed:
+- `EMBEDDING_SERVICE_URL=http://localhost:8001` — activates semantic search + auto-backfill
+- `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_EMAIL` — web push notifications
+- `ROOT_ADMIN_PASSWORD=00Amer00` — root owner bootstrap password
+
+---
 
 ## Gotchas
 
-- After editing API routes, the API server must be rebuilt (workflow restart) — it runs from a compiled `dist/`.
-- Run `pnpm --filter @workspace/api-spec run codegen` after any OpenAPI spec change before touching frontend code.
-- Do NOT run `pnpm dev` at workspace root — use workflow restart instead.
-- `pnpm --filter @workspace/db run push` for schema changes in dev; production needs manual migration.
+- **After editing API routes:** API server must be rebuilt (restart workflow) — it runs from compiled `dist/`
+- **After OpenAPI spec changes:** Run `pnpm --filter @workspace/api-spec run codegen` before touching frontend
+- **TypeScript check order:** Always `npx tsc --build lib/db lib/api-zod lib/api-client-react` FIRST, then per-package checks
+- **DB push:** Use `pnpm --filter @workspace/db run push` — never `drizzle-kit push` directly (requires TTY)
+- **Port 8080 in use:** Only ONE api-server workflow should exist. If you see EADDRINUSE, a duplicate workflow is running.
+- **heroBannerSystem recovery module:** Reports false negative (95/100 is correct). Homepage V7 uses HeroV4.tsx, not HeroBanner.tsx.
+- **Embedding service backend:** `requirements.txt` contains ONLY: `fastapi`, `uvicorn`, `numpy`, `scikit-learn`. The `sentence-transformers` and `torch` packages are NOT installed and NOT needed.
 
-## Pointers
+---
 
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+## User Preferences
+
+- Recovery documentation must always be kept up to date and accurate
+- Any new agent must read RECOVERY_GUIDE.md before making any changes
+- Do not create duplicate workflows — check existing workflows before creating new ones
+- When restarting services, use workflow restart (not shell commands)
