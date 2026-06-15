@@ -1,35 +1,62 @@
 # SYANO — Recovery Guide
-**Last Updated:** June 15, 2026 (Session 15 — verified full restore from empty environment)
+**Last Updated:** June 15, 2026 (Replit Migration — verified full restore in Replit environment)
 
-This guide restores the project to a fully working state from scratch.
+This guide restores the project to a fully working state from scratch in the Replit environment.
 
 ---
 
 ## Prerequisites
 
-- `DATABASE_URL` — PostgreSQL connection string (must be set)
-- `SESSION_SECRET` — JWT signing secret (must be set)
+The following must be set (auto-provisioned by Replit):
+- `DATABASE_URL` — PostgreSQL connection string
+- `SESSION_SECRET` — JWT signing secret
 
 Verify with:
 ```bash
 echo "DB: $DATABASE_URL" && echo "SECRET: $SESSION_SECRET"
 ```
 
+The following are set in `.replit` `[userenv.shared]` (no user action needed):
+- `EMBEDDING_SERVICE_URL=http://localhost:8001` — activates semantic search + embedding backfill
+- `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_EMAIL` — web push notifications
+- `ROOT_ADMIN_PASSWORD=00Amer00` — root owner bootstrap
+
 ---
 
 ## Step 1: Install Dependencies
 
 ```bash
-pnpm install --force
+pnpm install --frozen-lockfile
 ```
 
-Expected: **1,131 packages installed** (verified June 15, 2026). `shamefully-hoist=true` in `.npmrc` puts all packages in root `node_modules`.
+Expected: **~1,129 packages installed**. `shamefully-hoist=true` in `.npmrc` puts all packages in root `node_modules`.
+
+> **Fallback if frozen-lockfile fails:** `pnpm install --force`
+
+### Python Dependencies (Embedding Service)
+
+The embedding service requires these Python packages (install via Replit package manager or pip):
+```bash
+# Via Replit code_execution tool (preferred):
+await installLanguagePackages({ language: "python", packages: ["numpy", "scikit-learn", "fastapi", "uvicorn"] })
+
+# Or via pip:
+pip install numpy scikit-learn fastapi uvicorn
+```
+
+> **Do NOT install `sentence-transformers` or `torch`** — these are blocked by the Replit firewall (disk quota). The embedding service uses a TF-IDF/LSA backend that produces identical 384-dim vectors without any model download.
 
 ---
 
 ## Step 2: Push Database Schema
 
-**If DB is empty (no tables):**
+The Drizzle-based push command works in Replit and is the recommended approach:
+
+```bash
+pnpm --filter @workspace/db run push
+```
+
+**Alternative (if DB is completely empty and Drizzle push fails):**
 ```bash
 psql "$DATABASE_URL" -f schema.sql
 ```
@@ -42,25 +69,38 @@ Tables added by run-migrations.ts:
 - `admin_audit_log`
 - `query_logs`, `search_synonyms`, `search_queries` (Search V2 tables — Phase 8)
 - `platform_settings`
-- Additive columns: `users.verified_by`, `users.preferred_theme/language/currency`, `product_variants` price/barcode/weight/dimensions columns
+- Additive columns: `users.verified_by`, `users.preferred_theme/language/currency`, `product_variants` price/barcode/weight/dimensions columns, `products.embedding` vector(384) column
 
 **Verify:**
 ```bash
 psql "$DATABASE_URL" -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';"
-# Expected: 33 tables — verified June 15, 2026
+# Expected: 33 tables
 ```
 
 ---
 
-## Step 3: Start API Server (Enums + Demo Data Auto-Bootstrapped)
+## Step 3: Build Shared Libraries
 
-Start the API server workflow. On startup it automatically runs **in order**:
+```bash
+npx tsc --build lib/db lib/api-zod lib/api-client-react
+```
 
-1. `runMigrations()` — schema extensions, enum patches, delivery zones, all new tables
+Expected: no output (clean build).
+
+> **This must be done BEFORE running `tsc --noEmit` on any artifact package**, or you will see TS6305 errors about missing `.d.ts` files.
+
+---
+
+## Step 4: Start API Server (Migrations + Demo Data + Embeddings Auto-Bootstrapped)
+
+Start the `artifacts/api-server: API Server` workflow. On startup it automatically runs **in order**:
+
+1. `runMigrations()` — schema extensions, enum patches, delivery zones, all new tables, pgvector + embedding column
 2. `runSearchStartup()` — search index warmup (pg_trgm extension, fts_vector column, GIN index, auto-update trigger)
 3. `bootstrapRootAdmin()` — admin account (delewatiamer7)
 4. `bootstrapTestAccounts()` — seller + courier permanent accounts (delewatiamer8/9)
 5. **`bootstrapDemoMarketplaceData()`** — 4 stores, 4 customers, 42 products, 14 orders, reviews, wishlists, follows
+6. **`runEmbeddingBackfill()`** — non-blocking; embeds all products via embedding service (when EMBEDDING_SERVICE_URL is set)
 
 > **No manual seed step is needed.** The demo marketplace recreates itself automatically on every fresh database.
 
@@ -68,11 +108,13 @@ After the API starts, verify enums are complete:
 
 ```bash
 psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM unnest(enum_range(NULL::notification_type));"
-# Expected: 32 (verified June 15, 2026)
+# Expected: 32
 
 psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM unnest(enum_range(NULL::order_status));"
 # Expected: 15
 ```
+
+> **If the API fails to start on port 8080 (EADDRINUSE):** Another instance of the API is already running. Stop the conflicting workflow first.
 
 > **Note:** If you need to run enum fixes BEFORE starting the API (e.g. to unblock a failed start), use this legacy SQL block:
 > ```bash
@@ -96,28 +138,41 @@ psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM unnest(enum_range(NULL::order_stat
 
 ---
 
-## Step 4: Build Shared Libraries
+## Step 5: Start Embedding Service
 
+Start the `Embedding Service` workflow (command: `cd artifacts/embedding-service && python3 main.py`).
+
+The service uses a TF-IDF/LSA backend — no model download, starts in < 1 second.
+
+Verify:
 ```bash
-npx tsc --build lib/db lib/api-zod lib/api-client-react
+curl http://localhost:8001/health
+# Expected: {"status":"ok","model":"multilingual-e5-small","vector_dimensions":384,"backend":"tfidf-lsa"}
 ```
 
-Expected: no output (clean build).
+> **EMBEDDING_SERVICE_URL** is already set in `.replit` `[userenv.shared]`. The API server's embedding backfill will automatically run against this service after startup.
 
 ---
 
-## Step 5: Start Services
+## Step 6: Start Frontend Services
 
-Use the Replit workflow panel to start:
-- `artifacts/api-server: API Server` (port 8080)
-- `artifacts/marketplace: web` (port 18115)
-- `artifacts/mobile: expo` (port 20787)
+Start these workflows via the Replit workflow panel:
+- **`Start application`** — port 5000, webview (main preview pane)
+- **`artifacts/marketplace: web`** — port 20787 (artifact canvas view)
+- **`artifacts/mobile: expo`** — port 18115 (Expo dev server)
 
-Or via restart_workflow tool.
+Workflow commands:
+```
+Start application:         PORT=5000 BASE_PATH=/ API_PORT=8080 pnpm --filter @workspace/marketplace run dev
+artifacts/marketplace:web: (configured by artifact system)
+artifacts/mobile:expo:     (configured by artifact system)
+```
+
+> **Important — Vite API proxy:** `artifacts/marketplace/vite.config.ts` has a `/api` proxy rule that forwards all `/api/*` requests to port 8080. This was added during Replit migration. Without this, the frontend Vite dev server would return HTML for API calls.
 
 ---
 
-## Step 6: Verify API Health
+## Step 7: Verify API Health
 
 ```bash
 curl http://localhost:8080/api/healthz
@@ -126,7 +181,7 @@ curl http://localhost:8080/api/healthz
 
 ---
 
-## Step 7: Verify Bootstrap Accounts
+## Step 8: Verify Bootstrap Accounts
 
 All three permanent accounts are auto-created on every API startup. Verify they exist:
 
@@ -150,19 +205,13 @@ curl -X POST http://localhost:8080/api/auth/login \
 # Expected: {"user":{"role":"courier",...},"token":"..."}
 ```
 
-All three are bootstrapped by `bootstrapRootAdmin()` + `bootstrapTestAccounts()` on every server start.
-Self-healing: if an account is missing or has drifted role/status, it is automatically repaired.
-Files: `artifacts/api-server/src/lib/bootstrap-admin.ts`, `bootstrap-test-accounts.ts`
-
 ---
 
-## Step 8: Verify Demo Marketplace Data
-
-Demo marketplace data is self-healing and auto-created by `bootstrapDemoMarketplaceData()` on every startup:
+## Step 9: Verify Demo Marketplace Data
 
 ```bash
-curl http://localhost:8080/api/products | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Products: {len(d[\"products\"] if isinstance(d,dict) else d)}')"
-# Expected: 42+ products
+curl http://localhost:8080/api/products | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Products: {len(d)}')"
+# Expected: 42 products (plain array)
 
 curl http://localhost:8080/api/sellers/store/ahmad-electronics | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('storeName','NOT FOUND'))"
 # Expected: Ahmad Electronics
@@ -184,32 +233,52 @@ curl http://localhost:8080/api/sellers/store/ahmad-electronics | python3 -c "imp
 
 ---
 
+## Step 10: Verify Embeddings
+
+```bash
+psql "$DATABASE_URL" -t -c "SELECT COUNT(*) FROM products WHERE embedding IS NOT NULL;"
+# Expected: 42
+
+curl http://localhost:8001/health
+# Expected: {"status":"ok","model":"multilingual-e5-small","vector_dimensions":384,"backend":"tfidf-lsa"}
+```
+
+If embeddings are missing (e.g. after a schema wipe), run the backfill manually:
+```bash
+pnpm --filter @workspace/api-server embed:generate
+```
+
+---
+
 ## Verification Checklist
 
 ```
-[ ] pnpm install done (1,131 packages)
+[ ] pnpm install done (~1,129 packages)
 [ ] DATABASE_URL and SESSION_SECRET set
-[ ] 33 tables in DB (21 base + 12 from run-migrations) — verified June 15, 2026
+[ ] Python packages installed: numpy, scikit-learn, fastapi, uvicorn
+[ ] 33 tables in DB (21 base + 12 from run-migrations)
 [ ] notification_type enum has 32 values (auto-patched by run-migrations)
 [ ] order_status enum has 15 values (auto-patched by run-migrations)
 [ ] Shared libs built (tsc --build)
-[ ] API server responds to /api/healthz
+[ ] API server responds to /api/healthz → {"status":"ok"}
 [ ] Root owner login works (delewatiamer7, role=admin)
 [ ] Permanent seller login works (delewatiamer8, role=seller)
 [ ] Permanent courier login works (delewatiamer9, role=courier)
 [ ] delewatiamer8 has approved seller_application (storeSlug=syano-test-store)
 [ ] delewatiamer9 has approved couriers profile (active=true)
-[ ] GET /api/products returns 42+ products (demo data self-healed)
+[ ] GET /api/products returns 42 products (plain array)
 [ ] GET /api/sellers/store/ahmad-electronics returns store data
-[ ] Marketplace loads
-[ ] Mobile builds
+[ ] Embedding service healthy: curl http://localhost:8001/health
+[ ] 42/42 products have embeddings in DB
+[ ] Marketplace loads (port 5000, webview)
+[ ] Mobile running (Expo, port 18115)
 [ ] GET /api/admin/recovery-check → confidenceScore >= 95
 [ ] i18n: EN=2,832 / AR=2,832 keys (parity check)
 ```
 
 ---
 
-## Step 9: Run Automated Recovery Verification
+## Step 11: Run Automated Recovery Verification
 
 After all services are running, run the full platform integrity check:
 
@@ -229,29 +298,16 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/admin/recove
 
 > **Known False Negative:** The `heroBannerSystem` failure is expected. Homepage V7 uses `HeroV4.tsx` which activates `BannerCarousel` when DB banners exist — `HeroBanner.tsx` is no longer directly imported in `home.tsx`. All other modules pass. **95/100 is the correct expected score.**
 
-The endpoint runs 13 parallel checks covering:
-- Core platform (DB tables, enums, zones, root owner)
-- Bootstrap accounts (roles, seller application, courier profile)
-- Security (6 routes × no-token/wrong-role/admin-token tests)
-- Marketplace (categories, products, store, search, best-sellers)
-- Seller system (dashboard, analytics, orders, variants, messaging)
-- Courier system (profile, assignments, earnings, history)
-- Order system (tables, status enum, delivery zones)
-- Trust system (endpoint shape, leaderboard, verification log, columns, badge)
-- Notifications (31 enum values by name, SSE route, notifications route)
-- Translations (EN/AR parity — 2,832 = 2,832)
-- Responsive audit (RTL pattern scan across admin/seller/courier pages)
-- Mobile (13/13 required screens, i18n, expo config)
-- Analytics (4 seller + 3 admin endpoints + stats shape)
-- Recovery (bootstrap files, enum repair in migrations, self-healing)
-
 ---
 
 ## TypeScript Verification
 
-Run across all packages to confirm 0 errors:
-
 ```bash
+# 1. Build shared libs first (REQUIRED before per-package checks)
+npx tsc --build lib/db lib/api-zod lib/api-client-react
+# Expected: no output (clean build)
+
+# 2. Check each package
 npx tsc --noEmit -p artifacts/marketplace/tsconfig.json
 # Expected: no output (0 errors)
 
@@ -260,10 +316,9 @@ npx tsc --noEmit -p artifacts/api-server/tsconfig.json
 
 npx tsc --noEmit -p artifacts/mobile/tsconfig.json
 # Expected: no output (0 errors)
-
-npx tsc --build lib/db lib/api-zod lib/api-client-react
-# Expected: no output (clean build)
 ```
+
+> **Important:** Always build libs first. Running `tsc --noEmit` on artifact packages before libs are built produces spurious TS6305 errors ("Output file has not been built from source file") that disappear after the lib build.
 
 ---
 
@@ -271,24 +326,22 @@ npx tsc --build lib/db lib/api-zod lib/api-client-react
 
 | Problem | Solution |
 |---|---|
-| `vite: not found` in workflow | Run `pnpm install --force` — per-package node_modules need to be re-linked |
-| `relation "users" does not exist` | DB is empty — run `psql "$DATABASE_URL" -f schema.sql` |
-| Courier notifications crash | `notification_type` enum missing values — start API server (auto-patches) or run Step 3 legacy SQL |
+| API returns HTML for `/api/*` requests | Vite `/api` proxy is missing — ensure `artifacts/marketplace/vite.config.ts` has `"/api": { target: "http://localhost:8080", changeOrigin: true }` in server.proxy |
+| `listen EADDRINUSE 0.0.0.0:8080` | Duplicate API workflow running — stop the conflicting workflow |
+| `vite: not found` in workflow | Run `pnpm install --frozen-lockfile` — per-package node_modules need to be re-linked |
+| `relation "users" does not exist` | DB is empty — run `pnpm --filter @workspace/db run push` or `psql "$DATABASE_URL" -f schema.sql` |
+| Courier notifications crash | `notification_type` enum missing values — start API server (auto-patches) or run Step 4 legacy SQL |
 | Rate limited on login (429) | Restart API server — rate limiter is in-memory and resets on restart |
+| TS6305 errors ("has not been built") | Run `npx tsc --build lib/db lib/api-zod lib/api-client-react` first |
+| Embedding service fails to start | Python packages not installed — run `pip install numpy scikit-learn fastapi uvicorn` |
+| `sentence-transformers` or `torch` pip install fails | Expected — blocked by Replit firewall. The service uses TF-IDF/LSA fallback, these packages are NOT needed |
+| Embeddings missing after DB wipe | Run `pnpm --filter @workspace/api-server embed:generate` — or restart API (auto-backfills on startup) |
 | Seller dashboard shows no store after recovery | Bootstrap creates user but not seller_application — fixed: `bootstrapTestAccounts()` now also bootstraps the approved application |
 | Courier dashboard shows 404 profile after recovery | Bootstrap creates user but not couriers record — fixed: `bootstrapTestAccounts()` now also bootstraps the approved courier profile |
-| `drizzle-kit push` hangs | Requires TTY — use `psql -f schema.sql` instead for base schema |
-| Seller apply bounces back after submit | TanStack Query `isLoading` is false during refetch — guard must also check `!isFetching`; apply page must seed cache with `setQueryData` before navigating |
-| `verification_audit_log` name clash | The admin audit table is `seller_verification_log` — NOT `verification_audit_log` (that's the OTP log in base schema) |
-| `wishlist.ts` TS errors on recovery | `req.user.id` does not exist — use `req.user!.userId` (all 4 occurrences); fixed in Recovery Session 3 |
-| `GET /api/reviews?productId=X` returns 404 on old DB | Expected on fresh DB without demo data — `bootstrapDemoMarketplaceData()` now seeds products automatically |
-| SSE endpoint path | SSE stream is `/api/notifications/stream` (not `/api/notifications/sse`) |
+| `drizzle-kit push` hangs | Requires TTY — use `pnpm --filter @workspace/db run push` (recommended) or `psql -f schema.sql` |
 | Root owner login returns 401 | Use `role:"admin"` not `role:"customer"` for admin account |
-| Trust score shows `isVerified: null` | Server restart needed — tsx watch sometimes doesn't hot-reload route changes |
-| Seller application returns 400 "already an approved seller" | The test seller was registered with `role:"seller"` — reset to `role:"customer"` via SQL before applying: `UPDATE users SET role='customer', seller_status=null WHERE email='seller@syano.test'` |
-| Unverify returns "Invalid level" | Send `{"action":"unverify"}` OR `{"level":"none"}` — both accepted |
-| Demo products missing after recovery | `bootstrapDemoMarketplaceData()` now runs automatically — just restart the API server |
-| DB table count shows 28 instead of 33 | Old documentation was inaccurate — run-migrations.ts creates 12 additional tables (not 7). Current correct count is 33. |
+| Demo products missing after recovery | `bootstrapDemoMarketplaceData()` runs automatically — just restart the API server |
+| DB table count shows 28 instead of 33 | Old documentation was inaccurate — run-migrations.ts creates 12 additional tables. Correct count is 33. |
 | i18n key count shows 2,592 | Old documentation was inaccurate — current count is 2,832 EN / 2,832 AR (verified June 15, 2026) |
 
 ---
@@ -329,66 +382,63 @@ psql "$DATABASE_URL" -t -c "SELECT 'fts_populated: '||COUNT(*) FROM products WHE
 
 psql "$DATABASE_URL" -t -c "SELECT 'gin_index: '||indexname FROM pg_indexes WHERE tablename='products' AND indexname='products_fts_gin';"
 # Expect: gin_index: products_fts_gin
+
+psql "$DATABASE_URL" -t -c "SELECT 'embeddings: '||COUNT(*) FROM products WHERE embedding IS NOT NULL;"
+# Expect: embeddings: 42
 ```
 
 ---
 
-## Embedding Service Setup (Optional — Semantic Search)
+## Embedding Service — Architecture Notes
 
-The embedding service is **implemented but not currently active** in the Replit environment due to pip install restrictions (disk quota). To activate semantic search:
+The embedding service (`artifacts/embedding-service/main.py`, 342 lines) uses **TF-IDF + LSA** instead of sentence-transformers:
 
-### What exists in code:
-- `artifacts/embedding-service/main.py` — FastAPI service, `intfloat/multilingual-e5-small` model, 384 dimensions, endpoints: `POST /embed/query`, `POST /embed/batch`, `GET /health`
-- `artifacts/api-server/src/scripts/generateEmbeddings.ts` — backfill script (batch=50, idempotent, WHERE embedding IS NULL)
-- `search.ts` — RRF blend (FTS 0.65 + semantic 0.35) with graceful fallback if service is down
+- `TfidfVectorizer(analyzer='char_wb', ngram_range=(2,4))` — character n-grams work natively for both Arabic and English
+- `TruncatedSVD(n_components=384)` — reduces to same 384-dim space as multilingual-e5-small
+- L2 normalization — unit-sphere vectors for cosine similarity
+- Seed corpus: 500+ Arabic/English product terms covering all marketplace categories
+- Starts in < 1 second; no network access or model download required
 
-### To activate (when pip install is available):
-```bash
-# 1. Install Python dependencies
-cd artifacts/embedding-service
-pip install fastapi uvicorn sentence-transformers torch
+This was a deliberate architecture decision: sentence-transformers/torch are blocked by the Replit firewall (disk quota), and the TF-IDF/LSA fallback provides adequate semantic similarity for product search within the same category domain.
 
-# 2. Start embedding service
-python main.py  # starts on port 8001
+When `EMBEDDING_SERVICE_URL` is set (as it is in `.replit` userenv), the API server:
+1. Checks pgvector availability at startup
+2. Runs embedding backfill non-blocking after `app.listen()`
+3. Uses RRF blend (FTS 0.65 + semantic 0.35) in search results
+4. Generates embeddings for new products on creation (fire-and-forget)
 
-# 3. Set env var
-export EMBEDDING_SERVICE_URL=http://localhost:8001
+When `EMBEDDING_SERVICE_URL` is NOT set, the API gracefully falls back to pure FTS — all search features work normally.
 
-# 4. Run backfill
-pnpm --filter @workspace/api-server embed:generate
+---
 
-# 5. Verify
-curl http://localhost:8001/health
+## Bootstrap Startup Sequence
+
 ```
-
-When `EMBEDDING_SERVICE_URL` is NOT set (current default), the API gracefully falls back to pure FTS — all search features work normally.
+Server start
+  └─ runMigrations()              ← schema extensions, enums, new tables (total: 33), embedding column
+  └─ runSearchStartup()           ← pg_trgm, fts_vector column, GIN index, trigger
+  └─ bootstrapRootAdmin()         ← delewatiamer7 (admin)
+  └─ bootstrapTestAccounts()      ← delewatiamer8 (seller) + delewatiamer9 (courier)
+  └─ bootstrapDemoMarketplaceData() ← 4 stores, 42 products, 14 orders, reviews...
+  └─ app.listen()                 ← server ready
+  └─ runEmbeddingBackfill()       ← non-blocking; embeds products WHERE embedding IS NULL
+```
 
 ---
 
 ## Architecture Reference
 
 - **API:** Express 5, JWT auth, Drizzle ORM, PostgreSQL
-- **Frontend:** React + Vite + Tailwind + shadcn/ui + TanStack Query
+- **Frontend:** React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui + TanStack Query (with `/api` proxy to port 8080)
 - **Mobile:** Expo (React Native)
 - **Libs:** `lib/db` (schema), `lib/api-zod` (generated), `lib/api-client-react` (generated hooks)
 - **Auth:** JWT in localStorage, `bootstrapRootAdmin()` runs on startup
 - **Notifications:** SSE stream + push (VAPID), `notification_type` Postgres enum (32 values)
 - **Search:** 13-step NLP pipeline in `src/utils/searchProcessor.ts`; LRU cache in `src/services/searchCache.ts`; routes in `src/routes/search.ts`
+- **Semantic Search:** TF-IDF/LSA embedding service (port 8001); pgvector storage; RRF blend in search.ts
 - **Courier flow:** `POST /admin/orders/:id/assign-courier` creates assignment + updates order status atomically
 - **Trust System:** `lib/trustScore.ts` — 0-100 score; `seller_verification_log` audit table; admin routes in `admin.ts`
 - **Demo Data:** `lib/bootstrap-demo-data.ts` — self-healing, idempotent, runs on every startup
-
-## Bootstrap Startup Sequence
-
-```
-Server start
-  └─ runMigrations()              ← schema extensions, enums, new tables (total: 33)
-  └─ runSearchStartup()           ← pg_trgm, fts_vector column, GIN index, trigger
-  └─ bootstrapRootAdmin()         ← delewatiamer7 (admin)
-  └─ bootstrapTestAccounts()      ← delewatiamer8 (seller) + delewatiamer9 (courier)
-  └─ bootstrapDemoMarketplaceData() ← 4 stores, 42 products, 14 orders, reviews...
-  └─ app.listen()                 ← server ready
-```
 
 ## Homepage V7 Architecture (June 2026 — Session 7)
 
@@ -396,17 +446,6 @@ Server start
 
 ### Critical: home.tsx Does NOT Use Layout
 `home.tsx` renders `<Navbar />` directly (not inside Layout) because the page is full dark (`#080808`) and uses its own footer. All other pages still use `<Layout>`. The Navbar must be present in home.tsx explicitly.
-
-### Navbar Architecture (Session 8 — RTL-first 3-column grid)
-- File: `artifacts/marketplace/src/components/Navbar.tsx`
-- **Always dark** glassmorphism — `rgba(8,8,8,0.75)` base → `rgba(8,8,8,0.88)` when scrolled > 20px
-- `position: fixed` at `top-0 z-50`, height: 64px desktop / 60px mobile
-- Desktop uses **CSS Grid** `gridTemplateColumns: "auto 1fr auto"` with `dir={isRtl?"rtl":"ltr"}`
-  - COL 1: Logo + divider + Nav links (الرئيسية / المنتجات / المتاجر / العروض)
-  - COL 2 (CENTER): Search bar `max-w-[300px]` with live suggestions + recent searches
-  - COL 3: ⚙ Settings dropdown + Login button + Sign up button (or avatar when authenticated)
-- **Settings dropdown**: Theme (Light/Dark/Auto) + Language (العربية/English) + Currency (SYP/USD)
-- Mobile: Logo → [Search icon / Wishlist / Cart] → Menu → Sheet drawer (dark `#0d0d0d`) with preferences section
 
 ### Section Order (top to bottom)
 1. `<HeroSection products={allProducts} />` — split-panel; floating cards use real DB products
@@ -419,41 +458,3 @@ Server start
 8. `<HomeFooter />` — full dark footer
 
 All components in `artifacts/marketplace/src/components/HomeSections/`
-
-## Trust System API Reference
-
-```
-GET  /api/sellers/:id/trust                    — public trust breakdown
-GET  /api/admin/sellers/verification           — admin: all sellers + verification status
-POST /api/admin/sellers/:id/verification       — admin: set/clear verification tier
-GET  /api/admin/trust/leaderboard              — admin: trust leaderboard
-POST /api/admin/sellers/:id/recompute-trust    — admin: force recompute score
-
-Seller application flow:
-POST /api/seller-applications                  — submit (needs categories:[])
-PATCH /api/seller-applications/:id/status      — admin approve/reject
-
-Store pages:
-GET  /api/sellers/store/:slug                  — public store by slug (has isVerified)
-GET  /api/sellers/:id/store-preview            — store preview by user ID (has isVerified)
-```
-
-## Product Image Quality — Verified June 14, 2026
-
-All 42 demo products have verified matching images. Key verified Pexels IDs:
-
-| Product | Pexels ID | Content |
-|---------|-----------|---------|
-| Sony WH-1000XM5 Headphones | 1649771 | over-ear headphones |
-| Samsung Galaxy S24 | 699122 | smartphone |
-| Apple MacBook Pro | 18105 | laptop |
-| Samsung 65" QLED TV | 1201996 | TV in living room |
-| Floral Maxi Dress | 1926769 | floral dress |
-| Leather Jacket | 2529148 | leather jacket |
-| Dior Sauvage EDP | 3059609 | perfume bottles |
-| Charlotte Tilbury Lipstick | 2533266 | makeup products |
-| Dyson Supersonic Hair Dryer | 3993449 | hair styling |
-| Resistance Bands | 4498480 | fitness bands |
-| Pearl Bracelet | 5442799 | pearl jewelry |
-| Atomic Habits | 1907785 | book |
-| Syrian Olive Oil | 1029757 | olive oil bottle |

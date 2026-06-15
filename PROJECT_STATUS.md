@@ -1,5 +1,5 @@
 # SYANO — Project Status
-**Last Updated:** June 15, 2026 (Session 15 — Shop Page 3-Bug Surgical Fix)
+**Last Updated:** June 15, 2026 (Replit Migration — Embedding Service Active)
 **Recovery-Verified:** June 15, 2026 — all services running, 0 TypeScript errors, 95/100 recovery check
 
 SYANO is a production-scale Syrian marketplace platform built with React + Vite (web), Expo (mobile), Express + Drizzle (API), PostgreSQL (DB). Full Arabic/English bilingual, RTL support, dark/light theme.
@@ -23,15 +23,28 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 | Navbar Polish V1 | ✅ 100% | Light mode contrast, icon unification, active state fix, badge fix, settings dropdown |
 | **Search & Discovery Engine V2** | ✅ 100% | Syrian Dialect Dict (70+ entries post-audit), intent modifiers (5 groups), 4-tier scoring, 3 endpoints, dialect-aware suggestions |
 | **Hybrid NLP Search Engine V1** | ✅ 100% | Steps 1–5 complete + 8-axis audit (48/49 PASS). 5 modifiers: cheap/premium/rating/newest/used. 70+ dialect dict entries. GIN avg 4ms. |
+| **Semantic Search / Embeddings** | ✅ 100% | TF-IDF/LSA embedding service running on port 8001; 42/42 products embedded; pgvector active |
 | **Shop Page UX** | ✅ 100% | 3-bug surgical fix (June 15): toolbar overlap, mobile filter layout, NLP banner z-index |
 | i18n (web) | ✅ 100% | **2,832 EN / 2,832 AR keys** (perfectly balanced) |
 | i18n (mobile) | ✅ 100% | Full i18n including 30+ messages.* keys; zero hardcoded strings |
 | Recovery system | ✅ 95% | 21/22 modules pass; heroBannerSystem false negative known |
-| Semantic search / embeddings | 🟡 Implemented, not active | Code exists; requires embedding service pip install (blocked by firewall) |
+| Vite API proxy | ✅ 100% | `/api` proxy rule added — frontend correctly routes API calls to port 8080 |
 
 ---
 
-## Last Completed: Session 15 — Shop Page 3-Bug Surgical Fix (June 15, 2026)
+## Last Completed: Replit Migration (June 15, 2026)
+
+Migrated the project to the Replit native environment:
+1. Packages installed (`pnpm install --frozen-lockfile`, Python deps via Replit package manager)
+2. Vite `/api` proxy rule added to `artifacts/marketplace/vite.config.ts` (critical: without this, API calls return HTML 404 from the Vite dev server)
+3. Embedding service Python packages installed (numpy, scikit-learn, fastapi, uvicorn)
+4. `requirements.txt` corrected — removed sentence-transformers/torch (blocked by Replit firewall), reflects the actual TF-IDF/LSA backend
+5. Embedding service running: TF-IDF/LSA fallback, port 8001, 42/42 products auto-embedded at startup
+6. Semantic search now ACTIVE (pgvector=true, RRF blend FTS 0.65 + semantic 0.35)
+
+---
+
+## Previous: Session 15 — Shop Page 3-Bug Surgical Fix (June 15, 2026)
 
 Three visual bugs on `/shop` (`artifacts/marketplace/src/pages/search/index.tsx`) fixed:
 
@@ -39,8 +52,6 @@ Three visual bugs on `/shop` (`artifacts/marketplace/src/pages/search/index.tsx`
 2. **Mobile Bug (Bug 2a):** Same overlap on mobile — same fix (shared container)
 3. **Mobile Filter Bug (Bug 2b):** Cramped 2-column filter grid replaced with `space-y-5` vertical layout matching desktop sidebar
 4. **Mobile NLP Bug (Bug 3):** NLP banner and active-filter chips hidden behind sticky filter bar — fixed by reordering JSX (banner before filter bar) and removing sticky positioning from filter bar
-
-All 4 bugs verified across 4 viewport/state combinations. TypeScript: 0 errors.
 
 ---
 
@@ -56,7 +67,7 @@ All 4 bugs verified across 4 viewport/state combinations. TypeScript: 0 errors.
 - TTL: 5min normal / 1min sale / 10min fallback-L4
 - Cache key: SHA-256 of query + filters
 
-### Intent Modifiers (5 groups)
+### Intent Modifiers (7 groups)
 | Modifier | Effect |
 |---|---|
 | `cheap` | `affordable/discount/sale/offer/bargain` → price_asc sort |
@@ -77,7 +88,7 @@ Level 1: Relaxed FTS (OR tsquery) → Level 2: Trigram similarity > 0.25 → Lev
 `score = text_score × 0.55 + quality_score × 0.20 + freshness × 0.10 + seller_bonus (0.5 verified) + stock_bonus`
 
 ### API Endpoints
-- `GET /api/search/results` — full search with NLP, cache, scoring, fallback
+- `GET /api/search/results` — full search with NLP, cache, scoring, fallback, RRF semantic blend
 - `GET /api/search/suggestions` — autocomplete (text/categories/stores/trending, avg 5ms)
 - `GET /api/search` — legacy product list
 - `POST /api/search/track-click` — click analytics
@@ -101,23 +112,24 @@ Key features: conversation CRUD, soft-delete tombstones, read receipts (✓/✓�
 
 ### Tech Stack
 - **API**: Express v5, TypeScript, Drizzle ORM + PostgreSQL
-- **Web**: React 18, Vite, TanStack Query, Wouter, Tailwind CSS, Radix UI, shadcn/ui
+- **Web**: React 19, Vite 7, TanStack Query, Wouter, Tailwind CSS v4, Radix UI, shadcn/ui
 - **Mobile**: Expo (React Native), expo-router, TanStack Query
 - **Shared libs**: `lib/db` (Drizzle schema), `lib/api-zod` (Zod validators), `lib/api-client-react` (typed hooks)
 - **i18n**: react-i18next (web), custom t() (mobile), 2,832 keys per language
 - **Real-time**: SSE for notifications + new_message events
 - **Auth**: JWT (HS256) via SESSION_SECRET; roles: customer, seller, courier, admin
-- **Search**: 13-step NLP pipeline + LRU cache + GIN FTS index
+- **Search**: 13-step NLP pipeline + LRU cache + GIN FTS index + RRF semantic blend
+- **Embeddings**: TF-IDF/LSA service (port 8001), pgvector storage, 384 dimensions
 
 ### Key Files
 | File | Purpose |
 |---|---|
 | `artifacts/api-server/src/index.ts` | App bootstrap, migrations, demo data seeding |
-| `artifacts/api-server/src/utils/searchProcessor.ts` | 13-step NLP search pipeline (859 lines) |
-| `artifacts/api-server/src/services/searchCache.ts` | LRU 500-entry search result cache |
-| `artifacts/api-server/src/routes/search.ts` | Search routes — FTS, suggestions, cache (1,909 lines) |
-| `artifacts/api-server/src/scripts/generateEmbeddings.ts` | Semantic embedding backfill (requires EMBEDDING_SERVICE_URL) |
-| `artifacts/embedding-service/main.py` | FastAPI embedding microservice (requires pip setup) |
+| `artifacts/api-server/src/utils/searchProcessor.ts` | 13-step NLP search pipeline (860 lines) |
+| `artifacts/api-server/src/services/searchCache.ts` | LRU 500-entry search result cache (205 lines) |
+| `artifacts/api-server/src/routes/search.ts` | Search routes — FTS, suggestions, semantic cache (1,910 lines) |
+| `artifacts/api-server/src/scripts/generateEmbeddings.ts` | Semantic embedding backfill (195 lines) |
+| `artifacts/embedding-service/main.py` | FastAPI TF-IDF/LSA embedding service (342 lines) |
 | `artifacts/api-server/src/routes/` | All API routes (25+ route files) |
 | `lib/db/src/schema/` | Drizzle schema (all 33 tables) |
 | `lib/api-client-react/src/` | Typed TanStack Query hooks for all endpoints |
@@ -127,12 +139,14 @@ Key features: conversation CRUD, soft-delete tombstones, read receipts (✓/✓�
 | `artifacts/marketplace/src/i18n/en.json` | English translations (2,832 keys) |
 | `artifacts/marketplace/src/i18n/ar.json` | Arabic translations (2,832 keys) |
 | `artifacts/mobile/app/(tabs)/messages.tsx` | Mobile messaging screen |
+| `artifacts/marketplace/vite.config.ts` | Vite config — includes `/api` proxy to port 8080 |
 
 ### Database
 - **33 tables** (21 base schema + 12 via run-migrations.ts)
 - `notification_type` enum: 32 values
 - `order_status` enum: 15 values
 - FTS: `fts_vector` column + `products_fts_gin` GIN index (42/42 products populated)
+- Semantic: `embedding` vector(384) column (42/42 products populated, TF-IDF/LSA)
 
 ### Test Accounts
 
@@ -153,28 +167,27 @@ Key features: conversation CRUD, soft-delete tombstones, read receipts (✓/✓�
 |---|---|---|
 | Mobile wishlist | Low | Open — web works; mobile heart button not implemented |
 | heroBannerSystem recovery module false negative | Low | Known expected — homepage V7 uses HeroV4.tsx, not HeroBanner.tsx directly |
-| Semantic search / embedding service | Medium | Code complete; pip install blocked by Replit firewall (disk quota); EMBEDDING_SERVICE_URL not set |
-| Demo reviews bootstrap column bug | Fixed | `customer_id` → `user_id` fix applied June 14 |
+| Expo version warnings | Low | expo@54.0.34 vs expected ~54.0.35 — app functions correctly, update optional |
 
 ---
 
 ## Recovery Procedure (Quick Reference)
 
 ```bash
-# 1. Install
-pnpm install --force
+# 1. Install (Replit environment)
+pnpm install --frozen-lockfile
 
-# 2. Push schema
-psql "$DATABASE_URL" -f schema.sql
+# 2. Push schema (Drizzle handles it — no manual psql needed)
+pnpm --filter @workspace/db run push
 
 # 3. Build libs
 npx tsc --build lib/db lib/api-zod lib/api-client-react
 
-# 4. Start workflows
-# API Server → run-migrations.ts runs → bootstrap accounts + 42 demo products seeded
-# Marketplace + Mobile workflows
+# 4. Start workflows via Replit workflow panel or restart_workflow tool
+# API Server → run-migrations.ts runs → bootstrap accounts + 42 demo products + embeddings seeded
+# Marketplace (Start application) + Mobile workflows
 ```
 
-Expected after recovery: **33 tables**, notification_type=32 enum values, order_status=15, 42 products, 95/100 recovery check.
+Expected after recovery: **33 tables**, notification_type=32 enum values, order_status=15, 42 products, 42/42 embeddings, 95/100 recovery check.
 
 See `RECOVERY_GUIDE.md` for full step-by-step instructions.

@@ -18,15 +18,22 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
+args = "Embedding Service"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
 args = "Start application"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "API Server"
+[[workflows.workflow]]
+name = "Embedding Service"
+author = "agent"
 
 [[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Embedding Service"
+task = "shell.exec"
+args = "cd artifacts/embedding-service && python3 main.py"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -40,29 +47,6 @@ waitForPort = 5000
 [workflows.workflow.metadata]
 outputType = "webview"
 
-[[workflows.workflow]]
-name = "API Server"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=8080 pnpm --filter @workspace/api-server run dev"
-waitForPort = 8080
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
-name = "Embedding Service"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd artifacts/embedding-service && python3 main.py"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
@@ -74,34 +58,6 @@ timeoutMs = 20000
 [nix]
 channel = "stable-25_05"
 packages = ["glibcLocales"]
-
-[[ports]]
-localPort = 5000
-externalPort = 80
-
-[[ports]]
-localPort = 8001
-externalPort = 4200
-
-[[ports]]
-localPort = 8080
-externalPort = 8080
-
-[[ports]]
-localPort = 8082
-externalPort = 3003
-
-[[ports]]
-localPort = 18115
-externalPort = 80
-
-[[ports]]
-localPort = 18116
-externalPort = 3002
-
-[[ports]]
-localPort = 20787
-externalPort = 3000
 
 [userenv]
 
