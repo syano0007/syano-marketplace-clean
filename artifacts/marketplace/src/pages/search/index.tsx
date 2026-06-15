@@ -399,7 +399,7 @@ export default function SearchPage() {
     <Layout>
       <div className="min-h-screen bg-background" dir={isRtl ? "rtl" : "ltr"}>
         {/* ── Search Header ─────────────────────────────────────── */}
-        <div className="border-b border-border/60 bg-card/40 sticky top-[4rem] z-30">
+        <div className="border-b border-border/60 bg-card/90 backdrop-blur-sm sticky z-30" style={{ top: "var(--navbar-height)" }}>
           <div className="container py-3 px-4">
             <form onSubmit={handleSearch} className="flex items-center gap-2 max-w-2xl">
               <div className="flex items-center gap-2 flex-1 bg-background border border-border/70 rounded-xl px-3.5 h-10 focus-within:border-emerald-500/60 transition-colors">
@@ -463,11 +463,8 @@ export default function SearchPage() {
             <div className="flex flex-col lg:flex-row gap-6">
 
               {/* Sidebar Filters — desktop */}
-              <aside className={cn(
-                "hidden lg:block w-56 shrink-0 transition-all",
-                filtersOpen && "block"
-              )}>
-                <div className="sticky top-[10rem] space-y-5">
+              <aside className="hidden lg:block w-56 shrink-0">
+                <div className="sticky space-y-5" style={{ top: "calc(var(--navbar-height) + 9rem)" }}>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-foreground">{t("search.filters.title")}</span>
                     {activeFilterCount > 0 && (

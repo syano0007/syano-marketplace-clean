@@ -13,6 +13,12 @@ export function applyDirection(lang: string) {
 // ─── Language detection ───────────────────────────────────────────────────────
 function detectInitialLang(): "en" | "ar" {
   try {
+    // Allow ?preview_lang=ar in URL for screenshot/testing purposes
+    if (typeof window !== "undefined") {
+      const urlLang = new URLSearchParams(window.location.search).get("preview_lang");
+      if (urlLang === "ar") return "ar";
+      if (urlLang === "en") return "en";
+    }
     const saved = localStorage.getItem("marketplace_lang");
     if (saved === "ar") return "ar";
     if (saved === "en") return "en";
