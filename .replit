@@ -11,6 +11,26 @@ env = { "CI" = "true" }
 [workflows]
 runButton = "Project"
 
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "artifacts/embedding-service: Embedding Service"
+
+[[workflows.workflow]]
+name = "artifacts/embedding-service: Embedding Service"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/embedding-service && python3 main.py"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
@@ -21,6 +41,10 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
+
+[[ports]]
+localPort = 8001
+externalPort = 4200
 
 [[ports]]
 localPort = 8080
@@ -56,3 +80,4 @@ CORS_ORIGIN = "https://syano.online"
 SITE_URL = "https://syano.online"
 VITE_SUPPORT_PHONE = "+963-PLACEHOLDER"
 ROOT_ADMIN_PASSWORD = "00Amer00"
+EMBEDDING_SERVICE_URL = "http://localhost:8001"
