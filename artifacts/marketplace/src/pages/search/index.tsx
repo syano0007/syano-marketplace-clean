@@ -66,6 +66,18 @@ interface SearchIntent {
   nlpExpandedCount?: number;
   primaryLanguage?: "ar" | "en";
 }
+interface FilterMeta {
+  priceRange: { min: number; max: number };
+  totalUnfiltered: number;
+  appliedFilters: {
+    minPrice:  number | null;
+    maxPrice:  number | null;
+    minRating: number | null;
+    category:  string | null;
+    storeId:   number | null;
+    inStock:   boolean;
+  };
+}
 interface SearchApiResponse {
   results: SearchResultProduct[];
   total: number;
@@ -73,8 +85,18 @@ interface SearchApiResponse {
   limit: number;
   totalPages: number;
   searchLogId?: number | null;
+  filterMeta?: FilterMeta;
   intent: SearchIntent;
 }
+
+interface FilterOption { slug: string; nameEn: string; nameAr: string; productCount: number; }
+interface StoreFilterOption { id: number; nameEn: string; nameAr: string; slug: string; productCount: number; }
+interface FilterOptionsResponse {
+  categories: FilterOption[];
+  stores: StoreFilterOption[];
+  priceRange: { min: number; max: number };
+}
+interface RelatedQuery { query: string; count: number; }
 
 interface StoreResult {
   userId: number;
@@ -119,6 +141,7 @@ export default function SearchPage() {
   const [hasDiscount, setHasDiscount] = useState(init.disc);
   const [inStock, setInStock] = useState(false);
   const [minRating, setMinRating] = useState(0);
+  const [storeId, setStoreId] = useState<number | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [nlpBannerDismissed, setNlpBannerDismissed] = useState(false);
 
@@ -162,7 +185,7 @@ export default function SearchPage() {
     return isNaN(n) ? undefined : currency === "SYP" ? n / exchangeRate : n;
   };
 
-  const filterKey = [debouncedQuery, category, sortBy, minPriceInput, maxPriceInput, hasDiscount, inStock, minRating].join("|");
+  const filterKey = [debouncedQuery, category, sortBy, minPriceInput, maxPriceInput, hasDiscount, inStock, minRating, storeId].join("|");
 
   useEffect(() => {
     if (prevFilterKey.current !== filterKey) {
@@ -172,7 +195,7 @@ export default function SearchPage() {
     }
   }, [filterKey]);
 
-  const searchFilterKey = [debouncedQuery, category, sortBy].join("|");
+  const searchFilterKey = [debouncedQuery, category, sortBy, minPriceInput, maxPriceInput, minRating, inStock, storeId].join("|");
   useEffect(() => {
     if (prevSearchFilterKey.current !== searchFilterKey) {
       prevSearchFilterKey.current = searchFilterKey;
@@ -185,7 +208,7 @@ export default function SearchPage() {
   const searchSortParam = sortBy === "highest_rated" ? "rating" : sortBy === "best_selling" ? "newest" : sortBy === "most_discounted" ? "price_desc" : sortBy;
 
   const { data: searchData, isLoading: searchResultLoading, isFetching: searchResultFetching } = useQuery<SearchApiResponse>({
-    queryKey: ["search/results/v1", debouncedQuery, searchPage, searchSortParam, category],
+    queryKey: ["search/results/v2", debouncedQuery, searchPage, searchSortParam, category, minPriceInput, maxPriceInput, minRating, inStock, storeId],
     queryFn: async () => {
       const params = new URLSearchParams({
         q: debouncedQuery,
@@ -194,6 +217,13 @@ export default function SearchPage() {
         sortBy: searchSortParam,
       });
       if (category && category !== "all") params.set("category", category);
+      const minPriceSYP = toUsd(minPriceInput);
+      const maxPriceSYP = toUsd(maxPriceInput);
+      if (minPriceSYP !== undefined) params.set("minPrice", String(Math.round(minPriceSYP * (currency === "USD" ? exchangeRate : 1))));
+      if (maxPriceSYP !== undefined) params.set("maxPrice", String(Math.round(maxPriceSYP * (currency === "USD" ? exchangeRate : 1))));
+      if (minRating > 0) params.set("minRating", String(minRating));
+      if (inStock) params.set("inStock", "true");
+      if (storeId !== null) params.set("storeId", String(storeId));
       const res = await fetch(`/api/search/results?${params.toString()}`);
       if (!res.ok) throw new Error("Search failed");
       return res.json() as Promise<SearchApiResponse>;
@@ -202,6 +232,33 @@ export default function SearchPage() {
     staleTime: 5000,
     placeholderData: (prev) => prev,
   });
+
+  /* ── Filter options (for store filter sidebar) ─────────────────────── */
+  const { data: filterOptions } = useQuery<FilterOptionsResponse>({
+    queryKey: ["search/filter-options", debouncedQuery],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (debouncedQuery) params.set("q", debouncedQuery);
+      const res = await fetch(`/api/search/filter-options?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to load filter options");
+      return res.json() as Promise<FilterOptionsResponse>;
+    },
+    staleTime: 30_000,
+  });
+
+  /* ── Related searches ───────────────────────────────────────────────── */
+  const { data: relatedData } = useQuery<{ related: RelatedQuery[] }>({
+    queryKey: ["search/related", debouncedQuery],
+    queryFn: async () => {
+      if (!debouncedQuery || debouncedQuery.length < 2) return { related: [] };
+      const res = await fetch(`/api/search/related?q=${encodeURIComponent(debouncedQuery)}&limit=6`);
+      if (!res.ok) return { related: [] };
+      return res.json() as Promise<{ related: RelatedQuery[] }>;
+    },
+    enabled: searchMode && debouncedQuery.length >= 2,
+    staleTime: 60_000,
+  });
+  const relatedSearches = relatedData?.related ?? [];
 
   useEffect(() => {
     if (!searchData) return;
@@ -215,10 +272,13 @@ export default function SearchPage() {
     }
   }, [searchData, searchPage]);
 
+  /* When in search mode, "relevance" is not a valid browse-endpoint sort — fall back to "newest" */
+  const browseSortBy = (sortBy === "relevance" || sortBy === "rating") ? "newest" : sortBy;
+
   const { data: pageData, isLoading: productsLoading, isFetching } = useListProducts({
     search: debouncedQuery || undefined,
     category: category && category !== "all" ? category : undefined,
-    sortBy,
+    sortBy: browseSortBy,
     minPrice: toUsd(minPriceInput),
     maxPrice: toUsd(maxPriceInput),
     hasDiscount: hasDiscount || undefined,
@@ -282,7 +342,7 @@ export default function SearchPage() {
   const defaultSort = searchMode ? "relevance" : "newest";
   const activeFilterCount = [
     category && category !== "all", sortBy !== defaultSort,
-    minPriceInput, maxPriceInput, hasDiscount, inStock, minRating > 0,
+    minPriceInput, maxPriceInput, hasDiscount, inStock, minRating > 0, storeId !== null,
   ].filter(Boolean).length;
 
   const SORT_LABELS: Record<SortOption, string> = {
@@ -322,7 +382,7 @@ export default function SearchPage() {
   const clearFilters = () => {
     setCategory(undefined); setSortBy("newest");
     setMinPriceInput(""); setMaxPriceInput("");
-    setHasDiscount(false); setInStock(false); setMinRating(0);
+    setHasDiscount(false); setInStock(false); setMinRating(0); setStoreId(null);
   };
 
   const handleSortChange = (v: string) => {
@@ -487,6 +547,45 @@ export default function SearchPage() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Store filter — only visible in search mode with results */}
+                  {searchMode && (filterOptions?.stores?.length ?? 0) > 0 && (
+                    <div>
+                      <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
+                        {t("search.filters.store")}
+                      </Label>
+                      <div className="space-y-1 max-h-40 overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:bg-border">
+                        <button
+                          type="button"
+                          onClick={() => setStoreId(null)}
+                          className={cn(
+                            "w-full text-start flex items-center justify-between px-2 py-1 rounded-lg text-xs transition-colors",
+                            storeId === null
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium"
+                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                          )}
+                        >
+                          <span>{lang === "ar" ? "جميع المتاجر" : "All stores"}</span>
+                        </button>
+                        {(filterOptions?.stores ?? []).slice(0, 12).map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setStoreId(storeId === s.id ? null : s.id)}
+                            className={cn(
+                              "w-full text-start flex items-center justify-between px-2 py-1 rounded-lg text-xs transition-colors",
+                              storeId === s.id
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium"
+                                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                            )}
+                          >
+                            <span className="truncate max-w-[120px]">{lang === "ar" ? (s.nameAr || s.nameEn) : s.nameEn}</span>
+                            <span className="shrink-0 ms-1 opacity-50">{s.productCount}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Toggles */}
                   <div className="space-y-2.5">
@@ -722,6 +821,31 @@ export default function SearchPage() {
                             ? (lang === "ar" ? "جاري التحميل..." : "Loading...")
                             : (lang === "ar" ? "تحميل المزيد" : "Load more")}
                         </Button>
+                      </div>
+                    )}
+
+                    {/* ── Related Searches ──────────────────────────── */}
+                    {searchMode && relatedSearches.length > 0 && (
+                      <div className="mt-10 pt-6 border-t border-border/60" dir={isRtl ? "rtl" : "ltr"}>
+                        <div className="flex items-center gap-2 mb-3">
+                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-[11px]">
+                            {t("search.related.title")}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {relatedSearches.map((r) => (
+                            <button
+                              key={r.query}
+                              type="button"
+                              onClick={() => { setQuery(r.query); navigate(`/shop?q=${encodeURIComponent(r.query)}`); }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-border/70 text-foreground/75 hover:border-emerald-500/40 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-500/5 transition-colors"
+                            >
+                              <Search className="h-3 w-3 shrink-0 opacity-60" />
+                              {r.query}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </>

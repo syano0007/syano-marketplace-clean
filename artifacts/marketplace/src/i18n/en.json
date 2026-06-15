@@ -2925,5 +2925,42 @@
   "wishlist": {
     "login_title": "Login Required",
     "login_desc": "Sign in to save your favorite items"
+  },
+  "search": {
+    "filters": {
+      "title": "Filters",
+      "clearAll": "Clear all",
+      "price": "Price",
+      "priceFrom": "From",
+      "priceTo": "To",
+      "rating": "Rating",
+      "ratingAndAbove": "& above",
+      "category": "Category",
+      "store": "Store",
+      "inStock": "In stock only",
+      "activeCount": "Filters ({{count}})"
+    },
+    "sort": {
+      "relevance": "Most Relevant",
+      "priceLow": "Price: Low to High",
+      "priceHigh": "Price: High to Low",
+      "rating": "Highest Rated",
+      "newest": "Newest"
+    },
+    "results": {
+      "count": "{{count}} results for: {{query}}",
+      "noResultsWithFilters": "No results with these filters",
+      "tryReducingFilters": "Try reducing filters"
+    },
+    "related": {
+      "title": "Related Searches"
+    }
+  },
+  "categories": {
+    "title": "Browse Categories",
+    "subtitle": "Discover our products by category",
+    "productCount": "{{count}} products",
+    "empty": "No categories available",
+    "browse": "Browse Categories"
   }
 }

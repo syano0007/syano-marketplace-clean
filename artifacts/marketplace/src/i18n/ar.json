@@ -2925,5 +2925,42 @@
   "wishlist": {
     "login_title": "يرجى تسجيل الدخول",
     "login_desc": "سجّل دخولك لحفظ منتجاتك المفضلة"
+  },
+  "search": {
+    "filters": {
+      "title": "الفلاتر",
+      "clearAll": "مسح الكل",
+      "price": "السعر",
+      "priceFrom": "من",
+      "priceTo": "إلى",
+      "rating": "التقييم",
+      "ratingAndAbove": "فأكثر",
+      "category": "الفئة",
+      "store": "المتجر",
+      "inStock": "متوفر فقط",
+      "activeCount": "الفلاتر ({{count}})"
+    },
+    "sort": {
+      "relevance": "الأكثر صلة",
+      "priceLow": "السعر: من الأقل",
+      "priceHigh": "السعر: من الأعلى",
+      "rating": "الأعلى تقييماً",
+      "newest": "الأحدث"
+    },
+    "results": {
+      "count": "{{count}} نتيجة للبحث عن: {{query}}",
+      "noResultsWithFilters": "لا توجد نتائج بهذه الفلاتر",
+      "tryReducingFilters": "جرّب تخفيف الفلاتر"
+    },
+    "related": {
+      "title": "عمليات بحث مشابهة"
+    }
+  },
+  "categories": {
+    "title": "تصفح الفئات",
+    "subtitle": "اكتشف منتجاتنا حسب الفئة",
+    "productCount": "{{count}} منتج",
+    "empty": "لا توجد فئات متاحة حالياً",
+    "browse": "تصفح الفئات"
   }
 }

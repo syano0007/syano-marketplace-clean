@@ -46,6 +46,15 @@ export default function HomeScreen() {
   return isSeller ? <SellerDashboard /> : <CustomerShop />;
 }
 
+type MobileSortOption = "newest" | "price_asc" | "price_desc" | "highest_rated";
+
+const MOBILE_SORT_LABELS: Record<MobileSortOption, { en: string; ar: string }> = {
+  newest:        { en: "Newest", ar: "الأحدث" },
+  price_asc:     { en: "Price ↑", ar: "السعر ↑" },
+  price_desc:    { en: "Price ↓", ar: "السعر ↓" },
+  highest_rated: { en: "Top Rated", ar: "الأعلى تقييماً" },
+};
+
 function CustomerShop() {
   const colors = useColors();
   const { topPad, tabBarHeight } = useScreenLayout();
@@ -55,6 +64,10 @@ function CustomerShop() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [mobileSuggestions, setMobileSuggestions] = useState<MobileSuggestions>({ suggestions: [], categories: [] });
   const [searchLogId, setSearchLogId] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<MobileSortOption>("newest");
+  const [minRating, setMinRating] = useState(0);
+  const [inStock, setInStock] = useState(false);
+  const [relatedSearches, setRelatedSearches] = useState<Array<{ query: string; count: number }>>([]);
   const addToCart = useAddToCart();
   const suggestTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -88,6 +101,17 @@ function CustomerShop() {
     return () => { if (suggestTimeout.current) clearTimeout(suggestTimeout.current); };
   }, [debouncedSearch]);
 
+  // Fetch related searches when search query is active
+  useEffect(() => {
+    if (debouncedSearch.length < 2) { setRelatedSearches([]); return; }
+    let cancelled = false;
+    fetch(`${getBaseUrl()}/search/related?q=${encodeURIComponent(debouncedSearch)}&limit=5`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (!cancelled && d?.related) setRelatedSearches(d.related); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [debouncedSearch]);
+
   const { data: categories = [] } = useListCategories();
   const {
     data: products = [],
@@ -97,8 +121,10 @@ function CustomerShop() {
   } = useListProducts({
     category: activeCategory ?? undefined,
     search: debouncedSearch || undefined,
-    sortBy: "newest",
-  });
+    sortBy,
+    minRating: minRating > 0 ? minRating : undefined,
+    inStock: inStock || undefined,
+  } as any);
 
   const handleAddToCart = useCallback((product: Product) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -206,6 +232,7 @@ function CustomerShop() {
         </View>
       )}
 
+      {/* ── Category chips ── */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -226,12 +253,7 @@ function CustomerShop() {
           <Text
             style={[
               styles.chipText,
-              {
-                color:
-                  activeCategory === null
-                    ? colors.primaryForeground
-                    : colors.foreground,
-              },
+              { color: activeCategory === null ? colors.primaryForeground : colors.foreground },
             ]}
           >
             {t("shop.all")}
@@ -243,8 +265,7 @@ function CustomerShop() {
             style={({ pressed }) => [
               styles.categoryChip,
               {
-                backgroundColor:
-                  activeCategory === cat ? colors.primary : colors.secondary,
+                backgroundColor: activeCategory === cat ? colors.primary : colors.secondary,
                 opacity: pressed ? 0.8 : 1,
               },
             ]}
@@ -253,12 +274,7 @@ function CustomerShop() {
             <Text
               style={[
                 styles.chipText,
-                {
-                  color:
-                    activeCategory === cat
-                      ? colors.primaryForeground
-                      : colors.foreground,
-                },
+                { color: activeCategory === cat ? colors.primaryForeground : colors.foreground },
               ]}
             >
               {cat}
@@ -266,8 +282,119 @@ function CustomerShop() {
           </Pressable>
         ))}
       </ScrollView>
+
+      {/* ── Sort chips ── */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[styles.categoryScroll, { paddingTop: 0 }]}
+        decelerationRate="fast"
+      >
+        {(Object.keys(MOBILE_SORT_LABELS) as MobileSortOption[]).map((opt) => {
+          const active = sortBy === opt;
+          return (
+            <Pressable
+              key={opt}
+              style={({ pressed }) => [
+                styles.sortChip,
+                {
+                  backgroundColor: active ? "#10B98122" : colors.secondary,
+                  borderColor: active ? "#10B981" : colors.border,
+                  opacity: pressed ? 0.75 : 1,
+                },
+              ]}
+              onPress={() => setSortBy(opt)}
+            >
+              <Text style={[styles.sortChipText, { color: active ? "#10B981" : colors.mutedForeground }]}>
+                {MOBILE_SORT_LABELS[opt].en}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {/* ── Filter chips row (rating + inStock) ── */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[styles.categoryScroll, { paddingTop: 0 }]}
+        decelerationRate="fast"
+      >
+        {/* inStock toggle */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.sortChip,
+            {
+              backgroundColor: inStock ? "#10B98122" : colors.secondary,
+              borderColor: inStock ? "#10B981" : colors.border,
+              opacity: pressed ? 0.75 : 1,
+            },
+          ]}
+          onPress={() => setInStock((v) => !v)}
+        >
+          <Text style={[styles.sortChipText, { color: inStock ? "#10B981" : colors.mutedForeground }]}>
+            ✓ In Stock
+          </Text>
+        </Pressable>
+        {/* Rating chips */}
+        {[4, 3].map((star) => {
+          const active = minRating === star;
+          return (
+            <Pressable
+              key={star}
+              style={({ pressed }) => [
+                styles.sortChip,
+                {
+                  backgroundColor: active ? "#F59E0B22" : colors.secondary,
+                  borderColor: active ? "#F59E0B" : colors.border,
+                  opacity: pressed ? 0.75 : 1,
+                },
+              ]}
+              onPress={() => setMinRating(active ? 0 : star)}
+            >
+              <Text style={[styles.sortChipText, { color: active ? "#F59E0B" : colors.mutedForeground }]}>
+                ★ {star}+
+              </Text>
+            </Pressable>
+          );
+        })}
+        {/* Clear all filters */}
+        {(minRating > 0 || inStock || sortBy !== "newest") && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.sortChip,
+              { backgroundColor: colors.secondary, borderColor: colors.border, opacity: pressed ? 0.75 : 1 },
+            ]}
+            onPress={() => { setMinRating(0); setInStock(false); setSortBy("newest"); }}
+          >
+            <Text style={[styles.sortChipText, { color: colors.mutedForeground }]}>✕ Clear</Text>
+          </Pressable>
+        )}
+      </ScrollView>
     </View>
   );
+
+  const relatedSearchesFooter = debouncedSearch.length >= 2 && relatedSearches.length > 0 ? (
+    <View style={[relStyles.container, { borderTopColor: colors.border }]}>
+      <Text style={[relStyles.title, { color: colors.mutedForeground }]}>Related Searches</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={relStyles.chipRow}>
+        {relatedSearches.map((r) => (
+          <Pressable
+            key={r.query}
+            style={({ pressed }) => [relStyles.chip, { backgroundColor: colors.secondary, borderColor: colors.border, opacity: pressed ? 0.75 : 1 }]}
+            onPress={() => {
+              setSearch(r.query);
+              setDebouncedSearch(r.query);
+              setSearchFocused(false);
+            }}
+          >
+            <Ionicons name="search-outline" size={11} color={colors.mutedForeground} style={{ marginRight: 4 }} />
+            <Text style={[relStyles.chipText, { color: colors.foreground }]} numberOfLines={1}>{r.query}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  ) : null;
 
   return (
     <View style={[styles.shopContainer, { backgroundColor: colors.background }]}>
@@ -278,6 +405,7 @@ function CustomerShop() {
         columnWrapperStyle={styles.row}
         contentContainerStyle={[styles.grid, { paddingBottom: tabBarHeight }]}
         ListHeaderComponent={shopHeader}
+        ListFooterComponent={relatedSearchesFooter}
         removeClippedSubviews={true}
         initialNumToRender={8}
         maxToRenderPerBatch={8}
@@ -464,6 +592,13 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   emptyText: { fontSize: 15 },
+  sortChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  sortChipText: { fontSize: 12, fontWeight: "500" as const },
 });
 
 const suggStyles = StyleSheet.create({
@@ -492,6 +627,14 @@ const suggStyles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 2,
   },
+});
+
+const relStyles = StyleSheet.create({
+  container: { paddingHorizontal: 12, paddingVertical: 16, borderTopWidth: StyleSheet.hairlineWidth },
+  title: { fontSize: 11, fontWeight: "600" as const, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 },
+  chipRow: { gap: 8, paddingBottom: 4 },
+  chip: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  chipText: { fontSize: 13, fontWeight: "500" as const },
 });
 
 const statStyles = StyleSheet.create({

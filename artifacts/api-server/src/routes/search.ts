@@ -615,10 +615,16 @@ router.get("/search/results", async (req, res): Promise<void> => {
   const limit  = Number.isFinite(rawLimit) && rawLimit >= 1 && rawLimit <= 50 ? rawLimit : 20;
   const offset = (page - 1) * limit;
 
-  const filterCategory = req.query.category ? String(req.query.category) : null;
-  const filterPriceMin = req.query.priceMin  ? parseFloat(String(req.query.priceMin))  : null;
-  const filterPriceMax = req.query.priceMax  ? parseFloat(String(req.query.priceMax))  : null;
-  const sortBy = String(req.query.sortBy ?? "relevance");
+  const filterCategory  = req.query.category  ? String(req.query.category)  : null;
+  const filterPriceMin  = req.query.priceMin  ? parseFloat(String(req.query.priceMin))  : null;
+  const filterPriceMax  = req.query.priceMax  ? parseFloat(String(req.query.priceMax))  : null;
+  const sortBy          = String(req.query.sortBy ?? "relevance");
+
+  const _rawMinRating   = req.query.minRating ? parseFloat(String(req.query.minRating)) : null;
+  const filterMinRating = _rawMinRating !== null && !isNaN(_rawMinRating) && _rawMinRating >= 0 && _rawMinRating <= 5 ? _rawMinRating : null;
+  const _rawStoreId     = req.query.storeId   ? parseInt(String(req.query.storeId), 10)  : null;
+  const filterStoreId   = _rawStoreId !== null && !isNaN(_rawStoreId) && _rawStoreId > 0 ? _rawStoreId : null;
+  // filterInStock: p.stock > 0 is always applied, but accept param for API completeness
 
   /* ── 3. Dual NLP pipeline ───────────────────────────────────────────── */
 
@@ -688,8 +694,46 @@ router.get("/search/results", async (req, res): Promise<void> => {
   if (filterPriceMax !== null && !isNaN(filterPriceMax)) {
     extraWhere.push(`p.price::numeric <= ${pb.add(filterPriceMax)}`);
   }
+  if (filterStoreId !== null) {
+    extraWhere.push(`p.seller_id = ${pb.add(filterStoreId)}`);
+  }
+  if (filterMinRating !== null && filterMinRating > 0) {
+    // subquery per candidate — acceptable since candidate set is already narrow
+    extraWhere.push(`COALESCE((SELECT AVG(rating)::numeric(3,1) FROM reviews WHERE product_id = p.id), 0) >= ${pb.add(filterMinRating)}`);
+  }
 
   const extraWhereSQL = extraWhere.length > 0 ? `AND ${extraWhere.join(" AND ")}` : "";
+
+  /* ── filterMeta parallel query (price range before extra filters) ──── */
+  const metaPb = makeParamBuilder();
+  const pMetaTsqExpanded = metaPb.add(tsqExpanded);
+  const pMetaTerm        = metaPb.add(term);
+  const pMetaLike        = metaPb.add(`%${term}%`);
+  const pMetaMappedCat   = metaPb.add(intent.mappedCategory?.toLowerCase() ?? null);
+  const filterMetaPromise = pool.query<{ price_min: string; price_max: string; total_unfiltered: string }>(
+    `SELECT
+       COALESCE(MIN(p.price::numeric), 0) AS price_min,
+       COALESCE(MAX(p.price::numeric), 0) AS price_max,
+       COUNT(*)::int AS total_unfiltered
+     FROM products p
+     CROSS JOIN (
+       SELECT CASE WHEN ${pMetaTsqExpanded}::text IS NOT NULL
+         THEN to_tsquery('simple', ${pMetaTsqExpanded}::text)
+         ELSE NULL END AS expanded_q
+     ) ts
+     INNER JOIN users u  ON u.id = p.seller_id AND u.account_status = 'active'
+     INNER JOIN seller_applications sa ON sa.user_id = p.seller_id AND sa.status = 'approved'
+     WHERE p.stock > 0
+       AND (
+         (ts.expanded_q IS NOT NULL AND p.fts_vector IS NOT NULL AND p.fts_vector @@ ts.expanded_q)
+         OR word_similarity(${pMetaTerm}, lower(p.name))                   > 0.14
+         OR word_similarity(${pMetaTerm}, lower(COALESCE(p.name_ar, '')))  > 0.14
+         OR lower(p.name)                    LIKE ${pMetaLike}
+         OR lower(COALESCE(p.name_ar, ''))   LIKE ${pMetaLike}
+         OR (${pMetaMappedCat}::text IS NOT NULL AND lower(p.category) = ${pMetaMappedCat}::text)
+       )`,
+    metaPb.values,
+  );
 
   /* ORDER BY — final_price alias computed in scored CTE */
   const orderBySQL =
@@ -702,8 +746,8 @@ router.get("/search/results", async (req, res): Promise<void> => {
   const pLimit  = pb.add(limit);
   const pOffset = pb.add(offset);
 
-  /* ── 7. Core SQL — NLP + FTS + trigram hybrid ───────────────────────── */
-  const { rows } = await pool.query(
+  /* ── 7. Core SQL — NLP + FTS + trigram hybrid (parallel with filterMeta) */
+  const [{ rows }, metaResult] = await Promise.all([pool.query(
     `
     /* ── Pre-compute tsquery objects exactly once ───────────────────────── */
     WITH ts_params AS (
@@ -847,7 +891,7 @@ router.get("/search/results", async (req, res): Promise<void> => {
     LIMIT ${pLimit} OFFSET ${pOffset}
     `,
     pb.values,
-  );
+  ), filterMetaPromise]);
 
   /* ── 8. Pagination metadata ─────────────────────────────────────────── */
   const total = rows.length > 0 ? parseInt(String(rows[0].total_count), 10) : 0;
@@ -886,6 +930,8 @@ router.get("/search/results", async (req, res): Promise<void> => {
   /* Capture the query_logs id if insert finished within the 50 ms window */
   const searchLogId: number | null = await Promise.race([logInsertPromise, logTimeoutPromise]);
 
+  const metaRow = metaResult.rows[0];
+
   res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=15");
   res.json({
     results,
@@ -894,11 +940,25 @@ router.get("/search/results", async (req, res): Promise<void> => {
     limit,
     totalPages: Math.ceil(total / limit),
     searchLogId: searchLogId ?? null,
+    filterMeta: {
+      priceRange: {
+        min: parseFloat(metaRow?.price_min ?? "0"),
+        max: parseFloat(metaRow?.price_max ?? "0"),
+      },
+      totalUnfiltered: parseInt(String(metaRow?.total_unfiltered ?? "0"), 10),
+      appliedFilters: {
+        minPrice:   filterPriceMin,
+        maxPrice:   filterPriceMax,
+        minRating:  filterMinRating,
+        category:   filterCategory,
+        storeId:    filterStoreId,
+        inStock:    req.query.inStock === "true",
+      },
+    },
     intent: {
       modifiers:       intent.modifiers,
       mappedCategory:  intent.mappedCategory,
       expandedTerms:   intent.expandedTerms,
-      /* New fields for frontend intent chips */
       nlpBaseTokens:   nlp.baseTokens,
       nlpExpandedCount: nlp.expandedTokens.length,
       primaryLanguage: nlp.primaryLanguage,
@@ -946,6 +1006,156 @@ router.post("/search/track-click", async (req, res): Promise<void> => {
   const { term } = req.body as { term?: string };
   if (term && typeof term === "string" && term.trim().length >= 2) trackQuery(term.trim());
   res.json({ ok: true });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROUTE 7 — GET /api/search/filter-options
+   Returns categories + stores with productCounts for the filter sidebar.
+   Scoped to products matching query `q` if provided.
+   ═══════════════════════════════════════════════════════════════════════════ */
+router.get("/search/filter-options", async (req, res): Promise<void> => {
+  const t0 = Date.now();
+  const raw = req.query.q ? String(req.query.q).trim() : null;
+  const hasQ = raw !== null && raw.length >= 2;
+  const likeParam = hasQ ? `%${normalizeArabic(raw!)}%` : null;
+
+  const [catResult, storeResult, priceResult] = await Promise.all([
+    // Categories with product count
+    pool.query<{ category: string; product_count: string }>(
+      `SELECT p.category, COUNT(DISTINCT p.id)::int AS product_count
+       FROM products p
+       INNER JOIN users u  ON u.id = p.seller_id AND u.account_status = 'active'
+       INNER JOIN seller_applications sa ON sa.user_id = p.seller_id AND sa.status = 'approved'
+       WHERE p.stock > 0
+         AND ($1::text IS NULL
+              OR lower(p.name)                   LIKE $1
+              OR lower(COALESCE(p.name_ar, ''))  LIKE $1
+              OR lower(p.category)               LIKE $1)
+       GROUP BY p.category
+       HAVING COUNT(DISTINCT p.id) > 0
+       ORDER BY product_count DESC`,
+      [likeParam],
+    ),
+    // Stores with product count
+    pool.query<{ store_id: string; store_name: string | null; store_name_ar: string | null; store_slug: string | null; product_count: string }>(
+      `SELECT sa.user_id::text AS store_id,
+              sa.store_name, sa.store_name_ar, sa.store_slug,
+              COUNT(DISTINCT p.id)::int AS product_count
+       FROM seller_applications sa
+       INNER JOIN products p ON p.seller_id = sa.user_id
+       INNER JOIN users u    ON u.id = sa.user_id AND u.account_status = 'active'
+       WHERE sa.status = 'approved' AND p.stock > 0
+         AND ($1::text IS NULL
+              OR lower(p.name)                  LIKE $1
+              OR lower(COALESCE(p.name_ar,''))  LIKE $1)
+       GROUP BY sa.user_id, sa.store_name, sa.store_name_ar, sa.store_slug
+       HAVING COUNT(DISTINCT p.id) > 0
+       ORDER BY product_count DESC
+       LIMIT 30`,
+      [likeParam],
+    ),
+    // Price range across matching products
+    pool.query<{ price_min: string; price_max: string }>(
+      `SELECT COALESCE(MIN(p.price::numeric), 0) AS price_min,
+              COALESCE(MAX(p.price::numeric), 0) AS price_max
+       FROM products p
+       INNER JOIN users u  ON u.id = p.seller_id AND u.account_status = 'active'
+       INNER JOIN seller_applications sa ON sa.user_id = p.seller_id AND sa.status = 'approved'
+       WHERE p.stock > 0
+         AND ($1::text IS NULL
+              OR lower(p.name)                  LIKE $1
+              OR lower(COALESCE(p.name_ar,''))  LIKE $1)`,
+      [likeParam],
+    ),
+  ]);
+
+  const categories = catResult.rows.map((r) => {
+    const slug = r.category;
+    const labels = CATEGORY_LABELS[slug] ?? { en: slug, ar: slug };
+    return {
+      slug,
+      nameEn: labels.en,
+      nameAr: labels.ar,
+      productCount: parseInt(String(r.product_count), 10),
+    };
+  });
+
+  const stores = storeResult.rows.map((r) => ({
+    id: parseInt(String(r.store_id), 10),
+    nameEn: r.store_name   ?? "",
+    nameAr: r.store_name_ar ?? r.store_name ?? "",
+    slug:   r.store_slug   ?? "",
+    productCount: parseInt(String(r.product_count), 10),
+  }));
+
+  const priceRow = priceResult.rows[0];
+
+  res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+  res.json({
+    categories,
+    stores,
+    priceRange: {
+      min: parseFloat(priceRow?.price_min ?? "0"),
+      max: parseFloat(priceRow?.price_max ?? "0"),
+    },
+    processingTimeMs: Date.now() - t0,
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROUTE 8 — GET /api/search/related
+   Returns queries from query_logs that share words with `q`.
+   ═══════════════════════════════════════════════════════════════════════════ */
+router.get("/search/related", async (req, res): Promise<void> => {
+  const t0 = Date.now();
+  const raw = String(req.query.q ?? "").trim();
+  const limit = Math.min(parseInt(String(req.query.limit ?? "6"), 10) || 6, 10);
+
+  if (raw.length < 2) {
+    res.json({ related: [], processingTimeMs: 0 });
+    return;
+  }
+
+  const norm = normalizeArabic(raw.toLowerCase());
+  // Split into individual words for overlap matching
+  const words = norm.split(/\s+/).filter((w) => w.length >= 2);
+
+  // Build a LIKE condition for each word
+  let rows: { query: string; count: number }[] = [];
+  if (words.length > 0) {
+    const wordConditions = words.map((w) => `lower(query) LIKE '%${w.replace(/'/g, "''")}%'`).join(" OR ");
+    const { rows: related } = await pool.query<{ query: string; count: number }>(
+      `SELECT query, SUM(count)::int AS count
+       FROM search_queries
+       WHERE (${wordConditions})
+         AND lower(query) != lower($1)
+       GROUP BY query
+       ORDER BY count DESC
+       LIMIT $2`,
+      [raw, limit],
+    );
+    rows = related;
+  }
+
+  // Fallback: if < 3 results, supplement with top trending (excluding q)
+  if (rows.length < 3) {
+    const { rows: trending } = await pool.query<{ query: string; count: number }>(
+      `SELECT query, count
+       FROM search_queries
+       WHERE lower(query) != lower($1)
+       ORDER BY count DESC
+       LIMIT $2`,
+      [raw, limit - rows.length],
+    );
+    const existingQueries = new Set(rows.map((r) => r.query));
+    for (const tr of trending) {
+      if (!existingQueries.has(tr.query)) rows.push(tr);
+      if (rows.length >= limit) break;
+    }
+  }
+
+  res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
+  res.json({ related: rows, processingTimeMs: Date.now() - t0 });
 });
 
 export default router;

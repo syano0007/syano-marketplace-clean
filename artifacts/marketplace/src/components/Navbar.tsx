@@ -303,12 +303,14 @@ export function Navbar() {
     ? [
       { href: "/", label: "الرئيسية" },
       { href: "/shop", label: "تسوق" },
+      { href: "/categories", label: "الفئات" },
       { href: "/sellers/directory", label: "المتاجر" },
       { href: "/shop?hasDiscount=true", label: "العروض" },
     ]
     : [
       { href: "/", label: "Home" },
       { href: "/shop", label: "Shop" },
+      { href: "/categories", label: "Categories" },
       { href: "/sellers/directory", label: "Stores" },
       { href: "/shop?hasDiscount=true", label: "Deals" },
     ];
@@ -921,6 +923,7 @@ export function Navbar() {
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
             <MobileNavLink href="/" icon={Home} label={isRtl ? "الرئيسية" : "Home"} location={location} onClose={closeMobileMenu} isDark={isDark} />
             <MobileNavLink href="/shop" icon={Package} label={isRtl ? "تسوق" : "Shop"} location={location} onClose={closeMobileMenu} isDark={isDark} />
+            <MobileNavLink href="/categories" icon={Layers} label={isRtl ? "الفئات" : "Categories"} location={location} onClose={closeMobileMenu} isDark={isDark} />
             <MobileNavLink href="/sellers/directory" icon={Store} label={isRtl ? "المتاجر" : "Stores"} location={location} onClose={closeMobileMenu} isDark={isDark} />
             {isAdmin && adminLinks.map(l => <MobileNavLink key={l.href} {...l} location={location} onClose={closeMobileMenu} isDark={isDark} />)}
             {isSeller && sellerLinks.map(l => <MobileNavLink key={l.href} {...l} location={location} onClose={closeMobileMenu} isDark={isDark} />)}
