@@ -1,6 +1,26 @@
 # SYANO — Current Project State
-**Last Updated:** June 14, 2026 (Session 13 — Phase 8 Search 8-Axis Audit COMPLETE)  
-**Updated By:** Comprehensive audit of all 5 search steps across 8 axes — all issues fixed
+**Last Updated:** June 15, 2026 (Session 14 — Shop Page Sticky Header Overlap Fix)  
+**Updated By:** Fixed sticky-toolbar overlap on /shop page (mobile filter bar now sticky; desktop sidebar top auto-measured)
+
+---
+
+## ✅ Shop Page Sticky-Header Overlap Fix — COMPLETE (June 15, 2026)
+
+### Problem
+On `/shop`, the sticky search toolbar (`sticky z-30 top: --navbar-height`) covered the mobile filter bar and the top of product cards when the user scrolled even ~30 px. The filter bar had no sticky behavior and no z-index, so it disappeared behind the toolbar immediately.
+
+### Fix Applied (`artifacts/marketplace/src/pages/search/index.tsx`)
+1. **`toolbarRef` + `ResizeObserver`** — measures the live height of the sticky search toolbar and stores it in `toolbarHeight` state (updates on resize/query changes).
+2. **`belowToolbar`** computed value: `calc(var(--navbar-height) + ${toolbarHeight}px)` — a single source of truth for "top of content area".
+3. **Mobile filter bar** (`lg:hidden`): upgraded from static `mb-4` block to `sticky z-[25] bg-background/95 backdrop-blur-sm -mx-4 px-4 py-2 border-b border-border/30` with `style={{ top: belowToolbar }}`. It now remains permanently visible below the search toolbar while the user scrolls through results.
+4. **Desktop sidebar**: replaced hardcoded `top: calc(var(--navbar-height) + 9rem)` with dynamic `style={{ top: belowToolbar }}` so the sidebar anchors exactly at the toolbar's measured bottom edge.
+
+### Verified
+- 320 px (no query): filter bar visible ✅
+- 390 px (q=phone): filter bar + first product row fully visible ✅
+- 414 px RTL Arabic (q=موبايل): filter bar visible, RTL preserved ✅
+- 1280 px desktop (q=phone): sidebar anchored correctly, first row fully visible ✅
+- TypeScript: 0 new errors in `search/index.tsx` ✅
 
 ---
 

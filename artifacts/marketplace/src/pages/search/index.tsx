@@ -122,6 +122,25 @@ export default function SearchPage() {
   const isRtl = lang === "ar";
   const [location, navigate] = useLocation();
 
+  /* ── Toolbar height measurement (for sticky offset calculations) ── */
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [toolbarHeight, setToolbarHeight] = useState(0);
+
+  useEffect(() => {
+    const el = toolbarRef.current;
+    if (!el) return;
+    const update = () => setToolbarHeight(el.getBoundingClientRect().height);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  /* Computed sticky top for elements that must sit just below the toolbar */
+  const belowToolbar = toolbarHeight > 0
+    ? `calc(var(--navbar-height) + ${toolbarHeight}px)`
+    : "calc(var(--navbar-height) + 8rem)";
+
   const getInitialParams = () => {
     const sp2 = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
     const q = sp2.get("q") || sp2.get("search") || "";
@@ -399,7 +418,7 @@ export default function SearchPage() {
     <Layout>
       <div className="min-h-screen bg-background" dir={isRtl ? "rtl" : "ltr"}>
         {/* ── Search Header ─────────────────────────────────────── */}
-        <div className="border-b border-border/60 bg-card/90 backdrop-blur-sm sticky z-30" style={{ top: "var(--navbar-height)" }}>
+        <div ref={toolbarRef} className="border-b border-border/60 bg-card/90 backdrop-blur-sm sticky z-30" style={{ top: "var(--navbar-height)" }}>
           <div className="container py-3 px-4">
             <form onSubmit={handleSearch} className="flex items-center gap-2 max-w-2xl">
               <div className="flex items-center gap-2 flex-1 bg-background border border-border/70 rounded-xl px-3.5 h-10 focus-within:border-emerald-500/60 transition-colors">
@@ -464,7 +483,7 @@ export default function SearchPage() {
 
               {/* Sidebar Filters — desktop */}
               <aside className="hidden lg:block w-56 shrink-0">
-                <div className="sticky space-y-5" style={{ top: "calc(var(--navbar-height) + 9rem)" }}>
+                <div className="sticky space-y-5" style={{ top: belowToolbar }}>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-foreground">{t("search.filters.title")}</span>
                     {activeFilterCount > 0 && (
@@ -606,8 +625,11 @@ export default function SearchPage() {
 
               {/* Main content */}
               <div className="flex-1 min-w-0">
-                {/* Mobile filter bar */}
-                <div className="flex items-center gap-2 mb-4 lg:hidden">
+                {/* Mobile filter bar — sticky below the search toolbar */}
+                <div
+                  className="flex items-center gap-2 mb-2 lg:hidden sticky z-[25] bg-background/95 backdrop-blur-sm -mx-4 px-4 py-2 border-b border-border/30"
+                  style={{ top: belowToolbar }}
+                >
                   <button onClick={() => setFiltersOpen(!filtersOpen)}
                     className={cn(
                       "flex items-center gap-1.5 h-9 px-3.5 rounded-lg border text-sm font-medium transition-colors",
