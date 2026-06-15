@@ -482,8 +482,28 @@ export async function runMigrations(): Promise<void> {
     `);
 
     // ── Phase 6: Search Retrieval improvements ─────────────────────────────────
+    // Ensure query_logs exists before altering (search-startup creates it, but may not have run yet)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS query_logs (
+        id           SERIAL PRIMARY KEY,
+        query        TEXT NOT NULL,
+        lang         VARCHAR(2) DEFAULT 'ar',
+        result_count INTEGER,
+        clicked      BOOLEAN DEFAULT false,
+        created_at   TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
     await client.query(`
       ALTER TABLE query_logs ADD COLUMN IF NOT EXISTS fallback_level INTEGER DEFAULT NULL;
+    `);
+
+    // Ensure search columns exist before the FTS trigger/backfill (search-startup adds these
+    // in runSearchStartup(), but that runs AFTER runMigrations() — guard for fresh DB)
+    await client.query(`
+      CREATE EXTENSION IF NOT EXISTS pg_trgm;
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS name_ar       text;
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS search_tokens text;
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS fts_vector    tsvector;
     `);
 
     // FTS trigger upgrade: description weight D → C, remove 240-char truncation
