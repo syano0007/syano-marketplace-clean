@@ -7,6 +7,51 @@ import { processSearchQuery } from "../utils/searchProcessor";
 const router: IRouter = Router();
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   I-b. IN-MEMORY SYNONYM CACHE  (5 min TTL, populated from search_synonyms)
+   ═══════════════════════════════════════════════════════════════════════════ */
+interface SynonymCacheState { map: Map<string, string[]>; loadedAt: number; }
+let _synonymCache: SynonymCacheState | null = null;
+const SYNONYM_TTL_MS = 5 * 60 * 1000;
+
+async function loadSynonymMap(): Promise<Map<string, string[]>> {
+  const now = Date.now();
+  if (_synonymCache && (now - _synonymCache.loadedAt) < SYNONYM_TTL_MS) return _synonymCache.map;
+  try {
+    const { rows } = await pool.query<{ term: string; synonym: string; is_bidirectional: boolean }>(
+      `SELECT term, synonym, is_bidirectional FROM search_synonyms`,
+    );
+    const map = new Map<string, string[]>();
+    const addEntry = (k: string, v: string) => {
+      const nk = normalizeArabic(k.toLowerCase());
+      const nv = normalizeArabic(v.toLowerCase());
+      if (!map.has(nk)) map.set(nk, []);
+      if (!map.get(nk)!.includes(nv)) map.get(nk)!.push(nv);
+    };
+    for (const row of rows) {
+      addEntry(row.term, row.synonym);
+      if (row.is_bidirectional) addEntry(row.synonym, row.term);
+    }
+    _synonymCache = { map, loadedAt: now };
+    return map;
+  } catch { return new Map(); }
+}
+
+async function expandWithSynonyms(tokens: readonly string[]): Promise<{ expanded: string[]; synonymExpanded: boolean }> {
+  const synMap = await loadSynonymMap();
+  const seen = new Set<string>(tokens);
+  const result = [...tokens];
+  let synonymExpanded = false;
+  for (const tok of tokens) {
+    for (const s of (synMap.get(tok) ?? [])) {
+      if (!seen.has(s) && result.length < 10) {
+        seen.add(s); result.push(s); synonymExpanded = true;
+      }
+    }
+  }
+  return { expanded: result, synonymExpanded };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    I.  ARABIC NLP — normalizeArabic
    ═══════════════════════════════════════════════════════════════════════════
    Strips diacritics, normalises all common variant letter forms so that
@@ -117,6 +162,8 @@ const INTENT_MODIFIERS = {
   used:    ["مستعمل", "شغال", "نضيف", "نص عمر", "بحالة الوكالة", "used", "second hand"],
   rating:  ["أفضل تقييم", "الأعلى تقييم", "موثوق", "مضمون", "مجرب", "أنصح به", "ينصح", "أكثر مبيعاً", "الأكثر طلباً", "best rated", "top rated", "top reviewed", "recommended", "trusted", "most popular", "bestseller"],
   newest:  ["جديد", "أحدث", "اخر اصدار", "حديث", "latest", "newest", "just arrived", "new arrival", "2025", "2026"],
+  on_sale: ["عرض", "عروض", "تخفيض", "تخفيضات", "خصم", "خصومات", "سعر مخفض", "تنزيل", "مخفض", "sale", "discount", "offer", "deal", "promotion", "reduced", "clearance"],
+  gift:    ["هدية", "هدايا", "مناسبة", "عيد", "اهداء", "كادو", "هدية لـ", "gift", "present", "birthday", "occasion", "surprise"],
 } as const;
 
 type IntentModifier = keyof typeof INTENT_MODIFIERS;
@@ -130,6 +177,9 @@ interface ParsedIntent {
   expandedTerms: string[];
   baseTokens: string[];
   expandedQuery: string;
+  detectedOnSale: boolean;
+  detectedGift: boolean;
+  categoryBrowseSlug: string | null;
 }
 
 /* Normalized dict key lookup — handles taa-marbouta/alef variants in keys */
@@ -175,7 +225,24 @@ function parseIntent(rawQuery: string): ParsedIntent {
   const baseTokens = tokens.filter(t => !dialectTokens.has(t));
   const expandedQuery = [...new Set([...baseTokens, ...expandedTerms])].join(" ");
 
-  return { modifiers, mappedCategory, expandedTerms, baseTokens, expandedQuery };
+  const detectedOnSale = modifiers.includes("on_sale");
+  const detectedGift   = modifiers.includes("gift");
+
+  // Category browse detection — query is ONLY a category name (no other tokens)
+  let categoryBrowseSlug: string | null = null;
+  if (tokens.length <= 2 && expandedTerms.length === 0) {
+    for (const [slug, labels] of Object.entries(CATEGORY_LABELS)) {
+      if (
+        norm === normalizeArabic(labels.en.toLowerCase()) ||
+        norm === normalizeArabic(labels.ar)
+      ) {
+        categoryBrowseSlug = slug;
+        break;
+      }
+    }
+  }
+
+  return { modifiers, mappedCategory, expandedTerms, baseTokens, expandedQuery, detectedOnSale, detectedGift, categoryBrowseSlug };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -638,12 +705,15 @@ router.get("/search/results", async (req, res): Promise<void> => {
   // 3b. NLP pipeline — Arabic normalization, sticky tokens, cross-language bridge
   const nlp = processSearchQuery(raw);
 
+  // 3c. Synonym expansion — in-memory cache (5 min TTL), max 10 total expanded terms
+  const { expanded: synExpandedTokens, synonymExpanded } = await expandWithSynonyms(nlp.expandedTokens);
+
   /* ── 4. Merge all expansion sources ────────────────────────────────── */
-  // Union of: NLP expanded tokens + dialect keywords + raw normalized term
+  // Union of: NLP expanded tokens + synonym expansions + dialect keywords + raw normalized term
   const term = normalizeArabic(raw);   // kept for trigram scoring
 
   const allExpandedTokens: string[] = [
-    ...nlp.expandedTokens,
+    ...synExpandedTokens,
     ...intent.expandedTerms.map(t => normalizeArabic(t)),
     term,
   ];
@@ -688,6 +758,14 @@ router.get("/search/results", async (req, res): Promise<void> => {
       OR lower(p.name) LIKE '%used%'
       OR lower(COALESCE(p.name_ar,'')) LIKE '%مستعمل%'
     )`);
+  }
+  // on_sale intent → auto-filter to discounted products (unless user already passed hasDiscount)
+  if (intent.detectedOnSale && !filterDiscount) {
+    extraWhere.push(`p.discount_percent IS NOT NULL AND p.discount_percent > 0`);
+  }
+  // category_browse intent → auto-apply category filter (unless user already filtered by category)
+  if (intent.categoryBrowseSlug && !filterCategory) {
+    extraWhere.push(`lower(p.category) = ${pb.add(intent.categoryBrowseSlug.toLowerCase())}`);
   }
   if (filterCategory) {
     extraWhere.push(`lower(p.category) = ${pb.add(filterCategory.toLowerCase())}`);
@@ -1130,6 +1208,16 @@ router.get("/search/results", async (req, res): Promise<void> => {
 
   const metaRow = metaResult.rows[0];
 
+  // Compute primary detected intent for the frontend intent pill
+  const detectedIntent: string | null =
+    intent.categoryBrowseSlug          ? "category_browse" :
+    intent.detectedOnSale              ? "on_sale"         :
+    intent.detectedGift                ? "gift"            :
+    intent.modifiers.includes("cheap")   ? "price_low"    :
+    intent.modifiers.includes("premium") ? "price_high"   :
+    intent.modifiers.includes("newest")  ? "new_arrivals" :
+    null;
+
   res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=15");
   res.json({
     results,
@@ -1139,6 +1227,8 @@ router.get("/search/results", async (req, res): Promise<void> => {
     totalPages: Math.ceil(total / limit),
     searchLogId: searchLogId ?? null,
     didYouMean,
+    detectedIntent,
+    synonymExpanded,
     filterMeta: {
       priceRange: {
         min: parseFloat(metaRow?.price_min ?? "0"),
@@ -1156,12 +1246,13 @@ router.get("/search/results", async (req, res): Promise<void> => {
       },
     },
     intent: {
-      modifiers:       intent.modifiers,
-      mappedCategory:  intent.mappedCategory,
-      expandedTerms:   intent.expandedTerms,
-      nlpBaseTokens:   nlp.baseTokens,
+      modifiers:        intent.modifiers,
+      mappedCategory:   intent.mappedCategory,
+      expandedTerms:    intent.expandedTerms,
+      nlpBaseTokens:    nlp.baseTokens,
       nlpExpandedCount: nlp.expandedTokens.length,
-      primaryLanguage: nlp.primaryLanguage,
+      primaryLanguage:  nlp.primaryLanguage,
+      categoryBrowseSlug: intent.categoryBrowseSlug,
     },
   });
 });

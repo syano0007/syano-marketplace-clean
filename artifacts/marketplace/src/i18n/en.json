@@ -2955,6 +2955,15 @@
     "related": {
       "title": "Related Searches"
     },
+    "intent": {
+      "price_low": "Searching for: budget products",
+      "price_high": "Searching for: premium products",
+      "new_arrivals": "Searching for: newest arrivals",
+      "on_sale": "Searching for: discounted products",
+      "gift": "Searching for: gift ideas",
+      "category_browse": "Browsing category",
+      "dismiss": "Dismiss"
+    },
     "empty": {
       "title": "No results for \"{{query}}\"",
       "subtitle": "Try a different word or browse categories",

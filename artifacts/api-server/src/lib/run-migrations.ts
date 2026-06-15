@@ -418,6 +418,67 @@ export async function runMigrations(): Promise<void> {
         created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_msg_attachments_conv_id ON message_attachments(conversation_id);
+
+      -- ── Search Synonyms Table ─────────────────────────────────────────────────
+      CREATE TABLE IF NOT EXISTS search_synonyms (
+        id               SERIAL PRIMARY KEY,
+        term             TEXT    NOT NULL,
+        synonym          TEXT    NOT NULL,
+        language         TEXT    NOT NULL DEFAULT 'ar',
+        is_bidirectional BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at       TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_search_synonyms_term_lang    ON search_synonyms(term,    language);
+      CREATE INDEX IF NOT EXISTS idx_search_synonyms_synonym_lang ON search_synonyms(synonym, language);
+
+      -- Seed synonym pairs — ON CONFLICT DO NOTHING makes this idempotent
+      -- Arabic mobile/phone
+      INSERT INTO search_synonyms (term, synonym, language) VALUES
+        ('موبايل','هاتف','ar'),('موبايل','جوال','ar'),('موبايل','تليفون','ar'),('موبايل','بيجر','ar'),
+        ('هاتف','جوال','ar'),('هاتف','تليفون','ar')
+      ON CONFLICT DO NOTHING;
+      -- Arabic clothing
+      INSERT INTO search_synonyms (term, synonym, language) VALUES
+        ('شنطة','حقيبة','ar'),('شنطة','كيس','ar'),
+        ('بنطلون','بنطال','ar'),('بنطلون','سروال','ar'),
+        ('فستان','ثوب','ar'),
+        ('جاكيت','جاكتة','ar'),('جاكيت','معطف','ar'),
+        ('تيشيرت','قميص','ar'),
+        ('حذاء','كندرة','ar'),('حذاء','جزمة','ar')
+      ON CONFLICT DO NOTHING;
+      -- Arabic electronics
+      INSERT INTO search_synonyms (term, synonym, language) VALUES
+        ('تلفزيون','تلفاز','ar'),('تلفزيون','شاشة','ar'),
+        ('كمبيوتر','حاسوب','ar'),('كمبيوتر','جهاز','ar'),
+        ('لابتوب','حاسوب محمول','ar'),('لابتوب','كمبيوتر محمول','ar'),
+        ('سماعة','سماعات','ar'),
+        ('شاحن','شارجر','ar')
+      ON CONFLICT DO NOTHING;
+      -- Arabic home
+      INSERT INTO search_synonyms (term, synonym, language) VALUES
+        ('ثلاجة','برادة','ar'),
+        ('غسالة','وشاشة','ar'),
+        ('مكيف','ايركون','ar'),('مكيف','كيف','ar'),
+        ('طباخ','فرن','ar'),('طباخ','بوتاجاز','ar')
+      ON CONFLICT DO NOTHING;
+      -- English
+      INSERT INTO search_synonyms (term, synonym, language) VALUES
+        ('phone','mobile','en'),('phone','smartphone','en'),('phone','handset','en'),
+        ('laptop','notebook','en'),('laptop','computer','en'),
+        ('tv','television','en'),('tv','screen','en'),
+        ('bag','handbag','en'),('bag','purse','en'),
+        ('shoes','sneakers','en'),('shoes','footwear','en')
+      ON CONFLICT DO NOTHING;
+      -- Cross-language
+      INSERT INTO search_synonyms (term, synonym, language) VALUES
+        ('موبايل','mobile','both'),
+        ('لابتوب','laptop','both'),
+        ('تيشيرت','t-shirt','both'),
+        ('جاكيت','jacket','both'),
+        ('شاحن','charger','both'),
+        ('سماعة','headphones','both'),
+        ('تلفزيون','tv','both')
+      ON CONFLICT DO NOTHING;
     `);
 
     logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns ready");

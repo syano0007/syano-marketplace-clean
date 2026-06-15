@@ -90,6 +90,8 @@ interface SearchApiResponse {
   filterMeta?: FilterMeta;
   intent: SearchIntent;
   didYouMean?: string | null;
+  detectedIntent?: string | null;
+  synonymExpanded?: boolean;
 }
 
 interface FilterOption { slug: string; nameEn: string; nameAr: string; productCount: number; }
@@ -171,6 +173,7 @@ export default function SearchPage() {
   const [storeId, setStoreId] = useState<number | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [nlpBannerDismissed, setNlpBannerDismissed] = useState(false);
+  const [intentPillDismissed, setIntentPillDismissed] = useState(false);
 
   const [offset, setOffset] = useState(0);
   const [accumulated, setAccumulated] = useState<any[]>([]);
@@ -229,6 +232,7 @@ export default function SearchPage() {
       setSearchPage(1);
       setSearchAccumulated([]);
       setNlpBannerDismissed(false);
+      setIntentPillDismissed(false);
     }
   }, [searchFilterKey]);
 
@@ -458,6 +462,26 @@ export default function SearchPage() {
                   {lang === "ar" ? `نتائج البحث عن ` : `Results for `}
                   <span className="font-semibold text-foreground">"{debouncedQuery}"</span>
                 </span>
+              </div>
+            )}
+
+            {/* Intent Pill — shown when server detects a strong search intent */}
+            {!intentPillDismissed && searchData?.detectedIntent && (
+              <div className="mt-2 flex items-center gap-2">
+                <Badge
+                  variant="secondary"
+                  className="gap-1.5 text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-full px-3 py-1"
+                >
+                  <Sparkles className="h-3 w-3 shrink-0" />
+                  {t(`search.intent.${searchData.detectedIntent}`, t("search.intent.category_browse"))}
+                </Badge>
+                <button
+                  onClick={() => setIntentPillDismissed(true)}
+                  aria-label={t("search.intent.dismiss")}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
             )}
 

@@ -2,8 +2,25 @@
    SYANO — Search Processor  (src/utils/searchProcessor.ts)
    Production-grade bilingual NLP pipeline for Arabic/English e-commerce.
 
-   Pipeline:  sanitize → detectLanguage → normalizeArabic → normalizeEnglish
-              → tokenize → stripStopwords → splitStickyTokens → crossLanguageBridge
+   ┌─────────────────────────────────────────────────────────────────────────┐
+   │  FULL SEARCH PIPELINE SEQUENCE                                          │
+   │  (Steps applied before the DB query)                                   │
+   │                                                                         │
+   │  1.  Validate & sanitize query (injection removal, length truncation)  │
+   │  2.  Detect language per token (Arabic / Latin / numeric)              │
+   │  3.  Apply Arabic normalization to Arabic tokens                       │
+   │      (diacritics, alef variants, taa marbouta, eastern digits)         │
+   │  4.  Apply English normalization to Latin tokens (lowercase, stems)    │
+   │  5.  Strip Syrian stop words — ONLY when residual query is non-empty   │
+   │  6.  Look up synonyms (in-memory cache first, DB fallback, 5 min TTL) │
+   │  7.  Detect intent (detectIntent — pure JS, no DB, < 1 ms)            │
+   │  8.  Apply brand boost if known brand detected in query                │
+   │  9.  Handle numeric tokens (price context / year / model number)      │
+   │  10. Build FTS query — mixed-language-aware OR tsquery                 │
+   │  11. Execute DB query with multi-signal ranking (text/quality/pop/…)  │
+   │  12. Apply seller diversity post-processing                            │
+   │  13. Return results with intent + synonym + ranking metadata           │
+   └─────────────────────────────────────────────────────────────────────────┘
 
    TypeScript strict mode — 0 any typings — microsecond-level overhead.
    ════════════════════════════════════════════════════════════════════════════ */
@@ -165,6 +182,10 @@ const STICKY_VOCAB_NORMALIZED: ReadonlySet<string> =
 const ARABIC_STOPWORDS: ReadonlySet<string> = new Set([
   "في", "من", "على", "مع", "الى", "عن", "ب", "ل", "و", "ال",
   "هذا", "هذه", "او", "ثم",
+  // Syrian dialect stop words — stripped only when residual query stays non-empty
+  "بدي", "بدو", "بدها", "بدنا", "بدكم", "بدهم",
+  "شو", "شوف", "كيف", "وين", "ليش", "امتي",
+  "بس", "يعني", "هلق", "هون", "هناك", "هاد", "هاي", "هدا",
 ]);
 
 const ENGLISH_STOPWORDS: ReadonlySet<string> = new Set([
@@ -314,7 +335,9 @@ export function stripStopwords(tokens: readonly string[]): string[] {
     if (candidate.length > 0) result.push(candidate);
   }
 
-  return result;
+  // Safety guard: if ALL tokens were stopwords, preserve the original query
+  // to avoid an empty FTS input (e.g. user types only "بدي" or "شو").
+  return result.length > 0 ? result : [...tokens];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -679,6 +702,84 @@ const TEST_SUITE: readonly TestCase[] = [
     ],
   },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INTENT DETECTION  (pure JS, no DB, < 1 ms)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface DetectedIntentResult {
+  readonly intent: string | null;
+  readonly confidence: number;
+  readonly modifiers: Readonly<Record<string, boolean>>;
+  readonly detectedIntents: readonly string[];
+}
+
+const INTENT_TRIGGERS: Readonly<Record<string, { ar: readonly string[]; en: readonly string[] }>> = {
+  price_low: {
+    ar: ["رخيص", "رخيصة", "رخيصه", "بسعر مناسب", "بسعر رخيص", "ارخص", "اقل سعر", "اوفر", "اقتصادي", "مو غالي", "مش غالي", "ما غالي", "بسيط", "بزبون", "لقطة", "لقطه", "ببلاش", "على قد الايد", "حرق"],
+    en: ["cheap", "affordable", "budget", "low price", "inexpensive", "economical", "value"],
+  },
+  price_high: {
+    ar: ["غالي", "فاخر", "فاخرة", "بريميوم", "احسن جودة", "احسن جوده", "فخم", "راقي", "نخب اول", "ماركة", "ماركه", "براند", "ملوكي", "ممتاز", "وكالة", "وكاله"],
+    en: ["expensive", "premium", "luxury", "high-end", "quality", "best"],
+  },
+  new_arrivals: {
+    ar: ["جديد", "جديدة", "جديده", "وصل حديثا", "اخر وصول", "احدث", "وصل هلق", "طازج", "حديث"],
+    en: ["new", "latest", "just arrived", "recent", "newest"],
+  },
+  on_sale: {
+    ar: ["عرض", "عروض", "تخفيض", "تخفيضات", "خصم", "خصومات", "سعر مخفض", "تنزيل", "مخفض", "ارخص سعر"],
+    en: ["sale", "discount", "offer", "deal", "promotion", "reduced", "clearance"],
+  },
+  gift: {
+    ar: ["هدية", "هديه", "هدايا", "مناسبة", "مناسبه", "عيد", "اهداء", "هدية لـ", "هديه لامي", "هديه لزوجتي", "هديه للاطفال", "كاده", "كادو"],
+    en: ["gift", "present", "for her", "for him", "for kids", "birthday", "occasion", "surprise"],
+  },
+} as const;
+
+/**
+ * detectIntent — classify user intent from a query (no DB access required).
+ *
+ * Returns all detected intents, a primary intent, and a confidence score.
+ * The normalizedQuery is passed through Arabic normalization before matching
+ * so taa marbouta / alef variants are handled transparently.
+ */
+export function detectIntent(query: string, _language?: "ar" | "en" | "mixed"): DetectedIntentResult {
+  const norm = normalizeArabicText(query.toLowerCase());
+  const tokens = norm.split(/\s+/).filter(Boolean);
+
+  const detectedIntents: string[] = [];
+  const modifiers: Record<string, boolean> = {};
+
+  for (const [intentName, triggers] of Object.entries(INTENT_TRIGGERS)) {
+    const allTriggers = [
+      ...triggers.ar.map(t => normalizeArabicText(t.toLowerCase())),
+      ...triggers.en.map(t => t.toLowerCase()),
+    ];
+    const hit =
+      tokens.some(tok => allTriggers.some(tr => !tr.includes(" ") && tr === tok)) ||
+      allTriggers.some(tr => tr.includes(" ") && norm.includes(tr));
+
+    if (hit) {
+      detectedIntents.push(intentName);
+      modifiers[intentName] = true;
+    }
+  }
+
+  const primaryIntent = detectedIntents[0] ?? null;
+  let confidence = 0;
+  if (primaryIntent !== null) {
+    const triggers = INTENT_TRIGGERS[primaryIntent];
+    const normTriggers = [
+      ...triggers.ar.map(t => normalizeArabicText(t.toLowerCase())),
+      ...triggers.en.map(t => t.toLowerCase()),
+    ];
+    const exactHit = tokens.some(tok => normTriggers.some(tr => !tr.includes(" ") && tr === tok));
+    confidence = exactHit ? 1.0 : 0.7;
+  }
+
+  return { intent: primaryIntent, confidence, modifiers, detectedIntents };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TEST RUNNER
