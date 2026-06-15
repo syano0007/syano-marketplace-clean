@@ -198,59 +198,59 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* Dark mode — TRUE AMOLED:
-  Main Background: #000000 → HSL: 0 0% 0%
-  Elevated surfaces/Cards: #0A0A0A → HSL: 0 0% 4%
-  Borders: #1A1A1A → HSL: 0 0% 10%
+  /* Dark mode — MUTED DARK GRAY (Claude.ai match):
+  Main Background: #1A1A1A → HSL: 0 0% 10%
+  Elevated surfaces/Cards: #242424 → HSL: 0 0% 14%
+  Borders: #333333 → HSL: 0 0% 20%
   Primary Green: #10B981 → HSL: 160 84% 39%
   Hover Green: #059669 → HSL: 161 94% 30%
   Text: #F8FAFC → HSL: 210 40% 98%
   Secondary text: #CBD5E1 → HSL: 215 25% 84%
   */
 
-  --background: 0 0% 0%;
+  --background: 0 0% 10%;
   --foreground: 210 40% 98%;
 
-  --card: 0 0% 4%;
+  --card: 0 0% 14%;
   --card-foreground: 210 40% 98%;
-  --card-border: 0 0% 10%;
+  --card-border: 0 0% 20%;
 
-  --popover: 0 0% 4%;
+  --popover: 0 0% 14%;
   --popover-foreground: 210 40% 98%;
-  --popover-border: 0 0% 10%;
+  --popover-border: 0 0% 20%;
 
   --primary: 160 84% 39%;
   --primary-foreground: 0 0% 0%;
 
-  --secondary: 0 0% 10%;
+  --secondary: 0 0% 20%;
   --secondary-foreground: 210 40% 98%;
 
-  --muted: 0 0% 10%;
+  --muted: 0 0% 20%;
   --muted-foreground: 215 25% 84%;
 
-  --accent: 0 0% 10%;
+  --accent: 0 0% 20%;
   --accent-foreground: 210 40% 98%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 210 40% 98%;
 
-  --border: 0 0% 10%;
-  --input: 0 0% 10%;
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
   --ring: 160 84% 39%;
 
-  --sidebar: 0 0% 4%;
+  --sidebar: 0 0% 14%;
   --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 0 0% 10%;
+  --sidebar-border: 0 0% 20%;
   --sidebar-primary: 160 84% 39%;
   --sidebar-primary-foreground: 0 0% 0%;
-  --sidebar-accent: 0 0% 10%;
+  --sidebar-accent: 0 0% 20%;
   --sidebar-accent-foreground: 210 40% 98%;
   --sidebar-ring: 160 84% 39%;
 
   --chart-1: 160 84% 39%;
   --chart-2: 210 40% 98%;
   --chart-3: 215 25% 84%;
-  --chart-4: 0 0% 10%;
+  --chart-4: 0 0% 20%;
   --chart-5: 0 0% 100%;
 
   /* ── Dark Theme: image brightness (heavier overlays for drama) ───── */
@@ -266,7 +266,7 @@
   --shadow-card-lg:    0 30px 80px -20px rgba(0,0,0,0.60);
 
   /* ── Alt section background ──────────────────────────────────────── */
-  --section-alt: 0 0% 2%;
+  --section-alt: 0 0% 12%;
 }
 
 @utility container {
