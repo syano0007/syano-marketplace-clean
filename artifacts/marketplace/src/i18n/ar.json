@@ -2982,6 +2982,10 @@
       "level4Title": "المنتجات الرائجة",
       "level4Subtitle": "لم يُعثر على نتائج لهذا البحث. إليك بعض المنتجات الشائعة.",
       "dismiss": "إخفاء"
+    },
+    "semantic": {
+      "smartSearch": "بحث ذكي",
+      "hybridTooltip": "البحث الذكي + النصي مفعّل ({{count}} نتيجة دلالية)"
     }
   },
   "categories": {

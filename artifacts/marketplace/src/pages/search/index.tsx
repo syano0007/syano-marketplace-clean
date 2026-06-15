@@ -101,6 +101,8 @@ interface SearchApiResponse {
   detectedIntent?: string | null;
   synonymExpanded?: boolean;
   fallback?: SearchFallback | null;
+  searchMode?: "hybrid" | "fts_only";
+  semanticResultCount?: number;
 }
 
 interface FilterOption { slug: string; nameEn: string; nameAr: string; productCount: number; }
@@ -348,6 +350,8 @@ export default function SearchPage() {
   const searchIntent = searchMode ? (searchData?.intent ?? null) : null;
   const searchLogId: number | null = searchMode ? (searchData?.searchLogId ?? null) : null;
   const searchFallback = searchMode ? (searchData?.fallback ?? null) : null;
+  const apiEngineMode = searchMode ? (searchData?.searchMode ?? "fts_only") : "fts_only";
+  const semanticResultCount = searchMode ? (searchData?.semanticResultCount ?? 0) : 0;
 
   const [fallbackBannerDismissed, setFallbackBannerDismissed] = useState(false);
   useEffect(() => { setFallbackBannerDismissed(false); }, [debouncedQuery]);
@@ -710,6 +714,17 @@ export default function SearchPage() {
                         {isRtl
                           ? `${totalResults.toLocaleString()} نتيجة`
                           : `${totalResults.toLocaleString()} result${totalResults !== 1 ? "s" : ""}`}
+                      </span>
+                    )}
+                    {apiEngineMode === "hybrid" && (
+                      <span
+                        title={t("search.semantic.hybridTooltip", { count: semanticResultCount })}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 select-none"
+                      >
+                        <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+                        </svg>
+                        {t("search.semantic.smartSearch")}
                       </span>
                     )}
                     {debouncedQuery && (

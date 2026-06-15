@@ -5,6 +5,7 @@ import { runMigrations } from "./lib/run-migrations";
 import { bootstrapRootAdmin } from "./lib/bootstrap-admin";
 import { bootstrapTestAccounts } from "./lib/bootstrap-test-accounts";
 import { bootstrapDemoMarketplaceData } from "./lib/bootstrap-demo-data";
+import { runEmbeddingBackfill } from "./scripts/generateEmbeddings";
 
 const rawPort = process.env["PORT"];
 
@@ -34,5 +35,11 @@ if (Number.isNaN(port) || port <= 0) {
     }
 
     logger.info({ port }, "Server listening");
+
+    // Non-blocking: generate embeddings for products that don't have them yet.
+    // Runs after the server is already listening so it never delays startup.
+    runEmbeddingBackfill().catch((err) =>
+      logger.error({ err }, "[embeddings] Backfill error"),
+    );
   });
 })();

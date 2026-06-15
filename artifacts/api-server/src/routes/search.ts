@@ -4,6 +4,7 @@ import { pool } from "@workspace/db";
 import { MAIN_CATEGORY_SLUGS } from "../categories";
 import { processSearchQuery } from "../utils/searchProcessor";
 import { optionalAuth, requireAuth } from "../middlewares/auth";
+import { searchCache, buildCacheKey, getTTL } from "../services/searchCache";
 
 const router: IRouter = Router();
 
@@ -457,6 +458,111 @@ function updateQueryLog(id: number, resultCount: number, fallbackLevel: number |
   ).catch(() => {});
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   SEMANTIC SEARCH LAYER — vector similarity via pgvector + multilingual-e5-small
+   ───────────────────────────────────────────────────────────────────────────
+   Architecture:
+     • Embedding service (FastAPI on port 8001) provides query/passage vectors
+     • Products are embedded at creation time + backfilled at startup
+     • pgvector cosine distance used for nearest-neighbour retrieval
+     • Runs in parallel with the FTS pipeline; results merged via RRF
+     • Gracefully degrades to FTS-only when embedding service / pgvector unavailable
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+let _embeddingServiceAvailable = false;
+let _pgvectorAvailable         = false;
+
+const EMBEDDING_SERVICE_URL = process.env["EMBEDDING_SERVICE_URL"] ?? "http://localhost:8001";
+const EMBEDDING_TIMEOUT_MS  = 2000;
+
+interface SemanticResult { id: number; score: number; }
+
+async function _probeEmbeddingService(): Promise<boolean> {
+  if (!process.env["EMBEDDING_SERVICE_URL"]) return false;
+  try {
+    const resp = await fetch(`${EMBEDDING_SERVICE_URL}/health`, {
+      signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS),
+    });
+    return resp.ok;
+  } catch { return false; }
+}
+
+async function _probePgvector(): Promise<boolean> {
+  try { await pool.query(`SELECT NULL::vector(1)`); return true; } catch { return false; }
+}
+
+// Startup probe + periodic re-probe every 60 s
+(async () => {
+  _pgvectorAvailable         = await _probePgvector();
+  _embeddingServiceAvailable = await _probeEmbeddingService();
+  console.log(`[search] pgvector=${_pgvectorAvailable} embedding_service=${_embeddingServiceAvailable}`);
+  setInterval(async () => {
+    _embeddingServiceAvailable = await _probeEmbeddingService();
+  }, 60_000);
+})();
+
+/** Fetch a query embedding from the embedding service (2-second hard timeout). */
+async function getQueryEmbedding(query: string): Promise<number[] | null> {
+  if (!_embeddingServiceAvailable || !process.env["EMBEDDING_SERVICE_URL"]) return null;
+  try {
+    const resp = await fetch(`${EMBEDDING_SERVICE_URL}/embed/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: query }),
+      signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS),
+    });
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as { embedding?: number[] };
+    return data.embedding ?? null;
+  } catch { return null; }
+}
+
+/** cosine nearest-neighbour search using pgvector's <=> operator. */
+async function semanticSearch(embedding: number[], topK: number): Promise<SemanticResult[]> {
+  if (!_pgvectorAvailable) return [];
+  try {
+    const { rows } = await pool.query<{ id: number; score: number }>(
+      `SELECT p.id, (1.0 - (p.embedding <=> $1::vector))::float AS score
+       FROM products p
+       INNER JOIN users u ON u.id = p.seller_id AND u.account_status = 'active'
+       INNER JOIN seller_applications sa ON sa.user_id = p.seller_id AND sa.status = 'approved'
+       WHERE p.embedding IS NOT NULL AND p.stock > 0
+       ORDER BY p.embedding <=> $1::vector
+       LIMIT $2`,
+      [`[${embedding.join(",")}]`, topK],
+    );
+    return rows;
+  } catch { return []; }
+}
+
+/**
+ * Reciprocal Rank Fusion — merges two ranked lists into a unified ordering.
+ * k=60 is the standard constant (Cormack et al. 2009).
+ * ftsWeight + semanticWeight should sum to 1.0.
+ */
+function reciprocalRankFusion<T extends { id: number }>(
+  ftsResults:      T[],
+  semanticResults: SemanticResult[],
+  ftsWeight      = 0.65,
+  semanticWeight = 0.35,
+  k              = 60,
+): { id: number; rrfScore: number; fromSemantic: boolean }[] {
+  const scores      = new Map<number, number>();
+  const fromSemSet  = new Set<number>();
+
+  ftsResults.forEach((item, rank) => {
+    scores.set(item.id, (scores.get(item.id) ?? 0) + ftsWeight * (1 / (k + rank + 1)));
+  });
+  semanticResults.forEach((item, rank) => {
+    scores.set(item.id, (scores.get(item.id) ?? 0) + semanticWeight * (1 / (k + rank + 1)));
+    fromSemSet.add(item.id);
+  });
+
+  return Array.from(scores.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, rrfScore]) => ({ id, rrfScore, fromSemantic: fromSemSet.has(id) }));
+}
+
 /** Async: insert into query_logs and return the new row id (or null on failure/timeout) */
 async function logToQueryLogsGetId(rawTerm: string, lang: string): Promise<number | null> {
   const q = rawTerm.trim().slice(0, 120);
@@ -709,6 +815,34 @@ router.get("/search/results", optionalAuth, async (req, res): Promise<void> => {
   const includeOOS = req.query.include_out_of_stock === "true" &&
     ["admin", "seller"].includes((req as any).user?.role ?? "");
 
+  /* ── 2.5. Cache check ──────────────────────────────────────────────────
+   * Build cache key from all discriminating query params.  Debug=ranking
+   * requests are never cached (they expose internal scoring details).
+   * normalizeArabic is a cheap pure function — safe to call here.
+   * ────────────────────────────────────────────────────────────────────── */
+  const cacheKey = debugRanking ? null : buildCacheKey({
+    normalizedQuery: normalizeArabic(raw),
+    sortBy,
+    category:    filterCategory,
+    priceMin:    filterPriceMin,
+    priceMax:    filterPriceMax,
+    page,
+    limit,
+    inStock:     false,
+    hasDiscount: filterDiscount,
+    storeId:     filterStoreId,
+    minRating:   filterMinRating,
+  });
+  if (cacheKey) {
+    const cached = searchCache.get(cacheKey);
+    if (cached) {
+      res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=15");
+      res.setHeader("X-Cache", "HIT");
+      res.json(cached);
+      return;
+    }
+  }
+
   /* ── 3. Dual NLP pipeline ───────────────────────────────────────────── */
 
   // 3a. Dialect dictionary — intent modifiers + dialect category + expanded keywords
@@ -743,6 +877,16 @@ router.get("/search/results", optionalAuth, async (req, res): Promise<void> => {
     sortBy;
 
   trackQuery(raw);
+
+  /* ── 5.5. Start semantic search concurrently — runs in parallel with FTS ─
+   * getQueryEmbedding has a hard 2-second timeout so it never delays FTS.
+   * Promise resolves to [] immediately when embedding service / pgvector
+   * are unavailable, making this branch zero-cost in FTS-only mode.
+   * ────────────────────────────────────────────────────────────────────── */
+  const semanticPromise: Promise<SemanticResult[]> =
+    (_embeddingServiceAvailable && _pgvectorAvailable && raw.length >= 4)
+      ? getQueryEmbedding(raw).then((emb) => emb ? semanticSearch(emb, limit * 3) : [])
+      : Promise.resolve([]);
 
   /* Log to query_logs concurrently — race caps at 50 ms so it never delays search response */
   const langDetect = /[\u0600-\u06FF]/.test(raw) ? "ar" : "en";
@@ -1182,7 +1326,28 @@ router.get("/search/results", optionalAuth, async (req, res): Promise<void> => {
     return [...top, ...tail];
   }
 
-  const results = total > 20 ? applySellerDiversity(mapped) : mapped;
+  /* ── 10.3. Semantic RRF — await the concurrent semantic promise and merge ─
+   * semanticPromise was started before the FTS query so it runs in parallel.
+   * When semantic search is unavailable it resolves to [] at zero cost.
+   * RRF reorders the existing FTS results; products that appear in both
+   * pipelines are promoted; purely-FTS results retain relative FTS order.
+   * ─────────────────────────────────────────────────────────────────────── */
+  const semanticResults: SemanticResult[] = await semanticPromise;
+  let searchMode: "hybrid" | "fts_only" = "fts_only";
+  let semanticResultCount = 0;
+  let rrfMapped = mapped;
+
+  if (semanticResults.length > 0 && mapped.length > 0) {
+    const rrfOrdered = reciprocalRankFusion(mapped, semanticResults);
+    const rrfIdxMap  = new Map(rrfOrdered.map((r, i) => [r.id, i]));
+    rrfMapped = [...mapped].sort(
+      (a, b) => (rrfIdxMap.get(a.id) ?? 9999) - (rrfIdxMap.get(b.id) ?? 9999),
+    );
+    searchMode         = "hybrid";
+    semanticResultCount = semanticResults.filter((r) => rrfIdxMap.has(r.id)).length;
+  }
+
+  const results = total > 20 ? applySellerDiversity(rrfMapped) : rrfMapped;
 
   /* ── 10.5. Smart fallback chain — 4 levels when main query returns 0 ── */
   type FallbackMeta = {
@@ -1369,8 +1534,7 @@ router.get("/search/results", optionalAuth, async (req, res): Promise<void> => {
     intent.modifiers.includes("newest")  ? "new_arrivals" :
     null;
 
-  res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=15");
-  res.json({
+  const responsePayload = {
     results:    finalResults,
     total:      finalTotal,
     page,
@@ -1381,6 +1545,8 @@ router.get("/search/results", optionalAuth, async (req, res): Promise<void> => {
     detectedIntent,
     synonymExpanded,
     fallback: fallbackMeta,
+    searchMode,
+    semanticResultCount,
     filterMeta: {
       priceRange: {
         min: parseFloat(metaRow?.price_min ?? "0"),
@@ -1406,7 +1572,19 @@ router.get("/search/results", optionalAuth, async (req, res): Promise<void> => {
       primaryLanguage:  nlp.primaryLanguage,
       categoryBrowseSlug: intent.categoryBrowseSlug,
     },
-  });
+  };
+
+  /* Write to in-memory LRU cache before responding.
+   * TTL varies: sale/new-arrival queries get 1 min, L4 fallbacks 10 min,
+   * everything else 5 min.  Debug=ranking results are never cached. */
+  if (cacheKey) {
+    const ttl = getTTL(detectedIntent, fallbackMeta?.level ?? null);
+    searchCache.set(cacheKey, responsePayload, ttl, raw);
+  }
+
+  res.setHeader("Cache-Control", "public, max-age=5, stale-while-revalidate=15");
+  res.setHeader("X-Cache", "MISS");
+  res.json(responsePayload);
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1635,6 +1813,7 @@ router.post("/admin/search/reindex", requireAuth, async (req, res): Promise<void
         setweight(to_tsvector('simple', coalesce(search_tokens, '')), 'C') ||
         setweight(to_tsvector('simple', coalesce(description, '')),   'C')
     `);
+    searchCache.invalidate();
     res.json({ ok: true, updatedCount: result.rowCount ?? 0 });
   } catch (err) {
     res.status(500).json({ error: "Reindex failed", detail: String(err) });
@@ -1642,7 +1821,41 @@ router.post("/admin/search/reindex", requireAuth, async (req, res): Promise<void
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ROUTE 11 — GET /api/admin/search/health
+   ROUTE 11.5 — GET /api/admin/search/cache
+   Admin: returns in-memory LRU search cache statistics.
+   ═══════════════════════════════════════════════════════════════════════════ */
+router.get("/admin/search/cache", requireAuth, async (req, res): Promise<void> => {
+  if ((req as any).user?.role !== "admin") {
+    res.status(403).json({ error: "Admin only" });
+    return;
+  }
+  const stats = searchCache.getStats();
+  const topQueries = searchCache.getTopQueries(10);
+  res.json({
+    cache: {
+      ...stats,
+      embeddingServiceAvailable: _embeddingServiceAvailable,
+      pgvectorAvailable:         _pgvectorAvailable,
+    },
+    topCachedQueries: topQueries,
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROUTE 11.6 — DELETE /api/admin/search/cache
+   Admin: flush the entire in-memory search cache.
+   ═══════════════════════════════════════════════════════════════════════════ */
+router.delete("/admin/search/cache", requireAuth, async (req, res): Promise<void> => {
+  if ((req as any).user?.role !== "admin") {
+    res.status(403).json({ error: "Admin only" });
+    return;
+  }
+  searchCache.invalidate();
+  res.json({ ok: true, message: "Search cache flushed" });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROUTE 12 — GET /api/admin/search/health
    Admin: returns search index health stats.
    ═══════════════════════════════════════════════════════════════════════════ */
 router.get("/admin/search/health", requireAuth, async (req, res): Promise<void> => {

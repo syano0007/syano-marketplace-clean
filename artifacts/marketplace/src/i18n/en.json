@@ -2982,6 +2982,10 @@
       "level4Title": "Trending products",
       "level4Subtitle": "No results found for this search. Here are some popular products.",
       "dismiss": "Dismiss"
+    },
+    "semantic": {
+      "smartSearch": "Smart search",
+      "hybridTooltip": "AI + text search active ({{count}} semantic results)"
     }
   },
   "categories": {

@@ -21,6 +21,8 @@ export const productsTable = pgTable("products", {
   searchTokens: text("search_tokens"),
   viewCount: integer("view_count").notNull().default(0),
   salesCount: integer("sales_count").notNull().default(0),
+  embeddingModel: text("embedding_model"),
+  embeddedAt: timestamp("embedded_at"),
 }, (t) => [
   index("products_category_idx").on(t.category),
   index("products_seller_id_idx").on(t.sellerId),

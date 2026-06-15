@@ -535,6 +535,33 @@ export async function runMigrations(): Promise<void> {
       WHERE fts_vector IS NULL;
     `);
 
+    // ── Phase 7: Semantic Search — pgvector extension + embedding columns ──────
+    // pgvector is optional; if unavailable we catch the error and continue with FTS-only.
+    try {
+      await client.query(`CREATE EXTENSION IF NOT EXISTS vector`);
+      await client.query(`
+        ALTER TABLE products ADD COLUMN IF NOT EXISTS embedding       vector(384);
+        ALTER TABLE products ADD COLUMN IF NOT EXISTS embedding_model TEXT;
+        ALTER TABLE products ADD COLUMN IF NOT EXISTS embedded_at     TIMESTAMPTZ;
+      `);
+      // IVFFlat index — only create if enough rows exist to make it useful
+      await client.query(`
+        DO $$
+        BEGIN
+          IF (SELECT COUNT(*) FROM products WHERE embedding IS NOT NULL) >= 50 THEN
+            CREATE INDEX IF NOT EXISTS idx_products_embedding_ivfflat
+              ON products USING ivfflat (embedding vector_cosine_ops) WITH (lists = 20);
+          END IF;
+        END $$;
+      `);
+      logger.info("Semantic search: pgvector extension + embedding columns ready");
+    } catch (pgvectorErr) {
+      logger.warn(
+        { err: String(pgvectorErr) },
+        "pgvector not available — semantic search disabled (FTS-only mode active)",
+      );
+    }
+
     logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns ready");
   } catch (err) {
     logger.error({ err }, "Migration error — server cannot start safely");

@@ -17,6 +17,8 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, requireRole, requireActiveAccount } from "../middlewares/auth";
 import { isBestDeal } from "../lib/bestDeals";
+import { searchCache } from "../services/searchCache";
+import { generateSingleEmbedding } from "../scripts/generateEmbeddings";
 
 const router: IRouter = Router();
 
@@ -422,7 +424,12 @@ router.post("/products", requireAuth, requireRole("seller"), requireActiveAccoun
     })
     .returning();
 
-  res.status(201).json(await buildProductResponse(product));
+  const created = await buildProductResponse(product);
+  // Fire-and-forget: generate semantic embedding + invalidate search cache
+  const embText = [product.nameAr, product.name, product.category, product.subcategory, product.description?.slice(0, 500), product.searchTokens].filter(Boolean).join(" ");
+  generateSingleEmbedding(product.id, embText).catch(() => {});
+  searchCache.invalidate();
+  res.status(201).json(created);
 });
 
 router.patch("/products/:id", requireAuth, requireRole("seller"), requireActiveAccount, async (req, res): Promise<void> => {
@@ -487,6 +494,7 @@ router.patch("/products/:id", requireAuth, requireRole("seller"), requireActiveA
   }
 
   const [updated] = await db.update(productsTable).set(updateData).where(eq(productsTable.id, params.data.id)).returning();
+  searchCache.invalidate();
   res.json(await buildProductResponse(updated));
 });
 
@@ -505,6 +513,7 @@ router.delete("/products/:id", requireAuth, requireRole("seller"), requireActive
   }
 
   await db.delete(productsTable).where(eq(productsTable.id, params.data.id));
+  searchCache.invalidate();
   res.json({ message: "Product deleted" });
 });
 
@@ -540,6 +549,7 @@ router.patch("/products/:id/discount", requireAuth, requireRole("seller"), requi
     .where(eq(productsTable.id, params.data.id))
     .returning();
 
+  searchCache.invalidate();
   res.json(await buildProductResponse(updated));
 });
 
