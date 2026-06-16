@@ -227,7 +227,7 @@ function BannerDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[90vw] max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? t("admin.hero_banners.edit_banner") : t("admin.hero_banners.new_banner")}</DialogTitle>
         </DialogHeader>
@@ -728,7 +728,7 @@ export default function AdminHeroBanners() {
 
       {/* Delete confirm dialog */}
       <Dialog open={deleteConfirm !== null} onOpenChange={(v) => { if (!v) setDeleteConfirm(null); }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="w-[90vw] max-w-sm max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trash2 className="h-4 w-4 text-destructive" />

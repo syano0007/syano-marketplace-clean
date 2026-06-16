@@ -183,7 +183,7 @@ export default function SellerDashboard() {
                   <p className="text-sm font-semibold text-foreground">{t("seller_dashboard.view_store")}</p>
                   <p className="text-xs text-muted-foreground truncate">{t("seller_dashboard.view_store_desc")}</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-emerald-500 transition-colors" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-emerald-500 transition-colors rtl:rotate-180" />
               </div>
             </Link>
           ) : (
@@ -196,7 +196,7 @@ export default function SellerDashboard() {
                   <p className="text-sm font-semibold text-foreground">{t("seller_dashboard.view_store_setup")}</p>
                   <p className="text-xs text-muted-foreground truncate">{t("seller_dashboard.view_store_desc")}</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-emerald-500 transition-colors" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-emerald-500 transition-colors rtl:rotate-180" />
               </div>
             </Link>
           )}
@@ -210,7 +210,7 @@ export default function SellerDashboard() {
                 <p className="text-sm font-semibold text-foreground">{t("seller_dashboard.store_settings")}</p>
                 <p className="text-xs text-muted-foreground truncate">{t("seller_dashboard.store_settings_desc")}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-violet-500 transition-colors" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-violet-500 transition-colors rtl:rotate-180" />
             </div>
           </Link>
           {/* Row 2: Add Product */}
@@ -223,7 +223,7 @@ export default function SellerDashboard() {
                 <p className="text-sm font-semibold text-foreground">{t("seller_dashboard.quick_add_product")}</p>
                 <p className="text-xs text-muted-foreground truncate">{t("seller_dashboard.add_product_desc")}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-primary transition-colors" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-primary transition-colors rtl:rotate-180" />
             </div>
           </Link>
           {/* Row 2: View Orders */}
@@ -236,7 +236,7 @@ export default function SellerDashboard() {
                 <p className="text-sm font-semibold text-foreground">{t("seller_dashboard.quick_orders")}</p>
                 <p className="text-xs text-muted-foreground truncate">{t("seller_dashboard.orders_desc")}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-blue-500 transition-colors" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-blue-500 transition-colors rtl:rotate-180" />
             </div>
           </Link>
           {/* Row 3: Inventory Management */}
@@ -249,7 +249,7 @@ export default function SellerDashboard() {
                 <p className="text-sm font-semibold text-foreground">{t("seller_dashboard.quick_inventory")}</p>
                 <p className="text-xs text-muted-foreground truncate">{t("seller_dashboard.inventory_desc")}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-amber-500 transition-colors" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-amber-500 transition-colors rtl:rotate-180" />
             </div>
           </Link>
           {/* Row 3: Customer Messages */}
@@ -262,7 +262,7 @@ export default function SellerDashboard() {
                 <p className="text-sm font-semibold text-foreground">{t("seller_dashboard.quick_messages")}</p>
                 <p className="text-xs text-muted-foreground truncate">{t("seller_dashboard.messages_desc")}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-teal-500 transition-colors" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 group-hover:text-teal-500 transition-colors rtl:rotate-180" />
             </div>
           </Link>
         </div>

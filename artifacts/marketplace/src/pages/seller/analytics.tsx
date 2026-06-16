@@ -547,7 +547,7 @@ export default function SellerAnalytics() {
             action={
               <div className="flex items-center gap-2">
                 <GranularityToggle value={granularity} onChange={setGranularity} t={t} />
-                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleExportRevenue} title={t("seller_analytics.export_csv")} disabled={!chart?.points?.length}>
+                <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={handleExportRevenue} title={t("seller_analytics.export_csv")} disabled={!chart?.points?.length}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -623,7 +623,7 @@ export default function SellerAnalytics() {
             title={t("seller_analytics.products_title")}
             subtitle={t("seller_analytics.products_sub")}
             action={
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleExportProducts} title={t("seller_analytics.export_csv")} disabled={!s?.topProducts?.length}>
+              <Button variant="ghost" size="icon" className="h-11 w-11" onClick={handleExportProducts} title={t("seller_analytics.export_csv")} disabled={!s?.topProducts?.length}>
                 <Download className="h-3.5 w-3.5" />
               </Button>
             }

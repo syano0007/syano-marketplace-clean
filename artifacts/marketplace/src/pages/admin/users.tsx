@@ -359,11 +359,11 @@ export default function AdminUsers() {
                 {t("admin.page_of", { page, totalPages })}
               </span>
               <div className="flex items-center gap-1">
-                <Button size="icon" variant="ghost" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                  <ChevronLeft className="h-4 w-4" />
+                <Button size="icon" variant="ghost" className="h-11 w-11" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                  <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                  <ChevronRight className="h-4 w-4" />
+                <Button size="icon" variant="ghost" className="h-11 w-11" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                  <ChevronRight className="h-4 w-4 rtl:rotate-180" />
                 </Button>
               </div>
             </div>
@@ -373,7 +373,7 @@ export default function AdminUsers() {
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>{t("admin.delete_user_title")}</AlertDialogTitle>
             <AlertDialogDescription>{t("admin.delete_user_desc", { name: deleteTarget?.name })}</AlertDialogDescription>
@@ -392,7 +392,7 @@ export default function AdminUsers() {
 
       {/* Verify modal — tier selection */}
       <Dialog open={!!verifyTarget} onOpenChange={() => setVerifyTarget(null)}>
-        <DialogContent>
+        <DialogContent className="w-[90vw] max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-emerald-600" />
@@ -437,7 +437,7 @@ export default function AdminUsers() {
 
       {/* Unverify confirmation */}
       <AlertDialog open={!!unverifyTarget} onOpenChange={() => setUnverifyTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>{t("admin.unverify_confirm_title", "Remove Verification?")}</AlertDialogTitle>
             <AlertDialogDescription>{t("admin.unverify_confirm_desc", "This will remove the verification badge from {{name}}. Their trust score will be recalculated.", { name: unverifyTarget?.name })}</AlertDialogDescription>
@@ -456,7 +456,7 @@ export default function AdminUsers() {
 
       {/* Suspend modal */}
       <Dialog open={!!suspendTarget} onOpenChange={() => setSuspendTarget(null)}>
-        <DialogContent>
+        <DialogContent className="w-[90vw] max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t("admin.suspend_confirm_title")}</DialogTitle>
           </DialogHeader>
@@ -487,7 +487,7 @@ export default function AdminUsers() {
 
       {/* Reactivate confirmation */}
       <AlertDialog open={!!reactivateTarget} onOpenChange={() => setReactivateTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>{t("admin.reactivate_confirm_title")}</AlertDialogTitle>
             <AlertDialogDescription>{t("admin.reactivate_confirm_desc", { name: reactivateTarget?.name })}</AlertDialogDescription>

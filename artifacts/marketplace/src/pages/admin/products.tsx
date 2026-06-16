@@ -237,11 +237,11 @@ export default function AdminProducts() {
             <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20">
               <span className="text-sm text-muted-foreground">{t("admin.page_of", { page, totalPages })}</span>
               <div className="flex items-center gap-1">
-                <Button size="icon" variant="ghost" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                  <ChevronLeft className="h-4 w-4" />
+                <Button size="icon" variant="ghost" className="h-11 w-11" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                  <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                  <ChevronRight className="h-4 w-4" />
+                <Button size="icon" variant="ghost" className="h-11 w-11" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                  <ChevronRight className="h-4 w-4 rtl:rotate-180" />
                 </Button>
               </div>
             </div>
@@ -250,7 +250,7 @@ export default function AdminProducts() {
       </div>
 
       <Dialog open={!!editTarget} onOpenChange={() => setEditTarget(null)}>
-        <DialogContent aria-describedby={undefined}>
+        <DialogContent className="w-[90vw] max-w-md max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader><DialogTitle>{t("admin.edit_product")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
@@ -288,7 +288,7 @@ export default function AdminProducts() {
       </Dialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>{t("seller_products.delete_confirm_title")}</AlertDialogTitle>
             <AlertDialogDescription>{t("seller_products.delete_confirm_desc")}</AlertDialogDescription>

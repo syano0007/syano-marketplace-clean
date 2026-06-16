@@ -454,17 +454,17 @@ export default function Checkout() {
             <div className="flex items-center justify-between gap-3 mt-6">
               {step > 1 ? (
                 <Button variant="outline" onClick={() => setStep((s) => (s - 1) as Step)} className="h-11 gap-2 flex-1 sm:flex-none">
-                  <ChevronLeft className="h-4 w-4" /> {t("checkout.back")}
+                  <ChevronLeft className="h-4 w-4 rtl:rotate-180" /> {t("checkout.back")}
                 </Button>
               ) : (
                 <Button variant="outline" onClick={() => setLocation("/cart")} className="h-11 gap-2 flex-1 sm:flex-none">
-                  <ChevronLeft className="h-4 w-4" /> {t("checkout.back_to_cart")}
+                  <ChevronLeft className="h-4 w-4 rtl:rotate-180" /> {t("checkout.back_to_cart")}
                 </Button>
               )}
 
               {step < 3 ? (
                 <Button onClick={handleNextStep} className="h-11 gap-2 flex-1 sm:flex-none sm:min-w-[140px]">
-                  {t("checkout.continue")} <ChevronRight className="h-4 w-4" />
+                  {t("checkout.continue")} <ChevronRight className="h-4 w-4 rtl:rotate-180" />
                 </Button>
               ) : (
                 <Button

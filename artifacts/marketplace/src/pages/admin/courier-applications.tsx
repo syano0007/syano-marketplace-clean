@@ -262,7 +262,7 @@ export default function AdminCourierApplications() {
                         onClick={() => navigate(`/admin/courier-applications/${courier.id}`)}
                       >
                         {t("courier_applications.view_details")}
-                        <ChevronRight className="h-3.5 w-3.5" />
+                        <ChevronRight className="h-3.5 w-3.5 rtl:rotate-180" />
                       </Button>
                     </div>
                   </div>

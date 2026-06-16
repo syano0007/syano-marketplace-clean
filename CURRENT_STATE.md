@@ -1,6 +1,57 @@
 # SYANO — Current Project State
-**Last Updated:** June 16, 2026 (Phase 11 — Prompt 2: Critical & High Fixes)
+**Last Updated:** June 16, 2026 (Phase 11 — Prompt 5: Mobile Readiness)
 **Recovery-Verified:** June 15, 2026 — full restore to Replit environment; all services running; 0 TypeScript errors; 42/42 embeddings live
+
+## Session: Phase 11 — Prompt 5 (June 16, 2026) — Mobile Readiness
+Status: Complete
+
+### Changes — React web app (artifacts/marketplace/src/) only
+
+**Touch targets (≥44px) fixed:**
+- `admin/orders.tsx` — SelectTrigger `h-7→min-h-[44px] h-auto`; pagination buttons `h-8 w-8→h-11 w-11`
+- `admin/sellers.tsx` — review button `h-8→min-h-[44px]`; pagination `h-8 w-8→h-11 w-11`
+- `admin/products.tsx` — pagination `h-8 w-8→h-11 w-11`
+- `admin/users.tsx` — pagination `h-8 w-8→h-11 w-11`
+- `admin/logs.tsx` — pagination `h-8 w-8→h-11 w-11`
+- `seller/analytics.tsx` — export icon buttons `h-8 w-8→h-11 w-11` (×2)
+- `seller/orders.tsx` — mobile pagination buttons `min-h-[44px]` (visible in card view only)
+
+**Modal/dialog viewport constraints (w-[90vw] max-h-[85vh] overflow-y-auto):**
+- `admin/sellers.tsx` — review dialog
+- `admin/delivery.tsx` — assign courier dialog
+- `admin/hero-banners.tsx` — edit dialog + delete confirm dialog
+- `admin/products.tsx` — edit dialog + delete AlertDialog
+- `admin/users.tsx` — 5 dialogs: delete / verify / unverify / suspend / reactivate
+- `admin/verification.tsx` — verify dialog + unverify AlertDialog
+- `seller/products/index.tsx` — delete AlertDialog
+- `orders/[id].tsx` — cancel AlertDialog
+- `orders/index.tsx` — cancel AlertDialog
+
+**RTL directional fixes (inset-x-0, rtl:rotate-180):**
+- `Navbar.tsx` — header `left-0 right-0→inset-x-0`; mobile search dropdown `left-0 right-0→inset-x-0`; desktop search dropdown `left-0 right-0→inset-x-0`
+- `admin/orders.tsx` — pagination ChevronLeft/Right `+rtl:rotate-180`
+- `admin/sellers.tsx` — pagination ChevronLeft/Right `+rtl:rotate-180`
+- `admin/products.tsx` — pagination ChevronLeft/Right `+rtl:rotate-180`
+- `admin/users.tsx` — pagination ChevronLeft/Right `+rtl:rotate-180`
+- `admin/logs.tsx` — pagination ChevronLeft/Right `+rtl:rotate-180`
+- `admin/courier-applications.tsx` — view-details ChevronRight `+rtl:rotate-180`
+- `seller/orders.tsx` — pagination ChevronLeft/Right `+rtl:rotate-180`
+- `seller/dashboard.tsx` — all 6 nav-link ChevronRight arrows `+rtl:rotate-180`
+- `seller/trust.tsx` — edit-profile ChevronRight `+rtl:rotate-180`
+- `orders/[id].tsx` — back ChevronLeft `+rtl:rotate-180`
+- `orders/index.tsx` — view-details ChevronRight `+rtl:rotate-180`
+- `checkout.tsx` — back/continue ChevronLeft/Right `+rtl:rotate-180`
+- `courier/apply.tsx` — submit ChevronRight `+rtl:rotate-180`
+
+**Notes:**
+- Seller orders table buttons (`h-7`) are desktop-only (`hidden md:block`); mobile uses OrderCard component — no fix needed
+- Admin index table already has `overflow-x-auto -mx-1` wrapper — no fix needed
+- `story.tsx` RTL layout uses `isRtl` ternaries throughout — already correct, no change needed
+- `ui/table.tsx` already uses `text-start` — no change needed
+
+TypeScript: **0 errors** (verified: `npx tsc --noEmit -p artifacts/marketplace/tsconfig.json`)
+
+---
 
 ## Session: Phase 11 — Prompt 4 (June 16, 2026) — Data Quality
 Status: Complete

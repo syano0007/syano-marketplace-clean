@@ -163,9 +163,9 @@ export default function AdminLogs() {
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="h-8 w-8 p-0"
+                  className="h-11 w-11 p-0"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
                 </Button>
                 <span className="text-xs text-muted-foreground px-2">
                   {page} / {totalPages}
@@ -175,9 +175,9 @@ export default function AdminLogs() {
                   size="sm"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
-                  className="h-8 w-8 p-0"
+                  className="h-11 w-11 p-0"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-4 w-4 rtl:rotate-180" />
                 </Button>
               </div>
             </div>

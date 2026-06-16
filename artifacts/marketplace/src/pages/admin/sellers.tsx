@@ -197,11 +197,11 @@ function SellerPerformanceView() {
           <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20">
             <span className="text-sm text-muted-foreground">{t("admin.page_of", { page, totalPages })}</span>
             <div className="flex items-center gap-1">
-              <Button size="icon" variant="ghost" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                <ChevronLeft className="h-4 w-4" />
+              <Button size="icon" variant="ghost" className="h-11 w-11" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                <ChevronRight className="h-4 w-4" />
+              <Button size="icon" variant="ghost" className="h-11 w-11" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                <ChevronRight className="h-4 w-4 rtl:rotate-180" />
               </Button>
             </div>
           </div>
@@ -351,7 +351,7 @@ function ApplicationsView() {
               <div className="shrink-0 text-end hidden sm:block">
                 <p className="text-xs text-muted-foreground">{format(new Date(app.createdAt), "MMM d, yyyy")}</p>
               </div>
-              <Button variant="outline" size="sm" className="shrink-0 h-8 text-xs" onClick={() => openDialog(app)}>
+              <Button variant="outline" size="sm" className="shrink-0 min-h-[44px] text-xs" onClick={() => openDialog(app)}>
                 {t("admin.sellers_review_btn")}
               </Button>
             </div>
@@ -360,7 +360,7 @@ function ApplicationsView() {
       )}
 
       <Dialog open={!!selectedApp} onOpenChange={(open) => !open && setSelectedApp(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+        <DialogContent className="w-[90vw] max-w-2xl max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Store className="h-4 w-4 text-primary" />

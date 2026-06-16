@@ -370,7 +370,7 @@ export default function AdminVerificationPage() {
 
       {/* ── Verify dialog ── */}
       <Dialog open={!!verifyTarget} onOpenChange={() => setVerifyTarget(null)}>
-        <DialogContent className="sm:max-w-md rounded-2xl" aria-describedby={undefined}>
+        <DialogContent className="w-[90vw] sm:max-w-md rounded-2xl max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader className="space-y-2 pb-2">
             <DialogTitle className="text-xl font-bold">
               {t("admin.verify_user_title")}
@@ -424,7 +424,7 @@ export default function AdminVerificationPage() {
 
       {/* ── Unverify confirmation ── */}
       <AlertDialog open={!!unverifyTarget} onOpenChange={() => setUnverifyTarget(null)}>
-        <AlertDialogContent className="rounded-2xl sm:max-w-md">
+        <AlertDialogContent className="w-[90vw] rounded-2xl sm:max-w-md">
           <AlertDialogHeader className="space-y-2">
             <AlertDialogTitle className="text-xl font-bold">
               {t("admin.unverify_confirm_title")}

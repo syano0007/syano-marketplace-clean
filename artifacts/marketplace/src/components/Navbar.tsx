@@ -321,7 +321,7 @@ export function Navbar() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 w-full"
+      className="fixed top-0 inset-x-0 z-50 w-full"
       style={{ ...headerStyle, fontFamily: "'Cairo', sans-serif" }}
     >
       {/* Safe area spacer for iOS notch */}
@@ -408,7 +408,7 @@ export function Navbar() {
                 )}
               </form>
               {searchOpen && debouncedSearch.length >= 2 && ((suggestions.suggestions?.length ?? 0) > 0 || (suggestions.stores?.length ?? 0) > 0 || (suggestions.categories?.length ?? 0) > 0) && (
-                <div className={`absolute top-full mt-1 left-0 right-0 ${navDropBg} border ${navBorder} rounded-xl shadow-2xl z-50 overflow-hidden`}>
+                <div className={`absolute top-full mt-1 inset-x-0 ${navDropBg} border ${navBorder} rounded-xl shadow-2xl z-50 overflow-hidden`}>
                   {(suggestions.suggestions ?? []).slice(0, 4).map((s, i) => {
                     const displayText = isRtl && s.textAr ? s.textAr : s.text;
                     return (
@@ -525,7 +525,7 @@ export function Navbar() {
                 </form>
 
                 {searchOpen && (debouncedSearch.length >= 2 || recentSearches.length > 0 || trendingSearches.length > 0) && (
-                  <div id="nav-search-listbox" role="listbox" className={`absolute top-full mt-2 left-0 right-0 w-screen max-w-sm sm:min-w-[22rem] ${navDropBg} rounded-2xl shadow-2xl z-50 overflow-hidden`}>
+                  <div id="nav-search-listbox" role="listbox" className={`absolute top-full mt-2 inset-x-0 w-screen max-w-sm sm:min-w-[22rem] ${navDropBg} rounded-2xl shadow-2xl z-50 overflow-hidden`}>
                     {debouncedSearch.length >= 2 ? (
                       searchLoading ? (
                         <div className="py-2">

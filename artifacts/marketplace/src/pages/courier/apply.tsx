@@ -146,7 +146,7 @@ export default function CourierApply() {
               {submitting ? (
                 <><Loader2 className="h-4 w-4 animate-spin" /> {t("common.submitting", "Submitting...")}</>
               ) : (
-                <>{t("courier.submit_apply")} <ChevronRight className="h-4 w-4" /></>
+                <>{t("courier.submit_apply")} <ChevronRight className="h-4 w-4 rtl:rotate-180" /></>
               )}
             </Button>
           </form>

@@ -289,7 +289,7 @@ function AssignCourierPanel({ order, couriers, onAssign, onCancel, token }: {
 
   return (
     <Dialog open onOpenChange={(o) => !o && onCancel()}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden gap-0">
+      <DialogContent className="w-[90vw] max-w-lg max-h-[85vh] overflow-y-auto p-0 gap-0">
         <DialogHeader className="px-5 pt-5 pb-3 border-b">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Truck className="h-4 w-4 text-primary shrink-0" />

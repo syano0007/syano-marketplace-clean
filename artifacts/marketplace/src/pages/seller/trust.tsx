@@ -292,7 +292,7 @@ export default function SellerTrustPage() {
                     <Link href="/seller/store-settings">
                       <Button variant="outline" size="sm" className="mt-3 gap-1.5">
                         {t("trust_panel.edit_profile", "Edit Store Profile")}
-                        <ChevronRight className="h-3.5 w-3.5" />
+                        <ChevronRight className="h-3.5 w-3.5 rtl:rotate-180" />
                       </Button>
                     </Link>
                   </div>

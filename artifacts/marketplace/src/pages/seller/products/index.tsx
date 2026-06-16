@@ -371,7 +371,7 @@ export default function SellerProducts() {
       </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>{t("seller_products.delete_confirm_title")}</AlertDialogTitle>
             <AlertDialogDescription>{t("seller_products.delete_confirm_desc")}</AlertDialogDescription>

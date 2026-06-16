@@ -203,7 +203,7 @@ export default function OrderHistory() {
                           </div>
                           <div className="flex items-center text-primary group-hover:underline text-sm font-medium shrink-0">
                             {t("orders.view_details")}
-                            <ChevronRight className="h-4 w-4 ms-0.5" />
+                            <ChevronRight className="h-4 w-4 ms-0.5 rtl:rotate-180" />
                           </div>
                         </div>
                       </div>
@@ -224,7 +224,7 @@ export default function OrderHistory() {
                             {t("orders.cancel_order")}
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent>
+                        <AlertDialogContent className="w-[90vw] max-w-md">
                           <AlertDialogHeader>
                             <AlertDialogTitle>{cancelTitle}</AlertDialogTitle>
                             <AlertDialogDescription>{cancelDesc}</AlertDialogDescription>

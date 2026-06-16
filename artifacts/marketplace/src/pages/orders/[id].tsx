@@ -116,7 +116,7 @@ export default function OrderDetail() {
     <Layout>
       <div className="container py-8 md:py-12 max-w-4xl">
         <Link href="/orders" className="inline-flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
           {t("orders.back")}
         </Link>
 
@@ -149,7 +149,7 @@ export default function OrderDetail() {
                     {t("orders.cancel_order")}
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className="w-[90vw] max-w-md">
                   <AlertDialogHeader>
                     <AlertDialogTitle>{t("orders.cancel_title")}</AlertDialogTitle>
                     <AlertDialogDescription>

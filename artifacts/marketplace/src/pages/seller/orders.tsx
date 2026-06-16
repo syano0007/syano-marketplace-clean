@@ -758,14 +758,14 @@ export default function SellerOrders() {
                 {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-center gap-3">
-                    <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="gap-1.5">
-                      <ChevronLeft className="h-4 w-4" />
+                    <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="min-h-[44px] gap-1.5">
+                      <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
                       {t("common.prev", "Previous")}
                     </Button>
                     <span className="text-sm text-muted-foreground tabular-nums" translate="no">{page} / {totalPages}</span>
-                    <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="gap-1.5">
+                    <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="min-h-[44px] gap-1.5">
                       {t("common.next", "Next")}
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="h-4 w-4 rtl:rotate-180" />
                     </Button>
                   </div>
                 )}
