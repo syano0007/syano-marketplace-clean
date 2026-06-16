@@ -1,6 +1,53 @@
 # SYANO — Current Project State
-**Last Updated:** June 16, 2026 (Phase 11 — Prompt 6: Security Review)
-**Recovery-Verified:** June 15, 2026 — full restore to Replit environment; all services running; 0 TypeScript errors; 42/42 embeddings live
+**Last Updated:** June 16, 2026 (Phase 11 — Prompt 7: Replit Migration + Email OTP)
+**Recovery-Verified:** June 16, 2026 — full restore to new Replit account; all 10 env vars confirmed; all 3 workflows running; 33 DB tables; 42/42 embeddings live
+
+---
+
+## Session: Phase 11 — Prompt 7 (June 16, 2026) — Replit Migration + Email Service
+Status: Complete
+
+### 1. Project Successfully Migrated to New Replit Account
+- All 10 environment variables confirmed loaded (SESSION_SECRET, RESEND_API_KEY, EMAIL_FROM, CORS_ORIGIN, SITE_URL, ROOT_ADMIN_PASSWORD, VAPID_EMAIL, VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, EMBEDDING_SERVICE_URL)
+- All 3 workflows running: API Server (8080), Start application (5000), Embedding Service (8001)
+- DB: 33 tables, 42 products, 42/42 embeddings
+- `pnpm install` completed (~1,134 packages)
+- `npx drizzle-kit push` run to initialize fresh DB schema
+- Test email confirmed delivered via Resend (id: 20e67c28-0ce9-4b3d-b3ec-72becfe32ff9)
+
+### 2. Resend Email Service — `artifacts/api-server/src/services/emailService.ts`
+- Functions: `sendWelcomeEmail()`, `sendPasswordResetEmail()`
+- **Lazy init fix applied**: `getResend()` helper — Resend client only constructed when `RESEND_API_KEY` is present; app starts cleanly without the key
+- Domain `syanomarket.online` verified on Resend (DKIM + SPF + MX all Verified)
+- `RESEND_API_KEY` and `EMAIL_FROM` set in Replit Secrets
+- **Note:** RESEND_API_KEY must be available in the API workflow process env. If `[email] RESEND_API_KEY not set` appears in logs after setting the secret, restart the API Server workflow.
+
+### 3. Email OTP Verification — Architecture (CURRENTLY DISABLED)
+OTP infrastructure is fully implemented but disabled via `VERIFICATION_ENABLED` flag in `auth.ts` (line 46):
+```ts
+const VERIFICATION_ENABLED =
+  process.env.ENABLE_EMAIL_VERIFICATION === "true" ||
+  process.env.ENABLE_PHONE_VERIFICATION === "true";
+```
+**To enable:** Set `ENABLE_EMAIL_VERIFICATION=true` in Replit env vars and restart API Server.
+
+When **disabled** (current state):
+- `POST /api/auth/register` → creates account as `isVerified: true`, returns JWT immediately
+- `sendWelcomeEmail()` called fire-and-forget
+- No OTP sent
+
+When **enabled:**
+- `POST /api/auth/register` → creates account as `isVerified: false`, sends OTP via email/SMS, returns `{ pendingVerification: true }`
+- `POST /api/auth/verify-otp` → verifies code, sets `isVerified: true`, returns JWT + sends welcome email
+- `POST /api/auth/send-otp` — send/resend OTP
+- `POST /api/auth/resend-otp` — resend with 60s rate limit
+- DB columns: `otpHash`, `otpExpiresAt`, `otpAttempts`, `otpLockedUntil`, `isVerified` (on `users` table)
+
+### 4. Current Phase
+**Phase 11 — Launch Preparation**
+Remaining: SEO Layer, Accessibility, Performance Baseline
+
+---
 
 ## Session: Phase 11 — Prompt 6 (June 16, 2026) — Security Review
 Status: Complete

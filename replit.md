@@ -4,7 +4,9 @@
 
 ## ⚠️ FOR ANY NEW AGENT — READ THIS BEFORE DOING ANYTHING
 
-**This project has been fully set up and verified. DO NOT recreate workflows, reinstall packages, or run schema commands unless you have confirmed the environment is broken.**
+**This project has been fully set up and verified on a new Replit account (June 16, 2026). DO NOT recreate workflows, reinstall packages, or run schema commands unless you have confirmed the environment is broken.**
+
+**Last verified:** June 16, 2026 — all 10 env vars loaded, all 3 workflows running, 33 DB tables, 42/42 embeddings, test email delivered via Resend.
 
 ### Before touching anything, run this check:
 ```bash
@@ -19,7 +21,7 @@ curl -s http://localhost:8080/api/healthz && echo "API OK"
 |---|---|---|
 | `artifacts/api-server: API Server` | 8080 | Express API + auto-migrations + demo data |
 | `Start application` | 5000 | Marketplace web preview (webview) |
-| `Embedding Service` | 8001 | sentence-transformers (paraphrase-multilingual-MiniLM-L12-v2) embedding service |
+| `Embedding Service` | 8001 | TF-IDF/LSA embedding service (paraphrase-multilingual-MiniLM-L12-v2 fallback) |
 | `artifacts/marketplace: web` | 20787 | Marketplace artifact view |
 | `artifacts/mobile: expo` | 18115 | Expo mobile dev server |
 | `artifacts/mockup-sandbox: Component Preview Server` | 8081 | UI component sandbox |

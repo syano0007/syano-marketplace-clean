@@ -1,6 +1,6 @@
 # SYANO — Project Status
-**Last Updated:** June 16, 2026 (Phase 11 — Prompt 6: Security Review Complete)
-**Recovery-Verified:** June 15, 2026 — all services running, 0 TypeScript errors, 95/100 recovery check
+**Last Updated:** June 16, 2026 (Phase 11 — Prompt 7: Replit Migration + Email Service)
+**Recovery-Verified:** June 16, 2026 — new Replit account; all 10 env vars loaded; all 3 workflows running; 33 tables; 42/42 embeddings; test email delivered
 
 SYANO is a production-scale Syrian marketplace platform built with React + Vite (web), Expo (mobile), Express + Drizzle (API), PostgreSQL (DB). Full Arabic/English bilingual, RTL support, dark/light theme.
 
@@ -39,18 +39,29 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 - Prompt 4 (Data Quality): ✅ Complete — 3 endpoints, seller banner, per-product badges, admin quality section, 24 i18n keys
 - Prompt 5 (Mobile Readiness): ✅ Complete — touch targets ≥44px, modal constraints, RTL chevrons, inset-x-0 navbar, 0 TS errors
 - Prompt 6 (Security Review): ✅ Complete — full audit of all routes/ and middlewares/; 3 fixes (wishlist + variants missing requireActiveAccount; delivery-zones redundant role guards removed); 0 TS errors
+- Prompt 7 (Replit Migration + Email): ✅ Complete — new Replit account migration; email service lazy init; OTP architecture documented; all systems verified
 
 ---
 
-## Last Completed: Replit Migration (June 15, 2026)
+## Last Completed: Replit Migration to New Account + Email Service (June 16, 2026)
 
-Migrated the project to the Replit native environment:
-1. Packages installed (`pnpm install --frozen-lockfile`, Python deps via Replit package manager)
-2. Vite `/api` proxy rule added to `artifacts/marketplace/vite.config.ts` (critical: without this, API calls return HTML 404 from the Vite dev server)
-3. Embedding service Python packages installed (numpy, scikit-learn, fastapi, uvicorn)
-4. `requirements.txt` corrected — removed sentence-transformers/torch (blocked by Replit firewall), reflects the actual TF-IDF/LSA backend
-5. Embedding service running: TF-IDF/LSA fallback, port 8001, 42/42 products auto-embedded at startup
-6. Semantic search now ACTIVE (pgvector=true, RRF blend FTS 0.65 + semantic 0.35)
+### Replit Account Migration
+1. Fresh `pnpm install` (~1,134 packages)
+2. `npx drizzle-kit push` — initialized schema on fresh DB (33 tables)
+3. All 10 environment variables confirmed loaded in Replit Secrets
+4. All 3 workflows running: API Server (8080), Start application (5000), Embedding Service (8001)
+5. Test email delivered via Resend (id: 20e67c28-0ce9-4b3d-b3ec-72becfe32ff9)
+
+### Email Service (emailService.ts)
+- Lazy Resend init fix: `getResend()` — app starts cleanly without `RESEND_API_KEY`
+- `sendWelcomeEmail()` + `sendPasswordResetEmail()` confirmed working
+- If `[email] RESEND_API_KEY not set` appears in API logs: restart the API Server workflow
+
+### OTP Verification Architecture (DISABLED by default)
+- Full OTP flow implemented: `/auth/send-otp`, `/auth/resend-otp`, `/auth/verify-otp`
+- Controlled by `VERIFICATION_ENABLED` (env vars `ENABLE_EMAIL_VERIFICATION` / `ENABLE_PHONE_VERIFICATION`)
+- Currently disabled — registration returns JWT immediately (`isVerified: true`)
+- To enable: set `ENABLE_EMAIL_VERIFICATION=true` in Replit env vars + restart API
 
 ---
 
