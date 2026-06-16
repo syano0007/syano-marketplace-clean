@@ -207,6 +207,7 @@ export default function SearchPage() {
     description: lang === "ar"
       ? "اكتشف الآلاف من المنتجات والمتاجر السورية في سوق سيانو"
       : "Discover thousands of products and Syrian stores on Syano marketplace",
+    noindex: true,
   });
 
   useEffect(() => {

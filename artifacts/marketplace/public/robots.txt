@@ -52,4 +52,4 @@ Disallow: /*?*page=*&*page=*
 Crawl-delay: 1
 
 # ── Sitemap ──────────────────────────────────────────────────────────────────
-Sitemap: https://syano.online/sitemap.xml
+Sitemap: https://syanomarket.online/sitemap.xml

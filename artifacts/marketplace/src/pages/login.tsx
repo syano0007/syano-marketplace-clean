@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Layout } from "@/components/Layout";
 import { useTranslation } from "react-i18next";
 import type { AuthResponse } from "@workspace/api-client-react";
+import { useSEO } from "@/hooks/useSEO";
 
 function useLoginSchema() {
   const { t } = useTranslation();
@@ -37,6 +38,7 @@ function useLoginSchema() {
 type LoginFormValues = { identifier: string; password: string };
 
 export default function Login() {
+  useSEO({ noindex: true });
   const [_, setLocation] = useLocation();
   const { login: setAuth } = useAuth();
   const { toast } = useToast();

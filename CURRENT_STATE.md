@@ -10,28 +10,34 @@ Last updated: June 16, 2026
 
 ## Active Phase
 Phase 11 — Launch Preparation
-Completed: Prompts 1, 2, 3, 4, 5, 6, 7
-Remaining: Prompt 8 (SEO Layer), Prompt 9 (Accessibility), Prompt 10 (Performance Baseline)
+Completed: Prompts 1, 2, 3, 4, 5, 6, 7, 8
+Remaining: Prompt 9 (Accessibility), Prompt 10 (Performance Baseline)
 
 ## Last Session Work — June 16, 2026
-1. Resend email service — artifacts/api-server/src/services/emailService.ts
-   - sendWelcomeEmail() ✅
-   - sendPasswordResetEmail() ✅
-   - sendOtpEmail() ✅ — routes through verification.ts → dispatchOtp()
-   - resend npm package installed via pnpm
-   - Lazy initialization — graceful degradation if RESEND_API_KEY is missing
+### Phase 11 — Prompt 8 — SEO Layer ✅
 
-2. Domain syanomarket.online verified on Resend:
-   - DKIM ✅  SPF ✅  MX ✅
+1. react-helmet-async installed in artifacts/marketplace
+2. HelmetProvider added to artifacts/marketplace/src/main.tsx
+3. SEO component created: artifacts/marketplace/src/components/SEO.tsx
+   - Props: title, description, image, url, type, noindex
+   - Outputs: title, meta description, robots, canonical, Open Graph, Twitter Card
+4. JsonLd component created: artifacts/marketplace/src/components/JsonLd.tsx
+   - Renders JSON-LD structured data via Helmet script tag
+5. SEO added to pages: Home, Shop, Product detail, Store, Search results, Deals, Login, Register
+6. JSON-LD schemas added: WebSite (home), Product (product detail), LocalBusiness (store), ItemList (shop/deals)
+7. i18n keys added under "seo" namespace in ar.json and en.json
+8. Default OG image: artifacts/marketplace/public/og-default.jpg
+9. Sitemap endpoint: GET /sitemap.xml — returns all products + stores + static URLs
+   File: artifacts/api-server/src/routes/sitemap.ts
+10. robots.txt: artifacts/marketplace/public/robots.txt
 
-3. Email OTP verification on registration:
-   - DB columns added: users.email_otp, users.email_otp_expires_at, users.email_verified
-   - POST /api/auth/register → sends OTP email when ENABLE_EMAIL_VERIFICATION=true
-   - POST /api/auth/verify-email → verifies OTP, issues JWT
-   - POST /api/auth/resend-otp → resends OTP (60s rate limit enforced)
-   - Frontend OTP verification screen added
+### Phase 11 — Prompt 7 — Email OTP ✅ (previous session)
+1. Resend email service: artifacts/api-server/src/services/emailService.ts
+2. Domain syanomarket.online verified on Resend: DKIM ✅ SPF ✅ MX ✅
+3. OTP flow: POST /api/auth/register → email → POST /api/auth/verify-email → JWT
+4. Bug fixed: verification.ts used FROM_EMAIL (wrong) → corrected to EMAIL_FROM with correct domain
 
-4. Required Replit Secrets — ALL must be set before starting:
+## Required Replit Secrets — ALL must be set:
    SESSION_SECRET
    RESEND_API_KEY
    EMAIL_FROM              = noreply@syanomarket.online
@@ -45,17 +51,14 @@ Remaining: Prompt 8 (SEO Layer), Prompt 9 (Accessibility), Prompt 10 (Performanc
    EMBEDDING_SERVICE_URL   = http://localhost:8001
    ENABLE_EMAIL_VERIFICATION = true
 
-5. Embedding Service:
-   - Status: Running on TF-IDF fallback — INTENTIONAL
-   - Do NOT install sentence-transformers or torch during development
-   - Full model (449MB) will be installed once during final pre-launch testing only
-   - Model: paraphrase-multilingual-MiniLM-L12-v2 (384 dimensions)
+## Embedding Service
+- Status: TF-IDF fallback — INTENTIONAL — do not install sentence-transformers
+- Full model installed only once before final production launch
 
 ## Database State
 - 33 tables, fully migrated
 - 42 products with vector embeddings
 - pgvector enabled — vector(384) on products table
-- Additive-only migrations — never drop or alter columns
 
 ## Test Accounts
 - Admin:   delewatiamer7@gmail.com

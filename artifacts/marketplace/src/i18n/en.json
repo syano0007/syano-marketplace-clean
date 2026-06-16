@@ -3051,5 +3051,19 @@
     "try_again": "Try Again",
     "go_home": "Go to Homepage",
     "details": "Error details (dev)"
+  },
+  "seo": {
+    "home": {
+      "title": "SYANO — Syria's Online Marketplace",
+      "description": "Discover thousands of products from trusted Syrian stores. Electronics, clothing, home goods and more."
+    },
+    "shop": {
+      "title": "Shop — All Products",
+      "description": "Browse thousands of products across all categories on SYANO."
+    },
+    "deals": {
+      "title": "Deals & Discounts",
+      "description": "Best daily deals and discounts on SYANO marketplace."
+    }
   }
 }

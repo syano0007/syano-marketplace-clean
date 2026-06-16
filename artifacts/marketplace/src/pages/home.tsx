@@ -19,7 +19,7 @@ import { JoinSection } from "@/components/HomeSections/JoinSection";
 import { HomeFooter } from "@/components/HomeSections/HomeFooter";
 
 export default function Home() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const lang = i18n.language;
 
   const { data: products } = useListProducts(
@@ -34,13 +34,23 @@ export default function Home() {
   );
 
   useSEO({
-    title: lang === "ar"
-      ? "سيانو — أول سوق إلكتروني في سوريا"
-      : "Syano — Syria's First Online Marketplace",
-    description: lang === "ar"
-      ? "تسوّق من بائعين موثوقين عبر حلب وسوريا. إلكترونيات، أزياء، أدوات منزلية، توصيل سريع، دفع آمن."
-      : "Shop electronics, fashion, beauty, home goods and more from vetted Syrian sellers.",
+    title: t("seo.home.title"),
+    description: t("seo.home.description"),
     canonical: "/",
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "SYANO — سوق سوريا",
+      url: "https://syanomarket.online",
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: "https://syanomarket.online/search?q={search_term_string}",
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
   });
 
   const hotDeals    = products?.filter(p => p.isBestDeal) ?? [];

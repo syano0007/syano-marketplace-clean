@@ -9,8 +9,8 @@ Last updated: June 16, 2026
 - Prompt 5  — Mobile Readiness           ✅ Complete
 - Prompt 6  — Security Review            ✅ Complete
 - Prompt 7  — Email OTP Verification     ✅ Complete
-- Prompt 8  — SEO Layer                  ⏳ Next
-- Prompt 9  — Accessibility              ⏳ Not started
+- Prompt 8  — SEO Layer                  ✅ Complete
+- Prompt 9  — Accessibility              ⏳ Next
 - Prompt 10 — Performance Baseline       ⏳ Not started
 
 ---
