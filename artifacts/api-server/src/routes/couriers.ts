@@ -7,6 +7,7 @@ import {
 } from "@workspace/db";
 import { requireAuth, requireActiveAccount } from "../middlewares/auth";
 import { createNotification, bi } from "../lib/notif";
+import { setCourierBusy, setCourierOnlineAfterMission } from "../services/courierAvailabilityService";
 
 const router: IRouter = Router();
 
@@ -374,6 +375,9 @@ router.patch("/couriers/assignments/:id/deliver", requireAuth, requireActiveAcco
     });
   }
 
+  // Auto-transition: BUSY → ONLINE after mission completes (unless manually OFFLINE)
+  setCourierOnlineAfterMission(courier.id).catch(() => {});
+
   await createNotification({
     userId: order.customerId, type: "order_delivered",
     title: bi("Order Delivered!", "تم تسليم طلبك!"),
@@ -427,6 +431,9 @@ router.patch("/couriers/assignments/:id/fail-delivery", requireAuth, requireActi
       .where(eq(ordersTable.id, order.id)),
     insertStatusHistory(order.id, "out_for_delivery", "delivery_failed", userId, "courier"),
   ]);
+
+  // Auto-transition: BUSY → ONLINE after mission fails (unless manually OFFLINE)
+  setCourierOnlineAfterMission(courier.id).catch(() => {});
 
   const reasonSuffix = reasonLabel ? ` (${reasonLabel})` : "";
 
@@ -826,6 +833,9 @@ router.post("/admin/orders/:id/assign-courier", requireAuth, async (req, res): P
     db.update(ordersTable).set({ status: "courier_assigned" as any, updatedAt: new Date() }).where(eq(ordersTable.id, orderId)),
     insertStatusHistory(orderId, order.status as string, "courier_assigned", req.user!.userId, "admin"),
   ]);
+
+  // Auto-transition: ONLINE → BUSY when mission assigned
+  setCourierBusy(courierId).catch(() => {});
 
   const [courierUser] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, courier.userId));
 

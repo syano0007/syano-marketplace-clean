@@ -95,6 +95,21 @@ router.get("/seller/delivery-missions", requireAuth, requireRole("seller"), asyn
   res.json({ data: enriched, total: totalRow?.total ?? 0, page, limit });
 });
 
+// ─── GET /admin/delivery-missions/stats ───────────────────────────────────────
+// Returns mission counts grouped by status for the admin dashboard counter cards.
+router.get("/admin/delivery-missions/stats", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
+  const rows = await db
+    .select({ status: deliveryMissionsTable.status, cnt: count() })
+    .from(deliveryMissionsTable)
+    .groupBy(deliveryMissionsTable.status);
+
+  const result: Record<string, number> = {};
+  for (const row of rows) {
+    result[row.status] = Number(row.cnt);
+  }
+  res.json(result);
+});
+
 // ─── C1: GET /admin/delivery-missions ────────────────────────────────────────
 // Access: admin (all missions)
 

@@ -595,7 +595,16 @@ export async function runMigrations(): Promise<void> {
       ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'page';
     `);
 
-    logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns, AI support tickets ready");
+    // ── V3.3: Mission Assignment Foundation columns on delivery_missions ──────
+    await client.query(`
+      ALTER TABLE delivery_missions ADD COLUMN IF NOT EXISTS assignment_started_at  TIMESTAMPTZ;
+      ALTER TABLE delivery_missions ADD COLUMN IF NOT EXISTS assignment_expires_at  TIMESTAMPTZ;
+      ALTER TABLE delivery_missions ADD COLUMN IF NOT EXISTS assignment_round       INTEGER DEFAULT 0;
+      ALTER TABLE delivery_missions ADD COLUMN IF NOT EXISTS assignment_status      TEXT    DEFAULT 'PENDING';
+      CREATE INDEX IF NOT EXISTS idx_delivery_missions_assignment_status ON delivery_missions(assignment_status);
+    `);
+
+    logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns, AI support tickets, V3.3 mission assignment foundation ready");
   } catch (err) {
     logger.error({ err }, "Migration error — server cannot start safely");
     throw err;

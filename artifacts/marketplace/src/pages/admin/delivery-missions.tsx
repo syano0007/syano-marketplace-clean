@@ -81,6 +81,18 @@ export default function AdminDeliveryMissions() {
     },
   });
 
+  const { data: statsData } = useQuery<Record<string, number>>({
+    queryKey: ["admin", "delivery-missions", "stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/delivery-missions/stats", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return {};
+      return res.json();
+    },
+    refetchInterval: 30_000,
+  });
+
   const missions = data?.data ?? [];
   const total    = data?.total ?? 0;
   const totalPages = Math.ceil(total / 20);
@@ -156,6 +168,36 @@ export default function AdminDeliveryMissions() {
               );
             })}
           </div>
+        </div>
+
+        {/* Status counter cards */}
+        <div className="grid grid-cols-4 lg:grid-cols-8 gap-3">
+          {(["PENDING","ASSIGNED","ACCEPTED","PICKED_UP","IN_TRANSIT","DELIVERED","FAILED","CANCELLED"] as const).map((s) => {
+            const cfg = STATUS_CONFIG[s];
+            const StatusIcon = cfg.icon;
+            const cnt = statsData?.[s] ?? 0;
+            const isActive = statusFilter === s;
+            return (
+              <button
+                key={s}
+                onClick={() => { setStatusFilter(isActive ? "" : s); setPage(1); }}
+                className={cn(
+                  "rounded-xl border p-3 text-center flex flex-col items-center gap-1 transition-all",
+                  isActive
+                    ? "border-emerald-500/40 bg-emerald-500/10"
+                    : "border-gray-800 bg-gray-900/60 hover:border-gray-700"
+                )}
+              >
+                <StatusIcon className={cn("w-4 h-4", cfg.color.split(" ")[0])} />
+                <p className={cn("text-lg font-bold", isActive ? "text-emerald-300" : cnt > 0 ? "text-white" : "text-gray-600")}>
+                  {cnt}
+                </p>
+                <p className="text-[10px] text-gray-500 leading-tight">
+                  {isRtl ? cfg.labelAr : cfg.label}
+                </p>
+              </button>
+            );
+          })}
         </div>
 
         {/* Stats summary */}

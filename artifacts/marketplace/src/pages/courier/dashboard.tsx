@@ -445,7 +445,6 @@ export default function CourierDashboard() {
   const queryClient = useQueryClient();
 
   const [tab, setTab] = useState<"deliveries" | "history" | "earnings">("deliveries");
-  const [toggling, setToggling] = useState(false);
   const [availToggling, setAvailToggling] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
@@ -500,6 +499,8 @@ export default function CourierDashboard() {
     refetchInterval: 30_000,
   });
 
+  // handleToggle (profile.active) REMOVED in V3.2 — availability is the single master control
+
   const handleAvailabilityToggle = async () => {
     if (!availability) return;
     const newStatus = availability.availabilityStatus === "ONLINE" ? "OFFLINE" : "ONLINE";
@@ -520,21 +521,6 @@ export default function CourierDashboard() {
       toast({ title: t("courier_availability.toggle_error"), variant: "destructive" });
     } finally {
       setAvailToggling(false);
-    }
-  };
-
-  const handleToggle = async () => {
-    if (!profile) return;
-    setToggling(true);
-    try {
-      const res = await fetch("/api/couriers/profile/toggle", { method: "PATCH", headers });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Error");
-      refetchProfile();
-    } catch {
-      toast({ title: t("courier.toggle_error"), variant: "destructive" });
-    } finally {
-      setToggling(false);
     }
   };
 
@@ -619,43 +605,34 @@ export default function CourierDashboard() {
           <p className="text-muted-foreground text-sm mt-0.5">{t("courier.dashboard_subtitle")}</p>
         </div>
 
-        {/* Status card */}
-        <div className="bg-card border rounded-2xl p-4 mb-3 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "h-11 w-11 rounded-full flex items-center justify-center",
-              profile.active ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-muted"
-            )}>
-              <Truck className={cn("h-5 w-5", profile.active ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")} />
-            </div>
-            <div>
-              <p className="font-semibold text-sm">{profile.active ? t("courier.status_online") : t("courier.status_offline")}</p>
-              <p className="text-xs text-muted-foreground">{t(`delivery.vehicle_${profile.vehicleType}`)}{profile.district ? ` · ${profile.district}` : ""}</p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            variant={profile.active ? "outline" : "default"}
-            onClick={handleToggle}
-            disabled={toggling}
-            className={cn(!profile.active && "bg-emerald-600 hover:bg-emerald-700 text-white")}
-          >
-            {toggling ? "…" : profile.active ? t("courier.go_offline") : t("courier.go_online")}
-          </Button>
-        </div>
-
-        {/* ── V3.2 Availability card ── */}
+        {/* ── V3.2 Master Availability Control (single control — profile.active toggle removed) ── */}
         {availability && (() => {
-          const avStatus = availability.availabilityStatus;
+          const avStatus  = availability.availabilityStatus;
           const isOnline  = avStatus === "ONLINE";
           const isBusy    = avStatus === "BUSY";
           const isOffline = avStatus === "OFFLINE";
 
-          const badgeCls = isOnline
-            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+          const ringCls = isOnline
+            ? "ring-2 ring-emerald-500/30 border-emerald-500/20"
             : isBusy
-              ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-              : "bg-muted text-muted-foreground";
+              ? "ring-2 ring-amber-500/30 border-amber-500/20"
+              : "border-border";
+
+          const iconBg = isOnline
+            ? "bg-emerald-100 dark:bg-emerald-900/30"
+            : isBusy  ? "bg-amber-100 dark:bg-amber-900/30"
+            : "bg-muted";
+
+          const iconCls = isOnline
+            ? "text-emerald-600 dark:text-emerald-400"
+            : isBusy ? "text-amber-600 dark:text-amber-400"
+            : "text-muted-foreground";
+
+          const badgeCls = isOnline
+            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-500/20"
+            : isBusy
+              ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-500/20"
+              : "bg-muted text-muted-foreground border border-border";
 
           const badgeLabel = isOnline
             ? t("courier_availability.status_online")
@@ -666,52 +643,56 @@ export default function CourierDashboard() {
           const StatusIcon = isOnline ? Wifi : isOffline ? WifiOff : Package;
 
           return (
-            <div className="bg-card border rounded-2xl p-4 mb-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
-                    isOnline ? "bg-emerald-100 dark:bg-emerald-900/30"
-                    : isBusy  ? "bg-amber-100 dark:bg-amber-900/30"
-                    : "bg-muted"
-                  )}>
-                    <StatusIcon className={cn("h-4 w-4", isOnline ? "text-emerald-600 dark:text-emerald-400" : isBusy ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")} />
+            <div className={cn("bg-card border rounded-2xl p-4 mb-5 shadow-sm transition-all duration-300", ringCls)}>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center shrink-0", iconBg)}>
+                    <StatusIcon className={cn("h-6 w-6", iconCls)} />
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold">{t("courier_availability.toggle_label")}</p>
-                    <span className={cn("inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full mt-0.5", badgeCls)}>
-                      <StatusIcon className="h-3 w-3" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{t("courier_availability.toggle_label")}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {t(`delivery.vehicle_${profile.vehicleType}`)}{profile.district ? ` · ${profile.district}` : ""}
+                    </p>
+                    <span className={cn("inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full mt-1", badgeCls)}>
+                      <StatusIcon className="h-2.5 w-2.5" />
                       {badgeLabel}
                     </span>
                   </div>
                 </div>
 
-                {/* Toggle — disabled when BUSY (system-controlled) */}
-                <button
-                  type="button"
-                  onClick={isBusy ? undefined : handleAvailabilityToggle}
-                  disabled={availToggling || isBusy}
-                  aria-label={t("courier_availability.toggle_label")}
-                  className={cn(
-                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                    isOnline ? "bg-emerald-500" : "bg-muted-foreground/30",
-                    (availToggling || isBusy) && "opacity-50 cursor-not-allowed"
-                  )}
-                >
-                  <span className={cn(
-                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                    isOnline ? "translate-x-5" : "translate-x-0"
-                  )} />
-                </button>
+                {/* Master toggle — BUSY is system-controlled, shows locked indicator */}
+                {isBusy ? (
+                  <div className="flex flex-col items-center gap-1 shrink-0">
+                    <div className="relative inline-flex h-6 w-11 rounded-full bg-amber-500/40 opacity-60 cursor-not-allowed">
+                      <span className="pointer-events-none inline-block h-5 w-5 translate-x-5 mt-0.5 ms-0.5 transform rounded-full bg-white shadow ring-0" />
+                    </div>
+                    <p className="text-[10px] text-amber-500 font-medium whitespace-nowrap">
+                      {i18n.language === "ar" ? "مهمة نشطة" : "On mission"}
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleAvailabilityToggle}
+                    disabled={availToggling}
+                    aria-label={t("courier_availability.toggle_label")}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent",
+                      "transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2",
+                      isOnline
+                        ? "bg-emerald-500 focus:ring-emerald-500"
+                        : "bg-muted-foreground/30 focus:ring-primary",
+                      availToggling && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <span className={cn(
+                      "pointer-events-none inline-block h-5 w-5 mt-0.5 ms-0.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                      isOnline ? "translate-x-5" : "translate-x-0"
+                    )} />
+                  </button>
+                )}
               </div>
-
-              {isBusy && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2.5 ms-[52px]">
-                  {i18n.language === "ar"
-                    ? "لديك مهمة توصيل نشطة حالياً"
-                    : "You have an active delivery mission"}
-                </p>
-              )}
             </div>
           );
         })()}
