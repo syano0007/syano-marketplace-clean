@@ -3128,5 +3128,18 @@
     "widget_ctx_contact_seller": "تواصل مع البائع",
     "widget_ctx_seller_info": "معلومات البائع",
     "widget_ctx_shipping_policy": "سياسة الشحن"
+  },
+  "delivery_missions": {
+    "nav": "مهام التوصيل"
+  },
+  "courier_availability": {
+    "nav": "توافر المندوبين",
+    "toggle_label": "استقبال طلبات التوصيل",
+    "status_online": "متاح",
+    "status_offline": "غير متاح",
+    "status_busy": "مشغول",
+    "toggle_on": "أصبحت الآن تستقبل طلبات التوصيل",
+    "toggle_off": "أصبحت الآن غير متاح",
+    "toggle_error": "فشل تحديث حالة التوفر"
   }
 }

@@ -11,6 +11,7 @@ import {
   Truck, Package, CheckCircle2, DollarSign, MapPin, Phone,
   User, Star, AlertTriangle, Store, ShoppingBag, Calendar,
   TrendingUp, Award, History, XCircle, AlertCircle, RefreshCw,
+  Wifi, WifiOff,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -23,6 +24,13 @@ interface CourierProfile {
   district: string | null;
   rating: number | null;
   completedDeliveries: number;
+}
+interface CourierAvailability {
+  courierId: number;
+  availabilityStatus: "ONLINE" | "OFFLINE" | "BUSY";
+  isAcceptingDeliveries: boolean;
+  lastAvailabilityChangeAt: string | null;
+  canReceiveMission: boolean;
 }
 interface ProductSnap { name: string; quantity: number; unitPrice: number; }
 interface Assignment {
@@ -438,6 +446,7 @@ export default function CourierDashboard() {
 
   const [tab, setTab] = useState<"deliveries" | "history" | "earnings">("deliveries");
   const [toggling, setToggling] = useState(false);
+  const [availToggling, setAvailToggling] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -476,6 +485,43 @@ export default function CourierDashboard() {
     enabled: !!token && profile?.status === "approved" && tab === "earnings",
     refetchInterval: 30_000,
   });
+
+  const {
+    data: availability,
+    refetch: refetchAvailability,
+  } = useQuery<CourierAvailability>({
+    queryKey: ["courier-availability"],
+    queryFn: async () => {
+      const res = await fetch("/api/courier/availability", { headers });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!token && profile?.status === "approved",
+    refetchInterval: 30_000,
+  });
+
+  const handleAvailabilityToggle = async () => {
+    if (!availability) return;
+    const newStatus = availability.availabilityStatus === "ONLINE" ? "OFFLINE" : "ONLINE";
+    setAvailToggling(true);
+    try {
+      const res = await fetch("/api/courier/availability", {
+        method: "PATCH",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error");
+      refetchAvailability();
+      toast({
+        title: newStatus === "ONLINE" ? t("courier_availability.toggle_on") : t("courier_availability.toggle_off"),
+      });
+    } catch {
+      toast({ title: t("courier_availability.toggle_error"), variant: "destructive" });
+    } finally {
+      setAvailToggling(false);
+    }
+  };
 
   const handleToggle = async () => {
     if (!profile) return;
@@ -574,7 +620,7 @@ export default function CourierDashboard() {
         </div>
 
         {/* Status card */}
-        <div className="bg-card border rounded-2xl p-4 mb-5 flex items-center justify-between shadow-sm">
+        <div className="bg-card border rounded-2xl p-4 mb-3 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
             <div className={cn(
               "h-11 w-11 rounded-full flex items-center justify-center",
@@ -597,6 +643,78 @@ export default function CourierDashboard() {
             {toggling ? "…" : profile.active ? t("courier.go_offline") : t("courier.go_online")}
           </Button>
         </div>
+
+        {/* ── V3.2 Availability card ── */}
+        {availability && (() => {
+          const avStatus = availability.availabilityStatus;
+          const isOnline  = avStatus === "ONLINE";
+          const isBusy    = avStatus === "BUSY";
+          const isOffline = avStatus === "OFFLINE";
+
+          const badgeCls = isOnline
+            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+            : isBusy
+              ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+              : "bg-muted text-muted-foreground";
+
+          const badgeLabel = isOnline
+            ? t("courier_availability.status_online")
+            : isBusy
+              ? t("courier_availability.status_busy")
+              : t("courier_availability.status_offline");
+
+          const StatusIcon = isOnline ? Wifi : isOffline ? WifiOff : Package;
+
+          return (
+            <div className="bg-card border rounded-2xl p-4 mb-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+                    isOnline ? "bg-emerald-100 dark:bg-emerald-900/30"
+                    : isBusy  ? "bg-amber-100 dark:bg-amber-900/30"
+                    : "bg-muted"
+                  )}>
+                    <StatusIcon className={cn("h-4 w-4", isOnline ? "text-emerald-600 dark:text-emerald-400" : isBusy ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{t("courier_availability.toggle_label")}</p>
+                    <span className={cn("inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full mt-0.5", badgeCls)}>
+                      <StatusIcon className="h-3 w-3" />
+                      {badgeLabel}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Toggle — disabled when BUSY (system-controlled) */}
+                <button
+                  type="button"
+                  onClick={isBusy ? undefined : handleAvailabilityToggle}
+                  disabled={availToggling || isBusy}
+                  aria-label={t("courier_availability.toggle_label")}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                    isOnline ? "bg-emerald-500" : "bg-muted-foreground/30",
+                    (availToggling || isBusy) && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <span className={cn(
+                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                    isOnline ? "translate-x-5" : "translate-x-0"
+                  )} />
+                </button>
+              </div>
+
+              {isBusy && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2.5 ms-[52px]">
+                  {i18n.language === "ar"
+                    ? "لديك مهمة توصيل نشطة حالياً"
+                    : "You have an active delivery mission"}
+                </p>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Stats row */}
         <div className="grid grid-cols-4 gap-2 mb-5">

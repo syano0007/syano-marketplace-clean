@@ -15,11 +15,16 @@ export const couriersTable = pgTable("couriers", {
   rating: numeric("rating", { precision: 3, scale: 2 }),
   completedDeliveries: integer("completed_deliveries").notNull().default(0),
   notes: text("notes"),
+  // V3.2 — Availability system
+  availabilityStatus: text("availability_status").default("OFFLINE"),
+  isAcceptingDeliveries: boolean("is_accepting_deliveries").notNull().default(false),
+  lastAvailabilityChangeAt: timestamp("last_availability_change_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => [
   index("idx_couriers_user_id").on(t.userId),
   index("idx_couriers_status").on(t.status),
+  index("idx_couriers_availability").on(t.availabilityStatus),
 ]);
 
 export type Courier = typeof couriersTable.$inferSelect;

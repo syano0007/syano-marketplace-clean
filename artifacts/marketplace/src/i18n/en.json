@@ -3128,5 +3128,18 @@
     "widget_ctx_contact_seller": "Contact seller",
     "widget_ctx_seller_info": "Seller info",
     "widget_ctx_shipping_policy": "Shipping policy"
+  },
+  "delivery_missions": {
+    "nav": "Delivery Missions"
+  },
+  "courier_availability": {
+    "nav": "Courier Availability",
+    "toggle_label": "Receive Delivery Requests",
+    "status_online": "Online",
+    "status_offline": "Offline",
+    "status_busy": "Busy",
+    "toggle_on": "You are now receiving delivery requests",
+    "toggle_off": "You are now offline",
+    "toggle_error": "Failed to update availability"
   }
 }

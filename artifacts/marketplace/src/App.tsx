@@ -72,6 +72,7 @@ const SellerApply       = lazy(() => import("@/pages/seller/apply"));
 const ApplicationStatus = lazy(() => import("@/pages/seller/application-status"));
 const AdminDelivery                  = lazy(() => import("@/pages/admin/delivery"));
 const AdminDeliveryMissions          = lazy(() => import("@/pages/admin/delivery-missions"));
+const AdminCourierAvailability       = lazy(() => import("@/pages/admin/courier-availability"));
 const AdminHeroBanners               = lazy(() => import("@/pages/admin/hero-banners"));
 const AdminCourierApplications       = lazy(() => import("@/pages/admin/courier-applications"));
 const AdminCourierApplicationDetail  = lazy(() => import("@/pages/admin/courier-application-detail"));
@@ -352,6 +353,9 @@ function Router() {
             </Route>
             <Route path="/admin/delivery-missions">
               <ProtectedRoute allowedRoles={["admin"]}><AdminDeliveryMissions /></ProtectedRoute>
+            </Route>
+            <Route path="/admin/courier-availability">
+              <ProtectedRoute allowedRoles={["admin"]}><AdminCourierAvailability /></ProtectedRoute>
             </Route>
             <Route path="/admin/verification">
               <ProtectedRoute allowedRoles={["admin"]}><AdminVerification /></ProtectedRoute>
