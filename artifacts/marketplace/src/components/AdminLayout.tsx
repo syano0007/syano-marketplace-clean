@@ -9,6 +9,7 @@ import {
   LayoutDashboard, Users, User, Package, ShoppingCart, Settings,
   LogOut, Shield, ChevronRight, ScrollText, Menu, Store,
   Home as HomeIcon, BarChart2, Globe, Sun, Moon, DollarSign, Truck, Sparkles, SearchIcon,
+  HeadphonesIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/admin/delivery",              icon: Truck,           labelKey: "delivery.nav" },
   { href: "/admin/courier-applications",  icon: User,            labelKey: "courier_applications.nav", badgeKey: "couriers" },
   { href: "/admin/hero-banners",           icon: Sparkles,        labelKey: "admin.hero_banners.title" },
+  { href: "/admin/support",               icon: HeadphonesIcon,  labelKey: "support.admin_nav",  badgeKey: "support" },
   { href: "/admin/verification",          icon: Shield,          labelKey: "admin.verification_title" },
   { href: "/admin/logs",                  icon: ScrollText,      labelKey: "admin.nav_logs" },
   { href: "/admin/settings",             icon: Settings,        labelKey: "admin.nav_settings" },
@@ -48,14 +50,16 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
     queryKey: ["admin-sidebar-badges"],
     queryFn: async () => {
       const h = { Authorization: `Bearer ${token}` };
-      const [statsRes, extRes, couriersRes] = await Promise.all([
+      const [statsRes, extRes, couriersRes, supportRes] = await Promise.all([
         fetch("/api/admin/stats",           { headers: h }),
         fetch("/api/admin/stats/extended",  { headers: h }),
         fetch("/api/admin/couriers",        { headers: h }),
+        fetch("/api/admin/support/stats",   { headers: h }),
       ]);
       const stats   = await statsRes.json();
       const ext     = await extRes.json();
       const couriers = await couriersRes.json();
+      const supportStats = supportRes.ok ? await supportRes.json() : {};
       const pendingCouriers = Array.isArray(couriers)
         ? couriers.filter((c: { status: string }) => c.status === "pending").length
         : 0;
@@ -63,6 +67,7 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
         orders:   (stats.ordersByStatus ?? []).find((s: { status: string }) => s.status === "pending")?.count ?? 0,
         sellers:  ext.pendingSellerApps ?? 0,
         couriers: pendingCouriers,
+        support:  (supportStats.open ?? 0) + (supportStats.pending ?? 0),
       } as Record<string, number>;
     },
     enabled: !!token,

@@ -562,7 +562,35 @@ export async function runMigrations(): Promise<void> {
       );
     }
 
-    logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns ready");
+    // ── Phase 13: AI Support — support_tickets table ──────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS support_tickets (
+        id                SERIAL PRIMARY KEY,
+        user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        conversation_id   INTEGER REFERENCES conversations(id) ON DELETE SET NULL,
+        status            TEXT    NOT NULL DEFAULT 'open',
+        category          TEXT    NOT NULL DEFAULT 'general',
+        priority          TEXT    NOT NULL DEFAULT 'normal',
+        subject           TEXT,
+        notes             TEXT,
+        assigned_admin_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        resolved_at       TIMESTAMPTZ,
+        created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id    ON support_tickets(user_id);
+      CREATE INDEX IF NOT EXISTS idx_support_tickets_status     ON support_tickets(status);
+      CREATE INDEX IF NOT EXISTS idx_support_tickets_priority   ON support_tickets(priority);
+      CREATE INDEX IF NOT EXISTS idx_support_tickets_created_at ON support_tickets(created_at DESC);
+    `);
+
+    // ── Phase 13: preferred_language column on users (safe additive) ──────────
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(5) DEFAULT 'ar';
+    `);
+
+    logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns, AI support tickets ready");
   } catch (err) {
     logger.error({ err }, "Migration error — server cannot start safely");
     throw err;

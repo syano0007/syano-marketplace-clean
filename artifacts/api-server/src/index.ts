@@ -3,7 +3,7 @@ import { logger } from "./lib/logger";
 import { runSearchStartup } from "./lib/search-startup";
 import { runMigrations } from "./lib/run-migrations";
 import { bootstrapRootAdmin } from "./lib/bootstrap-admin";
-import { bootstrapTestAccounts } from "./lib/bootstrap-test-accounts";
+import { bootstrapTestAccounts, bootstrapAISupportAgent } from "./lib/bootstrap-test-accounts";
 import { bootstrapDemoMarketplaceData } from "./lib/bootstrap-demo-data";
 import { runEmbeddingBackfill } from "./scripts/generateEmbeddings";
 import { pool } from "@workspace/db";
@@ -27,6 +27,7 @@ if (Number.isNaN(port) || port <= 0) {
   await runSearchStartup();
   await bootstrapRootAdmin();
   await bootstrapTestAccounts();
+  await bootstrapAISupportAgent();
   await bootstrapDemoMarketplaceData();
 
   const server = app.listen(port, (err?: Error) => {

@@ -103,6 +103,8 @@ const TermsOfUsePage      = lazy(() => import("@/pages/terms-of-use"));
 const ReturnsPolicyPage   = lazy(() => import("@/pages/returns-policy"));
 const CookiesPage         = lazy(() => import("@/pages/cookies"));
 const StoresPage          = lazy(() => import("@/pages/stores"));
+const CustomerSupport     = lazy(() => import("@/pages/customer/support"));
+const AdminSupport        = lazy(() => import("@/pages/admin/support"));
 
 setupApi();
 
@@ -306,6 +308,9 @@ function Router() {
             <Route path="/messages">
               <ProtectedRoute allowedRoles={["customer"]}><MessagesPage /></ProtectedRoute>
             </Route>
+            <Route path="/support">
+              <ProtectedRoute allowedRoles={["customer"]}><CustomerSupport /></ProtectedRoute>
+            </Route>
 
             <Route path="/admin">
               <ProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></ProtectedRoute>
@@ -351,6 +356,9 @@ function Router() {
             </Route>
             <Route path="/admin/hero-banners">
               <ProtectedRoute allowedRoles={["admin"]}><AdminHeroBanners /></ProtectedRoute>
+            </Route>
+            <Route path="/admin/support">
+              <ProtectedRoute allowedRoles={["admin"]}><AdminSupport /></ProtectedRoute>
             </Route>
 
             {/* ── Courier application (customers only) ──────────────── */}

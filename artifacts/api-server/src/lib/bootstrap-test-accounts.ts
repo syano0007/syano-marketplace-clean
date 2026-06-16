@@ -3,6 +3,53 @@ import { eq } from "drizzle-orm";
 import { db, usersTable, sellerApplicationsTable, couriersTable } from "@workspace/db";
 import { logger } from "./logger";
 
+// ─── AI Support Agent bootstrap ───────────────────────────────────────────────
+
+/**
+ * Ensures the "Smart Support" AI agent system user exists.
+ * This user sends messages on behalf of the AI in ai_support conversations.
+ * It uses a random password hash (never used for login).
+ */
+export async function bootstrapAISupportAgent(): Promise<void> {
+  const email = "ai-support@syano.internal";
+  try {
+    const [existing] = await db
+      .select({ id: usersTable.id, name: usersTable.name, accountStatus: usersTable.accountStatus })
+      .from(usersTable)
+      .where(eq(usersTable.email, email))
+      .limit(1);
+
+    if (!existing) {
+      const randomHash = await bcrypt.hash(Math.random().toString(36) + Date.now(), 12);
+      await db
+        .insert(usersTable)
+        .values({
+          email,
+          phone: null,
+          passwordHash: randomHash,
+          name: "الدعم الذكي",
+          role: "admin",
+          isVerified: true,
+          accountStatus: "active",
+        } as any);
+      logger.info({ email }, "AI Support Agent bootstrapped (created)");
+    } else {
+      // Ensure it stays active
+      if (existing.accountStatus !== "active") {
+        await db
+          .update(usersTable)
+          .set({ accountStatus: "active" } as any)
+          .where(eq(usersTable.email, email));
+        logger.info({ email }, "AI Support Agent repaired → active");
+      } else {
+        logger.info({ email, id: existing.id }, "AI Support Agent healthy");
+      }
+    }
+  } catch (err) {
+    logger.error({ email, err }, "Failed to bootstrap AI Support Agent");
+  }
+}
+
 // ─── PERMANENT TEST ACCOUNTS ─────────────────────────────────────────────────
 // These accounts must ALWAYS exist for development, QA, and recovery testing.
 // They are auto-created and self-healing, exactly like bootstrapRootAdmin().
