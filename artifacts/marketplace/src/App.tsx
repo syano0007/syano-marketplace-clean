@@ -29,6 +29,7 @@ import { NotificationToasts } from "@/components/NotificationToasts";
 import { PushPermissionPrompt } from "@/components/PushPermissionPrompt";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { RoutePreloader } from "@/components/RoutePreloader";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const NotFound          = lazy(() => import("@/pages/not-found"));
 const AccountSuspended  = lazy(() => import("@/pages/account-suspended"));
@@ -371,28 +372,30 @@ function SettingsSyncEffect() {
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" attribute="class">
-      <QueryClientProvider client={queryClient}>
-        <CurrencyProvider>
-          <AuthProvider>
-            <SettingsSyncEffect />
-            <GuestCartProvider>
-            <WishlistProvider>
-            <NotificationProvider>
-              <TooltipProvider>
-                <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                  <Router />
-                </WouterRouter>
-                {/* Global notification overlays */}
-                <NotificationToasts />
-                <PushPermissionPrompt />
-                <Toaster />
-              </TooltipProvider>
-            </NotificationProvider>
-            </WishlistProvider>
-            </GuestCartProvider>
-          </AuthProvider>
-        </CurrencyProvider>
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <CurrencyProvider>
+            <AuthProvider>
+              <SettingsSyncEffect />
+              <GuestCartProvider>
+              <WishlistProvider>
+              <NotificationProvider>
+                <TooltipProvider>
+                  <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                    <Router />
+                  </WouterRouter>
+                  {/* Global notification overlays */}
+                  <NotificationToasts />
+                  <PushPermissionPrompt />
+                  <Toaster />
+                </TooltipProvider>
+              </NotificationProvider>
+              </WishlistProvider>
+              </GuestCartProvider>
+            </AuthProvider>
+          </CurrencyProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

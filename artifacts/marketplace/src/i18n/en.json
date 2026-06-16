@@ -3016,5 +3016,12 @@
     "productCount": "{{count}} products",
     "empty": "No categories available",
     "browse": "Browse Categories"
+  },
+  "error_boundary": {
+    "title": "Something went wrong",
+    "subtitle": "An unexpected error occurred in this part of the app. You can try again or return to the homepage.",
+    "try_again": "Try Again",
+    "go_home": "Go to Homepage",
+    "details": "Error details (dev)"
   }
 }

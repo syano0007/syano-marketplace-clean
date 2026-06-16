@@ -2,8 +2,31 @@
 **Last Updated:** June 16, 2026 (Phase 11 — Prompt 2: Critical & High Fixes)
 **Recovery-Verified:** June 15, 2026 — full restore to Replit environment; all services running; 0 TypeScript errors; 42/42 embeddings live
 
-## Session: Phase 11 — Prompt 3 (June 16, 2026)
+## Session: Phase 11 — Prompt 3b (June 16, 2026) — Global Error Boundary
 Status: Complete
+
+### Global Error Boundary
+
+**New component:** `artifacts/marketplace/src/components/ErrorBoundary.tsx`
+- Class component (`ErrorBoundary`) wraps `getDerivedStateFromError` + `componentDidCatch`
+- Functional `ErrorFallback` child renders the UI (allows `useTranslation` hook)
+- Full design system: `bg-background`, `text-foreground`, `text-muted-foreground`, `border-border`, `text-primary`, `text-destructive` — dark/light mode via CSS vars
+- RTL-aware: `dir={i18n.dir()}` on root element; works in Arabic RTL and English LTR
+- Shows SYANO brand, AlertCircle icon, i18n title+subtitle, two buttons (Try Again / Go to Homepage)
+- Dev-only `<details>` block shows error message + stack trace
+- `// @refresh reset` directive prevents HMR false-trigger
+
+**i18n keys added** (`error_boundary.*` in en.json + ar.json, 5 keys each):
+- `title`, `subtitle`, `try_again`, `go_home`, `details`
+
+**App.tsx wiring:**
+- `<ErrorBoundary>` placed inside `<ThemeProvider>` (CSS vars available) but wrapping all other providers — catches errors in QueryClientProvider, AuthProvider, Router, and every page
+
+TypeScript: 0 errors
+
+---
+
+## Session: Phase 11 — Prompt 3 (June 16, 2026)
 
 ### Error Handling Layer Audit + Fix
 
