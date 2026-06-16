@@ -525,7 +525,7 @@ export function Navbar() {
                 </form>
 
                 {searchOpen && (debouncedSearch.length >= 2 || recentSearches.length > 0 || trendingSearches.length > 0) && (
-                  <div id="nav-search-listbox" role="listbox" className={`absolute top-full mt-2 left-0 right-0 ${navDropBg} rounded-2xl shadow-2xl z-50 overflow-hidden`} style={{ minWidth: "22rem", width: "max-content", maxWidth: "28rem" }}>
+                  <div id="nav-search-listbox" role="listbox" className={`absolute top-full mt-2 left-0 right-0 w-screen max-w-sm sm:min-w-[22rem] ${navDropBg} rounded-2xl shadow-2xl z-50 overflow-hidden`}>
                     {debouncedSearch.length >= 2 ? (
                       searchLoading ? (
                         <div className="py-2">

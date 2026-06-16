@@ -258,9 +258,9 @@ export function Footer() {
             <div className="flex flex-wrap gap-2">
               {[
                 {
-                  href: "mailto:syano.marketplace@gmail.com",
+                  href: `mailto:${t("footer.contact_email")}`,
                   icon: <Mail className="h-3.5 w-3.5 shrink-0" style={{ color: C.accent }} />,
-                  label: "syano.marketplace@gmail.com",
+                  label: t("footer.contact_email"),
                   external: false,
                 },
                 {

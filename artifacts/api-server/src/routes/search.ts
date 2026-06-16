@@ -3,7 +3,7 @@ import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
 import { MAIN_CATEGORY_SLUGS } from "../categories";
 import { processSearchQuery } from "../utils/searchProcessor";
-import { optionalAuth, requireAuth } from "../middlewares/auth";
+import { optionalAuth, requireAuth, requireRole } from "../middlewares/auth";
 import { searchCache, buildCacheKey, getTTL } from "../services/searchCache";
 
 const router: IRouter = Router();
@@ -1797,7 +1797,7 @@ router.get("/search/suggestions/popular", async (req, res): Promise<void> => {
    ROUTE 10 — POST /api/admin/search/reindex
    Admin: triggers full fts_vector backfill for all products.
    ═══════════════════════════════════════════════════════════════════════════ */
-router.post("/admin/search/reindex", requireAuth, async (req, res): Promise<void> => {
+router.post("/admin/search/reindex", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
   if ((req as any).user?.role !== "admin") {
     res.status(403).json({ error: "Admin only" });
     return;
@@ -1824,7 +1824,7 @@ router.post("/admin/search/reindex", requireAuth, async (req, res): Promise<void
    ROUTE 11.5 — GET /api/admin/search/cache
    Admin: returns in-memory LRU search cache statistics.
    ═══════════════════════════════════════════════════════════════════════════ */
-router.get("/admin/search/cache", requireAuth, async (req, res): Promise<void> => {
+router.get("/admin/search/cache", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
   if ((req as any).user?.role !== "admin") {
     res.status(403).json({ error: "Admin only" });
     return;
@@ -1845,7 +1845,7 @@ router.get("/admin/search/cache", requireAuth, async (req, res): Promise<void> =
    ROUTE 11.6 — DELETE /api/admin/search/cache
    Admin: flush the entire in-memory search cache.
    ═══════════════════════════════════════════════════════════════════════════ */
-router.delete("/admin/search/cache", requireAuth, async (req, res): Promise<void> => {
+router.delete("/admin/search/cache", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
   if ((req as any).user?.role !== "admin") {
     res.status(403).json({ error: "Admin only" });
     return;
@@ -1858,7 +1858,7 @@ router.delete("/admin/search/cache", requireAuth, async (req, res): Promise<void
    ROUTE 12 — GET /api/admin/search/health
    Admin: returns search index health stats.
    ═══════════════════════════════════════════════════════════════════════════ */
-router.get("/admin/search/health", requireAuth, async (req, res): Promise<void> => {
+router.get("/admin/search/health", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
   if ((req as any).user?.role !== "admin") {
     res.status(403).json({ error: "Admin only" });
     return;
@@ -1903,6 +1903,23 @@ router.get("/admin/search/health", requireAuth, async (req, res): Promise<void> 
     index:        indexStats.rows[0],
     queryLogs7d:  queryStats.rows[0],
     topNoResults: zeroResultStats.rows,
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROUTE 12.5 — GET /api/admin/search/cache-stats (alias for /admin/search/cache)
+   Admin: alias endpoint so both /cache and /cache-stats work.
+   ═══════════════════════════════════════════════════════════════════════════ */
+router.get("/admin/search/cache-stats", requireAuth, requireRole("admin"), async (_req, res): Promise<void> => {
+  const stats = searchCache.getStats();
+  const topQueries = searchCache.getTopQueries(10);
+  res.json({
+    cache: {
+      ...stats,
+      embeddingServiceAvailable: _embeddingServiceAvailable,
+      pgvectorAvailable:         _pgvectorAvailable,
+    },
+    topCachedQueries: topQueries,
   });
 });
 

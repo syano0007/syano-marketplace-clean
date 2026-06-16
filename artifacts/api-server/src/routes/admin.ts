@@ -1408,8 +1408,8 @@ router.get("/admin/sellers/verification", async (req, res): Promise<void> => {
   res.json(filtered);
 });
 
-/* POST /admin/sellers/:id/verification — set or clear verification tier */
-router.post("/admin/sellers/:id/verification", async (req, res): Promise<void> => {
+/* PATCH /admin/sellers/:id/verification — set or clear verification tier */
+router.patch("/admin/sellers/:id/verification", async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid seller ID" }); return; }
 

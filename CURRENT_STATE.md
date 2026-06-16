@@ -1,6 +1,24 @@
 # SYANO — Current Project State
-**Last Updated:** June 15, 2026 (Session 16 — Replit Migration + Embedding Service Active)
+**Last Updated:** June 16, 2026 (Phase 11 — Prompt 2: Critical & High Fixes)
 **Recovery-Verified:** June 15, 2026 — full restore to Replit environment; all services running; 0 TypeScript errors; 42/42 embeddings live
+
+## Session: Phase 11 — Prompt 2 (June 16, 2026)
+Status: Complete
+
+Fixed:
+- Admin search routes: requireAuth + requireRole('admin') added
+- Delivery zone routes: requireAuth + requireRole('admin') added
+- Seller verification: PATCH method mismatch corrected
+- Cache-stats alias route added
+- File upload magic-byte validation added
+- Hardcoded phone number replaced with i18n
+- Hardcoded Gmail replaced with support@syano.online
+- Navbar search overflow fixed on 375px
+
+TypeScript: 0 errors
+Next: Phase 11 — Prompt 3 (Error Handling Layer)
+
+---
 
 ---
 

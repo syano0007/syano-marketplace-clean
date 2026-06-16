@@ -49,8 +49,8 @@ export default function ContactPage() {
     {
       icon: <Phone className="h-5 w-5" style={{ color: "#10B981" }} />,
       label: t("contact.ch_whatsapp"),
-      value: "+963 999 999 999",
-      href: "https://wa.me/963999999999",
+      value: t("contact.phone_placeholder"),
+      href: null,
       external: true,
     },
     {

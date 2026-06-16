@@ -1257,6 +1257,7 @@
   },
   "footer": {
     "tagline": "سوق حلب الإلكتروني — متجرك الموثوق للتسوق في سوريا",
+    "contact_email": "support@syano.online",
     "contact_whatsapp": "واتساب / تواصل معنا",
     "contact_location": "حلب، سوريا",
     "follow_us": "تابعنا",
@@ -1726,7 +1727,8 @@
     "err_name": "الاسم يجب أن يكون حرفين على الأقل",
     "err_email": "الرجاء إدخال بريد إلكتروني صحيح",
     "err_subject": "الموضوع مطلوب",
-    "err_message": "الرسالة يجب أن تكون 10 أحرف على الأقل"
+    "err_message": "الرسالة يجب أن تكون 10 أحرف على الأقل",
+    "phone_placeholder": "سيتم الإعلان قريباً"
   },
   "how_to_sell": {
     "seo_title": "كيف تبيع على سيانو",

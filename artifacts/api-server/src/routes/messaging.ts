@@ -670,6 +670,27 @@ router.post("/conversations/:id/attachments", requireAuth, requireActiveAccount,
     return;
   }
 
+  const ALLOWED_SIGNATURES: Record<string, number[][]> = {
+    "image/jpeg": [[0xFF, 0xD8, 0xFF]],
+    "image/png":  [[0x89, 0x50, 0x4E, 0x47]],
+    "image/webp": [[0x52, 0x49, 0x46, 0x46]],
+    "application/pdf": [[0x25, 0x50, 0x44, 0x46]],
+  };
+
+  function validateMagicBytes(buffer: Buffer, declaredMime: string): boolean {
+    const signatures = ALLOWED_SIGNATURES[declaredMime];
+    if (!signatures) return false;
+    return signatures.some(sig =>
+      sig.every((byte, i) => buffer[i] === byte)
+    );
+  }
+
+  const fileBuffer = Buffer.from(String(data), "base64");
+  if (!validateMagicBytes(fileBuffer, String(mimeType))) {
+    res.status(400).json({ error: "invalid_file_type" });
+    return;
+  }
+
   const MAX_SIZE = 2 * 1024 * 1024;
   const numSize = typeof size === "number" ? size : parseInt(String(size), 10);
   if (numSize > MAX_SIZE) {

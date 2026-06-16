@@ -1257,6 +1257,7 @@
   },
   "footer": {
     "tagline": "Aleppo's trusted online marketplace — shop Syria's finest.",
+    "contact_email": "support@syano.online",
     "contact_whatsapp": "WhatsApp / Contact Us",
     "contact_location": "Aleppo, Syria",
     "follow_us": "Follow us",
@@ -1726,7 +1727,8 @@
     "err_name": "Name must be at least 2 characters",
     "err_email": "Please enter a valid email address",
     "err_subject": "Subject is required",
-    "err_message": "Message must be at least 10 characters"
+    "err_message": "Message must be at least 10 characters",
+    "phone_placeholder": "Coming soon"
   },
   "how_to_sell": {
     "seo_title": "How to Sell on Syano",

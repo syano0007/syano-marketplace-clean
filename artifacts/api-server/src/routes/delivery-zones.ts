@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, deliveryZonesTable } from "@workspace/db";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireRole } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -20,7 +20,7 @@ router.get("/delivery-zones", async (_req, res): Promise<void> => {
 });
 
 // ── Admin: list all zones (including inactive) ────────────────────────────────
-router.get("/admin/delivery-zones", requireAuth, async (req, res): Promise<void> => {
+router.get("/admin/delivery-zones", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
   if (req.user?.role !== "admin") { res.status(403).json({ error: "Access denied" }); return; }
   const zones = await db.select().from(deliveryZonesTable);
   res.json(zones.map((z) => ({
@@ -34,7 +34,7 @@ router.get("/admin/delivery-zones", requireAuth, async (req, res): Promise<void>
 });
 
 // ── Admin: create zone ────────────────────────────────────────────────────────
-router.post("/admin/delivery-zones", requireAuth, async (req, res): Promise<void> => {
+router.post("/admin/delivery-zones", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
   if (req.user?.role !== "admin") { res.status(403).json({ error: "Access denied" }); return; }
   const { nameEn, nameAr, fee, active } = req.body;
   if (!nameEn || !nameAr) { res.status(400).json({ error: "nameEn and nameAr are required" }); return; }
@@ -47,7 +47,7 @@ router.post("/admin/delivery-zones", requireAuth, async (req, res): Promise<void
 });
 
 // ── Admin: update zone ────────────────────────────────────────────────────────
-router.patch("/admin/delivery-zones/:id", requireAuth, async (req, res): Promise<void> => {
+router.patch("/admin/delivery-zones/:id", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
   if (req.user?.role !== "admin") { res.status(403).json({ error: "Access denied" }); return; }
   const id = parseInt(String(req.params.id), 10);
   if (!id) { res.status(400).json({ error: "Invalid zone ID" }); return; }
@@ -63,7 +63,7 @@ router.patch("/admin/delivery-zones/:id", requireAuth, async (req, res): Promise
 });
 
 // ── Admin: delete zone ────────────────────────────────────────────────────────
-router.delete("/admin/delivery-zones/:id", requireAuth, async (req, res): Promise<void> => {
+router.delete("/admin/delivery-zones/:id", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
   if (req.user?.role !== "admin") { res.status(403).json({ error: "Access denied" }); return; }
   const id = parseInt(String(req.params.id), 10);
   if (!id) { res.status(400).json({ error: "Invalid zone ID" }); return; }
