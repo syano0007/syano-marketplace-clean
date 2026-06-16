@@ -169,7 +169,7 @@ export function TrendingCard({ product, i = 0, highlightQuery }: { product: Tren
         {/* Wishlist */}
         <button
           onClick={handleWishlist}
-          aria-label={wishlisted ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
+          aria-label={wishlisted ? t("a11y.removeFromWishlist") : t("a11y.addToWishlist")}
           className={cn(
             "absolute top-3 start-3 z-10 w-8 h-8 rounded-full flex items-center justify-center",
             "backdrop-blur-sm border transition-all duration-200",
@@ -223,10 +223,15 @@ export function TrendingCard({ product, i = 0, highlightQuery }: { product: Tren
         {/* Rating — only rendered when real review data exists; spacer preserves grid height */}
         {hasRealRating ? (
           <div className="flex items-center gap-2 mb-4 pc-rating-row" style={{ minHeight: "1.125rem" }}>
-            <div className="flex items-center gap-0.5 pc-stars">
+            <div
+              className="flex items-center gap-0.5 pc-stars"
+              role="img"
+              aria-label={`${product.rating.toFixed(1)} ${t("product_detail.stars_out_of_5")}`}
+            >
               {[...Array(5)].map((_, j) => (
                 <Star
                   key={j}
+                  aria-hidden="true"
                   className={cn(
                     "w-3 h-3",
                     j < Math.floor(product.rating)
@@ -236,7 +241,7 @@ export function TrendingCard({ product, i = 0, highlightQuery }: { product: Tren
                 />
               ))}
             </div>
-            <span style={{ fontWeight: 600, fontSize: "12px" }} className="text-foreground/50 pc-rating-text">
+            <span style={{ fontWeight: 600, fontSize: "12px" }} className="text-foreground/50 pc-rating-text" aria-hidden="true">
               {product.rating.toFixed(1)}{product.reviews > 0 ? ` (${product.reviews})` : ""}
             </span>
           </div>

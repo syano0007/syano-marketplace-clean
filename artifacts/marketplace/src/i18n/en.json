@@ -20,7 +20,8 @@
     "recent_searches": "Recent Searches",
     "clear_all": "Clear all",
     "tagline": "Syria's First Marketplace",
-    "preferences": "Preferences"
+    "preferences": "Preferences",
+    "settings": "Settings"
   },
   "home": {
     "hero": {
@@ -244,7 +245,8 @@
     "warranty": "Warranty",
     "warranty_desc": "12 Month Warranty",
     "delivery_to": "Delivery to",
-    "delivery_desc": "Aleppo, Syria"
+    "delivery_desc": "Aleppo, Syria",
+    "stars_out_of_5": "stars out of 5"
   },
   "variants": {
     "section_title": "Product Variants",
@@ -3065,5 +3067,21 @@
       "title": "Deals & Discounts",
       "description": "Best daily deals and discounts on SYANO marketplace."
     }
+  },
+  "a11y": {
+    "skipToContent": "Skip to main content",
+    "mainNavigation": "Main navigation",
+    "close": "Close",
+    "openCart": "Open cart",
+    "search": "Search",
+    "openMenu": "Open menu",
+    "wishlist": "Wishlist",
+    "addToWishlist": "Add to wishlist",
+    "removeFromWishlist": "Remove from wishlist",
+    "share": "Share",
+    "loading": "Loading…",
+    "searchResultsCount": "Found {{count}} results for «{{query}}»",
+    "addedToCart": "{{name}} added to cart",
+    "pageLoaded": "{{title}} page loaded"
   }
 }

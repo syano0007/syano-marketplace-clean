@@ -340,6 +340,8 @@ export function Navbar() {
           <div className="flex items-center gap-1 shrink-0">
             {!isAuthPage && (
               <button onClick={() => setSearchOpen(!searchOpen)}
+                aria-label={t("a11y.search")}
+                aria-expanded={searchOpen}
                 className={`h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
                 <Search className="h-[1.0625rem] w-[1.0625rem]" />
               </button>
@@ -360,29 +362,28 @@ export function Navbar() {
               </Link>
             )}
             {!isSeller && !isAdmin && !isCourier && (
-              <Link href="/wishlist" className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
+              <Link href="/wishlist" aria-label={t("a11y.wishlist")} className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
                 <Heart className="h-[1.0625rem] w-[1.0625rem]" />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
+                  <span aria-hidden="true" className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
                     {wishlistCount > 99 ? "99+" : wishlistCount}
                   </span>
                 )}
               </Link>
             )}
             {!isSeller && !isAdmin && !isCourier && (
-              <Link href="/cart" className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
+              <Link href="/cart" aria-label={t("a11y.openCart")} className={`relative h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
                 <ShoppingCart className="h-[1.0625rem] w-[1.0625rem]" />
                 {visibleCartCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-black">
+                  <span aria-hidden="true" className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-black">
                     {visibleCartCount}
                   </span>
                 )}
               </Link>
             )}
             <SheetTrigger asChild>
-              <button className={`h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
+              <button aria-label={t("a11y.openMenu")} className={`h-10 w-10 flex items-center justify-center ${navFgMuted} ${navHoverFg} transition-colors`}>
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Open menu</span>
               </button>
             </SheetTrigger>
           </div>
@@ -398,11 +399,12 @@ export function Navbar() {
                   ref={inputRef}
                   value={searchQuery}
                   onChange={e => { setSearchQuery(e.target.value); }}
+                  aria-label={t("a11y.search")}
                   placeholder={isRtl ? "ابحث عن منتجات..." : "Search products..."}
                   style={{ fontFamily: "'Cairo', sans-serif", fontSize: "0.875rem", background: "transparent", outline: "none", border: "none", color: navInputColor, flex: 1 }}
                 />
                 {searchQuery && (
-                  <button type="button" onClick={() => setSearchQuery("")} className={navXBtn}>
+                  <button type="button" aria-label={t("a11y.close")} onClick={() => setSearchQuery("")} className={navXBtn}>
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}
@@ -472,7 +474,7 @@ export function Navbar() {
             <div className={`h-5 w-px ${navDivider} mx-1`} />
 
             {/* Nav links — immediately left of logo in RTL */}
-            <nav className="flex items-center gap-0.5">
+            <nav aria-label={t("a11y.mainNavigation")} className="flex items-center gap-0.5">
               {navLinks.map(link => {
                 const linkBase = link.href.split("?")[0];
                 const linkQuery = link.href.includes("?") ? link.href.split("?")[1] : null;
@@ -517,7 +519,7 @@ export function Navbar() {
                       style={{ fontFamily: "'Cairo', sans-serif", fontSize: "0.8125rem", background: "transparent", outline: "none", border: "none", color: navInputColor, flex: 1, minWidth: 0 }}
                     />
                     {searchQuery && (
-                      <button type="button" onClick={() => { setSearchQuery(""); setSearchOpen(false); }} className={`${navXBtn} shrink-0`}>
+                      <button type="button" aria-label={t("a11y.close")} onClick={() => { setSearchQuery(""); setSearchOpen(false); }} className={`${navXBtn} shrink-0`}>
                         <X className="w-3 h-3" />
                       </button>
                     )}
@@ -712,11 +714,11 @@ export function Navbar() {
               <Link
                 href={isAdmin ? "/admin/messages" : isSeller ? "/seller/messages" : "/messages"}
                 className={`relative h-9 w-9 flex items-center justify-center rounded-lg ${navSettingsBtn} transition-all duration-200`}
-                aria-label={isRtl ? "الرسائل" : "Messages"}
+                aria-label={t("nav.messages")}
               >
                 <MessageCircle className="h-[1.0625rem] w-[1.0625rem]" />
                 {unreadMsgCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white pointer-events-none">
+                  <span aria-hidden="true" className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white pointer-events-none">
                     {unreadMsgCount > 9 ? "9+" : unreadMsgCount}
                   </span>
                 )}
@@ -727,10 +729,10 @@ export function Navbar() {
             {!isSeller && !isAdmin && !isCourier && (
               <Link href="/wishlist"
                 className={`relative h-9 w-9 flex items-center justify-center rounded-lg ${navSettingsBtn} transition-all duration-200`}
-                aria-label={isRtl ? "قائمة الأمنيات" : "Wishlist"}>
+                aria-label={t("a11y.wishlist")}>
                 <Heart className="h-[1.0625rem] w-[1.0625rem]" />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white pointer-events-none">
+                  <span aria-hidden="true" className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white pointer-events-none">
                     {wishlistCount > 99 ? "99+" : wishlistCount}
                   </span>
                 )}
@@ -741,10 +743,10 @@ export function Navbar() {
             {!isSeller && !isAdmin && !isCourier && (
               <Link href="/cart"
                 className={`relative h-9 w-9 flex items-center justify-center rounded-lg ${navSettingsBtn} transition-all duration-200`}
-                aria-label={isRtl ? "سلة التسوق" : "Cart"}>
+                aria-label={t("a11y.openCart")}>
                 <ShoppingCart className="h-[1.0625rem] w-[1.0625rem]" />
                 {visibleCartCount > 0 && (
-                  <span className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-black pointer-events-none">
+                  <span aria-hidden="true" className="absolute -top-0.5 -end-0.5 flex h-[1rem] w-[1rem] items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-black pointer-events-none">
                     {visibleCartCount}
                   </span>
                 )}
@@ -756,7 +758,7 @@ export function Navbar() {
               <DropdownMenuTrigger asChild>
                 <button
                   className={`h-9 w-9 flex items-center justify-center rounded-lg ${navSettingsBtn} transition-all duration-200`}
-                  aria-label={isRtl ? "الإعدادات" : "Settings"}
+                  aria-label={t("nav.settings")}
                 >
                   <Settings className="h-[1.0625rem] w-[1.0625rem]" />
                 </button>

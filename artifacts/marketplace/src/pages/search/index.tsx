@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
+import useAnnouncer from "@/hooks/useAnnouncer";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useListProducts } from "@workspace/api-client-react";
@@ -131,6 +132,7 @@ interface StoreResult {
 const PAGE_SIZE = 24;
 
 export default function SearchPage() {
+  const announce = useAnnouncer();
   const { t, i18n } = useTranslation();
   const { currency, symbol, exchangeRate } = useCurrency();
   const lang = i18n.language;
@@ -353,6 +355,12 @@ export default function SearchPage() {
   const searchFallback = searchMode ? (searchData?.fallback ?? null) : null;
   const apiEngineMode = searchMode ? (searchData?.searchMode ?? "fts_only") : "fts_only";
   const semanticResultCount = searchMode ? (searchData?.semanticResultCount ?? 0) : 0;
+
+  useEffect(() => {
+    if (!debouncedQuery || !searchData) return;
+    const count = searchData.total ?? 0;
+    announce(t("a11y.searchResultsCount", { count, query: debouncedQuery }));
+  }, [searchData?.total, debouncedQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [fallbackBannerDismissed, setFallbackBannerDismissed] = useState(false);
   useEffect(() => { setFallbackBannerDismissed(false); }, [debouncedQuery]);

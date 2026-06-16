@@ -5,7 +5,8 @@ import { useSettingsSync } from "@/hooks/useSettingsSync";
 // creates an extra async chunk waterfall that directly delays LCP. All other
 // pages remain lazy since they are not in the critical first-render path.
 import Home from "@/pages/home";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   getGetPublicSettingsQueryKey,
@@ -148,6 +149,46 @@ if (typeof window !== "undefined" && window.__prefetch) {
   }).catch(() => {});
 }
 
+/* ── Page focus + screen-reader route announcement ───────────── */
+function PageFocusManager() {
+  const [location] = useLocation();
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    const main = document.getElementById("main-content") as HTMLElement | null;
+    if (!main) return;
+
+    const titleEl = document.querySelector("title");
+    const pageTitle = titleEl?.textContent?.replace(/\s*—.*$/, "").trim() ?? "";
+    const announcement = t("a11y.pageLoaded", { title: pageTitle });
+
+    const announcer = document.createElement("div");
+    announcer.setAttribute("aria-live", "assertive");
+    announcer.setAttribute("aria-atomic", "true");
+    Object.assign(announcer.style, {
+      position: "absolute",
+      width: "1px",
+      height: "1px",
+      padding: "0",
+      overflow: "hidden",
+      clip: "rect(0,0,0,0)",
+      whiteSpace: "nowrap",
+      border: "0",
+    });
+    document.body.appendChild(announcer);
+
+    const timer = setTimeout(() => {
+      main.focus({ preventScroll: true });
+      announcer.textContent = announcement;
+      setTimeout(() => { announcer.textContent = ""; document.body.removeChild(announcer); }, 1000);
+    }, 100);
+
+    return () => { clearTimeout(timer); if (document.body.contains(announcer)) document.body.removeChild(announcer); };
+  }, [location]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+}
+
 /* ── Service Worker registration ─────────────────────────────── */
 function ServiceWorkerRegistrar() {
   useEffect(() => {
@@ -185,6 +226,7 @@ function Router() {
       <NavigationProgress />
       <RoutePreloader />
       <ScrollToTop />
+      <PageFocusManager />
       <ServiceWorkerRegistrar />
       <Suspense fallback={<PageLoader />}>
         <PageTransition>

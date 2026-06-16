@@ -20,7 +20,8 @@
     "recent_searches": "عمليات البحث الأخيرة",
     "clear_all": "مسح الكل",
     "tagline": "أول سوق في سوريا",
-    "preferences": "التفضيلات"
+    "preferences": "التفضيلات",
+    "settings": "الإعدادات"
   },
   "home": {
     "hero": {
@@ -244,7 +245,8 @@
     "warranty": "الضمان",
     "warranty_desc": "ضمان 12 شهراً",
     "delivery_to": "توصيل إلى",
-    "delivery_desc": "حلب، سوريا"
+    "delivery_desc": "حلب، سوريا",
+    "stars_out_of_5": "نجوم من 5"
   },
   "variants": {
     "section_title": "خيارات المنتج",
@@ -3065,5 +3067,21 @@
       "title": "العروض والخصومات",
       "description": "أفضل العروض والخصومات اليومية على سوق سوريا."
     }
+  },
+  "a11y": {
+    "skipToContent": "تخطى إلى المحتوى الرئيسي",
+    "mainNavigation": "التنقل الرئيسي",
+    "close": "إغلاق",
+    "openCart": "فتح سلة التسوق",
+    "search": "بحث",
+    "openMenu": "فتح القائمة",
+    "wishlist": "المفضلة",
+    "addToWishlist": "إضافة إلى المفضلة",
+    "removeFromWishlist": "إزالة من المفضلة",
+    "share": "مشاركة",
+    "loading": "جارٍ التحميل…",
+    "searchResultsCount": "تم العثور على {{count}} نتيجة لـ «{{query}}»",
+    "addedToCart": "تمت إضافة {{name}} إلى السلة",
+    "pageLoaded": "تم تحميل صفحة {{title}}"
   }
 }

@@ -376,6 +376,18 @@
    Users who set "Reduce Motion" in their OS/browser get no animations at all.
    This improves accessibility without removing transitions for everyone else.
    ─────────────────────────────────────────────────────────────────────────── */
+/* ─── Keyboard focus indicator ───────────────────────────────────────────────
+   Show a clear focus ring for keyboard users; suppress it for mouse users.
+   The outline-offset keeps the ring outside the element border box.
+   ─────────────────────────────────────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
