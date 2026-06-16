@@ -16,6 +16,8 @@ export const reviewsTable = pgTable(
     unique("reviews_product_user_unique").on(t.productId, t.userId),
     index("idx_reviews_product_id").on(t.productId),
     index("idx_reviews_user_id").on(t.userId),
+    index("idx_reviews_product_created").on(t.productId, t.createdAt),
+    index("idx_reviews_rating").on(t.rating),
   ]
 );
 

@@ -18,6 +18,7 @@ import {
 import { requireAuth, requireRole, requireActiveAccount } from "../middlewares/auth";
 import { isBestDeal } from "../lib/bestDeals";
 import { searchCache } from "../services/searchCache";
+import { productsCache, productDetailCache, categoriesCache } from "../services/cacheService";
 import { generateSingleEmbedding } from "../scripts/generateEmbeddings";
 
 const router: IRouter = Router();
@@ -99,10 +100,47 @@ async function buildProductResponse(product: typeof productsTable.$inferSelect) 
   };
 }
 
+const QUERY_TIMEOUT_MS = 8_000;
+
+function withQueryTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Query timeout after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
 router.get("/products", async (req, res): Promise<void> => {
   const params = ListProductsQueryParams.safeParse(req.query);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  // ── STEP 4.3: Cache check ────────────────────────────────────────────────
+  const cacheKey = [
+    "products:list",
+    params.data.limit    ?? 24,
+    params.data.offset   ?? 0,
+    params.data.category ?? "",
+    params.data.subcategory ?? "",
+    params.data.sortBy   ?? "",
+    params.data.minPrice ?? "",
+    params.data.maxPrice ?? "",
+    params.data.search   ?? "",
+    params.data.sellerId ?? "",
+    params.data.featured ?? "",
+    params.data.inStock  ?? "",
+    params.data.hasDiscount ?? "",
+    params.data.minRating   ?? "",
+  ].join(":");
+
+  const cached = productsCache.get(cacheKey);
+  if (cached) {
+    res.setHeader("X-Cache", "HIT");
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+    res.json(cached);
     return;
   }
 
@@ -193,74 +231,104 @@ router.get("/products", async (req, res): Promise<void> => {
     ? sql`avg(${reviewsTable.rating}) >= ${params.data.minRating}`
     : undefined;
 
-  const rows = await db
-    .select({
-      id: productsTable.id,
-      sellerId: productsTable.sellerId,
-      sellerName: usersTable.name,
-      name: productsTable.name,
-      description: productsTable.description,
-      price: productsTable.price,
-      discountPercent: productsTable.discountPercent,
-      category: productsTable.category,
-      subcategory: productsTable.subcategory,
-      stock: productsTable.stock,
-      imageUrl: productsTable.imageUrl,
-      imageUrls: productsTable.imageUrls,
-      featured: productsTable.featured,
-      salesCount: productsTable.salesCount,
-      createdAt: productsTable.createdAt,
-      averageRating: avg(reviewsTable.rating),
-      reviewCount: count(reviewsTable.id),
-    })
-    .from(productsTable)
-    .innerJoin(usersTable, eq(productsTable.sellerId, usersTable.id))
-    .leftJoin(reviewsTable, eq(reviewsTable.productId, productsTable.id))
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .groupBy(productsTable.id, usersTable.name)
-    .having(havingClause)
-    .orderBy(orderClause)
-    .limit(limit)
-    .offset(offset);
+  // ── STEP 6.4: Query timeout protection — rows inferred inside try ────────
+  try {
+    const rows = await withQueryTimeout(
+      db
+        .select({
+          id: productsTable.id,
+          sellerId: productsTable.sellerId,
+          sellerName: usersTable.name,
+          name: productsTable.name,
+          description: productsTable.description,
+          price: productsTable.price,
+          discountPercent: productsTable.discountPercent,
+          category: productsTable.category,
+          subcategory: productsTable.subcategory,
+          stock: productsTable.stock,
+          imageUrl: productsTable.imageUrl,
+          imageUrls: productsTable.imageUrls,
+          featured: productsTable.featured,
+          salesCount: productsTable.salesCount,
+          createdAt: productsTable.createdAt,
+          averageRating: avg(reviewsTable.rating),
+          reviewCount: count(reviewsTable.id),
+        })
+        .from(productsTable)
+        .innerJoin(usersTable, eq(productsTable.sellerId, usersTable.id))
+        .leftJoin(reviewsTable, eq(reviewsTable.productId, productsTable.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .groupBy(productsTable.id, usersTable.name)
+        .having(havingClause)
+        .orderBy(orderClause)
+        .limit(limit)
+        .offset(offset)
+        .then((r) => r),
+      QUERY_TIMEOUT_MS,
+    );
 
-  // Batch-check which products have active variants (one query, no N+1)
-  let variantProductIds = new Set<number>();
-  if (rows.length > 0) {
-    const vRows = await db
-      .selectDistinct({ productId: productVariantsTable.productId })
-      .from(productVariantsTable)
-      .where(inArray(productVariantsTable.productId, rows.map((r) => r.id)));
-    variantProductIds = new Set(vRows.map((r) => r.productId));
+    // Batch-check which products have active variants (one query, no N+1)
+    let variantProductIds = new Set<number>();
+    if (rows.length > 0) {
+      const vRows = await db
+        .selectDistinct({ productId: productVariantsTable.productId })
+        .from(productVariantsTable)
+        .where(inArray(productVariantsTable.productId, rows.map((r) => r.id)));
+      variantProductIds = new Set(vRows.map((r) => r.productId));
+    }
+
+    const result = rows.map((row) => ({
+      id: row.id,
+      sellerId: row.sellerId,
+      sellerName: row.sellerName ?? "Unknown",
+      name: row.name,
+      description: row.description.substring(0, 200),
+      price: parseFloat(row.price),
+      discountPercent: row.discountPercent ? parseFloat(row.discountPercent) : null,
+      finalPrice: computeFinalPrice(row.price, row.discountPercent),
+      category: row.category,
+      subcategory: row.subcategory ?? null,
+      stock: row.stock,
+      imageUrl: row.imageUrl ?? null,
+      imageUrls: row.imageUrls ?? [],
+      featured: row.featured,
+      salesCount: row.salesCount,
+      isBestDeal: isBestDeal(row.discountPercent ? parseFloat(row.discountPercent) : null),
+      createdAt: row.createdAt.toISOString(),
+      averageRating: row.averageRating != null ? parseFloat(row.averageRating) : null,
+      reviewCount: Number(row.reviewCount ?? 0),
+      hasVariants: variantProductIds.has(row.id),
+    }));
+
+    // ── STEP 4.3: Cache store ──────────────────────────────────────────────
+    productsCache.set(cacheKey, result as unknown as Record<string, unknown>);
+    res.setHeader("X-Cache", "MISS");
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+    res.json(result);
+  } catch (err) {
+    if (err instanceof Error && (
+      err.message.startsWith("Query timeout") ||
+      err.message.includes("canceling statement")
+    )) {
+      res.status(503).setHeader("Retry-After", "5").json({ error: "Service temporarily unavailable" });
+      return;
+    }
+    throw err;
   }
-
-  const result = rows.map((row) => ({
-    id: row.id,
-    sellerId: row.sellerId,
-    sellerName: row.sellerName ?? "Unknown",
-    name: row.name,
-    description: row.description.substring(0, 200),
-    price: parseFloat(row.price),
-    discountPercent: row.discountPercent ? parseFloat(row.discountPercent) : null,
-    finalPrice: computeFinalPrice(row.price, row.discountPercent),
-    category: row.category,
-    subcategory: row.subcategory ?? null,
-    stock: row.stock,
-    imageUrl: row.imageUrl ?? null,
-    imageUrls: row.imageUrls ?? [],
-    featured: row.featured,
-    salesCount: row.salesCount,
-    isBestDeal: isBestDeal(row.discountPercent ? parseFloat(row.discountPercent) : null),
-    createdAt: row.createdAt.toISOString(),
-    averageRating: row.averageRating != null ? parseFloat(row.averageRating) : null,
-    reviewCount: Number(row.reviewCount ?? 0),
-    hasVariants: variantProductIds.has(row.id),
-  }));
-
-  res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
-  res.json(result);
 });
 
 router.get("/products/categories", async (_req, res): Promise<void> => {
+  // ── STEP 4.5: Categories cache (1hr TTL) ─────────────────────────────────
+  const catKey = "categories:all";
+  const catCached = categoriesCache.get(catKey);
+  if (catCached) {
+    res.setHeader("X-Cache", "HIT");
+    res.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
+    res.json(catCached);
+    return;
+  }
+  categoriesCache.set(catKey, MAIN_CATEGORY_SLUGS as unknown as Record<string, unknown>);
+  res.setHeader("X-Cache", "MISS");
   res.setHeader("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
   res.json(MAIN_CATEGORY_SLUGS);
 });
@@ -355,6 +423,16 @@ router.get("/products/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  // ── STEP 4.4: Product detail cache (5min TTL) ────────────────────────────
+  const detailKey = `product:detail:${params.data.id}`;
+  const detailCached = productDetailCache.get(detailKey);
+  if (detailCached) {
+    res.setHeader("X-Cache", "HIT");
+    res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+    res.json(detailCached);
+    return;
+  }
+
   const [product] = await db.select().from(productsTable).where(eq(productsTable.id, params.data.id));
   if (!product) {
     res.status(404).json({ error: "Product not found" });
@@ -367,8 +445,11 @@ router.get("/products/:id", async (req, res): Promise<void> => {
     .where(eq(productsTable.id, product.id))
     .catch(() => {});
 
+  const detailResponse = await buildProductResponse(product);
+  productDetailCache.set(detailKey, detailResponse as unknown as Record<string, unknown>);
+  res.setHeader("X-Cache", "MISS");
   res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
-  res.json(await buildProductResponse(product));
+  res.json(detailResponse);
 });
 
 function stripHtml(value: string): string {
@@ -425,10 +506,12 @@ router.post("/products", requireAuth, requireRole("seller"), requireActiveAccoun
     .returning();
 
   const created = await buildProductResponse(product);
-  // Fire-and-forget: generate semantic embedding + invalidate search cache
+  // Fire-and-forget: generate semantic embedding + invalidate caches
   const embText = [product.nameAr, product.name, product.category, product.subcategory, product.description?.slice(0, 500), product.searchTokens].filter(Boolean).join(" ");
   generateSingleEmbedding(product.id, embText).catch(() => {});
   searchCache.invalidate();
+  productsCache.clear();
+  categoriesCache.clear();
   res.status(201).json(created);
 });
 
@@ -495,7 +578,10 @@ router.patch("/products/:id", requireAuth, requireRole("seller"), requireActiveA
 
   const [updated] = await db.update(productsTable).set(updateData).where(eq(productsTable.id, params.data.id)).returning();
   searchCache.invalidate();
-  res.json(await buildProductResponse(updated));
+  productsCache.deleteByPrefix("products:list:");
+  productDetailCache.delete(`product:detail:${params.data.id}`);
+  const updatedResponse = await buildProductResponse(updated);
+  res.json(updatedResponse);
 });
 
 router.delete("/products/:id", requireAuth, requireRole("seller"), requireActiveAccount, async (req, res): Promise<void> => {
@@ -514,6 +600,9 @@ router.delete("/products/:id", requireAuth, requireRole("seller"), requireActive
 
   await db.delete(productsTable).where(eq(productsTable.id, params.data.id));
   searchCache.invalidate();
+  productsCache.deleteByPrefix("products:list:");
+  productDetailCache.delete(`product:detail:${params.data.id}`);
+  categoriesCache.clear();
   res.json({ message: "Product deleted" });
 });
 
@@ -550,6 +639,8 @@ router.patch("/products/:id/discount", requireAuth, requireRole("seller"), requi
     .returning();
 
   searchCache.invalidate();
+  productsCache.deleteByPrefix("products:list:");
+  productDetailCache.delete(`product:detail:${params.data.id}`);
   res.json(await buildProductResponse(updated));
 });
 
@@ -584,6 +675,8 @@ router.patch("/products/:id/stock", requireAuth, requireRole("seller"), requireA
     .where(eq(productsTable.id, params.data.id))
     .returning();
 
+  productsCache.deleteByPrefix("products:list:");
+  productDetailCache.delete(`product:detail:${params.data.id}`);
   res.json(await buildProductResponse(updated));
 });
 

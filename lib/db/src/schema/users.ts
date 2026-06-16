@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, pgEnum, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, pgEnum, boolean, integer, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -35,7 +35,11 @@ export const usersTable = pgTable("users", {
   resetOtpExpiresAt: timestamp("reset_otp_expires_at"),
   resetOtpAttempts: integer("reset_otp_attempts").notNull().default(0),
   resetOtpLockedUntil: timestamp("reset_otp_locked_until"),
-});
+}, (t) => [
+  index("idx_users_role").on(t.role),
+  index("idx_users_created_at").on(t.createdAt),
+  index("idx_users_account_status").on(t.accountStatus),
+]);
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, createdAt: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;

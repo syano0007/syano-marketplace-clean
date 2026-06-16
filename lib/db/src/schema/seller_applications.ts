@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, index } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 
 export const sellerApplicationsTable = pgTable("seller_applications", {
@@ -41,7 +41,12 @@ export const sellerApplicationsTable = pgTable("seller_applications", {
   reviewedById: integer("reviewed_by_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (t) => [
+  index("idx_seller_apps_user_id").on(t.userId),
+  index("idx_seller_apps_status").on(t.status),
+  index("idx_seller_apps_store_slug").on(t.storeSlug),
+  index("idx_seller_apps_created_at").on(t.createdAt),
+]);
 
 export type SellerApplication = typeof sellerApplicationsTable.$inferSelect;
 export type InsertSellerApplication = typeof sellerApplicationsTable.$inferInsert;

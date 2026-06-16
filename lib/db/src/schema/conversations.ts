@@ -21,6 +21,7 @@ export const conversationsTable = pgTable(
     index("idx_conversations_seller_id").on(t.sellerId),
     index("idx_conversations_last_message").on(t.sellerId, t.lastMessageAt),
     index("idx_conversations_type").on(t.type),
+    index("idx_conversations_updated_at").on(t.lastMessageAt),
   ]
 );
 
@@ -40,6 +41,8 @@ export const messagesTable = pgTable(
   (t) => [
     index("idx_messages_conversation_id").on(t.conversationId),
     index("idx_messages_sender_id").on(t.senderId),
+    index("idx_messages_conv_created").on(t.conversationId, t.createdAt),
+    index("idx_messages_created_at").on(t.createdAt),
   ]
 );
 

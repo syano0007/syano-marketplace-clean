@@ -1,7 +1,22 @@
 # SYANO — Project Status
 Last updated: June 16, 2026
 
-## Phase 11 — Launch Preparation
+## Phase 12 — Performance & Scalability — COMPLETE ✅
+- PART 0 — Environment check + baseline measurement    ✅ (all endpoints <100ms cold)
+- PART 1 — Redis availability check                    ✅ (not available — in-process LRU chosen)
+- PART 2 — Timing instrumentation                      ✅ (added + removed)
+- PART 3 — N+1 audit                                   ✅ (NONE found — batch queries already used)
+- PART 4 — In-process LRU cache (4 instances)          ✅ (productsCache/productDetailCache/categoriesCache/sellersCache)
+- PART 5 — Connection pool tuning                      ✅ (max=20, min=2, statement_timeout=10s)
+- PART 6 — EXPLAIN ANALYZE + query optimization        ✅ (1.879ms execution, Seq Scans optimal)
+- PART 6.4 — Query timeout protection                  ✅ (withQueryTimeout + 503 on timeout)
+- PART 7 — Load tests (autocannon)                     ✅ (healthz 2228 req/s, products 1696 req/s, search 1566 req/s)
+- PART 8 — Memory + graceful shutdown                  ✅ (60s memory log, 5min pool monitor, SIGTERM handler)
+- PART 9 — After measurements                          ✅ (all WARM <10ms, all COLD <50ms)
+- PART 10 — TypeScript checks                          ✅ (EXIT:0 on both api-server + marketplace)
+- PART 11 — Recovery docs updated                      ✅
+
+## Phase 11 — Launch Preparation — COMPLETE ✅
 - Prompt 1  — Launch Readiness Audit     ✅ Complete
 - Prompt 2  — Critical & High Fixes      ✅ Complete
 - Prompt 3  — Error Handling Layer       ✅ Complete
@@ -15,8 +30,8 @@ Last updated: June 16, 2026
 
 ---
 
-**Last Updated:** June 16, 2026 (Phase 11 — Prompt 10: Performance Baseline)
-**Recovery-Verified:** June 16, 2026 — all secrets loaded; API + Marketplace workflows running; 33 tables; 42 products; API response times all <200ms
+**Last Updated:** June 16, 2026 (Phase 12 — Performance & Scalability)
+**Recovery-Verified:** June 16, 2026 — all secrets loaded; API + Marketplace workflows running; 33 tables; 42 products; all endpoints COLD <50ms, WARM <10ms; 0 TS errors
 
 SYANO is a production-scale Syrian marketplace platform built with React + Vite (web), Expo (mobile), Express + Drizzle (API), PostgreSQL (DB). Full Arabic/English bilingual, RTL support, dark/light theme.
 

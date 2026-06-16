@@ -5,6 +5,7 @@ import { MAIN_CATEGORY_SLUGS } from "../categories";
 import { processSearchQuery } from "../utils/searchProcessor";
 import { optionalAuth, requireAuth, requireRole } from "../middlewares/auth";
 import { searchCache, buildCacheKey, getTTL } from "../services/searchCache";
+import { productsCache, productDetailCache, categoriesCache, sellersCache } from "../services/cacheService";
 
 const router: IRouter = Router();
 
@@ -1920,6 +1921,28 @@ router.get("/admin/search/cache-stats", requireAuth, requireRole("admin"), async
       pgvectorAvailable:         _pgvectorAvailable,
     },
     topCachedQueries: topQueries,
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROUTE 12.6 — GET /api/admin/cache-stats
+   STEP 4.7: Aggregated stats for all in-process LRU caches.
+   ═══════════════════════════════════════════════════════════════════════════ */
+router.get("/admin/cache-stats", requireAuth, requireRole("admin"), async (_req, res): Promise<void> => {
+  const searchStats = searchCache.getStats();
+  res.json({
+    products:      productsCache.stats(),
+    productDetail: productDetailCache.stats(),
+    categories:    categoriesCache.stats(),
+    sellers:       sellersCache.stats(),
+    search: {
+      size:             searchStats.size,
+      maxSize:          searchStats.maxSize,
+      hits:             searchStats.totalHits,
+      misses:           searchStats.totalMisses,
+      hitRate:          searchStats.hitRate,
+      evictions:        searchStats.totalEvictions,
+    },
   });
 });
 

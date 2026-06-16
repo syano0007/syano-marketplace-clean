@@ -14,6 +14,7 @@ import {
 } from "@workspace/db";
 import { requireAuth, requireRole, requireActiveAccount } from "../middlewares/auth";
 import { createNotification, bi } from "../lib/notif";
+import { sellersCache } from "../services/cacheService";
 
 const router: IRouter = Router();
 
@@ -139,6 +140,16 @@ router.get("/sellers/directory", async (req, res): Promise<void> => {
     const pageNum  = Math.max(1, parseInt(pageStr,  10) || 1);
     const limitNum = Math.min(48, parseInt(limitStr, 10) || 12);
 
+    // ── STEP 4.6: Sellers directory cache (2min TTL) ─────────────────────────
+    const dirCacheKey = `sellers:directory:${search}:${sort}:${verified ?? ""}:${category ?? ""}:${pageNum}:${limitNum}`;
+    const dirCached = sellersCache.get(dirCacheKey);
+    if (dirCached) {
+      res.setHeader("X-Cache", "HIT");
+      res.setHeader("Cache-Control", "public, max-age=120, stale-while-revalidate=600");
+      res.json(dirCached);
+      return;
+    }
+
     const conditions: any[] = [eq(sellerApplicationsTable.status, "approved")];
     if (search.trim()) {
       const pat = `%${search.trim()}%`;
@@ -201,8 +212,11 @@ router.get("/sellers/directory", async (req, res): Promise<void> => {
 
     const total     = sorted.length;
     const paginated = sorted.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+    const dirResponse = { stores: paginated, total, page: pageNum, limit: limitNum };
+    sellersCache.set(dirCacheKey, dirResponse as unknown as Record<string, unknown>);
+    res.setHeader("X-Cache", "MISS");
     res.setHeader("Cache-Control", "public, max-age=120, stale-while-revalidate=600");
-    res.json({ stores: paginated, total, page: pageNum, limit: limitNum });
+    res.json(dirResponse);
   } catch {
     res.json({ stores: [], total: 0, page: 1, limit: 12 });
   }

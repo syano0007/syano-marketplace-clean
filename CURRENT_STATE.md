@@ -6,7 +6,69 @@ Last updated: June 16, 2026
 - Type: Multi-vendor marketplace
 - Domain: syanomarket.online
 - GitHub: https://github.com/syano0007/syano07007
-- Status: Pre-launch — Phase 11 COMPLETE ✅
+- Status: Pre-launch — Phase 12 COMPLETE ✅
+
+## Phase 12 — Performance & Scalability — COMPLETE ✅
+
+### Database Indexes (22 new indexes via run-migrations.ts — STEP 3)
+All 22 indexes created via `executeSql` (additive, `IF NOT EXISTS`):
+- `users`: idx_users_email, idx_users_role, idx_users_created_at
+- `products`: idx_products_seller_id, idx_products_category, idx_products_stock, idx_products_featured, idx_products_sales_count, idx_products_created_at, idx_products_price, idx_products_name_trgm (GIN), idx_products_description_trgm (GIN)
+- `seller_applications`: idx_seller_applications_user_id, idx_seller_applications_status
+- `orders`: idx_orders_customer_id, idx_orders_seller_id, idx_orders_status, idx_orders_created_at
+- `conversations`: idx_conversations_buyer_id, idx_conversations_seller_id, idx_conversations_order_id
+- `messages`: idx_messages_conversation_id, idx_messages_created_at
+- `reviews`: idx_reviews_product_id, idx_reviews_seller_id
+
+### In-process LRU Cache (STEP 4) — `artifacts/api-server/src/services/cacheService.ts`
+Generic `CacheService<T>` class + 4 named instances:
+- `productsCache` — 500 entries, 60s TTL — GET /products
+- `productDetailCache` — 200 entries, 5min TTL — GET /products/:id
+- `categoriesCache` — 1 entry, 1hr TTL — GET /products/categories
+- `sellersCache` — 100 entries, 2min TTL — GET /sellers/directory
+- X-Cache: HIT / MISS headers on all cached routes
+- Cache invalidation on POST/PATCH/DELETE mutations
+- Admin stats endpoint: GET /api/admin/cache-stats
+
+### Connection Pool Tuning (STEP 5) — `lib/db/src/index.ts`
+- `max=20, min=2, idleTimeoutMillis=30000, connectionTimeoutMillis=5000, statement_timeout=10000`
+- Memory logging every 60s (dev only)
+- Pool monitoring every 5min (dev only)
+- Graceful SIGTERM/SIGINT shutdown with 10s forced exit
+
+### Query Timeout Protection (STEP 6.4) — products.ts
+- `withQueryTimeout<T>()` helper — `Promise.race` with 8000ms
+- Applied to GET /products main query; returns HTTP 503 + Retry-After: 5 on timeout
+- Also protected by pg `statement_timeout: 10_000` at pool level
+
+### EXPLAIN ANALYZE Results (STEP 6.1)
+- products list: **1.879ms** execution time — all buffer hits, no disk I/O
+- Seq Scans on products(42 rows), reviews(40 rows), users(11 rows) are OPTIMAL (planner correct)
+
+### Load Test Results (PART 7) — autocannon
+| Test | Connections | Duration | Req/s avg | Latency p50 | Errors |
+|---|---|---|---|---|---|
+| healthz | 100 | 5s | 2,228 | 37ms | 0 |
+| GET /products | 50 | 10s | 1,696 | 222ms* | 0 |
+| GET /search | 30 | 10s | 1,566 | 16ms | 0 |
+*50 connections × 10 pipeline factor = 500 in-flight; cache hit path; latency dominated by JSON serialization (~20KB/response)
+
+### After Optimization Measurements (STEP 9)
+| Endpoint | Cold | Warm (cache HIT) | Target |
+|---|---|---|---|
+| healthz | 13ms | 3ms | <100ms ✅ |
+| GET /products | 30ms | 6ms | <100ms cold / <20ms warm ✅ |
+| GET /products/:id | 34ms | 3.5ms | <100ms cold / <20ms warm ✅ |
+| GET /products/categories | 3.5ms | 3.5ms | <100ms ✅ |
+| GET /search/results | 37ms | 3.5ms | <100ms cold / <20ms warm ✅ |
+| GET /sellers/directory | ~84ms | 4ms | <100ms cold / <20ms warm ✅ |
+| GET /orders (admin) | 23ms | 13ms | <100ms ✅ |
+
+### TypeScript (PART 10)
+- `npx tsc --noEmit -p artifacts/api-server/tsconfig.json` → EXIT:0 ✅
+- `npx tsc --noEmit -p artifacts/marketplace/tsconfig.json` → EXIT:0 ✅
+
+---
 
 ## Phase 11 — Launch Preparation — COMPLETE ✅
 All 10 prompts finished:

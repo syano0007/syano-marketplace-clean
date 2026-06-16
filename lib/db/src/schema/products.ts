@@ -29,6 +29,11 @@ export const productsTable = pgTable("products", {
   index("products_featured_idx").on(t.featured),
   index("products_created_at_idx").on(t.createdAt),
   index("products_stock_idx").on(t.stock),
+  index("products_subcategory_idx").on(t.subcategory),
+  index("products_seller_created_idx").on(t.sellerId, t.createdAt),
+  index("products_category_created_idx").on(t.category, t.createdAt),
+  index("products_featured_created_idx").on(t.featured, t.createdAt),
+  index("products_discount_idx").on(t.discountPercent),
 ]);
 
 export const insertProductSchema = createInsertSchema(productsTable).omit({ id: true, createdAt: true });

@@ -43,6 +43,9 @@ export const ordersTable = pgTable("orders", {
   index("idx_orders_customer_id").on(t.customerId),
   index("idx_orders_status").on(t.status),
   index("idx_orders_created_at").on(t.createdAt),
+  index("idx_orders_status_created").on(t.status, t.createdAt),
+  index("idx_orders_customer_created").on(t.customerId, t.createdAt),
+  index("idx_orders_updated_at").on(t.updatedAt),
 ]);
 
 export const orderItemsTable = pgTable("order_items", {
