@@ -62,7 +62,7 @@ export default defineConfig({
     // Chrome 80+, Firefox 78+, Safari 14+ (all that Tailwind v4 supports).
     // Previously "es2022" because i18n used top-level await; that is now
     // removed so "esnext" produces the most optimal output.
-    target: "esnext",
+    target: "es2020",
     cssCodeSplit: true,
     // lightningcss: faster parser + smaller output than esbuild's CSS minifier.
     // Installed as a Vite peer dep (lightningcss@1.32.0). No extra install needed.
@@ -71,8 +71,8 @@ export default defineConfig({
     // Use esbuild minifier (fastest, very close to terser quality) and drop
     // debug noise from production bundles.
     minify: "esbuild",
-    chunkSizeWarningLimit: 800,
-    reportCompressedSize: false,
+    chunkSizeWarningLimit: 500,
+    reportCompressedSize: true,
     rollupOptions: {
       output: {
         // Split heavy dependencies into long-cache vendor chunks so a code
@@ -89,6 +89,7 @@ export default defineConfig({
           if (id.includes("react-dom") || id.match(/[\\/]react[\\/]/) || id.includes("scheduler")) {
             return "vendor-react";
           }
+          if (id.includes("react-helmet-async")) return "vendor-ui";
           if (id.includes("@tanstack")) return "vendor-query";
           if (id.includes("lucide-react") || id.includes("react-icons")) {
             return "vendor-icons";
@@ -96,6 +97,8 @@ export default defineConfig({
           if (id.includes("i18next") || id.includes("react-i18next")) {
             return "vendor-i18n";
           }
+          if (id.includes("@radix-ui")) return "vendor-radix";
+          if (id.includes("recharts") || id.includes("/d3-") || id.includes("/d3/")) return "vendor-charts";
           if (id.includes("framer-motion")) return "vendor-motion";
           if (id.includes("date-fns")) return "vendor-date";
           if (id.includes("wouter")) return "vendor-router";

@@ -256,7 +256,7 @@ router.get("/products", async (req, res): Promise<void> => {
     hasVariants: variantProductIds.has(row.id),
   }));
 
-  res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+  res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
   res.json(result);
 });
 
@@ -367,7 +367,7 @@ router.get("/products/:id", async (req, res): Promise<void> => {
     .where(eq(productsTable.id, product.id))
     .catch(() => {});
 
-  res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=180");
+  res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
   res.json(await buildProductResponse(product));
 });
 

@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Syano Sitemap Index | Generated: 2026-06-07T07:19:35.706Z | Submit this URL to Google Search Console -->
+<!-- Syano Sitemap Index | Generated: 2026-06-16T14:36:47.887Z | Submit this URL to Google Search Console -->
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
     <loc>https://syano.online/sitemap-pages.xml</loc>
-    <lastmod>2026-06-07</lastmod>
+    <lastmod>2026-06-16</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://syano.online/sitemap-categories.xml</loc>
-    <lastmod>2026-06-07</lastmod>
+    <lastmod>2026-06-16</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://syano.online/sitemap-products.xml</loc>
-    <lastmod>2026-06-07</lastmod>
+    <lastmod>2026-06-16</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://syano.online/sitemap-stores.xml</loc>
-    <lastmod>2026-06-07</lastmod>
+    <lastmod>2026-06-16</lastmod>
   </sitemap>
 </sitemapindex>

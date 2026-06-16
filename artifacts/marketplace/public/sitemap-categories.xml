@@ -1,9 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Syano Category Sitemap | 1 categories | Generated: 2026-06-07T07:19:35.706Z -->
+<!-- Syano Category Sitemap | 8 categories | Generated: 2026-06-16T14:36:47.887Z -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://syano.online/products?category=Supermarket%20%26%20Grocery</loc>
-    <lastmod>2026-06-07</lastmod>
+    <loc>https://syano.online/products?category=Beauty</loc>
+    <lastmod>2026-06-16</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://syano.online/products?category=Books</loc>
+    <lastmod>2026-06-16</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://syano.online/products?category=Electronics</loc>
+    <lastmod>2026-06-16</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://syano.online/products?category=Fashion</loc>
+    <lastmod>2026-06-16</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://syano.online/products?category=Food%20%26%20Grocery</loc>
+    <lastmod>2026-06-16</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://syano.online/products?category=Home%20%26%20Living</loc>
+    <lastmod>2026-06-16</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://syano.online/products?category=Jewelry</loc>
+    <lastmod>2026-06-16</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://syano.online/products?category=Sports%20%26%20Fitness</loc>
+    <lastmod>2026-06-16</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>

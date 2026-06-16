@@ -1,9 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Syano Store Sitemap | 1 stores | Generated: 2026-06-07T07:19:35.706Z -->
+<!-- Syano Store Sitemap | 5 stores | Generated: 2026-06-16T14:36:47.887Z -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://syano.online/store/amer-seller</loc>
-    <lastmod>2026-06-06</lastmod>
+    <loc>https://syano.online/store/syano-test-store</loc>
+    <lastmod>2026-06-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://syano.online/store/ahmad-electronics</loc>
+    <lastmod>2026-06-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://syano.online/store/nour-fashion</loc>
+    <lastmod>2026-06-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://syano.online/store/beit-al-nour</loc>
+    <lastmod>2026-06-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://syano.online/store/hana-beauty</loc>
+    <lastmod>2026-06-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.80</priority>
   </url>

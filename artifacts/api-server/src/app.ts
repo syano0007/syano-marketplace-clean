@@ -13,8 +13,8 @@ const app: Express = express();
 app.set("trust proxy", 1);
 // Disable the default `X-Powered-By: Express` header (small security + perf win)
 app.disable("x-powered-by");
-// Use weak ETags for cheap revalidation of GET responses
-app.set("etag", "weak");
+// Use strong ETags for precise revalidation of GET responses
+app.set("etag", "strong");
 
 app.use(
   pinoHttp({

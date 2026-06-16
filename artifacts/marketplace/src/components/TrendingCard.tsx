@@ -131,6 +131,8 @@ export function TrendingCard({ product, i = 0, highlightQuery }: { product: Tren
           <img
             src={product.img}
             alt={product.name}
+            width={400}
+            height={400}
             loading="lazy"
             decoding="async"
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"

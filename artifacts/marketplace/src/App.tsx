@@ -122,10 +122,11 @@ declare global {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: false,
+      retry: 2,
       refetchOnWindowFocus: false,
-      staleTime: 2 * 60 * 1000,   // 2 min — safe default for all volatile data
-      gcTime: 15 * 60 * 1000,     // 15 min — keep cached data longer for back-navigation
+      staleTime: 5 * 60 * 1000,    // 5 min — data is fresh for 5 min
+      gcTime: 30 * 60 * 1000,      // 30 min — keep in memory
+      refetchOnReconnect: true,
     },
   },
 });

@@ -201,6 +201,7 @@ router.get("/sellers/directory", async (req, res): Promise<void> => {
 
     const total     = sorted.length;
     const paginated = sorted.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+    res.setHeader("Cache-Control", "public, max-age=120, stale-while-revalidate=600");
     res.json({ stores: paginated, total, page: pageNum, limit: limitNum });
   } catch {
     res.json({ stores: [], total: 0, page: 1, limit: 12 });
@@ -258,6 +259,7 @@ router.get("/sellers/store/:slug", async (req, res): Promise<void> => {
 
   const stats = await getStoreStats(storeData.sellerId);
 
+  res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
   res.json({
     sellerId: storeData.sellerId,
     storeName: storeData.storeName,
