@@ -1,3 +1,12 @@
+# SYANO — syanomarket.online
+Last verified working: June 16, 2026
+Workflows: API Server ✅ | Marketplace ✅ | Embedding Service ✅ (TF-IDF mode)
+Secrets: All 12 loaded ✅
+Email OTP: Verified end-to-end ✅
+Next task: Phase 11 — Prompt 8 — SEO Layer
+
+---
+
 # SYANO — Syrian Digital Marketplace
 
 ---

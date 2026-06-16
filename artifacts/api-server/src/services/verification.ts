@@ -37,7 +37,7 @@ function logDevOTP(to: string, code: string, channel: "EMAIL" | "SMS"): void {
 
 async function sendEmailReal(to: string, code: string, locale: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY!;
-  const fromEmail = process.env.FROM_EMAIL ?? "noreply@syano.online";
+  const fromEmail = process.env.EMAIL_FROM ?? "noreply@syanomarket.online";
   const isAr = locale === "ar";
 
   const subject = isAr ? "رمز التحقق الخاص بك - سيانو" : "Your Syano Verification Code";
@@ -72,6 +72,8 @@ async function sendEmailReal(to: string, code: string, locale: string): Promise<
     const text = await res.text();
     throw new Error(`Resend error: ${text}`);
   }
+  const data = await res.json() as { id?: string };
+  console.log(`[OTP] Resend email sent — id: ${data.id ?? "unknown"} → ${to}`);
 }
 
 export async function sendEmailOTP(to: string, code: string, locale = "en"): Promise<void> {
