@@ -590,6 +590,11 @@ export async function runMigrations(): Promise<void> {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(5) DEFAULT 'ar';
     `);
 
+    // ── Phase 13 V2: source column on support_tickets ────────────────────────
+    await client.query(`
+      ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'page';
+    `);
+
     logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns, AI support tickets ready");
   } catch (err) {
     logger.error({ err }, "Migration error — server cannot start safely");

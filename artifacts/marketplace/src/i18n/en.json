@@ -3115,6 +3115,18 @@
     "tickets_shown": "tickets",
     "admin_no_tickets": "No tickets match the current filter",
     "change_status": "Change Status",
-    "view_chat": "View Chat"
+    "view_chat": "View Chat",
+    "widget_open_full": "Open full chat",
+    "widget_login_prompt": "Log in to chat with Smart Support",
+    "widget_login_btn": "Log in",
+    "widget_ctx_track": "Track this order",
+    "widget_ctx_issue": "Report issue",
+    "widget_ctx_delivery_q": "Delivery question",
+    "widget_ctx_ask_product": "Ask about this product",
+    "widget_ctx_availability": "Check availability",
+    "widget_ctx_delivery_product": "Delivery for this item",
+    "widget_ctx_contact_seller": "Contact seller",
+    "widget_ctx_seller_info": "Seller info",
+    "widget_ctx_shipping_policy": "Shipping policy"
   }
 }

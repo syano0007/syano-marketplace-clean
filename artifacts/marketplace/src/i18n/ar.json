@@ -3115,6 +3115,18 @@
     "tickets_shown": "تذكرة",
     "admin_no_tickets": "لا تذاكر تطابق الفلتر الحالي",
     "change_status": "تغيير الحالة",
-    "view_chat": "عرض المحادثة"
+    "view_chat": "عرض المحادثة",
+    "widget_open_full": "فتح المحادثة الكاملة",
+    "widget_login_prompt": "سجّل دخولك للتحدث مع الدعم الذكي",
+    "widget_login_btn": "تسجيل الدخول",
+    "widget_ctx_track": "تتبع الطلب",
+    "widget_ctx_issue": "الإبلاغ عن مشكلة",
+    "widget_ctx_delivery_q": "سؤال عن التوصيل",
+    "widget_ctx_ask_product": "اسأل عن هذا المنتج",
+    "widget_ctx_availability": "تحقق من التوفر",
+    "widget_ctx_delivery_product": "معلومات التوصيل للمنتج",
+    "widget_ctx_contact_seller": "تواصل مع البائع",
+    "widget_ctx_seller_info": "معلومات البائع",
+    "widget_ctx_shipping_policy": "سياسة الشحن"
   }
 }

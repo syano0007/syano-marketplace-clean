@@ -115,15 +115,16 @@ async function insertSupportTicket(
   subject: string,
   category: string,
   priority: string,
+  source = "page",
 ): Promise<number | null> {
   try {
     const client = await pool.connect();
     try {
       const res = await client.query(
-        `INSERT INTO support_tickets (user_id, conversation_id, subject, category, priority, status)
-         VALUES ($1, $2, $3, $4, $5, 'open')
+        `INSERT INTO support_tickets (user_id, conversation_id, subject, category, priority, status, source)
+         VALUES ($1, $2, $3, $4, $5, 'open', $6)
          RETURNING id`,
-        [userId, conversationId, subject, category, priority],
+        [userId, conversationId, subject, category, priority, source],
       );
       return Number(res.rows[0]?.id ?? null);
     } finally {
@@ -192,8 +193,12 @@ router.post(
   requireActiveAccount,
   async (req, res): Promise<void> => {
     const userId = req.user!.userId;
-    const body = String(req.body.message ?? "").trim();
-    const convId = req.body.conversationId ? Number(req.body.conversationId) : null;
+    const body      = String(req.body.message ?? "").trim();
+    const convId    = req.body.conversationId ? Number(req.body.conversationId) : null;
+    const source    = String(req.body.source ?? "page");
+    const orderId   = req.body.orderId   ? Number(req.body.orderId)   : undefined;
+    const productId = req.body.productId ? Number(req.body.productId) : undefined;
+    const storeSlug = req.body.storeSlug ? String(req.body.storeSlug) : undefined;
 
     if (!body) {
       res.status(400).json({ error: "message is required" });
@@ -257,13 +262,14 @@ router.post(
           body: m.body,
         }));
 
-      // Generate AI reply
+      // Generate AI reply (with page context if provided by widget)
       const provider = getAIProvider();
       const reply = await provider.generateReply({
         userId,
         message: body,
         language: lang,
         history: contextHistory,
+        context: { orderId, productId, storeSlug, source: source as "widget" | "page" },
       });
 
       // Insert AI reply
@@ -278,6 +284,7 @@ router.post(
           subject,
           "general",
           "normal",
+          source,
         );
 
         // Notify admins
@@ -285,12 +292,11 @@ router.post(
           await createNotification({
             userId: agentId,
             type: "new_message",
-            titleAr: "طلب دعم جديد",
-            titleEn: "New Support Request",
-            bodyAr: `مستخدم يطلب التحدث مع أحد أعضاء الفريق. #${ticketId}`,
-            bodyEn: `A user has requested human support. Ticket #${ticketId}`,
+            title: "New Support Request",
+            body: `A user has requested human support. Ticket #${ticketId}`,
             link: `/admin/support`,
-          } as any);
+            priority: "normal",
+          });
         } catch {}
 
         if (ticketId) {

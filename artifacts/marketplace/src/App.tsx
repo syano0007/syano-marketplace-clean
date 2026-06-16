@@ -105,6 +105,7 @@ const CookiesPage         = lazy(() => import("@/pages/cookies"));
 const StoresPage          = lazy(() => import("@/pages/stores"));
 const CustomerSupport     = lazy(() => import("@/pages/customer/support"));
 const AdminSupport        = lazy(() => import("@/pages/admin/support"));
+const SupportWidget       = lazy(() => import("@/components/SupportWidget"));
 
 setupApi();
 
@@ -434,6 +435,9 @@ function App() {
                 <TooltipProvider>
                   <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
                     <Router />
+                    <Suspense fallback={null}>
+                      <SupportWidget />
+                    </Suspense>
                   </WouterRouter>
                   {/* Global notification overlays */}
                   <NotificationToasts />

@@ -26,6 +26,12 @@ export interface AIReplyContext {
   message: string;
   language: "ar" | "en";
   history: ConvMessage[];
+  context?: {
+    orderId?:   number;
+    productId?: number;
+    storeSlug?: string;
+    source?:    "widget" | "page";
+  };
 }
 
 export interface SuggestedAction { label: string; href: string }
@@ -118,9 +124,11 @@ const INTENT_PATTERNS: IntentPattern[] = [
     patterns: [
       "أبحث عن", "عندكم", "لابتوب", "موبايل", "تلفزيون",
       "هاتف", "سماعات", "أريكة", "عطر", "فستان", "حذاء",
+      "اسأل عن", "معلومات المنتج", "هذا المنتج",
       "looking for", "do you have", "laptop", "phone", "mobile",
       "tv", "television", "shoes", "dress", "perfume", "headphones",
-      "cheapest", "recommend",
+      "cheapest", "recommend", "ask about", "this product", "product info",
+      "tell me about", "more about",
     ],
   },
   {
@@ -273,6 +281,31 @@ interface OrderSummary {
   itemCount: number;
 }
 
+async function getOrderById(userId: number, orderId: number): Promise<OrderSummary | null> {
+  try {
+    const client = await pool.connect();
+    try {
+      const res = await client.query(
+        `SELECT o.id, o.status, o.total::text, o.created_at,
+                count(oi.id)::int AS item_count
+         FROM orders o
+         LEFT JOIN order_items oi ON oi.order_id = o.id
+         WHERE o.customer_id = $1 AND o.id = $2
+         GROUP BY o.id`,
+        [userId, orderId],
+      );
+      if (!res.rows[0]) return null;
+      const r = res.rows[0] as any;
+      return { id: r.id, status: r.status, total: r.total, createdAt: r.created_at, itemCount: r.item_count ?? 0 };
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    logger.error({ err }, "[AI] getOrderById failed");
+    return null;
+  }
+}
+
 async function getUserOrders(userId: number): Promise<OrderSummary[]> {
   try {
     const client = await pool.connect();
@@ -310,6 +343,27 @@ interface ProductHit {
   nameAr: string;
   price: string;
   currency: string;
+}
+
+async function getProductById(productId: number): Promise<ProductHit | null> {
+  try {
+    const results = await db
+      .select({
+        id: productsTable.id,
+        name: productsTable.name,
+        nameAr: productsTable.nameAr,
+        price: productsTable.price,
+        currency: productsTable.currency,
+      })
+      .from(productsTable)
+      .where(eq(productsTable.id, productId))
+      .limit(1);
+    if (!results[0]) return null;
+    const r = results[0];
+    return { id: r.id, name: r.name, nameAr: r.nameAr ?? r.name, price: String(r.price), currency: r.currency ?? "SYP" };
+  } catch {
+    return null;
+  }
 }
 
 async function searchProducts(query: string, limit = 3): Promise<ProductHit[]> {
@@ -373,12 +427,31 @@ export class FAQProvider implements AIProvider {
   }
 
   async generateReply(ctx: AIReplyContext): Promise<AIReply> {
-    const { userId, message, language: lang } = ctx;
+    const { userId, message, language: lang, context: pageCtx } = ctx;
     const { intent, confidence } = classifyIntent(message);
 
     try {
       // ── Order status ───────────────────────────────────────────────────────
       if (intent === "order_status") {
+        // If widget sent a specific orderId, look up that order first
+        if (pageCtx?.orderId) {
+          const specificOrder = await getOrderById(userId, pageCtx.orderId);
+          if (specificOrder) {
+            const statusLabel = orderStatusLabel(specificOrder.status, lang);
+            const date = new Date(specificOrder.createdAt).toLocaleDateString(lang === "ar" ? "ar-SY" : "en-US");
+            const body = lang === "ar"
+              ? `📦 **طلب #${specificOrder.id}**\n• الحالة: ${statusLabel}\n• ${specificOrder.itemCount} منتج\n• تاريخ الطلب: ${date}\n\n👉 [عرض تفاصيل الطلب](/orders/${specificOrder.id})`
+              : `📦 **Order #${specificOrder.id}**\n• Status: ${statusLabel}\n• ${specificOrder.itemCount} item(s)\n• Ordered: ${date}\n\n👉 [View order details](/orders/${specificOrder.id})`;
+            return {
+              body,
+              intent,
+              confidence,
+              escalate: false,
+              suggestedActions: [{ label: lang === "ar" ? "تفاصيل الطلب" : "Order Details", href: `/orders/${specificOrder.id}` }],
+            };
+          }
+        }
+
         const orders = await getUserOrders(userId);
         if (orders.length === 0) {
           return {
@@ -414,7 +487,29 @@ export class FAQProvider implements AIProvider {
       }
 
       // ── Product search ─────────────────────────────────────────────────────
-      if (intent === "product_search") {
+      // Also trigger product context path when widget sends productId with a general/unknown message
+      const effectiveProductSearch = intent === "product_search" || (pageCtx?.productId && (intent === "general" || intent === "greeting"));
+      if (effectiveProductSearch) {
+        // If widget provided a specific productId, describe that product
+        if (pageCtx?.productId) {
+          const product = await getProductById(pageCtx.productId);
+          if (product) {
+            const displayName = lang === "ar" ? product.nameAr : product.name;
+            const price = Number(product.price).toLocaleString();
+            const currency = product.currency === "SYP" ? "ل.س" : product.currency;
+            const body = lang === "ar"
+              ? `📦 **${displayName}**\nالسعر: ${price} ${currency}\n\n👉 [عرض المنتج](/products/${product.id})\n\nهل تريد إضافته للسلة أو تريد معرفة المزيد؟`
+              : `📦 **${displayName}**\nPrice: ${price} ${currency}\n\n👉 [View Product](/products/${product.id})\n\nWould you like to add it to your cart or learn more?`;
+            return {
+              body,
+              intent,
+              confidence,
+              escalate: false,
+              suggestedActions: [{ label: lang === "ar" ? "عرض المنتج" : "View Product", href: `/products/${product.id}` }],
+            };
+          }
+        }
+
         const searchTerm = message
           .replace(/بدي|أبحث عن|عندكم|i want|looking for|do you have|find me/gi, "")
           .trim()
