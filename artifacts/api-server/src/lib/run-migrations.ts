@@ -63,10 +63,20 @@ export async function runMigrations(): Promise<void> {
       "courier_rejected",
       "new_seller_review",
       "seller_review_reply",
+      "dispatch_alert",
     ];
     for (const val of newNotifValues) {
       try {
         await client.query(`ALTER TYPE notification_type ADD VALUE IF NOT EXISTS '${val}'`);
+      } catch {
+        // May already exist
+      }
+    }
+
+    // ── Extend delivery_mission_status enum (V3.3 states) ─────────────────────
+    for (const val of ["SEARCHING", "NO_COURIER_FOUND"]) {
+      try {
+        await client.query(`ALTER TYPE delivery_mission_status ADD VALUE IF NOT EXISTS '${val}'`);
       } catch {
         // May already exist
       }
@@ -604,7 +614,35 @@ export async function runMigrations(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_delivery_missions_assignment_status ON delivery_missions(assignment_status);
     `);
 
-    logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns, AI support tickets, V3.3 mission assignment foundation ready");
+    // ── V3.3: mission_offer_status enum (create idempotently via DO block) ────
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE mission_offer_status AS ENUM (
+          'OFFERED', 'ACCEPTED', 'DECLINED', 'EXPIRED', 'CANCELLED'
+        );
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    // ── V3.3: mission_offers table ────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS mission_offers (
+        id            SERIAL PRIMARY KEY,
+        mission_id    INTEGER                NOT NULL REFERENCES delivery_missions(id) ON DELETE CASCADE,
+        courier_id    INTEGER                NOT NULL REFERENCES couriers(id)          ON DELETE CASCADE,
+        status        mission_offer_status   NOT NULL DEFAULT 'OFFERED',
+        round         INTEGER                NOT NULL DEFAULT 1,
+        offered_at    TIMESTAMPTZ            NOT NULL DEFAULT NOW(),
+        expires_at    TIMESTAMPTZ            NOT NULL,
+        responded_at  TIMESTAMPTZ
+      );
+      CREATE INDEX IF NOT EXISTS idx_mission_offers_mission_id  ON mission_offers(mission_id);
+      CREATE INDEX IF NOT EXISTS idx_mission_offers_courier_id  ON mission_offers(courier_id);
+      CREATE INDEX IF NOT EXISTS idx_mission_offers_status      ON mission_offers(status);
+      CREATE INDEX IF NOT EXISTS idx_mission_offers_expires_at  ON mission_offers(expires_at);
+    `);
+
+    logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns, AI support tickets, V3.3 mission assignment engine ready (mission_offers table)");
   } catch (err) {
     logger.error({ err }, "Migration error — server cannot start safely");
     throw err;

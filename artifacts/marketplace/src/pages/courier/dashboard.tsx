@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,7 +11,7 @@ import {
   Truck, Package, CheckCircle2, DollarSign, MapPin, Phone,
   User, Star, AlertTriangle, Store, ShoppingBag, Calendar,
   TrendingUp, Award, History, XCircle, AlertCircle, RefreshCw,
-  Wifi, WifiOff,
+  Wifi, WifiOff, Bell, Timer, ChevronRight,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -109,6 +109,156 @@ const FAILURE_REASONS = [
   "courier.failure_unreachable",
   "courier.failure_other",
 ] as const;
+
+// ─── Mission Offer types ──────────────────────────────────────────────────────
+interface MissionOffer {
+  offerId: number;
+  missionId: number;
+  round: number;
+  offeredAt: string;
+  expiresAt: string;
+  pickupAddress: string;
+  dropoffAddress: string;
+  deliverySize: string;
+  missionStatus: string;
+}
+
+// ─── MissionOfferCard ─────────────────────────────────────────────────────────
+function MissionOfferCard({ offer, token, onResponded }: {
+  offer: MissionOffer;
+  token: string;
+  onResponded: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const { toast } = useToast();
+  const [acting, setActing] = useState<"accept" | "decline" | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(() =>
+    Math.max(0, Math.floor((new Date(offer.expiresAt).getTime() - Date.now()) / 1000))
+  );
+
+  useEffect(() => {
+    if (secondsLeft <= 0) return;
+    const tick = setInterval(() => {
+      const s = Math.max(0, Math.floor((new Date(offer.expiresAt).getTime() - Date.now()) / 1000));
+      setSecondsLeft(s);
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [offer.expiresAt]);
+
+  const respond = async (action: "accept" | "decline") => {
+    setActing(action);
+    try {
+      const path = action === "accept" ? "accept" : "decline";
+      const res = await fetch(`/api/courier/missions/offers/${offer.offerId}/${path}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error");
+      toast({
+        title: action === "accept"
+          ? t("courier.offer_accepted_toast")
+          : t("courier.offer_declined_toast"),
+      });
+      onResponded();
+    } catch (err: any) {
+      toast({ title: err.message ?? t("courier.offer_error_toast"), variant: "destructive" });
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const isExpired = secondsLeft <= 0;
+  const urgency   = secondsLeft <= 15 ? "text-red-500" : secondsLeft <= 30 ? "text-amber-500" : "text-emerald-500";
+  const ringCls   = isExpired
+    ? "ring-1 ring-gray-500/20 opacity-50"
+    : secondsLeft <= 15
+      ? "ring-2 ring-red-500/40 animate-pulse"
+      : "ring-2 ring-amber-500/40";
+
+  const sizeMap: Record<string, string> = { SMALL: "📦 S", MEDIUM: "📦 M", LARGE: "📦 L" };
+
+  return (
+    <div className={cn(
+      "bg-card border rounded-2xl overflow-hidden shadow-lg transition-all duration-300",
+      ringCls,
+    )}>
+      {/* Header */}
+      <div className="px-4 py-3 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+            <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <p className="font-bold text-sm leading-tight">{t("courier.offer_banner_title")}</p>
+            <p className="text-[11px] text-muted-foreground leading-tight">
+              {t("courier.offer_mission_id", { id: offer.missionId })}
+              {" · "}
+              {t("courier.offer_round", { round: offer.round })}
+            </p>
+          </div>
+        </div>
+        {/* Countdown */}
+        <div className={cn("flex items-center gap-1 font-black text-2xl tabular-nums", urgency, isExpired && "text-gray-400")}>
+          <Timer className="h-4 w-4 opacity-70" />
+          {isExpired ? "—" : `${secondsLeft}s`}
+        </div>
+      </div>
+
+      {/* Details */}
+      <div className="px-4 py-3 space-y-2">
+        <div className="flex items-start gap-2">
+          <div className="shrink-0 mt-0.5 h-5 w-5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+            <Store className="h-2.5 w-2.5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{t("courier.offer_pickup_area")}</p>
+            <p className="text-sm leading-snug">{offer.pickupAddress || "—"}</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2">
+          <div className="shrink-0 mt-0.5 h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+            <MapPin className="h-2.5 w-2.5 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{t("courier.offer_dropoff_area")}</p>
+            <p className="text-sm leading-snug">{offer.dropoffAddress || "—"}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{sizeMap[offer.deliverySize] ?? offer.deliverySize}</span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="px-4 pb-4 flex gap-2">
+        {isExpired ? (
+          <p className="text-xs text-muted-foreground italic w-full text-center py-1">
+            {t("courier.offer_expired")}
+          </p>
+        ) : (
+          <>
+            <Button
+              onClick={() => respond("accept")}
+              disabled={!!acting}
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+            >
+              {acting === "accept" ? t("courier.offer_accepting") : t("courier.offer_accept")}
+            </Button>
+            <Button
+              onClick={() => respond("decline")}
+              disabled={!!acting}
+              variant="outline"
+              className="flex-1 border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/20"
+            >
+              {acting === "decline" ? t("courier.offer_declining") : t("courier.offer_decline")}
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ─── Apply form ───────────────────────────────────────────────────────────────
 function ApplyForm({ token, onApplied }: { token: string; onApplied: () => void }) {
@@ -499,6 +649,18 @@ export default function CourierDashboard() {
     refetchInterval: 30_000,
   });
 
+  // ── V3.3: Mission offers — poll every 5s for active OFFERED missions ─────────
+  const { data: missionOffers = [], refetch: refetchOffers } = useQuery<MissionOffer[]>({
+    queryKey: ["courier-mission-offers"],
+    queryFn: async () => {
+      const res = await fetch("/api/courier/missions/offers", { headers });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!token && profile?.status === "approved",
+    refetchInterval: 5_000,
+  });
+
   // handleToggle (profile.active) REMOVED in V3.2 — availability is the single master control
 
   const handleAvailabilityToggle = async () => {
@@ -604,6 +766,24 @@ export default function CourierDashboard() {
           <h1 className="text-2xl font-bold">{t("courier.dashboard_title")}</h1>
           <p className="text-muted-foreground text-sm mt-0.5">{t("courier.dashboard_subtitle")}</p>
         </div>
+
+        {/* ── V3.3 Mission Offer Cards ─────────────────────────────────────────── */}
+        {missionOffers.length > 0 && (
+          <div className="space-y-3 mb-5">
+            {missionOffers.map((offer) => (
+              <MissionOfferCard
+                key={offer.offerId}
+                offer={offer}
+                token={token!}
+                onResponded={() => {
+                  refetchOffers();
+                  refetchAvailability();
+                  refetchAssignments();
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* ── V3.2 Master Availability Control (single control — profile.active toggle removed) ── */}
         {availability && (() => {

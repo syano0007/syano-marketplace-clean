@@ -1,13 +1,15 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   ClipboardList, Search, Package, User, Store, Truck,
-  Clock, CheckCircle2, AlertCircle, XCircle, ChevronRight,
+  Clock, CheckCircle2, AlertCircle, XCircle, ChevronDown, ChevronUp,
+  RefreshCw, Loader2, Users, Ban, RadioTower, Play,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -38,17 +40,51 @@ interface MissionsResponse {
   limit: number;
 }
 
+interface MissionOffer {
+  id: number;
+  courierId: number;
+  status: string;
+  round: number;
+  offeredAt: string;
+  expiresAt: string;
+  respondedAt: string | null;
+  courierName: string | null;
+  courierPhone: string | null;
+}
+
+interface OffersResponse {
+  summary: {
+    totalSent: number;
+    accepted: number;
+    declined: number;
+    expired: number;
+    cancelled: number;
+    currentRound: number;
+  };
+  offers: MissionOffer[];
+}
+
 // ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; labelAr: string; color: string; icon: React.ElementType }> = {
-  PENDING:    { label: "Pending",    labelAr: "في الانتظار",   color: "text-yellow-400 bg-yellow-400/10",  icon: Clock },
-  ASSIGNED:   { label: "Assigned",   labelAr: "تم التعيين",    color: "text-blue-400 bg-blue-400/10",      icon: Truck },
-  ACCEPTED:   { label: "Accepted",   labelAr: "مقبولة",        color: "text-indigo-400 bg-indigo-400/10",  icon: CheckCircle2 },
-  PICKED_UP:  { label: "Picked Up",  labelAr: "تم الاستلام",   color: "text-purple-400 bg-purple-400/10",  icon: Package },
-  IN_TRANSIT: { label: "In Transit", labelAr: "في الطريق",     color: "text-orange-400 bg-orange-400/10",  icon: Truck },
-  DELIVERED:  { label: "Delivered",  labelAr: "تم التسليم",    color: "text-emerald-400 bg-emerald-400/10",icon: CheckCircle2 },
-  FAILED:     { label: "Failed",     labelAr: "فشل",           color: "text-red-400 bg-red-400/10",        icon: AlertCircle },
-  CANCELLED:  { label: "Cancelled",  labelAr: "ملغاة",         color: "text-gray-400 bg-gray-400/10",      icon: XCircle },
+  PENDING:          { label: "Pending",          labelAr: "في الانتظار",      color: "text-yellow-400 bg-yellow-400/10",    icon: Clock },
+  SEARCHING:        { label: "Searching",         labelAr: "جارٍ البحث",       color: "text-sky-400 bg-sky-400/10",          icon: RadioTower },
+  ASSIGNED:         { label: "Assigned",          labelAr: "تم التعيين",       color: "text-blue-400 bg-blue-400/10",        icon: Truck },
+  ACCEPTED:         { label: "Accepted",          labelAr: "مقبولة",           color: "text-indigo-400 bg-indigo-400/10",    icon: CheckCircle2 },
+  PICKED_UP:        { label: "Picked Up",         labelAr: "تم الاستلام",      color: "text-purple-400 bg-purple-400/10",    icon: Package },
+  IN_TRANSIT:       { label: "In Transit",        labelAr: "في الطريق",        color: "text-orange-400 bg-orange-400/10",    icon: Truck },
+  DELIVERED:        { label: "Delivered",         labelAr: "تم التسليم",       color: "text-emerald-400 bg-emerald-400/10",  icon: CheckCircle2 },
+  FAILED:           { label: "Failed",            labelAr: "فشل",              color: "text-red-400 bg-red-400/10",          icon: AlertCircle },
+  CANCELLED:        { label: "Cancelled",         labelAr: "ملغاة",            color: "text-gray-400 bg-gray-400/10",        icon: XCircle },
+  NO_COURIER_FOUND: { label: "No Courier Found",  labelAr: "لم يُعثر على مندوب", color: "text-rose-400 bg-rose-400/10",    icon: Ban },
+};
+
+const OFFER_STATUS_CONFIG: Record<string, { color: string; label: string; labelAr: string }> = {
+  OFFERED:   { color: "text-sky-400 bg-sky-400/10",        label: "Offered",   labelAr: "معروضة" },
+  ACCEPTED:  { color: "text-emerald-400 bg-emerald-400/10",label: "Accepted",  labelAr: "مقبولة" },
+  DECLINED:  { color: "text-red-400 bg-red-400/10",        label: "Declined",  labelAr: "مرفوضة" },
+  EXPIRED:   { color: "text-gray-400 bg-gray-400/10",      label: "Expired",   labelAr: "منتهية" },
+  CANCELLED: { color: "text-yellow-400 bg-yellow-400/10",  label: "Cancelled", labelAr: "ملغاة" },
 };
 
 const SIZE_LABELS: Record<string, { en: string; ar: string }> = {
@@ -57,16 +93,142 @@ const SIZE_LABELS: Record<string, { en: string; ar: string }> = {
   LARGE:  { en: "Large",  ar: "كبير" },
 };
 
+const COUNTER_STATUSES = [
+  "PENDING", "SEARCHING", "ASSIGNED", "ACCEPTED",
+  "PICKED_UP", "IN_TRANSIT", "DELIVERED", "FAILED",
+  "CANCELLED", "NO_COURIER_FOUND",
+] as const;
+
+// ─── Mission Offers Panel ─────────────────────────────────────────────────────
+
+function MissionOffersPanel({ missionId, token, isRtl, onTrigger }: {
+  missionId: number;
+  token: string;
+  isRtl: boolean;
+  onTrigger: () => void;
+}) {
+  const [triggering, setTriggering] = useState(false);
+  const { data, isLoading, refetch } = useQuery<OffersResponse>({
+    queryKey: ["admin", "mission-offers", missionId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/delivery-missions/${missionId}/offers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to load offers");
+      return res.json();
+    },
+    refetchInterval: 10_000,
+  });
+
+  const handleTrigger = async () => {
+    setTriggering(true);
+    try {
+      const res = await fetch(`/api/admin/delivery-missions/${missionId}/trigger-assignment`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) { refetch(); onTrigger(); }
+    } finally {
+      setTriggering(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 px-4 py-3 text-gray-400 text-sm">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        {isRtl ? "جارٍ تحميل العروض..." : "Loading offers..."}
+      </div>
+    );
+  }
+
+  const { summary, offers } = data ?? { summary: null, offers: [] };
+
+  return (
+    <div className="px-4 pb-4 space-y-3">
+      {/* Summary stats */}
+      {summary && (
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-2">
+          {[
+            { label: isRtl ? "الجولة" : "Round",     val: summary.currentRound },
+            { label: isRtl ? "أُرسلت" : "Sent",       val: summary.totalSent },
+            { label: isRtl ? "مقبولة" : "Accepted",   val: summary.accepted },
+            { label: isRtl ? "مرفوضة" : "Declined",   val: summary.declined },
+            { label: isRtl ? "منتهية" : "Expired",    val: summary.expired },
+            { label: isRtl ? "ملغاة" : "Cancelled",   val: summary.cancelled },
+          ].map(({ label, val }) => (
+            <div key={label} className="bg-gray-900/60 rounded-lg px-2 py-1.5 text-center">
+              <p className="text-white font-bold text-base">{val}</p>
+              <p className="text-gray-500 text-[10px] leading-tight">{label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Trigger button */}
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={handleTrigger}
+          disabled={triggering}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50 transition-colors"
+        >
+          {triggering ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+          {isRtl ? "تشغيل محرك التعيين" : "Trigger Assignment Engine"}
+        </button>
+        <button
+          onClick={() => refetch()}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-800 border border-gray-700 text-gray-400 hover:text-gray-300 transition-colors"
+        >
+          <RefreshCw className="w-3 h-3" />
+          {isRtl ? "تحديث" : "Refresh"}
+        </button>
+      </div>
+
+      {/* Offer rows */}
+      {offers.length === 0 ? (
+        <p className="text-gray-500 text-xs italic py-2">
+          {isRtl ? "لا توجد عروض بعد لهذه المهمة" : "No offers sent for this mission yet"}
+        </p>
+      ) : (
+        <div className="space-y-1.5">
+          {offers.map((o) => {
+            const oCfg = OFFER_STATUS_CONFIG[o.status] ?? OFFER_STATUS_CONFIG.EXPIRED;
+            return (
+              <div key={o.id} className="flex items-center gap-3 rounded-lg bg-gray-900/50 px-3 py-2 text-xs flex-wrap">
+                <span className="text-gray-500 font-mono w-5 text-center">R{o.round}</span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Truck className="w-3 h-3 text-gray-500 shrink-0" />
+                  <span className="text-gray-200 truncate max-w-[120px]">{o.courierName ?? `#${o.courierId}`}</span>
+                </div>
+                <span className={cn("px-1.5 py-0.5 rounded font-medium text-[10px]", oCfg.color)}>
+                  {isRtl ? oCfg.labelAr : oCfg.label}
+                </span>
+                {o.respondedAt && (
+                  <span className="text-gray-600 text-[10px] ms-auto">
+                    {new Date(o.respondedAt).toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminDeliveryMissions() {
   const { t, i18n } = useTranslation();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
   const isRtl = i18n.language === "ar";
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch]             = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const [page, setPage] = useState(1);
+  const [page, setPage]                 = useState(1);
+  const [expandedId, setExpandedId]     = useState<number | null>(null);
 
   const { data, isLoading } = useQuery<MissionsResponse>({
     queryKey: ["admin", "delivery-missions", page, statusFilter],
@@ -79,6 +241,7 @@ export default function AdminDeliveryMissions() {
       if (!res.ok) throw new Error("Failed to fetch delivery missions");
       return res.json();
     },
+    refetchInterval: 15_000,
   });
 
   const { data: statsData } = useQuery<Record<string, number>>({
@@ -90,11 +253,11 @@ export default function AdminDeliveryMissions() {
       if (!res.ok) return {};
       return res.json();
     },
-    refetchInterval: 30_000,
+    refetchInterval: 15_000,
   });
 
-  const missions = data?.data ?? [];
-  const total    = data?.total ?? 0;
+  const missions   = data?.data ?? [];
+  const total      = data?.total ?? 0;
   const totalPages = Math.ceil(total / 20);
 
   const filtered = search
@@ -107,7 +270,9 @@ export default function AdminDeliveryMissions() {
       )
     : missions;
 
-  const statuses = Object.keys(STATUS_CONFIG);
+  const toggleExpand = useCallback((id: number) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  }, []);
 
   return (
     <AdminLayout>
@@ -122,7 +287,7 @@ export default function AdminDeliveryMissions() {
               {isRtl ? "مهام التوصيل" : "Delivery Missions"}
             </h1>
             <p className="text-sm text-gray-400">
-              {isRtl ? "سجل مهام التوصيل للطلبات" : "Record of all delivery missions"}
+              {isRtl ? "سجل مهام التوصيل + مراقبة التعيين" : "Mission log + assignment monitoring"}
             </p>
           </div>
         </div>
@@ -150,29 +315,26 @@ export default function AdminDeliveryMissions() {
             >
               {isRtl ? "الكل" : "All"}
             </button>
-            {statuses.map((s) => {
-              const cfg = STATUS_CONFIG[s];
-              return (
-                <button
-                  key={s}
-                  onClick={() => { setStatusFilter(s); setPage(1); }}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-                    statusFilter === s
-                      ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
-                      : "bg-gray-900 border-gray-700 text-gray-400 hover:text-gray-300",
-                  )}
-                >
-                  {isRtl ? cfg.labelAr : cfg.label}
-                </button>
-              );
-            })}
+            {Object.entries(STATUS_CONFIG).map(([s, cfg]) => (
+              <button
+                key={s}
+                onClick={() => { setStatusFilter(s); setPage(1); }}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+                  statusFilter === s
+                    ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                    : "bg-gray-900 border-gray-700 text-gray-400 hover:text-gray-300",
+                )}
+              >
+                {isRtl ? cfg.labelAr : cfg.label}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Status counter cards */}
-        <div className="grid grid-cols-4 lg:grid-cols-8 gap-3">
-          {(["PENDING","ASSIGNED","ACCEPTED","PICKED_UP","IN_TRANSIT","DELIVERED","FAILED","CANCELLED"] as const).map((s) => {
+        <div className="grid grid-cols-5 lg:grid-cols-10 gap-2">
+          {COUNTER_STATUSES.map((s) => {
             const cfg = STATUS_CONFIG[s];
             const StatusIcon = cfg.icon;
             const cnt = statsData?.[s] ?? 0;
@@ -182,17 +344,17 @@ export default function AdminDeliveryMissions() {
                 key={s}
                 onClick={() => { setStatusFilter(isActive ? "" : s); setPage(1); }}
                 className={cn(
-                  "rounded-xl border p-3 text-center flex flex-col items-center gap-1 transition-all",
+                  "rounded-xl border p-2.5 text-center flex flex-col items-center gap-1 transition-all",
                   isActive
                     ? "border-emerald-500/40 bg-emerald-500/10"
                     : "border-gray-800 bg-gray-900/60 hover:border-gray-700"
                 )}
               >
-                <StatusIcon className={cn("w-4 h-4", cfg.color.split(" ")[0])} />
-                <p className={cn("text-lg font-bold", isActive ? "text-emerald-300" : cnt > 0 ? "text-white" : "text-gray-600")}>
+                <StatusIcon className={cn("w-3.5 h-3.5", cfg.color.split(" ")[0])} />
+                <p className={cn("text-base font-bold leading-none", isActive ? "text-emerald-300" : cnt > 0 ? "text-white" : "text-gray-600")}>
                   {cnt}
                 </p>
-                <p className="text-[10px] text-gray-500 leading-tight">
+                <p className="text-[9px] text-gray-500 leading-tight text-center">
                   {isRtl ? cfg.labelAr : cfg.label}
                 </p>
               </button>
@@ -211,105 +373,143 @@ export default function AdminDeliveryMissions() {
             <table className="w-full text-sm">
               <thead className="bg-gray-900/80">
                 <tr className="text-gray-400 text-left border-b border-gray-800">
-                  <th className="px-4 py-3 font-medium whitespace-nowrap">
-                    {isRtl ? "المعرّف" : "Mission ID"}
-                  </th>
-                  <th className="px-4 py-3 font-medium whitespace-nowrap">
-                    {isRtl ? "الطلب" : "Order ID"}
-                  </th>
-                  <th className="px-4 py-3 font-medium whitespace-nowrap">
-                    {isRtl ? "البائع" : "Seller"}
-                  </th>
-                  <th className="px-4 py-3 font-medium whitespace-nowrap">
-                    {isRtl ? "العميل" : "Customer"}
-                  </th>
-                  <th className="px-4 py-3 font-medium whitespace-nowrap">
-                    {isRtl ? "المندوب" : "Courier"}
-                  </th>
-                  <th className="px-4 py-3 font-medium whitespace-nowrap">
-                    {isRtl ? "الحالة" : "Status"}
-                  </th>
-                  <th className="px-4 py-3 font-medium whitespace-nowrap">
-                    {isRtl ? "الحجم" : "Delivery Size"}
-                  </th>
-                  <th className="px-4 py-3 font-medium whitespace-nowrap">
-                    {isRtl ? "تاريخ الإنشاء" : "Created At"}
-                  </th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap w-8"></th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">{isRtl ? "المعرّف" : "Mission ID"}</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">{isRtl ? "الطلب" : "Order ID"}</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">{isRtl ? "البائع" : "Seller"}</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">{isRtl ? "العميل" : "Customer"}</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">{isRtl ? "المندوب" : "Courier"}</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">{isRtl ? "الحالة" : "Status"}</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">{isRtl ? "الحجم" : "Size"}</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">{isRtl ? "تاريخ الإنشاء" : "Created"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
                 {isLoading && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-gray-500">
+                    <td colSpan={9} className="px-4 py-10 text-center text-gray-500">
                       {isRtl ? "جارٍ التحميل..." : "Loading..."}
                     </td>
                   </tr>
                 )}
                 {!isLoading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-gray-500">
+                    <td colSpan={9} className="px-4 py-10 text-center text-gray-500">
                       <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-30" />
                       <p>{isRtl ? "لا توجد مهام توصيل بعد" : "No delivery missions yet"}</p>
                     </td>
                   </tr>
                 )}
                 {filtered.map((m) => {
-                  const cfg = STATUS_CONFIG[m.status] ?? STATUS_CONFIG.PENDING;
+                  const cfg        = STATUS_CONFIG[m.status] ?? STATUS_CONFIG["PENDING"];
                   const StatusIcon = cfg.icon;
-                  const sizeLabel = SIZE_LABELS[m.deliverySize] ?? { en: m.deliverySize, ar: m.deliverySize };
-                  const createdAt = new Date(m.createdAt).toLocaleDateString(
+                  const sizeLabel  = SIZE_LABELS[m.deliverySize] ?? { en: m.deliverySize, ar: m.deliverySize };
+                  const createdAt  = new Date(m.createdAt).toLocaleDateString(
                     isRtl ? "ar-SY" : "en-US",
                     { year: "numeric", month: "short", day: "numeric" },
                   );
+                  const isExpanded    = expandedId === m.id;
+                  const isSearching   = m.status === "SEARCHING";
+                  const isNoCourier   = m.status === "NO_COURIER_FOUND";
+                  const isPending     = m.status === "PENDING";
+                  const showOfferPanel = isExpanded;
+
                   return (
-                    <tr key={m.id} className="hover:bg-gray-900/40 transition-colors">
-                      <td className="px-4 py-3 font-mono text-emerald-400 font-medium">
-                        #{m.id}
-                      </td>
-                      <td className="px-4 py-3 text-gray-300 font-mono">
-                        #{m.orderId}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Store className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                          <span className="text-gray-200 truncate max-w-[120px]">
-                            {m.storeName ?? m.sellerName ?? "—"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <User className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                          <span className="text-gray-200 truncate max-w-[120px]">
-                            {m.customerName ?? "—"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {m.courierName ? (
-                          <div className="flex items-center gap-2">
-                            <Truck className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                            <span className="text-gray-200 truncate max-w-[100px]">{m.courierName}</span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-600 text-xs italic">
-                            {isRtl ? "غير معيّن" : "Unassigned"}
-                          </span>
+                    <>
+                      <tr
+                        key={m.id}
+                        className={cn(
+                          "hover:bg-gray-900/40 transition-colors",
+                          isSearching && "bg-sky-900/5",
+                          isNoCourier && "bg-rose-900/5",
                         )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium", cfg.color)}>
-                          <StatusIcon className="w-3 h-3" />
-                          {isRtl ? cfg.labelAr : cfg.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">
-                        {isRtl ? sizeLabel.ar : sizeLabel.en}
-                      </td>
-                      <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">
-                        {createdAt}
-                      </td>
-                    </tr>
+                      >
+                        <td className="px-3 py-3">
+                          <button
+                            onClick={() => toggleExpand(m.id)}
+                            className="text-gray-500 hover:text-gray-300 transition-colors"
+                            title={isRtl ? "عرض العروض" : "View offers"}
+                          >
+                            {isExpanded
+                              ? <ChevronUp className="w-4 h-4" />
+                              : <ChevronDown className="w-4 h-4" />
+                            }
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-emerald-400 font-medium">#{m.id}</td>
+                        <td className="px-4 py-3 text-gray-300 font-mono">#{m.orderId}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <Store className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                            <span className="text-gray-200 truncate max-w-[120px]">{m.storeName ?? m.sellerName ?? "—"}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <User className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                            <span className="text-gray-200 truncate max-w-[120px]">{m.customerName ?? "—"}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {m.courierName ? (
+                            <div className="flex items-center gap-2">
+                              <Truck className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                              <span className="text-gray-200 truncate max-w-[100px]">{m.courierName}</span>
+                            </div>
+                          ) : isSearching ? (
+                            <div className="flex items-center gap-1.5 text-sky-400">
+                              <RadioTower className="w-3.5 h-3.5 animate-pulse" />
+                              <span className="text-xs">{isRtl ? "جارٍ البحث..." : "Searching..."}</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-600 text-xs italic">{isRtl ? "غير معيّن" : "Unassigned"}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium", cfg.color)}>
+                            <StatusIcon className="w-3 h-3" />
+                            {isRtl ? cfg.labelAr : cfg.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-400 text-xs">{isRtl ? sizeLabel.ar : sizeLabel.en}</td>
+                        <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{createdAt}</td>
+                      </tr>
+                      {showOfferPanel && (
+                        <tr key={`offers-${m.id}`} className="bg-gray-950/60">
+                          <td colSpan={9} className="border-t border-gray-800/60">
+                            <div className="border-s-2 border-emerald-500/30 ms-6">
+                              <div className="px-4 pt-3 pb-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Users className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span className="text-xs font-semibold text-emerald-300">
+                                    {isRtl ? "سجل عروض التعيين" : "Assignment Offers Log"}
+                                  </span>
+                                  {isSearching && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 flex items-center gap-1">
+                                      <RadioTower className="w-2.5 h-2.5 animate-pulse" />
+                                      {isRtl ? "جارٍ البحث الآن" : "Searching now"}
+                                    </span>
+                                  )}
+                                  {isNoCourier && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20">
+                                      {isRtl ? "يحتاج تعيين يدوي" : "Needs manual assignment"}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <MissionOffersPanel
+                                missionId={m.id}
+                                token={token!}
+                                isRtl={isRtl}
+                                onTrigger={() => {
+                                  queryClient.invalidateQueries({ queryKey: ["admin", "delivery-missions"] });
+                                }}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   );
                 })}
               </tbody>
@@ -327,9 +527,7 @@ export default function AdminDeliveryMissions() {
             >
               {isRtl ? "السابق" : "Prev"}
             </button>
-            <span className="text-sm text-gray-400">
-              {page} / {totalPages}
-            </span>
+            <span className="text-sm text-gray-400">{page} / {totalPages}</span>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}

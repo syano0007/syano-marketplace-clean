@@ -22,6 +22,7 @@ import wishlistRouter from "./wishlist";
 import supportRouter from "./support";
 import deliveryMissionsRouter from "./delivery-missions";
 import courierAvailabilityRouter from "./courier-availability";
+import missionOffersRouter from "./mission-offers";
 
 const router: IRouter = Router();
 
@@ -46,6 +47,7 @@ router.use(heroBannersRouter);
 router.use(wishlistRouter);
 router.use(supportRouter);
 router.use(deliveryMissionsRouter);
+router.use(missionOffersRouter);
 router.use(courierAvailabilityRouter);
 router.use(recoveryCheckRouter);
 

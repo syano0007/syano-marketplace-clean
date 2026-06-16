@@ -1142,6 +1142,30 @@ router.patch("/seller/orders/:id/ready", requireAuth, requireActiveAccount, asyn
     orderId: order.id, priority: "normal", link: `/orders`,
   });
 
+  // ── Trigger assignment engine: create/find mission and kick engine ─────────
+  (async () => {
+    try {
+      const { createDeliveryMission, getMission } = await import("../services/deliveryMissionService");
+      const { triggerAssignmentEngine } = await import("../services/missionAssignmentEngine");
+      // Look for an existing PENDING mission for this order first
+      const { db: dbInner, deliveryMissionsTable: dmt } = await import("@workspace/db");
+      const { eq: eqInner } = await import("drizzle-orm");
+      const [existing] = await dbInner.select({ id: dmt.id, status: dmt.status })
+        .from(dmt).where(eqInner(dmt.orderId, orderId));
+      if (existing) {
+        triggerAssignmentEngine(existing.id);
+      } else {
+        const mission = await createDeliveryMission({
+          orderId, sellerId: req.user!.userId,
+          customerId: order.customerId, deliveryFee: order.deliveryFee,
+        });
+        if (mission?.id) triggerAssignmentEngine(mission.id);
+      }
+    } catch (err) {
+      console.error("[delivery-mission] seller/ready mission+engine error:", err);
+    }
+  })();
+
   res.json({ message: "Order marked as ready for pickup", status: "ready_for_pickup" });
 });
 

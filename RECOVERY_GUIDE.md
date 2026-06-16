@@ -1,5 +1,5 @@
 # SYANO — Recovery Guide
-Last updated: June 16, 2026
+Last updated: June 16, 2026 (Courier V3.3 Mission Offer Engine)
 
 ## HOW TO RECOVER ON A NEW REPLIT ACCOUNT
 
