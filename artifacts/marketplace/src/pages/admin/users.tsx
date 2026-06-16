@@ -24,7 +24,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Trash2, Search, Users, ChevronLeft, ChevronRight, ShieldCheck, ShieldOff, ShieldCheck as ShieldReactivate, Shield, Award, ShieldX } from "lucide-react";
+import { Trash2, Search, Users, ChevronLeft, ChevronRight, ShieldCheck, ShieldOff, ShieldCheck as ShieldReactivate, Shield, Award, ShieldX, AlertCircle, RefreshCw } from "lucide-react";
 import { SellerTrustBadge, type VerificationLevel } from "@/components/SellerTrustBadge";
 
 const ROLE_COLORS: Record<string, string> = {
@@ -69,7 +69,7 @@ export default function AdminUsers() {
   const [unverifyTarget, setUnverifyTarget] = useState<AdminUser | null>(null);
   const [unverifyingId, setUnverifyingId] = useState<number | null>(null);
 
-  const { data, isLoading } = useAdminListUsers({ page, limit: PAGE_SIZE });
+  const { data, isLoading, isError, refetch } = useAdminListUsers({ page, limit: PAGE_SIZE });
 
   const users = data?.data ?? [];
   const total = data?.total ?? 0;
@@ -217,6 +217,23 @@ export default function AdminUsers() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
+                {isError && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-12">
+                      <div className="flex flex-col items-center justify-center text-center gap-3">
+                        <AlertCircle className="h-8 w-8 text-destructive" />
+                        <p className="font-semibold text-foreground text-sm">{t("common.error_title")}</p>
+                        <p className="text-xs text-muted-foreground">{t("common.error_subtitle")}</p>
+                        <button
+                          onClick={() => refetch()}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />{t("common.retry")}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {isLoading && Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i}>
                     {Array.from({ length: 7 }).map((_, j) => (

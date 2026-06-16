@@ -2,6 +2,35 @@
 **Last Updated:** June 16, 2026 (Phase 11 — Prompt 2: Critical & High Fixes)
 **Recovery-Verified:** June 15, 2026 — full restore to Replit environment; all services running; 0 TypeScript errors; 42/42 embeddings live
 
+## Session: Phase 11 — Prompt 3 (June 16, 2026)
+Status: Complete
+
+### Error Handling Layer Audit + Fix
+
+**i18n keys added** (en.json + ar.json):
+- `common.error_title` — "Something went wrong" / "حدث خطأ ما"
+- `common.error_subtitle` — retry prompt text
+- `common.retry` — "Retry" / "إعادة المحاولة"
+- `admin.hero_banners.*` — full section (14 keys): page_title, page_subtitle, new_banner, edit_banner, title_required, image_required, save_success_create, save_success_edit, save_error, toggle_error, delete_success, delete_error, save_changes, create_banner, preview_homepage
+
+**Pages fixed — added isError + Retry button:**
+1. `orders/[id].tsx` — full-page error state between isLoading and !order checks
+2. `customer/dashboard.tsx` — full-page error state after isLoading
+3. `seller/dashboard.tsx` — full-page error state (with SellerNav) after DashboardSkeleton
+4. `seller/trust.tsx` — inline error state inside the JSX (isLoading → isError → content ternary)
+5. `seller/orders/[id].tsx` — full-page error state after loading skeleton
+6. `courier/dashboard.tsx` — added separate network error check BEFORE the no_profile check (no_profile still shows apply form correctly)
+7. `admin/index.tsx` — inline error banner at top of dashboard (non-blocking, allows rest of UI to load)
+8. `admin/users.tsx` — inline error row spanning all 7 table columns
+9. `admin/SearchAnalytics.tsx` — per-section inline error (metrics grid, chart, top queries table, zero-results table) each with individual refetch
+
+**Hardcoded strings replaced with i18n:**
+10. `admin/hero-banners.tsx` — all toasts, dialog titles, button labels, page header now use t() keys
+
+TypeScript: 0 errors
+
+---
+
 ## Session: Phase 11 — Prompt 2 (June 16, 2026)
 Status: Complete
 
@@ -16,7 +45,6 @@ Fixed:
 - Navbar search overflow fixed on 375px
 
 TypeScript: 0 errors
-Next: Phase 11 — Prompt 3 (Error Handling Layer)
 
 ---
 

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   Truck, Package, CheckCircle2, DollarSign, MapPin, Phone,
   User, Star, AlertTriangle, Store, ShoppingBag, Calendar,
-  TrendingUp, Award, History, XCircle,
+  TrendingUp, Award, History, XCircle, AlertCircle, RefreshCw,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -499,6 +499,24 @@ export default function CourierDashboard() {
           <div className="space-y-3">
             {[0, 1].map((i) => <div key={i} className="h-28 bg-muted rounded-2xl animate-pulse" />)}
           </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (profileError && (profileError as any)?.message !== "no_profile") {
+    return (
+      <Layout>
+        <div className="container py-20 max-w-2xl flex flex-col items-center justify-center text-center gap-3">
+          <AlertCircle className="h-10 w-10 text-destructive" />
+          <p className="font-semibold text-foreground">{t("common.error_title")}</p>
+          <p className="text-sm text-muted-foreground">{t("common.error_subtitle")}</p>
+          <button
+            onClick={() => refetchProfile()}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />{t("common.retry")}
+          </button>
         </div>
       </Layout>
     );

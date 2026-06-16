@@ -1,7 +1,7 @@
 import { useGetCustomerDashboard } from "@workspace/api-client-react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingBag, Clock, CheckCircle2, DollarSign } from "lucide-react";
+import { ShoppingBag, Clock, CheckCircle2, DollarSign, AlertCircle, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
 export default function CustomerDashboard() {
-  const { data: dashboard, isLoading } = useGetCustomerDashboard();
+  const { data: dashboard, isLoading, isError, refetch } = useGetCustomerDashboard();
   const { t } = useTranslation();
   const { format: formatCurrency } = useCurrency();
 
@@ -35,6 +35,24 @@ export default function CustomerDashboard() {
               <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />
             ))}
           </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Layout>
+        <div className="container py-20 max-w-2xl flex flex-col items-center justify-center text-center gap-3">
+          <AlertCircle className="h-10 w-10 text-destructive" />
+          <p className="font-semibold text-foreground">{t("common.error_title")}</p>
+          <p className="text-sm text-muted-foreground">{t("common.error_subtitle")}</p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />{t("common.retry")}
+          </button>
         </div>
       </Layout>
     );

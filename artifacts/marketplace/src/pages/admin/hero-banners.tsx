@@ -190,6 +190,7 @@ function BannerDialog({
   onSaved: () => void;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [form, setForm] = useState<Partial<Banner>>(initial);
   const [saving, setSaving] = useState(false);
 
@@ -200,11 +201,11 @@ function BannerDialog({
 
   const handleSave = async () => {
     if (!form.titleEn?.trim() || !form.titleAr?.trim()) {
-      toast({ title: "Title required in both languages", variant: "destructive" });
+      toast({ title: t("admin.hero_banners.title_required"), variant: "destructive" });
       return;
     }
     if (!form.desktopImage?.trim()) {
-      toast({ title: "Desktop image URL required", variant: "destructive" });
+      toast({ title: t("admin.hero_banners.image_required"), variant: "destructive" });
       return;
     }
 
@@ -214,11 +215,11 @@ function BannerDialog({
       const path = isEdit ? `/admin/banners/${initial.id}` : "/admin/banners";
       const res = await apiFetch(path, token, { method, body: JSON.stringify(form) });
       if (!res.ok) throw new Error("Failed");
-      toast({ title: isEdit ? "Banner updated" : "Banner created" });
+      toast({ title: isEdit ? t("admin.hero_banners.save_success_edit") : t("admin.hero_banners.save_success_create") });
       onSaved();
       onClose();
     } catch {
-      toast({ title: "Failed to save banner", variant: "destructive" });
+      toast({ title: t("admin.hero_banners.save_error"), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -228,7 +229,7 @@ function BannerDialog({
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Banner" : "New Banner"}</DialogTitle>
+          <DialogTitle>{isEdit ? t("admin.hero_banners.edit_banner") : t("admin.hero_banners.new_banner")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5">
@@ -403,9 +404,9 @@ function BannerDialog({
         )}
 
         <div className="flex gap-2 pt-2">
-          <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" className="flex-1" onClick={onClose}>{t("common.cancel")}</Button>
           <Button className="flex-1" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : isEdit ? "Save Changes" : "Create Banner"}
+            {saving ? t("common.submitting") : isEdit ? t("admin.hero_banners.save_changes") : t("admin.hero_banners.create_banner")}
           </Button>
         </div>
       </DialogContent>
@@ -419,7 +420,7 @@ export default function AdminHeroBanners() {
   const { token } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const lang = i18n.language;
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -462,7 +463,7 @@ export default function AdminHeroBanners() {
       if (!r.ok) throw new Error("Failed");
     },
     onSuccess: invalidate,
-    onError: () => toast({ title: "Failed to update", variant: "destructive" }),
+    onError: () => toast({ title: t("admin.hero_banners.toggle_error"), variant: "destructive" }),
   });
 
   // ── Reorder ──────────────────────────────────────────────────────────────
@@ -484,11 +485,11 @@ export default function AdminHeroBanners() {
       if (!r.ok) throw new Error("Failed");
     },
     onSuccess: () => {
-      toast({ title: "Banner deleted" });
+      toast({ title: t("admin.hero_banners.delete_success") });
       setDeleteConfirm(null);
       invalidate();
     },
-    onError: () => toast({ title: "Failed to delete", variant: "destructive" }),
+    onError: () => toast({ title: t("admin.hero_banners.delete_error"), variant: "destructive" }),
   });
 
   const openCreate = () => { setEditBanner({ ...EMPTY }); setDialogOpen(true); };
@@ -503,22 +504,22 @@ export default function AdminHeroBanners() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Sparkles className="h-6 w-6 text-primary" />
-              Hero Banners
+              {t("admin.hero_banners.page_title")}
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Manage homepage hero banners — create, schedule, and track performance.
+              {t("admin.hero_banners.page_subtitle")}
             </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" asChild>
               <a href="/" target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-4 w-4 me-1.5" />
-                Preview Homepage
+                {t("admin.hero_banners.preview_homepage")}
               </a>
             </Button>
             <Button size="sm" onClick={openCreate}>
               <Plus className="h-4 w-4 me-1.5" />
-              New Banner
+              {t("admin.hero_banners.new_banner")}
             </Button>
           </div>
         </div>

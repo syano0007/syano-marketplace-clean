@@ -177,7 +177,7 @@ export default function SearchAnalytics() {
 
   const headers = { Authorization: `Bearer ${token}` };
 
-  const { data: overview, isLoading: ovLoading } = useQuery<OverviewData>({
+  const { data: overview, isLoading: ovLoading, isError: ovError, refetch: refetchOv } = useQuery<OverviewData>({
     queryKey: ["admin", "search-analytics", "overview"],
     queryFn: async () => {
       const res = await fetch("/api/admin/search-analytics/overview", { headers });
@@ -188,7 +188,7 @@ export default function SearchAnalytics() {
     gcTime: 15 * 60_000,
   });
 
-  const { data: topQueries, isLoading: tqLoading } = useQuery<TopQueriesData>({
+  const { data: topQueries, isLoading: tqLoading, isError: tqError, refetch: refetchTq } = useQuery<TopQueriesData>({
     queryKey: ["admin", "search-analytics", "top-queries", days],
     queryFn: async () => {
       const res = await fetch(`/api/admin/search-analytics/top-queries?days=${days}&limit=20`, { headers });
@@ -199,7 +199,7 @@ export default function SearchAnalytics() {
     gcTime: 15 * 60_000,
   });
 
-  const { data: zeroResults, isLoading: zrLoading } = useQuery<ZeroResultsData>({
+  const { data: zeroResults, isLoading: zrLoading, isError: zrError, refetch: refetchZr } = useQuery<ZeroResultsData>({
     queryKey: ["admin", "search-analytics", "zero-results", days],
     queryFn: async () => {
       const res = await fetch(`/api/admin/search-analytics/zero-results?days=${days}&limit=20`, { headers });
@@ -210,7 +210,7 @@ export default function SearchAnalytics() {
     gcTime: 15 * 60_000,
   });
 
-  const { data: trends, isLoading: trLoading } = useQuery<TrendsData>({
+  const { data: trends, isLoading: trLoading, isError: trError, refetch: refetchTr } = useQuery<TrendsData>({
     queryKey: ["admin", "search-analytics", "trends", 30],
     queryFn: async () => {
       const res = await fetch("/api/admin/search-analytics/trends?days=30", { headers });
@@ -282,6 +282,14 @@ export default function SearchAnalytics() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {ovLoading ? (
             Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+          ) : ovError ? (
+            <div className="col-span-4 flex flex-col items-center justify-center py-10 gap-3 text-center bg-card border rounded-xl">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+              <p className="text-sm font-semibold text-foreground">{t("common.error_title")}</p>
+              <button onClick={() => refetchOv()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors">
+                {t("common.retry")}
+              </button>
+            </div>
           ) : (
             <>
               <MetricCard
@@ -324,6 +332,14 @@ export default function SearchAnalytics() {
           </h2>
           {trLoading ? (
             <div className="h-52 bg-muted animate-pulse rounded-lg" />
+          ) : trError ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+              <p className="text-sm font-semibold text-foreground">{t("common.error_title")}</p>
+              <button onClick={() => refetchTr()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors">
+                {t("common.retry")}
+              </button>
+            </div>
           ) : !trends?.trends.length ? (
             <div className="flex flex-col items-center justify-center py-12">
               <TrendingUp className="h-10 w-10 mb-2 text-muted-foreground/30" />
@@ -396,6 +412,14 @@ export default function SearchAnalytics() {
                   <div key={i} className="h-8 bg-muted animate-pulse rounded" />
                 ))}
               </div>
+            ) : tqError ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+                <AlertCircle className="h-7 w-7 text-destructive" />
+                <p className="text-xs font-semibold text-foreground">{t("common.error_title")}</p>
+                <button onClick={() => refetchTq()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors">
+                  {t("common.retry")}
+                </button>
+              </div>
             ) : !topQueries?.queries.length ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                 <Search className="h-10 w-10 mb-2 text-muted-foreground/30" />
@@ -451,6 +475,14 @@ export default function SearchAnalytics() {
                 {Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="h-8 bg-muted animate-pulse rounded" />
                 ))}
+              </div>
+            ) : zrError ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+                <AlertCircle className="h-7 w-7 text-destructive" />
+                <p className="text-xs font-semibold text-foreground">{t("common.error_title")}</p>
+                <button onClick={() => refetchZr()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors">
+                  {t("common.retry")}
+                </button>
               </div>
             ) : !zeroResults?.queries.length ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">

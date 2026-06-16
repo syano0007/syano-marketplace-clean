@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Package, DollarSign, ShoppingCart, AlertCircle, Plus, ArrowRight,
   Boxes, TrendingUp, Clock, AlertTriangle, ChevronRight, Users, Star,
-  MessageCircle, Store, Settings, ShieldCheck,
+  MessageCircle, Store, Settings, ShieldCheck, RefreshCw,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell,
@@ -112,13 +112,32 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function SellerDashboard() {
-  const { data: dashboard, isLoading } = useGetSellerDashboard();
+  const { data: dashboard, isLoading, isError, refetch } = useGetSellerDashboard();
   const { data: analytics } = useGetSellerAnalytics(30);
   const { t } = useTranslation();
   const { format: formatCurrency } = useCurrency();
   const { user } = useAuth();
 
   if (isLoading) return <DashboardSkeleton />;
+
+  if (isError) {
+    return (
+      <Layout>
+        <SellerNav />
+        <div className="container py-20 max-w-2xl flex flex-col items-center justify-center text-center gap-3">
+          <AlertCircle className="h-10 w-10 text-destructive" />
+          <p className="font-semibold text-foreground">{t("common.error_title")}</p>
+          <p className="text-sm text-muted-foreground">{t("common.error_subtitle")}</p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />{t("common.retry")}
+          </button>
+        </div>
+      </Layout>
+    );
+  }
 
   const chartData = STATUS_ORDER
     .map((status) => {

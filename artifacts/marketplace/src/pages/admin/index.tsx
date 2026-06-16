@@ -260,7 +260,7 @@ export default function AdminDashboard() {
 
   // ── Data Fetching ──────────────────────────────────────────────────────────
 
-  const { data: stats, isLoading } = useAdminGetStats();
+  const { data: stats, isLoading, isError: isStatsError, refetch: refetchStats } = useAdminGetStats();
 
   const { data: ext, isLoading: isExtLoading } = useQuery<ExtendedStats>({
     queryKey: ["admin-stats-extended"],
@@ -433,6 +433,20 @@ export default function AdminDashboard() {
             {exporting ? "..." : t("admin.export_csv")}
           </Button>
         </div>
+
+        {/* ── Stats Error Banner ── */}
+        {isStatsError && (
+          <div className="mb-5 flex items-center gap-3 px-4 py-3 bg-destructive/5 border border-destructive/20 rounded-xl text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span className="flex-1">{t("common.error_subtitle")}</span>
+            <button
+              onClick={() => refetchStats()}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-destructive/30 hover:bg-destructive/10 transition-colors text-xs font-medium"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />{t("common.retry")}
+            </button>
+          </div>
+        )}
 
         {/* ── Notifications Banner ── */}
         {notifications !== undefined && unreadNotifications.length === 0 && (

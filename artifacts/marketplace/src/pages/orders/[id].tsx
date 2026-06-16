@@ -6,7 +6,7 @@ import { Layout } from "@/components/Layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { ChevronLeft, Package, MapPin, Phone, Truck, Calendar, AlertTriangle, Copy, Check, User } from "lucide-react";
+import { ChevronLeft, Package, MapPin, Phone, Truck, Calendar, AlertTriangle, Copy, Check, User, AlertCircle, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { OrderStatusTimeline } from "@/components/OrderStatusTimeline";
@@ -29,7 +29,7 @@ export default function OrderDetail() {
   const [trackingCopied, setTrackingCopied] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
-  const { data: order, isLoading, refetch } = useGetOrder(id, {
+  const { data: order, isLoading, isError, refetch } = useGetOrder(id, {
     query: { enabled: !!id, queryKey: ["getOrder", id], refetchInterval: 30000 }
   });
 
@@ -85,6 +85,24 @@ export default function OrderDetail() {
           <div className="h-12 w-64 bg-muted rounded animate-pulse" />
           <div className="h-32 bg-muted rounded-xl animate-pulse" />
           <div className="h-48 bg-muted rounded-xl animate-pulse" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Layout>
+        <div className="container py-20 max-w-2xl flex flex-col items-center justify-center text-center gap-3">
+          <AlertCircle className="h-10 w-10 text-destructive" />
+          <p className="font-semibold text-foreground">{t("common.error_title")}</p>
+          <p className="text-sm text-muted-foreground">{t("common.error_subtitle")}</p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />{t("common.retry")}
+          </button>
         </div>
       </Layout>
     );

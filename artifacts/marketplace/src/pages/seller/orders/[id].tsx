@@ -23,7 +23,7 @@ import { format as dateFns } from "date-fns";
 import {
   ArrowLeft, Phone, MapPin, StickyNote, Package, Truck,
   CheckCircle2, XCircle, Clock, User, DollarSign, ReceiptText,
-  ClipboardList, ExternalLink,
+  ClipboardList, ExternalLink, AlertCircle, RefreshCw,
 } from "lucide-react";
 import { OrderStatusTimeline } from "@/components/OrderStatusTimeline";
 
@@ -88,7 +88,7 @@ export default function SellerOrderDetail() {
   const { format: formatCurrency } = useCurrency();
   const isRtl = i18n.dir() === "rtl";
 
-  const { data: order, isLoading: orderLoading } = useGetOrder(orderId, {
+  const { data: order, isLoading: orderLoading, isError: orderError, refetch: refetchOrder } = useGetOrder(orderId, {
     query: { enabled: !!orderId, queryKey: getGetOrderQueryKey(orderId), refetchInterval: 30000 },
   });
 
@@ -142,6 +142,25 @@ export default function SellerOrderDetail() {
           <div className="grid gap-4">
             {[...Array(4)].map((_, i) => <div key={i} className="h-48 bg-muted rounded-2xl animate-pulse" />)}
           </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (orderError) {
+    return (
+      <Layout>
+        <SellerNav />
+        <div className="container py-20 max-w-2xl flex flex-col items-center justify-center text-center gap-3">
+          <AlertCircle className="h-10 w-10 text-destructive" />
+          <p className="font-semibold text-foreground">{t("common.error_title")}</p>
+          <p className="text-sm text-muted-foreground">{t("common.error_subtitle")}</p>
+          <button
+            onClick={() => refetchOrder()}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />{t("common.retry")}
+          </button>
         </div>
       </Layout>
     );

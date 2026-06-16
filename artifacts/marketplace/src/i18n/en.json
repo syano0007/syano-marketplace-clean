@@ -1224,7 +1224,10 @@
     "prev": "Previous",
     "not_found": "Not Found",
     "required": "Required",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "error_title": "Something went wrong",
+    "error_subtitle": "We could not load this page. Please try again.",
+    "retry": "Retry"
   },
   "not_found": {
     "title": "404 — Page Not Found",
@@ -1604,7 +1607,24 @@
     "toast_recompute_failed": "Failed to recompute trust score",
     "toast_trust_updated": "Trust score updated: {{score}}/100",
     "tooltip_recompute": "Recompute trust score",
-    "tooltip_remove_verif": "Remove verification"
+    "tooltip_remove_verif": "Remove verification",
+    "hero_banners": {
+      "page_title": "Hero Banners",
+      "page_subtitle": "Manage homepage hero banners — create, schedule, and track performance.",
+      "new_banner": "New Banner",
+      "edit_banner": "Edit Banner",
+      "title_required": "Title is required in both languages",
+      "image_required": "Desktop image URL is required",
+      "save_success_create": "Banner created",
+      "save_success_edit": "Banner updated",
+      "save_error": "Failed to save banner",
+      "toggle_error": "Failed to update banner",
+      "delete_success": "Banner deleted",
+      "delete_error": "Failed to delete banner",
+      "save_changes": "Save Changes",
+      "create_banner": "Create Banner",
+      "preview_homepage": "Preview Homepage"
+    }
   },
   "push_prompt": {
     "title": "Stay Informed",

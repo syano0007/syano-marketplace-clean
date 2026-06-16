@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Layout } from "@/components/Layout";
 import { SellerNav } from "@/components/SellerNav";
 import { SellerTrustBadge, TrustScoreBar, type VerificationLevel } from "@/components/SellerTrustBadge";
-import { Shield, ShieldCheck, Award, CheckCircle, XCircle, ChevronRight, TrendingDown, MessageCircle } from "lucide-react";
+import { Shield, ShieldCheck, Award, CheckCircle, XCircle, ChevronRight, TrendingDown, MessageCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useGetSellerReviews, getSellerReviewsQueryKey } from "@workspace/api-client-react";
@@ -39,7 +39,7 @@ export default function SellerTrustPage() {
   const { token, user } = useAuth();
   const sellerId = user?.id;
 
-  const { data: trustData, isLoading } = useQuery({
+  const { data: trustData, isLoading, isError, refetch } = useQuery({
     queryKey: ["seller-trust", sellerId],
     queryFn: async () => {
       const res = await fetch(`/api/sellers/${sellerId}/trust`, {
@@ -84,6 +84,18 @@ export default function SellerTrustPage() {
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
             <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+            <AlertCircle className="h-10 w-10 text-destructive" />
+            <p className="font-semibold text-foreground">{t("common.error_title")}</p>
+            <p className="text-sm text-muted-foreground">{t("common.error_subtitle")}</p>
+            <button
+              onClick={() => refetch()}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+            >
+              <RefreshCw className="h-4 w-4" />{t("common.retry")}
+            </button>
           </div>
         ) : (
           <div className="space-y-5">

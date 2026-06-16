@@ -1224,7 +1224,10 @@
     "prev": "السابق",
     "not_found": "غير موجود",
     "required": "مطلوب",
-    "submitting": "جاري الإرسال..."
+    "submitting": "جاري الإرسال...",
+    "error_title": "حدث خطأ ما",
+    "error_subtitle": "تعذّر تحميل هذه الصفحة. يرجى المحاولة مرة أخرى.",
+    "retry": "إعادة المحاولة"
   },
   "not_found": {
     "title": "404 — الصفحة غير موجودة",
@@ -1604,7 +1607,24 @@
     "toast_recompute_failed": "فشل في إعادة حساب درجة الثقة",
     "toast_trust_updated": "تم تحديث درجة الثقة: {{score}}/100",
     "tooltip_recompute": "إعادة حساب درجة الثقة",
-    "tooltip_remove_verif": "إزالة التوثيق"
+    "tooltip_remove_verif": "إزالة التوثيق",
+    "hero_banners": {
+      "page_title": "البانرات الرئيسية",
+      "page_subtitle": "إدارة البانرات الرئيسية للصفحة الرئيسية — الإنشاء والجدولة والأداء.",
+      "new_banner": "بانر جديد",
+      "edit_banner": "تعديل البانر",
+      "title_required": "العنوان مطلوب بكلتا اللغتين",
+      "image_required": "رابط صورة سطح المكتب مطلوب",
+      "save_success_create": "تم إنشاء البانر",
+      "save_success_edit": "تم تحديث البانر",
+      "save_error": "فشل حفظ البانر",
+      "toggle_error": "فشل تحديث البانر",
+      "delete_success": "تم حذف البانر",
+      "delete_error": "فشل حذف البانر",
+      "save_changes": "حفظ التغييرات",
+      "create_banner": "إنشاء بانر",
+      "preview_homepage": "معاينة الصفحة الرئيسية"
+    }
   },
   "push_prompt": {
     "title": "ابقَ على اطلاع",
