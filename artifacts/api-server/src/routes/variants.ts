@@ -10,7 +10,7 @@ import {
   variantImagesTable,
   productsTable,
 } from "@workspace/db";
-import { requireAuth, requireRole } from "../middlewares/auth";
+import { requireAuth, requireRole, requireActiveAccount } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -177,6 +177,7 @@ router.post(
   "/products/:id/variants/bulk",
   requireAuth,
   requireRole("seller"),
+  requireActiveAccount,
   async (req, res): Promise<void> => {
     const productId = parseInt(String(req.params.id), 10);
     if (isNaN(productId)) { res.status(400).json({ error: "Invalid product ID" }); return; }
@@ -295,6 +296,7 @@ router.patch(
   "/products/:id/variants/:variantId",
   requireAuth,
   requireRole("seller"),
+  requireActiveAccount,
   async (req, res): Promise<void> => {
     const productId  = parseInt(String(req.params.id), 10);
     const variantId  = parseInt(String(req.params.variantId), 10);
@@ -363,6 +365,7 @@ router.delete(
   "/products/:id/variants",
   requireAuth,
   requireRole("seller"),
+  requireActiveAccount,
   async (req, res): Promise<void> => {
     const productId = parseInt(String(req.params.id), 10);
     if (isNaN(productId)) { res.status(400).json({ error: "Invalid product ID" }); return; }

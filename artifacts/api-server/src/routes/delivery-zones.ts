@@ -20,8 +20,7 @@ router.get("/delivery-zones", async (_req, res): Promise<void> => {
 });
 
 // ── Admin: list all zones (including inactive) ────────────────────────────────
-router.get("/admin/delivery-zones", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
-  if (req.user?.role !== "admin") { res.status(403).json({ error: "Access denied" }); return; }
+router.get("/admin/delivery-zones", requireAuth, requireRole("admin"), async (_req, res): Promise<void> => {
   const zones = await db.select().from(deliveryZonesTable);
   res.json(zones.map((z) => ({
     id: z.id,
@@ -35,7 +34,6 @@ router.get("/admin/delivery-zones", requireAuth, requireRole("admin"), async (re
 
 // ── Admin: create zone ────────────────────────────────────────────────────────
 router.post("/admin/delivery-zones", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
-  if (req.user?.role !== "admin") { res.status(403).json({ error: "Access denied" }); return; }
   const { nameEn, nameAr, fee, active } = req.body;
   if (!nameEn || !nameAr) { res.status(400).json({ error: "nameEn and nameAr are required" }); return; }
   const [zone] = await db.insert(deliveryZonesTable).values({
@@ -48,7 +46,6 @@ router.post("/admin/delivery-zones", requireAuth, requireRole("admin"), async (r
 
 // ── Admin: update zone ────────────────────────────────────────────────────────
 router.patch("/admin/delivery-zones/:id", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
-  if (req.user?.role !== "admin") { res.status(403).json({ error: "Access denied" }); return; }
   const id = parseInt(String(req.params.id), 10);
   if (!id) { res.status(400).json({ error: "Invalid zone ID" }); return; }
   const { nameEn, nameAr, fee, active } = req.body;
@@ -64,7 +61,6 @@ router.patch("/admin/delivery-zones/:id", requireAuth, requireRole("admin"), asy
 
 // ── Admin: delete zone ────────────────────────────────────────────────────────
 router.delete("/admin/delivery-zones/:id", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
-  if (req.user?.role !== "admin") { res.status(403).json({ error: "Access denied" }); return; }
   const id = parseInt(String(req.params.id), 10);
   if (!id) { res.status(400).json({ error: "Invalid zone ID" }); return; }
   await db.delete(deliveryZonesTable).where(eq(deliveryZonesTable.id, id));

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, productsTable } from "@workspace/db";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireActiveAccount } from "../middlewares/auth";
 import { pgTable, serial, integer, timestamp } from "drizzle-orm/pg-core";
 
 // Inline wishlist table definition — avoids regenerating lib typings
@@ -15,7 +15,7 @@ const wishlistsTable = pgTable("wishlists", {
 const router: IRouter = Router();
 
 // GET /wishlist — full product objects for current user
-router.get("/wishlist", requireAuth, async (req, res): Promise<void> => {
+router.get("/wishlist", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
   const userId = req.user!.userId;
   try {
     const rows = await db
@@ -31,7 +31,7 @@ router.get("/wishlist", requireAuth, async (req, res): Promise<void> => {
 });
 
 // GET /wishlist/ids — lightweight: just product IDs (for heart toggle state)
-router.get("/wishlist/ids", requireAuth, async (req, res): Promise<void> => {
+router.get("/wishlist/ids", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
   const userId = req.user!.userId;
   try {
     const rows = await db
@@ -45,7 +45,7 @@ router.get("/wishlist/ids", requireAuth, async (req, res): Promise<void> => {
 });
 
 // POST /wishlist — add a product
-router.post("/wishlist", requireAuth, async (req, res): Promise<void> => {
+router.post("/wishlist", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
   const userId = req.user!.userId;
   const productId = Number(req.body?.productId);
   if (!productId || isNaN(productId)) {
@@ -64,7 +64,7 @@ router.post("/wishlist", requireAuth, async (req, res): Promise<void> => {
 });
 
 // DELETE /wishlist/:productId — remove a product
-router.delete("/wishlist/:productId", requireAuth, async (req, res): Promise<void> => {
+router.delete("/wishlist/:productId", requireAuth, requireActiveAccount, async (req, res): Promise<void> => {
   const userId = req.user!.userId;
   const productId = parseInt(String(req.params.productId), 10);
   if (isNaN(productId)) {

@@ -1,6 +1,46 @@
 # SYANO — Current Project State
-**Last Updated:** June 16, 2026 (Phase 11 — Prompt 5: Mobile Readiness)
+**Last Updated:** June 16, 2026 (Phase 11 — Prompt 6: Security Review)
 **Recovery-Verified:** June 15, 2026 — full restore to Replit environment; all services running; 0 TypeScript errors; 42/42 embeddings live
+
+## Session: Phase 11 — Prompt 6 (June 16, 2026) — Security Review
+Status: Complete
+
+### Security Audit Scope
+Audited all files in `artifacts/api-server/src/routes/` and `artifacts/api-server/src/middlewares/`.
+
+### Findings — PASS (already secure)
+- **middlewares/auth.ts** — `requireAuth` (JWT HS256 Bearer), `requireRole`, `requireActiveAccount` (live DB lookup per request) all correct
+- **auth.ts** — in-house rate limiter (`checkLoginRateLimit`, `checkRegisterRateLimit`, `checkIpRateLimit`) on all login/register endpoints; `formatUser()` strips `passwordHash`, `resetToken`, `otpHash`, `otpExpiry` before response
+- **admin.ts** — `router.use("/admin", requireAuth, requireRole("admin"))` at line 74 guards all 60+ /admin/* routes in a single declaration; `logAudit()` called on all destructive admin actions
+- **hero-banners.ts** — `router.use("/admin/banners", requireAuth, requireRole("admin"))` guards all admin banner mutations
+- **products.ts** — all seller mutations (POST/PATCH/DELETE) have `requireAuth + requireRole("seller") + requireActiveAccount`; ownership enforced via `sellerId === req.user.userId` check before every write
+- **orders.ts** — GET scoped by role (customer/seller/courier/admin); PATCH status enforces role-specific transition matrices; customer/seller/courier ownership verified per-request; uses `db.transaction() + SELECT FOR UPDATE` to prevent race conditions
+- **cart.ts** — all 5 routes have `requireAuth + requireRole("customer") + requireActiveAccount`; cart items scoped by `userId` in all WHERE clauses
+- **reviews.ts** — POST gated on `requireRole("customer") + requireActiveAccount`; checks delivered order before allowing review; duplicate prevention enforced
+- **messaging.ts** — `getConvWithAccess()` helper verifies participant membership before every conversation operation; admin can see all convs; `requireAuth + requireActiveAccount` on all mutating routes
+- **notifications.ts** — SSE stream at `/notifications/stream` uses query-param JWT (required for EventSource); validates token + checks `accountStatus === "active"` before adding client
+- **push-subscriptions.ts** — all routes have `requireAuth`; `userId` from JWT (never from body) used for ownership
+- **seller-applications.ts** — POST/PATCH/DELETE have `requireAuth + requireActiveAccount`; approved-seller guard prevents double-application; `approved` status cannot be withdrawn
+- **sellers.ts** — follow/unfollow require `requireRole("customer") + requireActiveAccount`; store-review POST gates on `requireRole("customer") + requireActiveAccount`; delivery-order check before review allowed
+- **couriers.ts** — all assignment mutations (`pickup`, `start-delivery`, `deliver`, `fail-delivery`) have `requireAuth + requireActiveAccount`; courier profile lookup (`courierId === courier.userId`) enforced before every write; `courier.status === "approved"` checked before any operation
+- **delivery-zones.ts** — all admin routes have `requireAuth + requireRole("admin")`
+- **dashboard.ts** — `requireAuth + requireActiveAccount` on all routes; inline role guard (`role !== "seller"`) is functionally correct
+
+### Fixes Applied
+1. **`wishlist.ts`** — Added `requireActiveAccount` to all 4 routes (`GET /wishlist`, `GET /wishlist/ids`, `POST /wishlist`, `DELETE /wishlist/:productId`). Previously suspended users could still access/modify their wishlist.
+2. **`variants.ts`** — Added `requireActiveAccount` to 3 seller mutation routes (`POST /products/:id/variants/bulk`, `PATCH /products/:id/variants/:variantId`, `DELETE /products/:id/variants`). Previously suspended sellers could still modify product variants.
+3. **`delivery-zones.ts`** — Removed 4 redundant `if (req.user?.role !== "admin")` manual checks that were duplicating the `requireRole("admin")` middleware already applied on each route. Cleaned up handler signatures to use `_req` where `req` was unused.
+
+### No Issues Found
+- No unprotected mutation endpoints
+- No IDOR vulnerabilities (all ownership checks present)
+- No sensitive data in API responses (password hashes, tokens stripped by `formatUser()`)
+- No raw SQL injection vectors (all queries use Drizzle ORM parameterized queries; `sql\`\`` template tags used correctly)
+- No admin bypass possible (router-level middleware vs route-level are both applied)
+
+TypeScript: **0 errors** (verified: `npx tsc --noEmit -p artifacts/api-server/tsconfig.json` + `npx tsc --noEmit -p artifacts/marketplace/tsconfig.json`)
+
+---
 
 ## Session: Phase 11 — Prompt 5 (June 16, 2026) — Mobile Readiness
 Status: Complete
