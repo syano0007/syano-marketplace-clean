@@ -15,6 +15,7 @@ import {
   sendEmailOTP,
 } from "../services/verification";
 import { checkIpRateLimit, checkLoginRateLimit, checkRegisterRateLimit } from "../lib/rateLimiter";
+import { sendWelcomeEmail, sendPasswordResetEmail } from "../services/emailService";
 
 const router: IRouter = Router();
 
@@ -182,6 +183,11 @@ router.post("/auth/register", async (req, res): Promise<void> => {
       .returning();
     const token = signToken({ userId: user.id, role: user.role, email: user.email, isVerified: true });
 
+    // Welcome email — fire-and-forget
+    if (email) {
+      sendWelcomeEmail(email, safeName, "ar").catch(() => {});
+    }
+
     // Notify admins of new registration — fire-and-forget
     db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"))
       .then((admins) =>
@@ -208,6 +214,11 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     .values({ email, phone, passwordHash, name: safeName, role: "customer", isVerified: false,
               otpRequestCount: 1, otpRequestWindowStart: new Date() })
     .returning();
+
+  // Welcome email — fire-and-forget
+  if (email) {
+    sendWelcomeEmail(email, safeName, "ar").catch(() => {});
+  }
 
   // Notify admins of new registration — fire-and-forget
   db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"))
@@ -557,6 +568,10 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
   } catch (err) {
     console.error("[OTP] forgot-password email failed:", err);
   }
+
+  // Password reset email with link — fire-and-forget
+  const resetLink = `${process.env.SITE_URL ?? "https://syanomarket.online"}/reset-password?email=${encodeURIComponent(normalizedEmail)}`;
+  sendPasswordResetEmail(normalizedEmail, resetLink, (locale === "ar" || locale === "en") ? locale : "ar").catch(() => {});
 
   await auditLog(user.id, "reset_otp_sent", "email", ip);
   res.json(GENERIC);
