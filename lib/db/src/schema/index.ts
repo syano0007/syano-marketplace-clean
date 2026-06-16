@@ -17,5 +17,6 @@ export * from "./couriers";
 export * from "./delivery";
 export * from "./hero_banners";
 export * from "./wishlists";
+export * from "./delivery_missions";
 
 export { orderStatusHistoryTable } from "./orders";

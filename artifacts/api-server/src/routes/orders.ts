@@ -14,6 +14,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, requireActiveAccount } from "../middlewares/auth";
 import { buildVariantData } from "./variants";
+import { createDeliveryMission } from "../services/deliveryMissionService";
 
 const router: IRouter = Router();
 
@@ -740,6 +741,19 @@ router.patch("/orders/:id/status", requireAuth, requireActiveAccount, async (req
 
   // ── Mandatory status history insert ────────────────────────────────────────
   await insertStatusHistory(order.id, currentStatus, newStatus, userId, role);
+
+  // ── B1: Auto-create delivery mission when seller marks ready_for_pickup ─────
+  if (newStatus === "ready_for_pickup" && role === "seller") {
+    createDeliveryMission({
+      orderId: order.id,
+      sellerId: userId,
+      customerId: order.customerId,
+      deliveryFee: order.deliveryFee,
+    }).catch((err) => {
+      // Fire-and-forget — mission creation failure must not block the order update
+      console.error("[delivery-mission] Failed to auto-create mission:", err);
+    });
+  }
 
   // ── Notifications — V1: every transition notifies ───────────────────────────
   // Helper: collect all seller IDs for this order (fire-and-forget pattern)

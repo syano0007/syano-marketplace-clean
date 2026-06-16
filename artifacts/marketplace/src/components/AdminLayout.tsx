@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Users, User, Package, ShoppingCart, Settings,
   LogOut, Shield, ChevronRight, ScrollText, Menu, Store,
   Home as HomeIcon, BarChart2, Globe, Sun, Moon, DollarSign, Truck, Sparkles, SearchIcon,
-  HeadphonesIcon,
+  HeadphonesIcon, ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -25,6 +25,7 @@ const navItems = [
   { href: "/admin/analytics",             icon: BarChart2,       labelKey: "admin.nav_analytics" },
   { href: "/admin/search-analytics",      icon: SearchIcon,      labelKey: "admin.nav.searchAnalytics" },
   { href: "/admin/delivery",              icon: Truck,           labelKey: "delivery.nav" },
+  { href: "/admin/delivery-missions",     icon: ClipboardList,   labelKey: "delivery_missions.nav" },
   { href: "/admin/courier-applications",  icon: User,            labelKey: "courier_applications.nav", badgeKey: "couriers" },
   { href: "/admin/hero-banners",           icon: Sparkles,        labelKey: "admin.hero_banners.title" },
   { href: "/admin/support",               icon: HeadphonesIcon,  labelKey: "support.admin_nav",  badgeKey: "support" },
