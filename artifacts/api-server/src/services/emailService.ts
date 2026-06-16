@@ -1,6 +1,11 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 const FROM = process.env.EMAIL_FROM ?? "noreply@syanomarket.online";
 
 export async function sendWelcomeEmail(
@@ -56,6 +61,11 @@ export async function sendWelcomeEmail(
       </div>
     `;
 
+  const resend = getResend();
+  if (!resend) {
+    console.warn(`[email] RESEND_API_KEY not set — skipping welcome email to ${to}`);
+    return;
+  }
   try {
     await resend.emails.send({ from: FROM, to, subject, html });
     console.log(`[email] Welcome email sent to ${to}`);
@@ -123,6 +133,11 @@ export async function sendPasswordResetEmail(
       </div>
     `;
 
+  const resend = getResend();
+  if (!resend) {
+    console.warn(`[email] RESEND_API_KEY not set — skipping password reset email to ${to}`);
+    return;
+  }
   try {
     await resend.emails.send({ from: FROM, to, subject, html });
     console.log(`[email] Password reset email sent to ${to}`);
