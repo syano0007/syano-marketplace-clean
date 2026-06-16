@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { useListProducts, useDeleteProduct, getListProductsQueryKey, getGetSellerDashboardQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { SellerNav } from "@/components/SellerNav";
 import { Button } from "@/components/ui/button";
@@ -30,8 +30,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface QualityReport {
+  total_products: number;
+  flagged_count: number;
+  products: Array<{ id: number; name: string; name_ar: string; issues: string[] }>;
+}
+
 export default function SellerProducts() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -39,6 +45,7 @@ export default function SellerProducts() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState("all");
+  const [qualityDismissed, setQualityDismissed] = useState(false);
 
   const { data: products = [], isLoading } = useListProducts(
     { sellerId: user?.id },
@@ -49,6 +56,27 @@ export default function SellerProducts() {
       },
     }
   );
+
+  const { data: qualityReport } = useQuery<QualityReport>({
+    queryKey: ["seller-product-quality", user?.id],
+    queryFn: async () => {
+      const res = await fetch("/api/seller/products/quality-report", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60_000,
+  });
+
+  const qualityMap = useMemo(() => {
+    const map = new Map<number, string[]>();
+    for (const p of qualityReport?.products ?? []) {
+      map.set(p.id, p.issues);
+    }
+    return map;
+  }, [qualityReport]);
 
   const deleteProduct = useDeleteProduct({
     mutation: {
@@ -109,6 +137,28 @@ export default function SellerProducts() {
     <Layout>
       <SellerNav />
       <div className="container py-6 md:py-10 max-w-6xl">
+
+        {/* ── Data Quality Banner ── */}
+        {!qualityDismissed && qualityReport && qualityReport.flagged_count > 0 && (
+          <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4 mb-6 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-foreground">{t("seller.quality.banner_title")}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {t("seller.quality.banner_subtitle", { count: qualityReport.flagged_count })}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="shrink-0 h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+              onClick={() => setQualityDismissed(true)}
+            >
+              ✕
+            </Button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
           <div>
@@ -253,6 +303,46 @@ export default function SellerProducts() {
                         {stockBadge(product.stock)}
                       </div>
                     </div>
+                    {/* Quality issue badges */}
+                    {qualityMap.has(product.id) && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {qualityMap.get(product.id)!.includes("missing_images") && (
+                          <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full">
+                            {t("seller.quality.missing_images")}
+                          </span>
+                        )}
+                        {qualityMap.get(product.id)!.includes("short_description") && (
+                          <span className="text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-2 py-0.5 rounded-full">
+                            {t("seller.quality.short_description")}
+                          </span>
+                        )}
+                        {qualityMap.get(product.id)!.includes("short_description_ar") && (
+                          <span className="text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-2 py-0.5 rounded-full">
+                            {t("seller.quality.short_description_ar")}
+                          </span>
+                        )}
+                        {qualityMap.get(product.id)!.includes("missing_name_ar") && (
+                          <span className="text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-2 py-0.5 rounded-full">
+                            {t("seller.quality.missing_name_ar")}
+                          </span>
+                        )}
+                        {qualityMap.get(product.id)!.includes("zero_price") && (
+                          <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full">
+                            {t("seller.quality.zero_price")}
+                          </span>
+                        )}
+                        {qualityMap.get(product.id)!.includes("out_of_stock") && (
+                          <span className="text-xs bg-orange-500/10 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full">
+                            {t("seller.quality.out_of_stock")}
+                          </span>
+                        )}
+                        {qualityMap.get(product.id)!.includes("not_embedded") && (
+                          <span className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                            {t("seller.quality.not_embedded")}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}

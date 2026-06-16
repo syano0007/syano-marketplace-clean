@@ -1887,4 +1887,130 @@ router.get("/admin/search-analytics/trends", async (req, res): Promise<void> => 
   }
 });
 
+/* ── Admin: Platform-wide Product Quality Report ───────────── */
+router.get("/admin/products/quality-report", requireAuth, requireRole("admin"), async (_req, res): Promise<void> => {
+  try {
+    const { rows } = await pool.query<{
+      id: number;
+      name: string;
+      name_ar: string | null;
+      image_count: number;
+      desc_len: number;
+      desc_ar_len: number;
+      price_val: string;
+      stock: number;
+      not_embedded: boolean;
+      seller_id: number;
+      store_name: string;
+    }>(`
+      SELECT
+        p.id,
+        p.name,
+        p.name_ar,
+        COALESCE(array_length(p.image_urls, 1), 0)                      AS image_count,
+        COALESCE(LENGTH(TRIM(COALESCE(p.description, ''))), 0)           AS desc_len,
+        COALESCE(LENGTH(TRIM(COALESCE(p.description_ar, ''))), 0)        AS desc_ar_len,
+        COALESCE(p.price::numeric, 0)::text                              AS price_val,
+        p.stock,
+        (p.embedding IS NULL)                                            AS not_embedded,
+        p.seller_id,
+        COALESCE(sa.store_name, u.name)                                  AS store_name
+      FROM products p
+      LEFT JOIN users u ON u.id = p.seller_id
+      LEFT JOIN seller_applications sa
+        ON sa.seller_id = p.seller_id AND sa.status = 'approved'
+      ORDER BY p.id DESC
+    `);
+
+    const breakdown = {
+      missing_images: 0,
+      short_description: 0,
+      short_description_ar: 0,
+      missing_name_ar: 0,
+      zero_price: 0,
+      out_of_stock: 0,
+      not_embedded: 0,
+    };
+
+    const flaggedProducts = rows
+      .map((row) => {
+        const issues: string[] = [];
+        if (row.image_count === 0)                     { issues.push("missing_images");      breakdown.missing_images++; }
+        if (row.desc_len < 20)                         { issues.push("short_description");   breakdown.short_description++; }
+        if (row.desc_ar_len < 20)                      { issues.push("short_description_ar"); breakdown.short_description_ar++; }
+        if (!row.name_ar || row.name_ar.trim() === "") { issues.push("missing_name_ar");     breakdown.missing_name_ar++; }
+        if (parseFloat(row.price_val) === 0)           { issues.push("zero_price");          breakdown.zero_price++; }
+        if (row.stock === 0)                           { issues.push("out_of_stock");         breakdown.out_of_stock++; }
+        if (row.not_embedded)                          { issues.push("not_embedded");         breakdown.not_embedded++; }
+        return {
+          id: row.id,
+          name: row.name,
+          name_ar: row.name_ar ?? "",
+          seller_id: row.seller_id,
+          store_name: row.store_name,
+          issues,
+        };
+      })
+      .filter((p) => p.issues.length > 0);
+
+    const total = rows.length;
+    const flaggedCount = flaggedProducts.length;
+
+    res.json({
+      total_products: total,
+      flagged_count: flaggedCount,
+      flagged_percentage: total > 0 ? Math.round((flaggedCount / total) * 100) : 0,
+      breakdown,
+      products: flaggedProducts,
+    });
+  } catch (err) {
+    console.error("[admin/products/quality-report]", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/* ── Admin: Store Quality Report ────────────────────────────── */
+router.get("/admin/stores/quality-report", requireAuth, requireRole("admin"), async (_req, res): Promise<void> => {
+  try {
+    const { rows } = await pool.query<{
+      id: number;
+      name: string;
+      seller_id: number;
+      logo: string | null;
+      description: string | null;
+      description_ar: string | null;
+    }>(`
+      SELECT
+        id,
+        store_name AS name,
+        seller_id,
+        store_logo   AS logo,
+        description,
+        description_ar
+      FROM seller_applications
+      WHERE status = 'approved'
+      ORDER BY id DESC
+    `);
+
+    const flaggedStores = rows
+      .map((row) => {
+        const issues: string[] = [];
+        if (!row.logo || row.logo.trim() === "")                   issues.push("missing_logo");
+        if (!row.description || row.description.trim() === "")     issues.push("missing_description");
+        if (!row.description_ar || row.description_ar.trim() === "") issues.push("missing_description_ar");
+        return { id: row.id, name: row.name, seller_id: row.seller_id, issues };
+      })
+      .filter((s) => s.issues.length > 0);
+
+    res.json({
+      total_stores: rows.length,
+      flagged_count: flaggedStores.length,
+      stores: flaggedStores,
+    });
+  } catch (err) {
+    console.error("[admin/stores/quality-report]", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

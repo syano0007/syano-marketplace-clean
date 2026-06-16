@@ -581,7 +581,18 @@
     "rejected_banner": "تم رفض طلبك السابق — يمكنك تقديم طلب جديد",
     "categories_selected": "{{count}} محدد",
     "saving": "جاري الحفظ…",
-    "save_draft": "حفظ كمسودة"
+    "save_draft": "حفظ كمسودة",
+    "quality": {
+      "banner_title": "منتجات تحتاج إلى تحسين",
+      "banner_subtitle": "{{count}} منتج يحتاج إلى مراجعة",
+      "missing_images": "بدون صور",
+      "short_description_ar": "وصف عربي قصير",
+      "short_description": "وصف قصير",
+      "missing_name_ar": "بدون اسم عربي",
+      "zero_price": "السعر صفر",
+      "out_of_stock": "نفد المخزون",
+      "not_embedded": "خارج البحث الذكي"
+    }
   },
   "seller_nav": {
     "dashboard": "لوحة التحكم",
@@ -1624,6 +1635,23 @@
       "save_changes": "حفظ التغييرات",
       "create_banner": "إنشاء بانر",
       "preview_homepage": "معاينة الصفحة الرئيسية"
+    },
+    "quality": {
+      "section_title": "جودة البيانات",
+      "flagged_products": "منتج يحتاج مراجعة",
+      "flagged_stores": "متجر يحتاج مراجعة",
+      "view_all": "عرض الكل",
+      "breakdown_title": "تفصيل المشاكل",
+      "missing_images": "بدون صور",
+      "short_description": "وصف قصير",
+      "short_description_ar": "وصف عربي قصير",
+      "missing_name_ar": "بدون اسم عربي",
+      "zero_price": "السعر صفر",
+      "out_of_stock": "نفد المخزون",
+      "not_embedded": "خارج البحث الذكي",
+      "missing_logo": "بدون شعار المتجر",
+      "missing_description": "بدون وصف",
+      "missing_description_ar": "بدون وصف عربي"
     }
   },
   "push_prompt": {

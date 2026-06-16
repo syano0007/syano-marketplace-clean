@@ -115,6 +115,40 @@ interface ActivityEntry {
   createdAt: string;
 }
 
+interface ProductQualityReport {
+  total_products: number;
+  flagged_count: number;
+  flagged_percentage: number;
+  breakdown: {
+    missing_images: number;
+    short_description: number;
+    short_description_ar: number;
+    missing_name_ar: number;
+    zero_price: number;
+    out_of_stock: number;
+    not_embedded: number;
+  };
+  products: Array<{
+    id: number;
+    name: string;
+    name_ar: string;
+    seller_id: number;
+    store_name: string;
+    issues: string[];
+  }>;
+}
+
+interface StoreQualityReport {
+  total_stores: number;
+  flagged_count: number;
+  stores: Array<{
+    id: number;
+    name: string;
+    seller_id: number;
+    issues: string[];
+  }>;
+}
+
 // ─── Animated Counter ─────────────────────────────────────────────────────────
 
 function useCountUp(target: number, enabled: boolean): number {
@@ -345,6 +379,30 @@ export default function AdminDashboard() {
       return res.json();
     },
     refetchInterval: 60_000,
+  });
+
+  const { data: productQuality } = useQuery<ProductQualityReport>({
+    queryKey: ["admin-product-quality"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/products/quality-report", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: storeQuality } = useQuery<StoreQualityReport>({
+    queryKey: ["admin-store-quality"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/stores/quality-report", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    staleTime: 5 * 60_000,
   });
 
   const healthScore = useMemo(() => {
@@ -1169,6 +1227,90 @@ export default function AdminDashboard() {
           </div>
 
         </div>
+
+        {/* ── Data Quality Section ── */}
+        {(productQuality || storeQuality) && (
+          <div className="mt-6 bg-card border border-border rounded-xl p-5">
+            <h2 className="text-base font-bold mb-4 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0" />
+              {t("admin.quality.section_title")}
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+              {/* Flagged products card */}
+              {productQuality && (
+                <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-4">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div>
+                      <span className="text-2xl font-black text-yellow-600 dark:text-yellow-400" translate="no">
+                        {productQuality.flagged_count}
+                      </span>
+                      <span className="text-sm text-muted-foreground ms-2">
+                        {t("admin.quality.flagged_products")}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap" translate="no">
+                      {productQuality.flagged_percentage}%
+                    </span>
+                  </div>
+                  <Link href="/admin/products" className="text-xs text-primary hover:underline">
+                    {t("admin.quality.view_all")} →
+                  </Link>
+                </div>
+              )}
+
+              {/* Flagged stores card */}
+              {storeQuality && (
+                <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-4">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div>
+                      <span className="text-2xl font-black text-orange-600 dark:text-orange-400" translate="no">
+                        {storeQuality.flagged_count}
+                      </span>
+                      <span className="text-sm text-muted-foreground ms-2">
+                        {t("admin.quality.flagged_stores")}
+                      </span>
+                    </div>
+                  </div>
+                  <Link href="/admin/sellers" className="text-xs text-primary hover:underline">
+                    {t("admin.quality.view_all")} →
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Breakdown list */}
+            {productQuality && productQuality.flagged_count > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                  {t("admin.quality.breakdown_title")}
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {(
+                    [
+                      ["missing_images",      "missing_images"],
+                      ["short_description",   "short_description"],
+                      ["short_description_ar","short_description_ar"],
+                      ["missing_name_ar",     "missing_name_ar"],
+                      ["zero_price",          "zero_price"],
+                      ["out_of_stock",        "out_of_stock"],
+                      ["not_embedded",        "not_embedded"],
+                    ] as const
+                  ).map(([key, label]) => {
+                    const count = productQuality.breakdown[key];
+                    if (count === 0) return null;
+                    return (
+                      <div key={key} className="flex items-center justify-between gap-1 px-3 py-2 rounded-lg bg-muted/50 border border-border">
+                        <span className="text-xs text-muted-foreground truncate">{t(`admin.quality.${label}`)}</span>
+                        <span className="text-xs font-bold text-foreground shrink-0 ms-1" translate="no">{count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </AdminLayout>

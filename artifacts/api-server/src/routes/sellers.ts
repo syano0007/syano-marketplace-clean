@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, avg, count, desc, sql, ne } from "drizzle-orm";
 import {
   db,
+  pool,
   usersTable,
   sellerApplicationsTable,
   productsTable,
@@ -1086,6 +1087,62 @@ router.get("/sellers/:id/trust", async (req, res): Promise<void> => {
     verifiedAt: user.verifiedAt?.toISOString() ?? null,
     liveBreakdown: breakdown,
   });
+});
+
+/* ── Seller: Product Quality Report ─────────────────────────── */
+router.get("/seller/products/quality-report", requireAuth, requireRole("seller"), async (req, res): Promise<void> => {
+  try {
+    const sellerId = req.user!.userId;
+
+    const { rows } = await pool.query<{
+      id: number;
+      name: string;
+      name_ar: string | null;
+      image_count: number;
+      desc_len: number;
+      desc_ar_len: number;
+      price_val: string;
+      stock: number;
+      not_embedded: boolean;
+    }>(`
+      SELECT
+        id,
+        name,
+        name_ar,
+        COALESCE(array_length(image_urls, 1), 0)                       AS image_count,
+        COALESCE(LENGTH(TRIM(COALESCE(description, ''))), 0)            AS desc_len,
+        COALESCE(LENGTH(TRIM(COALESCE(description_ar, ''))), 0)         AS desc_ar_len,
+        COALESCE(price::numeric, 0)::text                               AS price_val,
+        stock,
+        (embedding IS NULL)                                             AS not_embedded
+      FROM products
+      WHERE seller_id = $1
+      ORDER BY id DESC
+    `, [sellerId]);
+
+    const flagged = rows
+      .map((row) => {
+        const issues: string[] = [];
+        if (row.image_count === 0)                    issues.push("missing_images");
+        if (row.desc_len < 20)                        issues.push("short_description");
+        if (row.desc_ar_len < 20)                     issues.push("short_description_ar");
+        if (!row.name_ar || row.name_ar.trim() === "") issues.push("missing_name_ar");
+        if (parseFloat(row.price_val) === 0)           issues.push("zero_price");
+        if (row.stock === 0)                           issues.push("out_of_stock");
+        if (row.not_embedded)                          issues.push("not_embedded");
+        return { id: row.id, name: row.name, name_ar: row.name_ar ?? "", issues };
+      })
+      .filter((p) => p.issues.length > 0);
+
+    res.json({
+      total_products: rows.length,
+      flagged_count: flagged.length,
+      products: flagged,
+    });
+  } catch (err) {
+    console.error("[seller/products/quality-report]", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;

@@ -2,6 +2,42 @@
 **Last Updated:** June 16, 2026 (Phase 11 — Prompt 2: Critical & High Fixes)
 **Recovery-Verified:** June 15, 2026 — full restore to Replit environment; all services running; 0 TypeScript errors; 42/42 embeddings live
 
+## Session: Phase 11 — Prompt 4 (June 16, 2026) — Data Quality
+Status: Complete
+
+### Added
+
+**Backend endpoints:**
+- `GET /api/seller/products/quality-report` — `sellers.ts`; requireAuth+requireRole('seller'); raw SQL checks 7 quality conditions on seller's own products; returns `{total_products, flagged_count, products[{id,name,name_ar,issues[]}]}`
+- `GET /api/admin/products/quality-report` — `admin.ts`; platform-wide; 7 issue types + breakdown counts + flagged_percentage; products include store_name via JOIN
+- `GET /api/admin/stores/quality-report` — `admin.ts`; approved seller_applications; checks missing_logo, missing_description, missing_description_ar
+
+**Quality conditions checked (SQL-level):**
+- `missing_images` — `array_length(image_urls,1) = 0 or NULL`
+- `short_description` — `length(trim(description)) < 20`
+- `short_description_ar` — `length(trim(description_ar)) < 20`
+- `missing_name_ar` — `name_ar IS NULL or empty`
+- `zero_price` — `price::numeric = 0`
+- `out_of_stock` — `stock = 0`
+- `not_embedded` — `embedding IS NULL` (pgvector column via raw SQL)
+
+**Frontend — `artifacts/marketplace/src/pages/seller/products/index.tsx`:**
+- `useQuery` for `/api/seller/products/quality-report` (staleTime 5min)
+- `qualityMap: Map<id, issues[]>` computed via useMemo
+- Dismissible yellow warning banner (AlertTriangle icon, i18n title+subtitle, ✕ button)
+- Per-product issue badges in 3 colors: destructive (missing_images, zero_price), yellow (short_description*, missing_name_ar), orange (out_of_stock), blue (not_embedded)
+
+**Frontend — `artifacts/marketplace/src/pages/admin/index.tsx`:**
+- `ProductQualityReport` + `StoreQualityReport` TypeScript interfaces
+- Two `useQuery` hooks: admin-product-quality + admin-store-quality
+- Data Quality section at bottom of dashboard: 2 summary cards (products + stores flagged counts), breakdown grid (shows non-zero issue counts only)
+
+**i18n keys added** (`seller.quality.*` — 9 keys, `admin.quality.*` — 15 keys) to both en.json and ar.json
+
+TypeScript: 0 errors on both api-server and marketplace
+
+---
+
 ## Session: Phase 11 — Prompt 3b (June 16, 2026) — Global Error Boundary
 Status: Complete
 

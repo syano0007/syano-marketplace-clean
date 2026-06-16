@@ -581,7 +581,18 @@
     "rejected_banner": "Previous application rejected — you may submit a new one",
     "categories_selected": "{{count}} selected",
     "saving": "Saving…",
-    "save_draft": "Save as Draft"
+    "save_draft": "Save as Draft",
+    "quality": {
+      "banner_title": "Products need attention",
+      "banner_subtitle": "{{count}} products need review",
+      "missing_images": "No images",
+      "short_description_ar": "Short Arabic description",
+      "short_description": "Short description",
+      "missing_name_ar": "Missing Arabic name",
+      "zero_price": "Price is zero",
+      "out_of_stock": "Out of stock",
+      "not_embedded": "Not in smart search"
+    }
   },
   "seller_nav": {
     "dashboard": "Dashboard",
@@ -1624,6 +1635,23 @@
       "save_changes": "Save Changes",
       "create_banner": "Create Banner",
       "preview_homepage": "Preview Homepage"
+    },
+    "quality": {
+      "section_title": "Data Quality",
+      "flagged_products": "products need review",
+      "flagged_stores": "stores need review",
+      "view_all": "View all",
+      "breakdown_title": "Issue breakdown",
+      "missing_images": "Missing images",
+      "short_description": "Short description",
+      "short_description_ar": "Short Arabic description",
+      "missing_name_ar": "Missing Arabic name",
+      "zero_price": "Price is zero",
+      "out_of_stock": "Out of stock",
+      "not_embedded": "Not in smart search",
+      "missing_logo": "Missing store logo",
+      "missing_description": "Missing description",
+      "missing_description_ar": "Missing Arabic description"
     }
   },
   "push_prompt": {
