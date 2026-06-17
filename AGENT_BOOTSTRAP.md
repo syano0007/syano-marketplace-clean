@@ -491,3 +491,25 @@ These tools make the project self-certifying after a fresh GitHub import:
 **Never re-read all docs from scratch if healthz returns OK. Start from CURRENT_STATE.md.**
 
 **After fresh GitHub import:** `pnpm install` → start workflows → `pnpm import:check` → should show PASS.
+
+---
+
+## Phase A: Mobile Parity Foundation — COMPLETE ✅ (June 17, 2026)
+
+### What was added to `artifacts/mobile/app/(tabs)/index.tsx`:
+1. **HeroBannerSection** — SYANO branded hero with emerald glow, tagline, stats row (500+ sellers / 10K+ products / 50K+ customers)
+2. **CategoryGridSection** — 2x4 image grid (8 categories, same Unsplash photos as web, dark overlays, color bars at bottom)
+3. **FeaturedDealsSection** — Live countdown timer (h:m:s) + horizontal DealMiniCard scroll (discounted products)
+4. **FeaturedStoresSection** — 3 static store cards (same as web STATIC_STORES), horizontal scroll, cover images, verified badge, rating, product count
+5. **JoinCTASection** — Seller + Courier CTA cards, routes to /seller-apply / /courier-apply
+6. **Header cart badge** — Cart icon with live item count badge added to top-right header area
+7. **Notification bell wired** — Routes to /(tabs)/notifications on press
+
+### Section order now matches web:
+Hero → Hot Deals → Categories Grid → Featured Deals → Trusted Stores → New Arrivals → Trending → Join CTA → All Products
+
+### i18n: 28 new keys added to both EN + AR `home.*` namespace
+
+### TypeScript: 0 errors | Expo: Bundled 320ms
+
+### PARITY_AUDIT_REPORT.md created at project root

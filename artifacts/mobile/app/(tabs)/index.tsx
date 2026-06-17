@@ -24,6 +24,7 @@ import {
   useGetBestSellers,
   useListCategories,
   useListProducts,
+  useGetCart,
   getBaseUrl,
 } from "@workspace/api-client-react";
 import type { Product } from "@workspace/api-client-react";
@@ -60,36 +61,422 @@ const MOBILE_SORT_LABELS: Record<MobileSortOption, { en: string; ar: string }> =
   highest_rated: { en: "Top Rated", ar: "الأعلى تقييماً" },
 };
 
-// ── Mini horizontal product card for homepage sections ───────────────────────
-function MiniProductCard({ product, colors, onPress }: { product: any; colors: any; onPress: () => void }) {
-  const hasDiscount = product.discountPercent != null && product.discountPercent > 0;
-  const imageUri = product.imageUrls?.[0] ?? product.imageUrl ?? null;
+// ─── Shared Section Header ───────────────────────────────────────────────────
+interface SectionHeaderProps {
+  label: string;
+  onSeeAll?: () => void;
+  seeAllLabel?: string;
+  colors: ReturnType<typeof useColors>;
+}
+function SectionHeader({ label, onSeeAll, seeAllLabel, colors }: SectionHeaderProps) {
+  return (
+    <View style={sectionStyles.row}>
+      <Text style={[sectionStyles.label, { color: colors.foreground }]}>{label}</Text>
+      {onSeeAll && (
+        <Pressable onPress={onSeeAll}>
+          <Text style={[sectionStyles.seeAll, { color: colors.primary }]}>
+            {seeAllLabel ?? t("home.categories_see_all")} →
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+// ─── Hero Banner Section ─────────────────────────────────────────────────────
+function HeroBannerSection({ colors }: { colors: ReturnType<typeof useColors> }) {
+  const locale = getLocale();
+  const isAr = locale === "ar";
+
+  return (
+    <View style={[heroStyles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={heroStyles.glowOverlay} pointerEvents="none">
+        <View style={heroStyles.glow1} />
+        <View style={heroStyles.glow2} />
+      </View>
+      <View style={heroStyles.content}>
+        <View style={[heroStyles.badge, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "35" }]}>
+          <View style={[heroStyles.dot, { backgroundColor: colors.primary }]} />
+          <Text style={[heroStyles.badgeText, { color: colors.primary }]}>SYANO</Text>
+        </View>
+        <Text style={[heroStyles.tagline, { color: colors.foreground, textAlign: isAr ? "right" : "left" }]}>
+          {t("home.hero_tagline")}
+        </Text>
+        <Text style={[heroStyles.subtitle, { color: colors.mutedForeground, textAlign: isAr ? "right" : "left" }]}>
+          {t("home.hero_subtitle")}
+        </Text>
+        <View style={[heroStyles.statsRow, { borderTopColor: colors.border }]}>
+          <HeroStat value={t("home.stats_sellers")} colors={colors} />
+          <View style={[heroStyles.statDivider, { backgroundColor: colors.border }]} />
+          <HeroStat value={t("home.stats_products")} colors={colors} />
+          <View style={[heroStyles.statDivider, { backgroundColor: colors.border }]} />
+          <HeroStat value={t("home.stats_customers")} colors={colors} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function HeroStat({ value, colors }: { value: string; colors: ReturnType<typeof useColors> }) {
+  return (
+    <View style={heroStyles.statItem}>
+      <Text style={[heroStyles.statValue, { color: colors.primary }]}>{value}</Text>
+    </View>
+  );
+}
+
+// ─── Category Grid Section ───────────────────────────────────────────────────
+const CATEGORY_DEFS = [
+  { nameEn: "Electronics",          nameAr: "الإلكترونيات",    img: "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=300&fit=crop&auto=format&q=80", color: "#3b82f6", slug: "Electronics" },
+  { nameEn: "Fashion",              nameAr: "الأزياء",          img: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=300&fit=crop&auto=format&q=80", color: "#ec4899", slug: "Fashion" },
+  { nameEn: "Beauty",               nameAr: "التجميل",          img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=300&fit=crop&auto=format&q=80", color: "#f59e0b", slug: "Beauty & Personal Care" },
+  { nameEn: "Home & Kitchen",       nameAr: "المنزل والمطبخ",  img: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop&auto=format&q=80", color: "#8b5cf6", slug: "Home & Kitchen" },
+  { nameEn: "Sports",               nameAr: "الرياضة",          img: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400&h=300&fit=crop&auto=format&q=80", color: "#10b981", slug: "Sports & Fitness" },
+  { nameEn: "Accessories",          nameAr: "الإكسسوارات",     img: "https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=400&h=300&fit=crop&auto=format&q=80", color: "#f97316", slug: "Accessories" },
+  { nameEn: "Phones",               nameAr: "الهواتف",          img: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop&auto=format&q=80", color: "#06b6d4", slug: "Electronics" },
+  { nameEn: "Computers",            nameAr: "الحواسيب",         img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=300&fit=crop&auto=format&q=80", color: "#a855f7", slug: "Electronics" },
+];
+
+interface CategoryGridProps {
+  colors: ReturnType<typeof useColors>;
+  onSelectCategory: (slug: string) => void;
+}
+
+function CategoryGridSection({ colors, onSelectCategory }: CategoryGridProps) {
+  const locale = getLocale();
+  const isAr = locale === "ar";
+
+  return (
+    <View style={[catGridStyles.container, { backgroundColor: colors.background }]}>
+      <SectionHeader
+        label={t("home.popular_categories")}
+        onSeeAll={() => router.push("/categories")}
+        seeAllLabel={t("home.categories_see_all")}
+        colors={colors}
+      />
+      <View style={catGridStyles.grid}>
+        {CATEGORY_DEFS.map((cat, i) => (
+          <Pressable
+            key={`${cat.slug}-${i}`}
+            style={({ pressed }) => [catGridStyles.cell, { opacity: pressed ? 0.88 : 1 }]}
+            onPress={() => { onSelectCategory(cat.slug); void Haptics.selectionAsync(); }}
+          >
+            <Image source={{ uri: cat.img }} style={catGridStyles.img} resizeMode="cover" />
+            <View style={catGridStyles.overlay} />
+            <View style={[catGridStyles.colorBar, { backgroundColor: cat.color }]} />
+            <View style={catGridStyles.textWrap}>
+              <Text style={catGridStyles.catName} numberOfLines={1}>
+                {isAr ? cat.nameAr : cat.nameEn}
+              </Text>
+            </View>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ─── Countdown Timer ─────────────────────────────────────────────────────────
+function CountdownTimer({ colors }: { colors: ReturnType<typeof useColors> }) {
+  const [time, setTime] = useState({ h: 8, m: 24, s: 37 });
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTime((prev) => {
+        let { h, m, s } = prev;
+        s--;
+        if (s < 0) { s = 59; m--; }
+        if (m < 0) { m = 59; h--; }
+        if (h < 0) { h = 23; m = 59; s = 59; }
+        return { h, m, s };
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    <View style={dealStyles.timerRow}>
+      <Ionicons name="timer-outline" size={13} color={colors.primary} />
+      <Text style={[dealStyles.timerLabel, { color: colors.mutedForeground }]}>{t("home.deals_ends_in")}</Text>
+      {[pad(time.h), pad(time.m), pad(time.s)].map((v, i) => (
+        <React.Fragment key={i}>
+          <View style={[dealStyles.timerChip, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[dealStyles.timerVal, { color: colors.foreground }]}>{v}</Text>
+          </View>
+          {i < 2 && <Text style={[dealStyles.timerColon, { color: colors.mutedForeground }]}>:</Text>}
+        </React.Fragment>
+      ))}
+    </View>
+  );
+}
+
+// ─── Deal Mini Card ───────────────────────────────────────────────────────────
+interface DealMiniCardProps {
+  product: Product;
+  colors: ReturnType<typeof useColors>;
+  onAddToCart: (id: number) => void;
+}
+function DealMiniCard({ product, colors, onAddToCart }: DealMiniCardProps) {
+  const img = (product.imageUrls as string[] | null)?.[0] ?? "";
+  const price = (product as any).finalPrice ?? product.price ?? 0;
+  const original = (product as any).originalPrice ?? null;
+  const disc = (product as any).discountPercent ?? null;
+  const hasDisc = disc != null && disc > 0;
+  const locale = getLocale();
+  const name = locale === "ar" && (product as any).nameAr ? (product as any).nameAr : product.name;
+
   return (
     <Pressable
-      style={({ pressed }) => [miniStyles.card, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.9 : 1 }]}
-      onPress={onPress}
+      style={[dealStyles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+      onPress={() => router.push(`/product/${product.id}` as any)}
     >
-      <View style={[miniStyles.imgWrap, { backgroundColor: colors.muted }]}>
-        {imageUri ? (
-          <Image source={{ uri: imageUri }} style={miniStyles.img} resizeMode="cover" />
+      <View style={dealStyles.imgWrap}>
+        {img ? (
+          <Image source={{ uri: img }} style={dealStyles.img} resizeMode="cover" />
         ) : (
-          <Ionicons name="cube-outline" size={28} color={colors.mutedForeground} />
+          <View style={[dealStyles.img, { backgroundColor: colors.secondary }]} />
         )}
-        {hasDiscount && (
-          <View style={miniStyles.badge}>
-            <Text style={miniStyles.badgeText}>-{product.discountPercent}%</Text>
+        {hasDisc && (
+          <View style={dealStyles.discBadge}>
+            <Text style={dealStyles.discText}>-{Math.round(disc)}%</Text>
           </View>
         )}
       </View>
-      <View style={miniStyles.info}>
-        <Text style={[miniStyles.name, { color: colors.foreground }]} numberOfLines={2}>{product.name}</Text>
-        <Text style={[miniStyles.price, { color: colors.primary }]}>${(product.finalPrice ?? product.price ?? 0).toFixed(2)}</Text>
+      <View style={dealStyles.info}>
+        <Text style={[dealStyles.dealName, { color: colors.foreground }]} numberOfLines={2}>{name}</Text>
+        <View style={dealStyles.priceRow}>
+          <Text style={[dealStyles.price, { color: colors.primary }]}>${Number(price).toFixed(2)}</Text>
+          {hasDisc && original && (
+            <Text style={[dealStyles.original, { color: colors.mutedForeground }]}>${Number(original).toFixed(2)}</Text>
+          )}
+        </View>
+        <Pressable
+          style={[dealStyles.addBtn, { backgroundColor: colors.primary }]}
+          onPress={(e) => { e.stopPropagation?.(); onAddToCart(product.id); }}
+        >
+          <Ionicons name="cart-outline" size={13} color="#000" />
+          <Text style={dealStyles.addBtnText}>{t("cart.add_to_cart")}</Text>
+        </Pressable>
       </View>
     </Pressable>
   );
 }
 
-// ── Homepage header (shown when no search/filter active) ──────────────────────
+// ─── Featured Deals Section ───────────────────────────────────────────────────
+interface FeaturedDealsSectionProps {
+  products: Product[];
+  colors: ReturnType<typeof useColors>;
+  onAddToCart: (id: number) => void;
+}
+function FeaturedDealsSection({ products, colors, onAddToCart }: FeaturedDealsSectionProps) {
+  const deals = products.filter((p) => (p as any).discountPercent > 0).slice(0, 6);
+  if (deals.length === 0) return null;
+
+  return (
+    <View style={[dealStyles.section, { backgroundColor: colors.background }]}>
+      <View style={dealStyles.header}>
+        <SectionHeader
+          label={t("home.featured_deals")}
+          onSeeAll={() => router.push("/(tabs)/index" as any)}
+          seeAllLabel={t("home.deals_see_all")}
+          colors={colors}
+        />
+        <CountdownTimer colors={colors} />
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={dealStyles.list}
+        decelerationRate="fast"
+      >
+        {deals.map((p) => (
+          <DealMiniCard key={p.id} product={p} colors={colors} onAddToCart={onAddToCart} />
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ─── Featured Stores Section ──────────────────────────────────────────────────
+const STATIC_STORES = [
+  { id: 1, name: "تك ستور سوريا", nameEn: "Tech Store Syria", categoryAr: "إلكترونيات", categoryEn: "Electronics", rating: 4.9, reviews: 1840, productCount: 3240, coverImg: "https://images.unsplash.com/photo-1684395882817-030e24c0322a?w=600&h=200&fit=crop&auto=format&q=80", logoColor: "#3b82f6", logoInitial: "ت", verified: true },
+  { id: 2, name: "دار الأناقة", nameEn: "Elegance House",     categoryAr: "أزياء",       categoryEn: "Fashion",     rating: 4.8, reviews: 2210, productCount: 1890, coverImg: "https://images.unsplash.com/photo-1768745294179-693a07a3f054?w=600&h=200&fit=crop&auto=format&q=80", logoColor: "#ec4899", logoInitial: "د", verified: true },
+  { id: 3, name: "بيت الديكور",   nameEn: "Décor Home",        categoryAr: "ديكور منزلي", categoryEn: "Home Decor",  rating: 4.7, reviews: 956,  productCount: 2140, coverImg: "https://images.unsplash.com/photo-1724582586529-62622e50c0b3?w=600&h=200&fit=crop&auto=format&q=80", logoColor: "#8b5cf6", logoInitial: "ب", verified: true },
+];
+
+function FeaturedStoresSection({ colors }: { colors: ReturnType<typeof useColors> }) {
+  const locale = getLocale();
+  const isAr = locale === "ar";
+
+  return (
+    <View style={[storeStyles.section, { backgroundColor: colors.background }]}>
+      <SectionHeader
+        label={t("home.trusted_stores")}
+        onSeeAll={() => router.push("/store-directory" as any)}
+        seeAllLabel={t("home.stores_see_all")}
+        colors={colors}
+      />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={storeStyles.list}
+        decelerationRate="fast"
+      >
+        {STATIC_STORES.map((store) => (
+          <Pressable
+            key={store.id}
+            style={({ pressed }) => [storeStyles.card, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.9 : 1 }]}
+            onPress={() => router.push("/store-directory" as any)}
+          >
+            <View style={storeStyles.coverWrap}>
+              <Image source={{ uri: store.coverImg }} style={storeStyles.cover} resizeMode="cover" />
+              <View style={storeStyles.coverOverlay} />
+              {store.verified && (
+                <View style={[storeStyles.verifiedBadge, { backgroundColor: colors.primary + "22", borderColor: colors.primary + "44" }]}>
+                  <View style={[storeStyles.verifiedDot, { backgroundColor: colors.primary }]} />
+                  <Text style={[storeStyles.verifiedText, { color: colors.primary }]}>{t("home.stores_verified")}</Text>
+                </View>
+              )}
+            </View>
+            <View style={storeStyles.cardBody}>
+              <View style={storeStyles.logoRow}>
+                <View style={[storeStyles.logoCircle, { backgroundColor: store.logoColor + "22", borderColor: store.logoColor + "44" }]}>
+                  <Text style={[storeStyles.logoInitial, { color: store.logoColor }]}>{store.logoInitial}</Text>
+                </View>
+                <View style={storeStyles.ratingWrap}>
+                  <Ionicons name="star" size={12} color="#f59e0b" />
+                  <Text style={[storeStyles.rating, { color: colors.foreground }]}>{store.rating}</Text>
+                  <Text style={[storeStyles.reviewCount, { color: colors.mutedForeground }]}>({store.reviews.toLocaleString()})</Text>
+                </View>
+              </View>
+              <Text style={[storeStyles.storeName, { color: colors.foreground }]} numberOfLines={1}>
+                {isAr ? store.name : store.nameEn}
+              </Text>
+              <Text style={[storeStyles.storeCategory, { color: colors.mutedForeground }]} numberOfLines={1}>
+                {isAr ? store.categoryAr : store.categoryEn}
+              </Text>
+              <View style={[storeStyles.divider, { borderTopColor: colors.border }]} />
+              <View style={storeStyles.statsRow}>
+                <Ionicons name="cube-outline" size={11} color={colors.mutedForeground} />
+                <Text style={[storeStyles.statsText, { color: colors.mutedForeground }]}>
+                  {store.productCount.toLocaleString()} {t("home.stores_products")}
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ─── Join CTA Section ─────────────────────────────────────────────────────────
+function JoinCTASection({ colors }: { colors: ReturnType<typeof useColors> }) {
+  const { isAuthenticated } = useAuth();
+  const locale = getLocale();
+  const isAr = locale === "ar";
+
+  return (
+    <View style={[joinStyles.section, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+      <View style={joinStyles.header}>
+        <View style={[joinStyles.badge, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "33" }]}>
+          <Text style={[joinStyles.badgeText, { color: colors.primary }]}>SYANO</Text>
+        </View>
+        <Text style={[joinStyles.title, { color: colors.foreground, textAlign: isAr ? "right" : "center" }]}>{t("home.join_title")}</Text>
+        <Text style={[joinStyles.subtitle, { color: colors.mutedForeground, textAlign: isAr ? "right" : "center" }]}>{t("home.join_subtitle")}</Text>
+      </View>
+      <View style={joinStyles.cardsRow}>
+        <Pressable
+          style={({ pressed }) => [joinStyles.card, joinStyles.sellerCard, { borderColor: colors.primary + "33", opacity: pressed ? 0.88 : 1 }]}
+          onPress={() => router.push(isAuthenticated ? "/seller-apply" : "/login")}
+        >
+          <View style={[joinStyles.iconWrap, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "25" }]}>
+            <Ionicons name="storefront-outline" size={24} color={colors.primary} />
+          </View>
+          <Text style={[joinStyles.cardTitle, { color: colors.foreground }]}>{t("home.join_seller_title")}</Text>
+          <Text style={[joinStyles.cardDesc, { color: colors.mutedForeground }]} numberOfLines={3}>{t("home.join_seller_desc")}</Text>
+          <View style={joinStyles.ctaRow}>
+            <Text style={[joinStyles.ctaText, { color: colors.primary }]}>{t("home.join_seller_cta")}</Text>
+            <Ionicons name={isAr ? "chevron-back" : "chevron-forward"} size={14} color={colors.primary} />
+          </View>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [joinStyles.card, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.88 : 1 }]}
+          onPress={() => router.push(isAuthenticated ? "/courier-apply" : "/login")}
+        >
+          <View style={[joinStyles.iconWrap, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+            <Ionicons name="bicycle-outline" size={24} color={colors.mutedForeground} />
+          </View>
+          <Text style={[joinStyles.cardTitle, { color: colors.foreground }]}>{t("home.join_courier_title")}</Text>
+          <Text style={[joinStyles.cardDesc, { color: colors.mutedForeground }]} numberOfLines={3}>{t("home.join_courier_desc")}</Text>
+          <View style={joinStyles.ctaRow}>
+            <Text style={[joinStyles.ctaText, { color: colors.mutedForeground }]}>{t("home.join_courier_cta")}</Text>
+            <Ionicons name={isAr ? "chevron-back" : "chevron-forward"} size={14} color={colors.mutedForeground} />
+          </View>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+// ─── Mini Product Card (existing, unchanged) ──────────────────────────────────
+function MiniProductCard({ product, colors, onAddToCart, style }: { product: Product; colors: ReturnType<typeof useColors>; onAddToCart: (id: number) => void; style?: object }) {
+  const locale = getLocale();
+  const img = (product.imageUrls as string[] | null)?.[0] ?? "";
+  const price = (product as any).finalPrice ?? product.price ?? 0;
+  const disc = (product as any).discountPercent ?? null;
+  const hasDisc = disc != null && disc > 0;
+  const name = locale === "ar" && (product as any).nameAr ? (product as any).nameAr : product.name;
+
+  return (
+    <Pressable
+      style={({ pressed }) => [miniStyles.card, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.88 : 1 }, style]}
+      onPress={() => router.push(`/product/${product.id}` as any)}
+    >
+      <View style={miniStyles.imgWrap}>
+        {img ? (
+          <Image source={{ uri: img }} style={miniStyles.img} resizeMode="cover" />
+        ) : (
+          <View style={[miniStyles.img, { backgroundColor: colors.secondary }]} />
+        )}
+        {hasDisc && (
+          <View style={miniStyles.badge}>
+            <Text style={miniStyles.badgeText}>-{Math.round(disc)}%</Text>
+          </View>
+        )}
+      </View>
+      <View style={miniStyles.info}>
+        <Text style={[miniStyles.name, { color: colors.foreground }]} numberOfLines={2}>{name}</Text>
+        <Text style={[miniStyles.price, { color: colors.primary }]}>${Number(price).toFixed(2)}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+// ─── Homepage Header (with all sections) ─────────────────────────────────────
+interface HomepageHeaderProps {
+  topPad: number;
+  colors: ReturnType<typeof useColors>;
+  search: string;
+  setSearch: (v: string) => void;
+  setDebouncedSearch: (v: string) => void;
+  searchFocused: boolean;
+  setSearchFocused: (v: boolean) => void;
+  handleSearchChange: (v: string) => void;
+  mobileSuggestions: MobileSuggestions | null;
+  setMobileSuggestions: (v: MobileSuggestions | null) => void;
+  categories: string[];
+  activeCategory: string | null;
+  setActiveCategory: (v: string | null) => void;
+  bestSellers: Product[];
+  newArrivals: Product[];
+  isLoadingBestSellers: boolean;
+  isLoadingNewArrivals: boolean;
+  trending: Product[];
+  isLoadingTrending: boolean;
+  cartCount: number;
+  onAddToCart: (id: number) => void;
+}
+
 function HomepageHeader({
   topPad, colors, search, setSearch, setDebouncedSearch,
   searchFocused, setSearchFocused, handleSearchChange,
@@ -97,422 +484,409 @@ function HomepageHeader({
   categories, activeCategory, setActiveCategory,
   bestSellers, newArrivals, isLoadingBestSellers, isLoadingNewArrivals,
   trending, isLoadingTrending,
-}: any) {
+  cartCount, onAddToCart,
+}: HomepageHeaderProps) {
+  const locale = getLocale();
+  const isAr = locale === "ar";
+
+  const handleSuggestionTextClick = useCallback((text: string) => {
+    setSearch(text);
+    setDebouncedSearch(text);
+    setSearchFocused(false);
+    setMobileSuggestions(null);
+  }, [setSearch, setDebouncedSearch, setSearchFocused, setMobileSuggestions]);
+
+  const suggestions = mobileSuggestions?.suggestions ?? [];
+  const catSuggestions = mobileSuggestions?.categories ?? [];
+
   return (
     <View style={{ backgroundColor: colors.background }}>
-      {/* ── Top bar ── */}
-      <View style={[styles.shopHeader, { paddingTop: topPad + 8, backgroundColor: colors.background, borderBottomColor: "transparent" }]}>
+      {/* ── Top Row ── */}
+      <View style={[styles.shopHeader, { paddingTop: topPad + 10, paddingBottom: 4, borderBottomWidth: 0 }]}>
         <View style={styles.homeTopRow}>
           <View>
-            <Text style={[styles.greeting, { color: colors.mutedForeground }]}>{t("home.discover", "Discover")}</Text>
+            <Text style={[styles.greeting, { color: colors.mutedForeground }]}>{t("home.discover")}</Text>
             <Text style={[styles.shopTitle, { color: colors.foreground }]}>SYANO</Text>
           </View>
-          <Pressable
-            style={[styles.searchIconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => {}}
-          >
-            <Ionicons name="notifications-outline" size={20} color={colors.foreground} />
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {/* Cart badge */}
+            <Pressable
+              style={[styles.searchIconBtn, { backgroundColor: colors.card, borderColor: colors.border, position: "relative" }]}
+              onPress={() => router.push("/(tabs)/cart" as any)}
+            >
+              <Ionicons name="cart-outline" size={20} color={colors.foreground} />
+              {cartCount > 0 && (
+                <View style={[headerStyles.badge, { backgroundColor: colors.primary }]}>
+                  <Text style={headerStyles.badgeNum}>{cartCount > 9 ? "9+" : String(cartCount)}</Text>
+                </View>
+              )}
+            </Pressable>
+            {/* Notification bell */}
+            <Pressable
+              style={[styles.searchIconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => router.push("/(tabs)/notifications" as any)}
+            >
+              <Ionicons name="notifications-outline" size={20} color={colors.foreground} />
+            </Pressable>
+          </View>
         </View>
-        {/* Search bar */}
-        <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
+
+        {/* ── Search Bar ── */}
+        <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: searchFocused ? colors.primary : colors.border }]}>
           <Ionicons name="search-outline" size={16} color={colors.mutedForeground} />
           <TextInput
-            testID="search-input"
             style={[styles.searchInput, { color: colors.foreground }]}
             placeholder={t("common.search_placeholder")}
             placeholderTextColor={colors.mutedForeground}
             value={search}
             onChangeText={handleSearchChange}
-            returnKeyType="search"
             onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+            returnKeyType="search"
+            textAlign={isAr ? "right" : "left"}
           />
-          {!!search && (
-            <Pressable onPress={() => { setSearch(""); setDebouncedSearch(""); }}>
+          {search.length > 0 && (
+            <Pressable onPress={() => { setSearch(""); setDebouncedSearch(""); setMobileSuggestions(null); }}>
               <Ionicons name="close-circle" size={16} color={colors.mutedForeground} />
             </Pressable>
           )}
         </View>
-        {/* Suggestion overlay */}
-        {searchFocused && search.length >= 2 && (mobileSuggestions.suggestions.length > 0 || mobileSuggestions.categories.length > 0) && (
+
+        {/* ── Suggestions Overlay ── */}
+        {searchFocused && (suggestions.length > 0 || catSuggestions.length > 0) && (
           <View style={[suggStyles.overlay, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            {mobileSuggestions.suggestions.slice(0, 5).map((s: any, i: number) => (
-              <TouchableOpacity
-                key={i}
-                style={[suggStyles.row, { borderBottomColor: colors.border }]}
-                onPress={() => { setSearch(s.text); setDebouncedSearch(s.text); setSearchFocused(false); setMobileSuggestions({ suggestions: [], categories: [] }); }}
-                activeOpacity={0.7}
-              >
+            {catSuggestions.slice(0, 2).map((c) => (
+              <Pressable key={c.slug} style={[suggStyles.row, { borderBottomColor: colors.border }]}
+                onPress={() => { setActiveCategory(c.slug); setSearchFocused(false); }}>
+                <Ionicons name="grid-outline" size={14} color={colors.primary} />
+                <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>
+                  {isAr && c.labelAr ? c.labelAr : c.labelEn}
+                </Text>
+                <Text style={[suggStyles.catBadge, { color: colors.primary, borderColor: colors.primary + "44" }]}>
+                  {isAr ? "فئة" : "cat"}
+                </Text>
+              </Pressable>
+            ))}
+            {suggestions.slice(0, 5).map((s, i) => (
+              <Pressable key={i} style={[suggStyles.row, { borderBottomColor: colors.border }]}
+                onPress={() => handleSuggestionTextClick(isAr && s.textAr ? s.textAr : s.text)}>
                 <Ionicons name="search-outline" size={14} color={colors.mutedForeground} />
-                <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>{s.text}</Text>
-              </TouchableOpacity>
+                <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>
+                  {isAr && s.textAr ? s.textAr : s.text}
+                </Text>
+              </Pressable>
             ))}
           </View>
         )}
-        {/* ── Quick Actions Row ── */}
+
+        {/* ── Quick Actions ── */}
         <View style={quickStyles.row}>
           <Pressable
-            style={({ pressed }) => [quickStyles.btn, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.8 : 1 }]}
-            onPress={() => router.push("/stores/index" as any)}
+            style={({ pressed }) => [quickStyles.btn, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.75 : 1 }]}
+            onPress={() => router.push("/store-directory" as any)}
           >
             <Ionicons name="storefront-outline" size={14} color={colors.primary} />
-            <Text style={[quickStyles.btnText, { color: colors.foreground }]}>{t("home.browse_stores")}</Text>
-            <Ionicons name="chevron-forward" size={12} color={colors.mutedForeground} />
+            <Text style={[quickStyles.btnText, { color: colors.foreground }]} numberOfLines={1}>{t("home.browse_stores")}</Text>
+            <Ionicons name={isAr ? "chevron-back" : "chevron-forward"} size={12} color={colors.mutedForeground} />
           </Pressable>
           <Pressable
-            style={({ pressed }) => [quickStyles.btn, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.8 : 1 }]}
+            style={({ pressed }) => [quickStyles.btn, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.75 : 1 }]}
             onPress={() => router.push("/categories" as any)}
           >
             <Ionicons name="grid-outline" size={14} color={colors.primary} />
-            <Text style={[quickStyles.btnText, { color: colors.foreground }]}>{t("home.categories", "Categories")}</Text>
-            <Ionicons name="chevron-forward" size={12} color={colors.mutedForeground} />
+            <Text style={[quickStyles.btnText, { color: colors.foreground }]} numberOfLines={1}>{t("home.categories")}</Text>
+            <Ionicons name={isAr ? "chevron-back" : "chevron-forward"} size={12} color={colors.mutedForeground} />
           </Pressable>
         </View>
       </View>
 
-      {/* ── Hero carousel (best sellers as featured products) ── */}
-      {(isLoadingBestSellers || (bestSellers && bestSellers.length > 0)) && (
-        <View style={heroStyles.container}>
-          <Text style={[heroStyles.sectionLabel, { color: colors.mutedForeground }]}>{t("home.hot_deals", "🔥 Hot Deals")}</Text>
-          {isLoadingBestSellers ? (
-            <View style={heroStyles.loading}>
-              <ActivityIndicator color={colors.primary} />
-            </View>
-          ) : (
-            <FlatList
-              data={bestSellers ?? []}
-              keyExtractor={(item: any) => String(item.id)}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={heroStyles.list}
-              renderItem={({ item }: { item: any }) => (
-                <MiniProductCard
-                  product={item}
-                  colors={colors}
-                  onPress={() => router.push(`/product/${item.id}` as any)}
-                />
-              )}
-            />
-          )}
-        </View>
-      )}
-
-      {/* ── Categories grid ── */}
-      <View style={heroStyles.container}>
-        <Text style={[heroStyles.sectionLabel, { color: colors.mutedForeground }]}>{t("home.categories", "🗂 Browse Categories")}</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
-          <Pressable
-            style={({ pressed }) => [styles.categoryChip, { backgroundColor: activeCategory === null ? colors.primary : colors.secondary, opacity: pressed ? 0.8 : 1 }]}
-            onPress={() => setActiveCategory(null)}
-          >
-            <Text style={[styles.chipText, { color: activeCategory === null ? colors.primaryForeground : colors.foreground }]}>{t("shop.all")}</Text>
-          </Pressable>
-          {categories.map((cat: string) => (
-            <Pressable
-              key={cat}
-              style={({ pressed }) => [styles.categoryChip, { backgroundColor: activeCategory === cat ? colors.primary : colors.secondary, opacity: pressed ? 0.8 : 1 }]}
-              onPress={() => setActiveCategory(cat === activeCategory ? null : cat)}
-            >
-              <Text style={[styles.chipText, { color: activeCategory === cat ? colors.primaryForeground : colors.foreground }]}>{cat}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+      {/* ── Hero Banner ── */}
+      <View style={{ paddingHorizontal: 12, paddingTop: 12 }}>
+        <HeroBannerSection colors={colors} />
       </View>
+
+      {/* ── Hot Deals / Best Sellers carousel ── */}
+      <View style={heroStyles2.container}>
+        <SectionHeader
+          label={t("home.hot_deals")}
+          onSeeAll={() => setActiveCategory(null)}
+          seeAllLabel={t("home.categories_see_all")}
+          colors={colors}
+        />
+        {isLoadingBestSellers ? (
+          <View style={heroStyles2.loading}>
+            <ActivityIndicator size="small" color={colors.primary} />
+          </View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={heroStyles2.list} decelerationRate="fast">
+            {bestSellers.map((p) => (
+              <MiniProductCard key={p.id} product={p} colors={colors} onAddToCart={onAddToCart} />
+            ))}
+          </ScrollView>
+        )}
+      </View>
+
+      {/* ── Popular Categories Grid ── */}
+      <CategoryGridSection colors={colors} onSelectCategory={(slug) => setActiveCategory(slug)} />
+
+      {/* ── Featured Deals with countdown ── */}
+      <FeaturedDealsSection products={bestSellers} colors={colors} onAddToCart={onAddToCart} />
+
+      {/* ── Trusted Stores ── */}
+      <FeaturedStoresSection colors={colors} />
 
       {/* ── New Arrivals ── */}
-      {(isLoadingNewArrivals || (newArrivals && newArrivals.length > 0)) && (
-        <View style={heroStyles.container}>
-          <View style={heroStyles.sectionRow}>
-            <Text style={[heroStyles.sectionLabel, { color: colors.mutedForeground }]}>{t("home.new_arrivals", "✨ New Arrivals")}</Text>
+      <View style={heroStyles2.container}>
+        <SectionHeader
+          label={t("home.new_arrivals")}
+          onSeeAll={() => setActiveCategory(null)}
+          seeAllLabel={t("home.categories_see_all")}
+          colors={colors}
+        />
+        {isLoadingNewArrivals ? (
+          <View style={heroStyles2.loading}>
+            <ActivityIndicator size="small" color={colors.primary} />
           </View>
-          {isLoadingNewArrivals ? (
-            <View style={heroStyles.loading}>
-              <ActivityIndicator color={colors.primary} />
-            </View>
-          ) : (
-            <FlatList
-              data={newArrivals ?? []}
-              keyExtractor={(item: any) => String(item.id)}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={heroStyles.list}
-              renderItem={({ item }: { item: any }) => (
-                <MiniProductCard
-                  product={item}
-                  colors={colors}
-                  onPress={() => router.push(`/product/${item.id}` as any)}
-                />
-              )}
-            />
-          )}
-        </View>
-      )}
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={heroStyles2.list} decelerationRate="fast">
+            {newArrivals.map((p) => (
+              <MiniProductCard key={p.id} product={p} colors={colors} onAddToCart={onAddToCart} />
+            ))}
+          </ScrollView>
+        )}
+      </View>
 
       {/* ── Trending Now ── */}
-      {(isLoadingTrending || (trending && trending.length > 0)) && (
-        <View style={heroStyles.container}>
-          <View style={heroStyles.sectionRow}>
-            <Text style={[heroStyles.sectionLabel, { color: colors.mutedForeground }]}>{t("home.trending", "📈 Trending Now")}</Text>
+      <View style={heroStyles2.container}>
+        <SectionHeader
+          label={t("home.trending")}
+          onSeeAll={() => setActiveCategory(null)}
+          seeAllLabel={t("home.categories_see_all")}
+          colors={colors}
+        />
+        {isLoadingTrending ? (
+          <View style={heroStyles2.loading}>
+            <ActivityIndicator size="small" color={colors.primary} />
           </View>
-          {isLoadingTrending ? (
-            <View style={heroStyles.loading}>
-              <ActivityIndicator color={colors.primary} />
-            </View>
-          ) : (
-            <FlatList
-              data={trending ?? []}
-              keyExtractor={(item: any) => String(item.id)}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={heroStyles.list}
-              renderItem={({ item }: { item: any }) => (
-                <MiniProductCard
-                  product={item}
-                  colors={colors}
-                  onPress={() => router.push(`/product/${item.id}` as any)}
-                />
-              )}
-            />
-          )}
-        </View>
-      )}
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={heroStyles2.list} decelerationRate="fast">
+            {trending.map((p) => (
+              <MiniProductCard key={p.id} product={p} colors={colors} onAddToCart={onAddToCart} />
+            ))}
+          </ScrollView>
+        )}
+      </View>
 
-      {/* ── All Products heading ── */}
-      <View style={[heroStyles.allProductsHeader, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
-        <Text style={[heroStyles.allTitle, { color: colors.foreground }]}>{t("home.all_products", "All Products")}</Text>
+      {/* ── Join CTA ── */}
+      <JoinCTASection colors={colors} />
+
+      {/* ── All Products Header ── */}
+      <View style={[heroStyles2.allProductsHeader, { borderBottomColor: colors.border }]}>
+        <Text style={[heroStyles2.allTitle, { color: colors.foreground }]}>{t("home.all_products")}</Text>
       </View>
     </View>
   );
 }
 
+// ─── Customer Shop ─────────────────────────────────────────────────────────────
 function CustomerShop() {
   const colors = useColors();
   const { topPad, tabBarHeight } = useScreenLayout();
-  const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const { isAuthenticated, isCustomer, isSeller, isAdmin, isCourier, token } = useAuth();
+  const locale = getLocale();
+  const isAr = locale === "ar";
+
+  const [search, setSearch]                   = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [mobileSuggestions, setMobileSuggestions] = useState<MobileSuggestions>({ suggestions: [], categories: [] });
-  const [searchLogId, setSearchLogId] = useState<number | null>(null);
-  const [sortBy, setSortBy] = useState<MobileSortOption>("newest");
-  const [minRating, setMinRating] = useState(0);
-  const [inStock, setInStock] = useState(false);
-  const [relatedSearches, setRelatedSearches] = useState<Array<{ query: string; count: number }>>([]);
-  const [onSale, setOnSale] = useState(false);
-  const [priceMin, setPriceMin] = useState<number | null>(null);
-  const [priceMax, setPriceMax] = useState<number | null>(null);
+  const [activeCategory, setActiveCategory]   = useState<string | null>(null);
+  const [sortBy, setSortBy]                   = useState<MobileSortOption>("newest");
+  const [minRating, setMinRating]             = useState(0);
+  const [inStock, setInStock]                 = useState(false);
+  const [onSale, setOnSale]                   = useState(false);
+  const [priceMin, setPriceMin]               = useState<number | null>(null);
+  const [priceMax, setPriceMax]               = useState<number | null>(null);
+  const [searchFocused, setSearchFocused]     = useState(false);
+  const [mobileSuggestions, setMobileSuggestions] = useState<MobileSuggestions | null>(null);
+  const [searchIntent, setSearchIntent]       = useState<string | null>(null);
+  const [relatedSearches, setRelatedSearches] = useState<{ query: string }[]>([]);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [searchIntent, setSearchIntent] = useState<string | null>(null);
-  const [tempMin, setTempMin] = useState("");
-  const [tempMax, setTempMax] = useState("");
-  const addToCart = useAddToCart();
-  const suggestTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [tempMin, setTempMin]                 = useState("");
+  const [tempMax, setTempMax]                 = useState("");
 
   const isShopMode = debouncedSearch.length > 0 || activeCategory !== null || minRating > 0 || inStock || sortBy !== "newest" || onSale || priceMin != null || priceMax != null;
 
-  function handleSearchChange(text: string) {
-    setSearch(text);
-    if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => setDebouncedSearch(text), 400);
-  }
+  const { data: categoriesData } = useListCategories();
+  const categories = useMemo(() => (categoriesData?.map((c: any) => (isAr && c.labelAr ? c.labelAr : c.label)) ?? []), [categoriesData, isAr]);
 
-  useEffect(() => {
-    if (suggestTimeout.current) clearTimeout(suggestTimeout.current);
-    if (debouncedSearch.length < 2) {
-      setMobileSuggestions({ suggestions: [], categories: [] });
-      setSearchLogId(null);
-      return;
-    }
-    suggestTimeout.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`${getBaseUrl()}/api/search/suggestions?q=${encodeURIComponent(debouncedSearch)}`);
-        if (!res.ok) return;
-        const data = await res.json() as { suggestions?: SuggestionItem[]; categories?: CategorySuggestion[]; searchLogId?: number | null };
-        setMobileSuggestions({ suggestions: data.suggestions ?? [], categories: data.categories ?? [] });
-        setSearchLogId(typeof data.searchLogId === "number" ? data.searchLogId : null);
-      } catch { /* silent */ }
-    }, 100);
-    return () => { if (suggestTimeout.current) clearTimeout(suggestTimeout.current); };
-  }, [debouncedSearch]);
+  const { data: bestSellersData, isLoading: isLoadingBestSellers } = useGetBestSellers(8);
+  const bestSellers: Product[] = useMemo(() => (bestSellersData as any)?.products ?? (Array.isArray(bestSellersData) ? bestSellersData : []), [bestSellersData]);
 
-  useEffect(() => {
-    if (debouncedSearch.length < 2) { setRelatedSearches([]); return; }
-    let cancelled = false;
-    fetch(`${getBaseUrl()}/api/search/related?q=${encodeURIComponent(debouncedSearch)}&limit=5`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (!cancelled && d?.related) setRelatedSearches(d.related); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [debouncedSearch]);
+  const { data: newArrivalsData, isLoading: isLoadingNewArrivals } = useListProducts({ limit: 8, sortBy: "newest" });
+  const newArrivals: Product[] = useMemo(() => newArrivalsData ?? [], [newArrivalsData]);
 
-  useEffect(() => {
-    if (debouncedSearch.length < 2) { setSearchIntent(null); return; }
-    let cancelled = false;
-    fetch(`${getBaseUrl()}/api/search?q=${encodeURIComponent(debouncedSearch)}&limit=1`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((d: any) => {
-        if (!cancelled) setSearchIntent(d?.detectedIntent ?? null);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [debouncedSearch]);
+  const { data: trendingData, isLoading: isLoadingTrending } = useListProducts({ limit: 8, sortBy: "highest_rated" });
+  const trending: Product[] = useMemo(() => trendingData ?? [], [trendingData]);
 
-  const { data: categories = [] } = useListCategories();
+  const { data: cartData } = useGetCart({ query: { enabled: isAuthenticated && isCustomer } as any });
+  const cartCount = useMemo(() => (cartData as any)?.items?.length ?? 0, [cartData]);
 
-  const { data: bestSellers, isLoading: isLoadingBestSellers } = useGetBestSellers(8, {
-    query: { enabled: !isShopMode } as any,
-  });
-
-  const { data: newArrivals, isLoading: isLoadingNewArrivals } = useListProducts(
-    { sortBy: "newest", limit: 8 } as any,
-    { query: { enabled: !isShopMode } as any }
-  );
-
-  const { data: trendingRaw, isLoading: isLoadingTrending } = useListProducts(
-    { sortBy: "highest_rated", limit: 8 } as any,
-    { query: { enabled: !isShopMode } as any }
-  );
-  const trending = (trendingRaw as any)?.data ?? trendingRaw ?? [];
-
-  const {
-    data: rawProducts = [],
-    isLoading,
-    refetch,
-    isRefetching,
-  } = useListProducts({
-    category: activeCategory ?? undefined,
+  const queryParams = useMemo(() => ({
     search: debouncedSearch || undefined,
+    category: activeCategory ?? undefined,
     sortBy,
     minRating: minRating > 0 ? minRating : undefined,
     inStock: inStock || undefined,
-    minPrice: priceMin != null ? priceMin : undefined,
-    maxPrice: priceMax != null ? priceMax : undefined,
-  } as any);
+    onSale: onSale || undefined,
+    minPrice: priceMin ?? undefined,
+    maxPrice: priceMax ?? undefined,
+    limit: 30,
+  }), [debouncedSearch, activeCategory, sortBy, minRating, inStock, onSale, priceMin, priceMax]);
 
-  const products = useMemo(() => {
-    const list: Product[] = Array.isArray(rawProducts)
-      ? rawProducts
-      : ((rawProducts as any)?.data ?? []);
-    if (onSale) return list.filter((p) => (p as any).discountPercent != null && (p as any).discountPercent > 0);
-    return list;
-  }, [rawProducts, onSale]);
+  const { data: products = [], isLoading, isRefetching, refetch } = useListProducts(
+    queryParams,
+    { query: { enabled: isShopMode } as any },
+  );
 
-  const handleAddToCart = useCallback((product: Product) => {
+  const addToCartMutation = useAddToCart({
+    mutation: {
+      onSuccess: () => {},
+      onError: () => {},
+    },
+  });
+
+  const handleAddToCart = useCallback((productId: number) => {
+    if (isSeller || isAdmin || isCourier) return;
+    if (isAuthenticated && isCustomer) {
+      addToCartMutation.mutate({ data: { productId, quantity: 1, variantId: null } });
+    }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    addToCart.mutate({ data: { productId: product.id, quantity: 1 } });
-  }, [addToCart]);
+  }, [isAuthenticated, isCustomer, isSeller, isAdmin, isCourier, addToCartMutation]);
+
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSearchChange = useCallback((text: string) => {
+    setSearch(text);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(async () => {
+      setDebouncedSearch(text);
+      if (text.length >= 2) {
+        try {
+          const url = `${getBaseUrl()}/api/search/suggestions?q=${encodeURIComponent(text)}&lang=${locale}&limit=5`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            setMobileSuggestions({
+              suggestions: data.suggestions ?? [],
+              categories: data.categories ?? [],
+            });
+            setSearchIntent(data.intent ?? null);
+            setRelatedSearches(data.relatedSearches ?? []);
+          }
+        } catch {}
+      } else {
+        setMobileSuggestions(null);
+        setSearchIntent(null);
+      }
+    }, 200);
+  }, [locale]);
 
   const renderProductItem = useCallback(({ item }: { item: Product }) => (
     <View style={styles.cardWrapper}>
-      <ProductCard
-        product={item}
-        onAddToCart={handleAddToCart}
-        onCardPress={debouncedSearch.length >= 2 && searchLogId != null ? () => recordMobileSearchClick(searchLogId!) : undefined}
-      />
+      <ProductCard product={item as any} />
     </View>
-  ), [handleAddToCart, debouncedSearch, searchLogId]);
+  ), []);
 
-  // Shop header (shown in shop mode / search mode)
   const shopHeader = (
-    <View style={[styles.shopHeader, { paddingTop: topPad + 8, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+    <View style={[styles.shopHeader, { paddingTop: topPad + 10, borderBottomColor: colors.border }]}>
       <View style={styles.shopTitleRow}>
-        <Text style={[styles.shopTitle, { color: colors.foreground }]}>{t("shop.title")}</Text>
-        {isShopMode && (
-          <Pressable
-            style={[styles.clearAllBtn, { borderColor: colors.border }]}
-            onPress={() => { setSearch(""); setDebouncedSearch(""); setActiveCategory(null); setMinRating(0); setInStock(false); setSortBy("newest"); setOnSale(false); setPriceMin(null); setPriceMax(null); }}
-          >
-            <Ionicons name="home-outline" size={14} color={colors.mutedForeground} />
-            <Text style={[styles.clearAllText, { color: colors.mutedForeground }]}>{t("home.home", "Home")}</Text>
-          </Pressable>
-        )}
+        <Text style={[styles.shopTitle, { color: colors.foreground }]}>
+          {activeCategory ?? (onSale ? (isAr ? "عروض" : "On Sale") : (isAr ? "البحث" : "Search"))}
+        </Text>
+        <Pressable
+          style={[styles.clearAllBtn, { borderColor: colors.border }]}
+          onPress={() => { setSearch(""); setDebouncedSearch(""); setActiveCategory(null); setMinRating(0); setInStock(false); setSortBy("newest"); setOnSale(false); setPriceMin(null); setPriceMax(null); }}
+        >
+          <Ionicons name="close" size={12} color={colors.mutedForeground} />
+          <Text style={[styles.clearAllText, { color: colors.mutedForeground }]}>{isAr ? "مسح" : "Clear"}</Text>
+        </Pressable>
       </View>
-      <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
+
+      <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: searchFocused ? colors.primary : colors.border }]}>
         <Ionicons name="search-outline" size={16} color={colors.mutedForeground} />
         <TextInput
-          testID="search-input"
           style={[styles.searchInput, { color: colors.foreground }]}
           placeholder={t("common.search_placeholder")}
           placeholderTextColor={colors.mutedForeground}
           value={search}
           onChangeText={handleSearchChange}
-          returnKeyType="search"
           onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
+          onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+          returnKeyType="search"
+          textAlign={isAr ? "right" : "left"}
         />
-        {!!search && (
-          <Pressable onPress={() => { setSearch(""); setDebouncedSearch(""); }}>
+        {search.length > 0 && (
+          <Pressable onPress={() => { setSearch(""); setDebouncedSearch(""); setMobileSuggestions(null); }}>
             <Ionicons name="close-circle" size={16} color={colors.mutedForeground} />
           </Pressable>
         )}
       </View>
 
-      {searchFocused && search.length >= 2 && (mobileSuggestions.suggestions.length > 0 || mobileSuggestions.categories.length > 0) && (
+      {searchFocused && (mobileSuggestions?.suggestions?.length ?? 0) > 0 && (
         <View style={[suggStyles.overlay, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          {mobileSuggestions.suggestions.slice(0, 5).map((s, i) => (
-            <TouchableOpacity
-              key={i}
-              style={[suggStyles.row, { borderBottomColor: colors.border }]}
-              onPress={() => { setSearch(s.text); setDebouncedSearch(s.text); setSearchFocused(false); setMobileSuggestions({ suggestions: [], categories: [] }); }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="search-outline" size={14} color={colors.mutedForeground} />
-              <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>{s.text}</Text>
-            </TouchableOpacity>
+          {(mobileSuggestions?.categories ?? []).slice(0, 2).map((c) => (
+            <Pressable key={c.slug} style={[suggStyles.row, { borderBottomColor: colors.border }]}
+              onPress={() => { setActiveCategory(c.slug); setSearchFocused(false); }}>
+              <Ionicons name="grid-outline" size={14} color={colors.primary} />
+              <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>
+                {isAr && c.labelAr ? c.labelAr : c.labelEn}
+              </Text>
+              <Text style={[suggStyles.catBadge, { color: colors.primary, borderColor: colors.primary + "44" }]}>
+                {isAr ? "فئة" : "cat"}
+              </Text>
+            </Pressable>
           ))}
-          {mobileSuggestions.categories.slice(0, 2).map((cat) => (
-            <TouchableOpacity
-              key={cat.slug}
-              style={[suggStyles.row, { borderBottomColor: colors.border }]}
-              onPress={() => { setSearchFocused(false); setSearch(""); setDebouncedSearch(""); setMobileSuggestions({ suggestions: [], categories: [] }); setActiveCategory(cat.slug); }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="layers-outline" size={14} color="#60a5fa" />
-              <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>{cat.labelEn}</Text>
-              <Text style={[suggStyles.catBadge, { color: colors.mutedForeground, borderColor: colors.border }]}>category</Text>
-            </TouchableOpacity>
+          {(mobileSuggestions?.suggestions ?? []).slice(0, 5).map((s, i) => (
+            <Pressable key={i} style={[suggStyles.row, { borderBottomColor: colors.border }]}
+              onPress={() => { const text = isAr && s.textAr ? s.textAr : s.text; setSearch(text); setDebouncedSearch(text); setSearchFocused(false); }}>
+              <Ionicons name="search-outline" size={14} color={colors.mutedForeground} />
+              <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>
+                {isAr && s.textAr ? s.textAr : s.text}
+              </Text>
+            </Pressable>
           ))}
         </View>
       )}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll} decelerationRate="fast">
-        <Pressable
-          style={({ pressed }) => [styles.categoryChip, { backgroundColor: activeCategory === null ? colors.primary : colors.secondary, opacity: pressed ? 0.8 : 1 }]}
-          onPress={() => setActiveCategory(null)}
-        >
-          <Text style={[styles.chipText, { color: activeCategory === null ? colors.primaryForeground : colors.foreground }]}>{t("shop.all")}</Text>
-        </Pressable>
-        {categories.map((cat: string) => (
-          <Pressable
-            key={cat}
-            style={({ pressed }) => [styles.categoryChip, { backgroundColor: activeCategory === cat ? colors.primary : colors.secondary, opacity: pressed ? 0.8 : 1 }]}
-            onPress={() => setActiveCategory(cat === activeCategory ? null : cat)}
-          >
-            <Text style={[styles.chipText, { color: activeCategory === cat ? colors.primaryForeground : colors.foreground }]}>{cat}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.categoryScroll, { paddingTop: 0 }]} decelerationRate="fast">
-        {(Object.keys(MOBILE_SORT_LABELS) as MobileSortOption[]).map((opt) => {
-          const active = sortBy === opt;
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
+        {Object.entries(MOBILE_SORT_LABELS).map(([key, labels]) => {
+          const active = sortBy === key;
           return (
             <Pressable
-              key={opt}
-              style={({ pressed }) => [styles.sortChip, { backgroundColor: active ? "#10B98122" : colors.secondary, borderColor: active ? "#10B981" : colors.border, opacity: pressed ? 0.75 : 1 }]}
-              onPress={() => setSortBy(opt)}
+              key={key}
+              style={({ pressed }) => [styles.sortChip, { backgroundColor: active ? colors.primary + "22" : colors.secondary, borderColor: active ? colors.primary : colors.border, opacity: pressed ? 0.75 : 1 }]}
+              onPress={() => { setSortBy(key as MobileSortOption); void Haptics.selectionAsync(); }}
             >
-              <Text style={[styles.sortChipText, { color: active ? "#10B981" : colors.mutedForeground }]}>
-                {MOBILE_SORT_LABELS[opt][getLocale()] ?? MOBILE_SORT_LABELS[opt].en}
+              <Text style={[styles.sortChipText, { color: active ? colors.primary : colors.mutedForeground }]}>
+                {isAr ? labels.ar : labels.en}
               </Text>
+            </Pressable>
+          );
+        })}
+        {categoriesData?.map((c: any) => {
+          const label = isAr && c.labelAr ? c.labelAr : c.label;
+          const active = activeCategory === c.label;
+          return (
+            <Pressable
+              key={c.label}
+              style={({ pressed }) => [styles.categoryChip, { backgroundColor: active ? colors.primary : colors.secondary, borderWidth: 1, borderColor: active ? colors.primary : colors.border, opacity: pressed ? 0.75 : 1 }]}
+              onPress={() => { setActiveCategory(active ? null : c.label); void Haptics.selectionAsync(); }}
+            >
+              <Text style={[styles.chipText, { color: active ? colors.primaryForeground : colors.foreground }]}>{label}</Text>
             </Pressable>
           );
         })}
       </ScrollView>
 
-      {/* ── Intent banner ── */}
       {searchIntent && debouncedSearch.length >= 2 && (
         <View style={[intentStyles.banner, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "40" }]}>
           <Ionicons name="sparkles-outline" size={13} color={colors.primary} />
@@ -528,7 +902,6 @@ function CustomerShop() {
       )}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.categoryScroll, { paddingTop: 0 }]} decelerationRate="fast">
-        {/* On Sale chip */}
         <Pressable
           style={({ pressed }) => [styles.sortChip, { backgroundColor: onSale ? "#EF444422" : colors.secondary, borderColor: onSale ? "#EF4444" : colors.border, opacity: pressed ? 0.75 : 1 }]}
           onPress={() => { setOnSale((v) => !v); void Haptics.selectionAsync(); }}
@@ -541,23 +914,16 @@ function CustomerShop() {
         >
           <Text style={[styles.sortChipText, { color: inStock ? "#10B981" : colors.mutedForeground }]}>✓ {t("shop.in_stock")}</Text>
         </Pressable>
-        {/* Price range chip */}
         <Pressable
           style={({ pressed }) => [
             styles.sortChip,
-            {
-              backgroundColor: (priceMin != null || priceMax != null) ? colors.primary + "22" : colors.secondary,
-              borderColor: (priceMin != null || priceMax != null) ? colors.primary : colors.border,
-              opacity: pressed ? 0.75 : 1,
-            },
+            { backgroundColor: (priceMin != null || priceMax != null) ? colors.primary + "22" : colors.secondary, borderColor: (priceMin != null || priceMax != null) ? colors.primary : colors.border, opacity: pressed ? 0.75 : 1 },
           ]}
           onPress={() => { setTempMin(priceMin != null ? String(priceMin) : ""); setTempMax(priceMax != null ? String(priceMax) : ""); setShowFilterPanel(true); }}
         >
           <Ionicons name="options-outline" size={12} color={(priceMin != null || priceMax != null) ? colors.primary : colors.mutedForeground} />
           <Text style={[styles.sortChipText, { color: (priceMin != null || priceMax != null) ? colors.primary : colors.mutedForeground }]}>
-            {(priceMin != null || priceMax != null)
-              ? `$${priceMin ?? 0}–${priceMax != null ? "$" + priceMax : "∞"}`
-              : t("shop.price_range")}
+            {(priceMin != null || priceMax != null) ? `$${priceMin ?? 0}–${priceMax != null ? "$" + priceMax : "∞"}` : t("shop.price_range")}
           </Text>
         </Pressable>
         {[4, 3].map((star) => {
@@ -605,6 +971,8 @@ function CustomerShop() {
       isLoadingNewArrivals={isLoadingNewArrivals}
       trending={trending}
       isLoadingTrending={isLoadingTrending}
+      cartCount={cartCount}
+      onAddToCart={handleAddToCart}
     />
   );
 
@@ -629,7 +997,7 @@ function CustomerShop() {
   return (
     <View style={[styles.shopContainer, { backgroundColor: colors.background }]}>
       <FlatList
-        data={products}
+        data={isShopMode ? products : []}
         keyExtractor={(item) => String(item.id)}
         numColumns={2}
         columnWrapperStyle={styles.row}
@@ -642,16 +1010,18 @@ function CustomerShop() {
         windowSize={5}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          isLoading ? (
-            <View style={styles.emptyContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="search-outline" size={48} color={colors.mutedForeground} />
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t("shop.no_products")}</Text>
-            </View>
-          )
+          isShopMode ? (
+            isLoading ? (
+              <View style={styles.emptyContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="search-outline" size={48} color={colors.mutedForeground} />
+                <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t("shop.no_products")}</Text>
+              </View>
+            )
+          ) : null
         }
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} tintColor={colors.primary} />
@@ -660,19 +1030,11 @@ function CustomerShop() {
       />
 
       {/* ── Price Filter Panel Modal ── */}
-      <Modal
-        visible={showFilterPanel}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowFilterPanel(false)}
-      >
-        <KeyboardAvoidingView
-          style={[styles.shopContainer, { backgroundColor: colors.background }]}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+      <Modal visible={showFilterPanel} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowFilterPanel(false)}>
+        <KeyboardAvoidingView style={[styles.shopContainer, { backgroundColor: colors.background }]} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={[styles.shopHeader, { paddingTop: 20, borderBottomColor: colors.border, borderBottomWidth: 1, paddingBottom: 16 }]}>
             <Text style={[styles.shopTitle, { color: colors.foreground, fontSize: 18 }]}>{t("shop.price_range")}</Text>
-            <Pressable onPress={() => setShowFilterPanel(false)} style={[styles.searchIconBtn, { backgroundColor: colors.muted }]}>
+            <Pressable onPress={() => setShowFilterPanel(false)} style={[styles.searchIconBtn, { backgroundColor: colors.card }]}>
               <Ionicons name="close" size={18} color={colors.foreground} />
             </Pressable>
           </View>
@@ -682,28 +1044,14 @@ function CustomerShop() {
                 <Text style={[styles.clearAllText, { color: colors.mutedForeground, marginBottom: 6 }]}>{t("shop.price_min_placeholder")}</Text>
                 <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <Text style={{ color: colors.mutedForeground }}>$</Text>
-                  <TextInput
-                    style={[styles.searchInput, { color: colors.foreground }]}
-                    value={tempMin}
-                    onChangeText={setTempMin}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor={colors.mutedForeground}
-                  />
+                  <TextInput style={[styles.searchInput, { color: colors.foreground }]} value={tempMin} onChangeText={setTempMin} keyboardType="numeric" placeholder="0" placeholderTextColor={colors.mutedForeground} />
                 </View>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.clearAllText, { color: colors.mutedForeground, marginBottom: 6 }]}>{t("shop.price_max_placeholder")}</Text>
                 <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <Text style={{ color: colors.mutedForeground }}>$</Text>
-                  <TextInput
-                    style={[styles.searchInput, { color: colors.foreground }]}
-                    value={tempMax}
-                    onChangeText={setTempMax}
-                    keyboardType="numeric"
-                    placeholder="∞"
-                    placeholderTextColor={colors.mutedForeground}
-                  />
+                  <TextInput style={[styles.searchInput, { color: colors.foreground }]} value={tempMax} onChangeText={setTempMax} keyboardType="numeric" placeholder="∞" placeholderTextColor={colors.mutedForeground} />
                 </View>
               </View>
             </View>
@@ -715,13 +1063,9 @@ function CustomerShop() {
                 <Text style={[styles.clearAllText, { color: colors.mutedForeground }]}>{t("shop.reset_filters")}</Text>
               </Pressable>
               <Pressable
-                style={({ pressed }) => [
-                  styles.clearAllBtn,
-                  { flex: 2, justifyContent: "center", backgroundColor: colors.primary, borderColor: colors.primary, opacity: pressed ? 0.85 : 1 },
-                ]}
+                style={({ pressed }) => [styles.clearAllBtn, { flex: 2, justifyContent: "center", backgroundColor: colors.primary, borderColor: colors.primary, opacity: pressed ? 0.85 : 1 }]}
                 onPress={() => {
-                  const mn = parseFloat(tempMin);
-                  const mx = parseFloat(tempMax);
+                  const mn = parseFloat(tempMin); const mx = parseFloat(tempMax);
                   setPriceMin(!isNaN(mn) && mn > 0 ? mn : null);
                   setPriceMax(!isNaN(mx) && mx > 0 ? mx : null);
                   setShowFilterPanel(false);
@@ -738,6 +1082,7 @@ function CustomerShop() {
   );
 }
 
+// ─── Stat Card (Seller Dashboard) ────────────────────────────────────────────
 function StatCard({ label, value, icon, accent }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap; accent: string }) {
   const colors = useColors();
   return (
@@ -751,6 +1096,7 @@ function StatCard({ label, value, icon, accent }: { label: string; value: string
   );
 }
 
+// ─── Seller Dashboard ─────────────────────────────────────────────────────────
 function SellerDashboard() {
   const colors = useColors();
   const { topPad, tabBarHeight } = useScreenLayout();
@@ -777,9 +1123,7 @@ function SellerDashboard() {
             <View style={[dashStyles.alert, { backgroundColor: colors.card, borderColor: "#F59E0B" }]}>
               <Ionicons name="warning-outline" size={18} color="#F59E0B" />
               <Text style={[dashStyles.alertText, { color: colors.foreground }]}>
-                {data.lowStockProducts > 1
-                  ? t("profile.low_stock_plural", { count: String(data.lowStockProducts) })
-                  : t("profile.low_stock", { count: String(data.lowStockProducts) })}
+                {data.lowStockProducts > 1 ? t("profile.low_stock_plural", { count: String(data.lowStockProducts) }) : t("profile.low_stock", { count: String(data.lowStockProducts) })}
               </Text>
             </View>
           )}
@@ -794,9 +1138,7 @@ function SellerDashboard() {
                 >
                   <View>
                     <Text style={[dashStyles.orderId, { color: colors.foreground }]}>{t("profile.order_id", { id: String(order.id) })}</Text>
-                    <Text style={[dashStyles.orderMeta, { color: colors.mutedForeground }]}>
-                      {order.customerName} · {new Date(order.createdAt).toLocaleDateString()}
-                    </Text>
+                    <Text style={[dashStyles.orderMeta, { color: colors.mutedForeground }]}>{order.customerName} · {new Date(order.createdAt).toLocaleDateString()}</Text>
                   </View>
                   <View>
                     <Text style={[dashStyles.orderTotal, { color: colors.foreground }]}>${order.total.toFixed(2)}</Text>
@@ -812,6 +1154,7 @@ function SellerDashboard() {
   );
 }
 
+// ─── StyleSheets ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   shopContainer: { flex: 1 },
   shopHeader: { paddingHorizontal: 16, paddingBottom: 8, borderBottomWidth: 1, gap: 10 },
@@ -836,14 +1179,115 @@ const styles = StyleSheet.create({
   sortChipText: { fontSize: 12, fontWeight: "500" as const },
 });
 
+const sectionStyles = StyleSheet.create({
+  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  label: { fontSize: 16, fontWeight: "700" as const },
+  seeAll: { fontSize: 13, fontWeight: "600" as const },
+});
+
+const headerStyles = StyleSheet.create({
+  badge: { position: "absolute", top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
+  badgeNum: { color: "#000", fontSize: 9, fontWeight: "800" as const },
+});
+
 const heroStyles = StyleSheet.create({
-  container: { paddingHorizontal: 16, paddingTop: 16, gap: 10 },
-  sectionLabel: { fontSize: 13, fontWeight: "700" as const, textTransform: "uppercase", letterSpacing: 0.5 },
-  sectionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  loading: { height: 140, alignItems: "center", justifyContent: "center" },
+  container: { borderRadius: 16, borderWidth: 1, overflow: "hidden", position: "relative" },
+  glowOverlay: { position: "absolute", inset: 0 } as any,
+  glow1: { position: "absolute", top: -30, left: "25%", width: 200, height: 120, borderRadius: 100, backgroundColor: "#10b98108" },
+  glow2: { position: "absolute", bottom: -20, right: "20%", width: 150, height: 80, borderRadius: 75, backgroundColor: "#10b98106" },
+  content: { padding: 20, gap: 8 },
+  badge: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, marginBottom: 4 },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  badgeText: { fontSize: 11, fontWeight: "700" as const, letterSpacing: 1 },
+  tagline: { fontSize: 22, fontWeight: "800" as const, letterSpacing: -0.5, lineHeight: 28 },
+  subtitle: { fontSize: 13, fontWeight: "400" as const, lineHeight: 18, opacity: 0.8 },
+  statsRow: { flexDirection: "row", alignItems: "center", paddingTop: 14, marginTop: 6, borderTopWidth: StyleSheet.hairlineWidth },
+  statItem: { flex: 1, alignItems: "center" },
+  statValue: { fontSize: 13, fontWeight: "700" as const },
+  statDivider: { width: 1, height: 24 },
+});
+
+const heroStyles2 = StyleSheet.create({
+  container: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 4, gap: 0 },
+  loading: { height: 130, alignItems: "center", justifyContent: "center" },
   list: { gap: 10, paddingBottom: 4 },
   allProductsHeader: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, marginTop: 8 },
   allTitle: { fontSize: 18, fontWeight: "700" as const },
+});
+
+const catGridStyles = StyleSheet.create({
+  container: { paddingHorizontal: 12, paddingTop: 20, paddingBottom: 4 },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  cell: { width: "48%", aspectRatio: 4 / 3, borderRadius: 12, overflow: "hidden", position: "relative" },
+  img: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" } as any,
+  overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.42)" },
+  colorBar: { position: "absolute", bottom: 0, left: 0, right: 0, height: 2 },
+  textWrap: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 10 },
+  catName: { color: "#fff", fontSize: 13, fontWeight: "700" as const },
+});
+
+const dealStyles = StyleSheet.create({
+  section: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 4 },
+  header: { gap: 8, marginBottom: 4 },
+  timerRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  timerLabel: { fontSize: 11, fontWeight: "500" as const },
+  timerChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
+  timerVal: { fontSize: 12, fontWeight: "700" as const, fontVariant: ["tabular-nums" as any] },
+  timerColon: { fontSize: 12, fontWeight: "700" as const },
+  list: { gap: 10, paddingBottom: 6, paddingRight: 4 },
+  card: { width: 145, borderRadius: 12, borderWidth: 1, overflow: "hidden" },
+  imgWrap: { width: "100%", aspectRatio: 1, position: "relative", overflow: "hidden" },
+  img: { width: "100%", height: "100%" },
+  discBadge: { position: "absolute", top: 6, right: 6, backgroundColor: "#10b981", borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 },
+  discText: { color: "#000", fontSize: 10, fontWeight: "800" as const },
+  info: { padding: 8, gap: 4 },
+  dealName: { fontSize: 12, fontWeight: "500" as const, lineHeight: 16 },
+  priceRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  price: { fontSize: 14, fontWeight: "800" as const },
+  original: { fontSize: 11, textDecorationLine: "line-through" as const },
+  addBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 5, borderRadius: 7, marginTop: 2 },
+  addBtnText: { color: "#000", fontSize: 11, fontWeight: "700" as const },
+});
+
+const storeStyles = StyleSheet.create({
+  section: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 4 },
+  list: { gap: 10, paddingBottom: 6, paddingRight: 4 },
+  card: { width: 210, borderRadius: 14, borderWidth: 1, overflow: "hidden" },
+  coverWrap: { height: 90, position: "relative" },
+  cover: { width: "100%", height: "100%" },
+  coverOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.35)" },
+  verifiedBadge: { position: "absolute", top: 8, left: 8, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, borderWidth: 1 },
+  verifiedDot: { width: 5, height: 5, borderRadius: 3 },
+  verifiedText: { fontSize: 10, fontWeight: "600" as const },
+  cardBody: { padding: 12, gap: 4 },
+  logoRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
+  logoCircle: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", borderWidth: 1.5 },
+  logoInitial: { fontSize: 16, fontWeight: "900" as const },
+  ratingWrap: { flexDirection: "row", alignItems: "center", gap: 3 },
+  rating: { fontSize: 12, fontWeight: "700" as const },
+  reviewCount: { fontSize: 11 },
+  storeName: { fontSize: 14, fontWeight: "800" as const },
+  storeCategory: { fontSize: 12 },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, marginVertical: 6 },
+  statsRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  statsText: { fontSize: 11 },
+});
+
+const joinStyles = StyleSheet.create({
+  section: { paddingHorizontal: 16, paddingTop: 24, paddingBottom: 20, borderTopWidth: StyleSheet.hairlineWidth, marginTop: 16 },
+  header: { alignItems: "center", gap: 8, marginBottom: 20 },
+  badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
+  badgeText: { fontSize: 11, fontWeight: "700" as const, letterSpacing: 1 },
+  title: { fontSize: 22, fontWeight: "800" as const, letterSpacing: -0.5, textAlign: "center" },
+  subtitle: { fontSize: 13, fontWeight: "400" as const, lineHeight: 18, textAlign: "center", opacity: 0.8 },
+  cardsRow: { flexDirection: "row", gap: 10 },
+  card: { flex: 1, borderRadius: 14, borderWidth: 1, padding: 14, gap: 8 },
+  sellerCard: { backgroundColor: "#10b98108" },
+  iconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", borderWidth: 1 },
+  cardTitle: { fontSize: 14, fontWeight: "800" as const },
+  cardDesc: { fontSize: 12, lineHeight: 17, opacity: 0.75 },
+  ctaRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 4 },
+  ctaText: { fontSize: 12, fontWeight: "700" as const },
 });
 
 const miniStyles = StyleSheet.create({
@@ -865,31 +1309,13 @@ const suggStyles = StyleSheet.create({
 });
 
 const intentStyles = StyleSheet.create({
-  banner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginTop: 4,
-  },
+  banner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, marginTop: 4 },
   bannerText: { fontSize: 12, fontWeight: "600" as const, flex: 1 },
 });
 
 const quickStyles = StyleSheet.create({
-  row: { flexDirection: "row", gap: 8, marginTop: 8 },
-  btn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
+  row: { flexDirection: "row", gap: 8, marginTop: 4 },
+  btn: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
   btnText: { flex: 1, fontSize: 12, fontWeight: "500" as const },
 });
 
