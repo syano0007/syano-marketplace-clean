@@ -60,14 +60,36 @@ Read CURRENT_STATE.md in full to know exactly where development stopped.
     Then restart the Embedding Service workflow
     Then run: cd artifacts/api-server && npm run embed:generate
 
-## MOBILE PARITY STATUS (Phase M1 — June 17, 2026)
+## MOBILE PARITY STATUS (Certified June 17, 2026 — 87%)
+
+**55 screens across all roles. See MOBILE_CERTIFICATION_REPORT.md for full audit.**
+
+### Auth (M0.5 — 100%)
+- Login: email/phone identifier, no role selector, error codes: USER_NOT_FOUND, INVALID_PASSWORD, ACCOUNT_SUSPENDED, 429
+- Register: min 8 char password, email_taken/phone_taken errors, matched web codes
+- Mobile API URL: `getBaseUrl()` = `https://${EXPO_PUBLIC_DOMAIN}` = `https://${REPLIT_DEV_DOMAIN}`
+- Rate limiter (in-memory): restart API Server workflow to clear 429 errors
+
+### Customer Core (M1 — 93%)
 - WishlistContext: `artifacts/mobile/contexts/WishlistContext.tsx`
-- Wishlist tab: `artifacts/mobile/app/(tabs)/wishlist.tsx`
-- ProductCard hearts + ratings: `artifacts/mobile/components/ProductCard.tsx`
 - Product gallery/reviews/related: `artifacts/mobile/app/product/[id].tsx`
-- Store follow/unfollow: `artifacts/mobile/app/store/[slug].tsx` — uses `followStatus.following` (NOT isFollowing)
-- Homepage sections: `artifacts/mobile/app/(tabs)/index.tsx` — shop mode toggle + HomepageHeader
-- i18n keys: wishlist.*, home.*, store.*, cart.add_to_cart, nav.wishlist (EN+AR in `artifacts/mobile/src/i18n/index.ts`)
+- Store follow/unfollow: `artifacts/mobile/app/store/[slug].tsx` — uses `followStatus.following`
+- Homepage sections: `artifacts/mobile/app/(tabs)/index.tsx`
+
+### Customer Systems (M2 — 100% notifications, 88% account)
+- notifications, settings, account-suspended, seller-apply/status, courier-apply/status, support
+
+### Seller Systems (M4 — 88%)
+- products CRUD, orders, analytics, reviews, store-settings, trust
+
+### Courier Systems (M5 — 88%)
+- courier/dashboard (online/offline, mission offers), courier/missions, courier/history
+
+### Admin Systems (M6 + Mx+1 — 88%)
+- admin/index, users, orders, sellers, courier-applications, verification, support, delivery-missions, hero-banners
+
+### Parity Finalization (Mx — ~80% static pages)
+- categories, customer-dashboard, stores/index, about, contact, help, privacy-policy, terms, returns, cookies, seller/trust, admin/courier-applications, admin/verification, admin/support
 
 ## ARCHITECTURE RULES — NEVER VIOLATE
 - No `any` TypeScript type — 0 errors mandatory

@@ -1,3 +1,15 @@
+# MANDATORY AGENT STARTUP
+
+STOP.
+
+Before running ANY recovery, analysis, planning, implementation, testing, or project discovery:
+
+**READ: `./AGENT_BOOTSTRAP.md`**
+
+This file is the authoritative recovery source. Do NOT infer project state from code alone. Do NOT start project discovery before reading it. Then continue with recovery.
+
+---
+
 # SYANO — syanomarket.online
 Last verified working: June 17, 2026 (Full Recovery + Boot Repair + Mobile Certification)
 Workflows: API Server ✅ | Marketplace ✅ | Embedding Service ✅ (port 8000, TF-IDF mode) | Mobile Expo ✅

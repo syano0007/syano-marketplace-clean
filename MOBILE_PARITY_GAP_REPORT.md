@@ -1,20 +1,22 @@
-# SYANO — Mobile Parity Gap Report & Migration Roadmap (Phase M2/M4/M5/M6)
-Last audited: June 17, 2026
+# SYANO — Mobile Parity Gap Report & Migration Roadmap
+**Last certified:** June 17, 2026 (Post all phases: M0.5/M1/M2/M4/M5/M6/Mx/Mx+1)
+
+> Complete certification data in `MOBILE_CERTIFICATION_REPORT.md`. This file maintains the roadmap and master report.
 
 ---
 
-## SECTION 7 — MOBILE PARITY MASTER REPORT
+## SECTION 7 — MOBILE PARITY MASTER REPORT (Certified June 17, 2026)
 
 | Metric | Count |
 |---|---|
 | **Total Web Routes** | 75 |
-| **Total Mobile Routes** | ~38 |
+| **Total Mobile Routes** | ~55 |
 | **Total Web Features** | 164 |
-| **Total Mobile Features** | ~140 |
+| **Total Mobile Features** | ~143 |
 | **Fully Matched Features** | ~120 |
-| **Partially Matched Features** | ~12 |
-| **Missing Features** | ~32 |
-| **Overall Parity %** | **~85%** |
+| **Partially Matched Features** | ~15 |
+| **Missing Features** | ~21 |
+| **Overall Parity %** | **~87%** |
 
 ### Phase M2/M4/M5/M6 — Completed ✅ (June 17, 2026)
 
