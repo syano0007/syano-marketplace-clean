@@ -276,7 +276,7 @@ export const getSellerReviews = async (
 
 export function useGetSellerReviews<TData = SellerReviewsResponse, TError = ErrorType<unknown>>(
   sellerId: number,
-  options?: { query?: UseQueryOptions<SellerReviewsResponse, TError, TData>; request?: RequestInit }
+  options?: { query?: Partial<UseQueryOptions<SellerReviewsResponse, TError, TData>>; request?: RequestInit }
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const { query: queryOptions, request } = options ?? {};
   const queryKey = queryOptions?.queryKey ?? getSellerReviewsQueryKey(sellerId);

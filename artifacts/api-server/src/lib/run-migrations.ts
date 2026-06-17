@@ -642,6 +642,13 @@ export async function runMigrations(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_mission_offers_expires_at  ON mission_offers(expires_at);
     `);
 
+    // ── V3.2: courier availability columns ────────────────────────────────────
+    await client.query(`
+      ALTER TABLE couriers ADD COLUMN IF NOT EXISTS availability_status TEXT NOT NULL DEFAULT 'OFFLINE';
+      ALTER TABLE couriers ADD COLUMN IF NOT EXISTS is_accepting_deliveries BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE couriers ADD COLUMN IF NOT EXISTS last_availability_change_at TIMESTAMPTZ;
+    `);
+
     // ── V3.3: courier lat/lng columns (for Haversine nearest-courier sorting) ──
     await client.query(`
       ALTER TABLE couriers ADD COLUMN IF NOT EXISTS current_lat NUMERIC(10,7);

@@ -1,6 +1,6 @@
 # SYANO — syanomarket.online
-Last verified working: June 17, 2026
-Workflows: API Server ✅ | Marketplace ✅ | Embedding Service ⚠️ (TF-IDF mode — needs numpy in fresh env)
+Last verified working: June 17, 2026 (Full Recovery + Boot Repair)
+Workflows: API Server ✅ | Marketplace ✅ | Embedding Service ✅ (port 8000, TF-IDF mode) | Mobile Expo ✅
 Secrets: All 12 loaded ✅
 SEO Layer: react-helmet-async ✅ | sitemap.xml ✅ | robots.txt ✅ | JSON-LD ✅
 Performance: vendor-charts ✅ | vendor-radix ✅ | LazyImage ✅ | web-vitals ✅ | cache headers ✅
@@ -84,15 +84,17 @@ curl -s http://localhost:8080/api/healthz && echo "API OK"
 - If you get `{"status":"ok"}` → **everything is running, do not touch anything**
 - If the API is down → follow `RECOVERY_GUIDE.md` step by step
 
-### The 6 workflows that MUST exist (do not create new ones, do not rename):
+### The workflows that MUST exist (do not create new ones, do not rename):
 | Workflow Name | Port | Purpose |
 |---|---|---|
 | `artifacts/api-server: API Server` | 8080 | Express API + auto-migrations + demo data |
-| `Start application` | 5000 | Marketplace web preview (webview) |
-| `Embedding Service` | 8001 | TF-IDF/LSA embedding service (paraphrase-multilingual-MiniLM-L12-v2 fallback) |
+| `Embedding Service` | 8000 | TF-IDF/LSA embedding service (EMBEDDING_PORT=8000 to match EMBEDDING_SERVICE_URL) |
 | `artifacts/marketplace: web` | 20787 | Marketplace artifact view |
 | `artifacts/mobile: expo` | 18115 | Expo mobile dev server |
 | `artifacts/mockup-sandbox: Component Preview Server` | 8081 | UI component sandbox |
+
+**Embedding Service workflow command:** `cd artifacts/embedding-service && EMBEDDING_PORT=8000 python main.py`
+**EMBEDDING_SERVICE_URL** in .replit is `http://localhost:8000` — service MUST run on port 8000.
 
 ### Things that will BREAK the project if you do them:
 - ❌ Creating a new "API Server" workflow → port 8080 conflict, both die

@@ -1,41 +1,46 @@
 # SYANO — Recovery Guide
-Last updated: June 17, 2026 (Mobile Parity M2/M4/M5/M6 — all role systems complete, ~85% parity)
+Last updated: June 17, 2026 (Full Boot Recovery — all 5 workflows verified, 37 tables, 42/42 embeddings)
 
 ## HOW TO RECOVER ON A NEW REPLIT ACCOUNT
 
-### Step 1 — Set all Secrets
-Go to Replit → Secrets and confirm every one of these is set:
-  SESSION_SECRET
-  RESEND_API_KEY
-  EMAIL_FROM              = noreply@syanomarket.online
-  CORS_ORIGIN             = https://syanomarket.online
-  SITE_URL                = https://syanomarket.online
-  ROOT_ADMIN_PASSWORD
-  VAPID_EMAIL             = mailto:admin@syanomarket.online
-  VAPID_PRIVATE_KEY
-  VAPID_PUBLIC_KEY
-  VITE_SUPPORT_PHONE
-  EMBEDDING_SERVICE_URL   = http://localhost:8001
-  ENABLE_EMAIL_VERIFICATION = true
+### Step 1 — Verify env vars are set
+These are set in .replit [userenv.shared] — no manual setup needed:
+  EMBEDDING_SERVICE_URL   = http://localhost:8000   ← PORT 8000 (not 8001!)
+  VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_EMAIL
+  ROOT_ADMIN_PASSWORD     = 00Amer00
+  CORS_ORIGIN, SITE_URL, VITE_SUPPORT_PHONE
 
-### Step 2 — Start all three workflows
-These three workflows must all be running:
-  - API Server          → port 8080
-  - Marketplace (web)   → port 5000
-  - Embedding Service   → port 8001
+Replit Secrets (set in Secrets tab):
+  SESSION_SECRET, DATABASE_URL (auto), RESEND_API_KEY, EMAIL_FROM
 
-If any is stopped → restart it and wait for it to fully start before continuing.
+### Step 2 — Install packages (fresh env only)
+  pnpm install --shamefully-hoist
 
-### Step 3 — Push database schema
-Run: cd artifacts/api-server && npx drizzle-kit push
-This is safe to run multiple times — additive only, never destructive.
+### Step 3 — Load database schema (fresh env only)
+  psql "$DATABASE_URL" -f schema.sql
+  # schema.sql now includes: delivery_missions table + delivery_mission_status + delivery_size enums
+  # run-migrations.ts adds 16 more tables + columns on first API start
 
-### Step 4 — Verify all three services are healthy
+### Step 4 — Build libs (fresh env only)
+  npx tsc --build lib/db lib/api-zod lib/api-client-react
+
+### Step 5 — Start all workflows
+These workflows must all be running:
+  - artifacts/api-server: API Server       → port 8080
+  - Embedding Service                      → port 8000 (command: cd artifacts/embedding-service && EMBEDDING_PORT=8000 python main.py)
+  - artifacts/marketplace: web             → port 20787
+  - artifacts/mobile: expo                 → port 18115
+
+If Embedding Service workflow is missing → create it with the command above, waitForPort=8000
+
+### Step 6 — Verify all services are healthy
   GET http://localhost:8080/api/healthz  → must return { "status": "ok" }
-  GET http://localhost:5000              → must return HTTP 200
-  GET http://localhost:8001/health       → must return { "status": "ok" }
+  GET http://localhost:8000/health       → must return { "status": "ok", "backend": "tfidf-lsa" }
 
-### Step 5 — Read CURRENT_STATE.md
+### Step 7 — Generate embeddings (if 0/42)
+  pnpm --filter @workspace/api-server embed:generate
+
+### Step 8 — Read CURRENT_STATE.md
 Read CURRENT_STATE.md in full to know exactly where development stopped.
 
 ## EMAIL SERVICE

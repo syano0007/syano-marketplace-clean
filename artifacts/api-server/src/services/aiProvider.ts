@@ -353,14 +353,13 @@ async function getProductById(productId: number): Promise<ProductHit | null> {
         name: productsTable.name,
         nameAr: productsTable.nameAr,
         price: productsTable.price,
-        currency: productsTable.currency,
       })
       .from(productsTable)
       .where(eq(productsTable.id, productId))
       .limit(1);
     if (!results[0]) return null;
     const r = results[0];
-    return { id: r.id, name: r.name, nameAr: r.nameAr ?? r.name, price: String(r.price), currency: r.currency ?? "SYP" };
+    return { id: r.id, name: r.name, nameAr: r.nameAr ?? r.name, price: String(r.price), currency: "SYP" };
   } catch {
     return null;
   }
@@ -374,7 +373,6 @@ async function searchProducts(query: string, limit = 3): Promise<ProductHit[]> {
         name: productsTable.name,
         nameAr: productsTable.nameAr,
         price: productsTable.price,
-        currency: productsTable.currency,
       })
       .from(productsTable)
       .where(
@@ -386,7 +384,7 @@ async function searchProducts(query: string, limit = 3): Promise<ProductHit[]> {
       name: r.name,
       nameAr: r.nameAr ?? r.name,
       price: String(r.price),
-      currency: r.currency ?? "SYP",
+      currency: "SYP",
     }));
   } catch {
     return [];

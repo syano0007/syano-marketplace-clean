@@ -1746,6 +1746,64 @@ ALTER TABLE ONLY public.store_follows
 
 
 --
+-- Name: delivery_mission_status; Type: TYPE; Schema: public; Owner: postgres
+--
+
+DO $$ BEGIN
+  CREATE TYPE public.delivery_mission_status AS ENUM (
+    'PENDING','ASSIGNED','ACCEPTED','PICKED_UP','IN_TRANSIT','DELIVERED','FAILED','CANCELLED'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+
+--
+-- Name: delivery_size; Type: TYPE; Schema: public; Owner: postgres
+--
+
+DO $$ BEGIN
+  CREATE TYPE public.delivery_size AS ENUM ('SMALL','MEDIUM','LARGE');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+
+--
+-- Name: delivery_missions; Type: TABLE; Schema: public; Owner: postgres
+-- NOTE: courier_id FK to couriers table is added by run-migrations.ts (couriers table created there)
+--
+
+CREATE TABLE IF NOT EXISTS public.delivery_missions (
+  id               SERIAL PRIMARY KEY,
+  order_id         INTEGER      NOT NULL UNIQUE REFERENCES public.orders(id) ON DELETE CASCADE,
+  seller_id        INTEGER      NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  customer_id      INTEGER      NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+  courier_id       INTEGER,
+  status           public.delivery_mission_status NOT NULL DEFAULT 'PENDING',
+  delivery_fee     NUMERIC(10,2),
+  delivery_size    public.delivery_size NOT NULL DEFAULT 'MEDIUM',
+  pickup_address   TEXT         NOT NULL,
+  dropoff_address  TEXT         NOT NULL,
+  pickup_lat       NUMERIC(10,7),
+  pickup_lng       NUMERIC(10,7),
+  dropoff_lat      NUMERIC(10,7),
+  dropoff_lng      NUMERIC(10,7),
+  created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  accepted_at      TIMESTAMPTZ,
+  picked_up_at     TIMESTAMPTZ,
+  delivered_at     TIMESTAMPTZ,
+  cancelled_at     TIMESTAMPTZ,
+  failed_at        TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_delivery_missions_order_id    ON public.delivery_missions(order_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_missions_seller_id   ON public.delivery_missions(seller_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_missions_customer_id ON public.delivery_missions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_missions_status      ON public.delivery_missions(status);
+CREATE INDEX IF NOT EXISTS idx_delivery_missions_created_at  ON public.delivery_missions(created_at);
+
+
+--
 -- PostgreSQL database dump complete
 --
 

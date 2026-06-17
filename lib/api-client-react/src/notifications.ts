@@ -30,7 +30,7 @@ export function useListNotifications<
   TError = ErrorType<unknown>,
 >(
   options?: {
-    query?: UseQueryOptions<AppNotification[], TError, TData>;
+    query?: Partial<UseQueryOptions<AppNotification[], TError, TData>>;
     request?: RequestInit;
   }
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -67,7 +67,7 @@ export function useGetNotificationCount<
   TError = ErrorType<unknown>,
 >(
   options?: {
-    query?: UseQueryOptions<NotificationCount, TError, TData>;
+    query?: Partial<UseQueryOptions<NotificationCount, TError, TData>>;
     request?: RequestInit;
   }
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
