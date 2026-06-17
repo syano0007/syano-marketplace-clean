@@ -174,12 +174,55 @@ function FollowButton({ sellerId, colors }: { sellerId: number; colors: any }) {
   );
 }
 
+interface StoreReview {
+  id: number;
+  customerId: number;
+  customerName?: string;
+  rating: number;
+  comment?: string | null;
+  createdAt: string;
+  sellerReply?: string | null;
+}
+
+function ReviewCard({ review, colors }: { review: StoreReview; colors: any }) {
+  const initial = (review.customerName ?? "?").charAt(0).toUpperCase();
+  return (
+    <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={styles.reviewTop}>
+        <View style={[styles.reviewAvatar, { backgroundColor: colors.primary + "22" }]}>
+          <Text style={[styles.reviewAvatarText, { color: colors.primary }]}>{initial}</Text>
+        </View>
+        <View style={styles.reviewMeta}>
+          <Text style={[styles.reviewName, { color: colors.foreground }]}>{review.customerName ?? "Customer"}</Text>
+          <View style={{ flexDirection: "row", gap: 2, marginTop: 2 }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Ionicons key={i} name={i < review.rating ? "star" : "star-outline"} size={11} color="#F59E0B" />
+            ))}
+          </View>
+        </View>
+        <Text style={[styles.reviewDate, { color: colors.mutedForeground }]}>
+          {new Date(review.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+        </Text>
+      </View>
+      {review.comment ? (
+        <Text style={[styles.reviewComment, { color: colors.mutedForeground }]}>{review.comment}</Text>
+      ) : null}
+      {review.sellerReply ? (
+        <View style={[styles.replyBox, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+          <Ionicons name="storefront-outline" size={12} color={colors.mutedForeground} />
+          <Text style={[styles.replyText, { color: colors.mutedForeground }]}>{review.sellerReply}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export default function StoreScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { tabBarHeight } = useScreenLayout();
-  const [tab, setTab] = useState<"products" | "about">("products");
+  const [tab, setTab] = useState<"products" | "about" | "reviews">("products");
 
   const { data: storeData, isLoading: storeLoading } = useQuery<StoreData>({
     queryKey: ["store-by-slug", slug],
@@ -194,16 +237,28 @@ export default function StoreScreen() {
   const { data: productsData } = useQuery<{ data: StoreProduct[] } | StoreProduct[]>({
     queryKey: ["store-products", storeData?.sellerId],
     queryFn: async () => {
-      const res = await fetch(`${getBaseUrl()}/products?sellerId=${storeData!.sellerId}&limit=40`);
+      const res = await fetch(`${getBaseUrl()}/products?sellerId=${storeData!.sellerId}&limit=100`);
       if (!res.ok) throw new Error("Failed to load products");
       return res.json();
     },
     enabled: !!storeData?.sellerId,
   });
 
+  const { data: reviewsData } = useQuery<{ reviews: StoreReview[] }>({
+    queryKey: ["store-reviews-slug", slug],
+    queryFn: async () => {
+      const res = await fetch(`${getBaseUrl()}/sellers/store/${slug}/reviews`);
+      if (!res.ok) return { reviews: [] };
+      return res.json();
+    },
+    enabled: !!slug && tab === "reviews",
+  });
+
   const products: StoreProduct[] = Array.isArray(productsData)
     ? productsData
     : (productsData as any)?.data ?? [];
+
+  const reviews: StoreReview[] = reviewsData?.reviews ?? [];
 
   if (storeLoading) {
     return (
@@ -308,14 +363,16 @@ export default function StoreScreen() {
 
         {/* Tabs */}
         <View style={[styles.tabs, { borderBottomColor: colors.border }]}>
-          {(["products", "about"] as const).map((tabKey) => (
+          {(["products", "reviews", "about"] as const).map((tabKey) => (
             <Pressable
               key={tabKey}
               style={[styles.tabBtn, tab === tabKey && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
               onPress={() => setTab(tabKey)}
             >
               <Text style={[styles.tabLabel, { color: tab === tabKey ? colors.primary : colors.mutedForeground }]}>
-                {tabKey === "products" ? t("store.tab_products", "Products") : t("store.tab_about", "About")}
+                {tabKey === "products" ? t("store.tab_products", "Products")
+                  : tabKey === "reviews" ? t("store.tab_reviews", "Reviews")
+                  : t("store.tab_about", "About")}
               </Text>
             </Pressable>
           ))}
@@ -338,6 +395,21 @@ export default function StoreScreen() {
                   colors={colors}
                   onPress={() => router.push(`/product/${product.id}` as any)}
                 />
+              ))}
+            </View>
+          )
+        ) : tab === "reviews" ? (
+          reviews.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="star-outline" size={40} color={colors.mutedForeground} />
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                {t("store.no_reviews", "No reviews yet")}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.reviewsList}>
+              {reviews.map((review) => (
+                <ReviewCard key={review.id} review={review} colors={colors} />
               ))}
             </View>
           )
@@ -427,4 +499,15 @@ const styles = StyleSheet.create({
   aboutRow:        { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
   aboutRowLabel:   { fontSize: 13 },
   aboutRowValue:   { fontSize: 13, fontWeight: "700" as const },
+  reviewsList:     { padding: 16, gap: 12 },
+  reviewCard:      { borderRadius: 14, borderWidth: 1, padding: 14, gap: 8 },
+  reviewTop:       { flexDirection: "row", alignItems: "center", gap: 10 },
+  reviewAvatar:    { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  reviewAvatarText: { fontSize: 15, fontWeight: "800" as const },
+  reviewMeta:      { flex: 1 },
+  reviewName:      { fontSize: 13, fontWeight: "600" as const },
+  reviewDate:      { fontSize: 11 },
+  reviewComment:   { fontSize: 13, lineHeight: 18 },
+  replyBox:        { flexDirection: "row", alignItems: "flex-start", gap: 6, padding: 10, borderRadius: 10, borderWidth: 1, marginTop: 4 },
+  replyText:       { fontSize: 12, lineHeight: 16, flex: 1 },
 });

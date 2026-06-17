@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -13,10 +14,17 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
+import {
+  useGetFollowStatus,
+  useFollowStore,
+  useUnfollowStore,
+  getFollowStatusQueryKey,
+  getBaseUrl,
+} from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { useScreenLayout } from "@/hooks/useScreenLayout";
+import { useAuth } from "@/contexts/AuthContext";
 import { t } from "../../src/i18n";
-import { getBaseUrl } from "@workspace/api-client-react";
 
 interface StoreData {
   sellerId: number;
@@ -51,6 +59,19 @@ interface Product {
   category: string;
 }
 
+interface StoreReview {
+  id: number;
+  customerId: number;
+  customerName?: string;
+  rating: number;
+  communication?: number;
+  shipping?: number;
+  professionalism?: number;
+  comment?: string | null;
+  createdAt: string;
+  sellerReply?: string | null;
+}
+
 function VerificationBadge({ level }: { level: string }) {
   if (!level || level === "none") return null;
 
@@ -77,11 +98,10 @@ function TrustBar({ score }: { score: number }) {
     score >= 50 ? "#3B82F6" :
     score >= 25 ? "#F59E0B" :
     "#9CA3AF";
-
   return (
     <View style={styles.trustBarContainer}>
       <View style={styles.trustBarTrack}>
-        <View style={[styles.trustBarFill, { width: `${score}%`, backgroundColor: band }]} />
+        <View style={[styles.trustBarFill, { width: `${score}%` as any, backgroundColor: band }]} />
       </View>
       <Text style={styles.trustBarLabel}>{score}/100</Text>
     </View>
@@ -116,12 +136,101 @@ function ProductCard({ product, colors, onPress }: { product: Product; colors: a
   );
 }
 
+function FollowButton({ sellerId, colors }: { sellerId: number; colors: any }) {
+  const { isAuthenticated, isCustomer } = useAuth();
+  const { data: followStatus, isLoading: statusLoading } = useGetFollowStatus(sellerId, {
+    query: {
+      enabled: isAuthenticated && isCustomer && sellerId > 0,
+      queryKey: getFollowStatusQueryKey(sellerId),
+    },
+  });
+  const followMutation = useFollowStore();
+  const unfollowMutation = useUnfollowStore();
+
+  const isFollowing = followStatus?.following ?? false;
+  const isPending = followMutation.isPending || unfollowMutation.isPending || statusLoading;
+
+  if (!isAuthenticated || !isCustomer || sellerId <= 0) return null;
+
+  function handlePress() {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (isFollowing) {
+      unfollowMutation.mutate(sellerId);
+    } else {
+      followMutation.mutate(sellerId);
+    }
+  }
+
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.followBtn,
+        {
+          backgroundColor: isFollowing ? "#F3F4F6" : "#10B981",
+          borderColor: isFollowing ? "#D1D5DB" : "#10B981",
+          opacity: pressed ? 0.8 : 1,
+        },
+      ]}
+      onPress={handlePress}
+      disabled={isPending}
+    >
+      {isPending ? (
+        <ActivityIndicator size="small" color={isFollowing ? "#374151" : "#fff"} />
+      ) : (
+        <>
+          <Ionicons
+            name={isFollowing ? "person-remove-outline" : "person-add-outline"}
+            size={15}
+            color={isFollowing ? "#374151" : "#fff"}
+          />
+          <Text style={[styles.followBtnText, { color: isFollowing ? "#374151" : "#fff" }]}>
+            {isFollowing ? t("store.unfollow", "Unfollow") : t("store.follow", "Follow")}
+          </Text>
+        </>
+      )}
+    </Pressable>
+  );
+}
+
+function ReviewCard({ review, colors }: { review: StoreReview; colors: any }) {
+  const initial = (review.customerName ?? "?").charAt(0).toUpperCase();
+  return (
+    <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={styles.reviewTop}>
+        <View style={[styles.reviewAvatar, { backgroundColor: colors.primary + "22" }]}>
+          <Text style={[styles.reviewAvatarText, { color: colors.primary }]}>{initial}</Text>
+        </View>
+        <View style={styles.reviewMeta}>
+          <Text style={[styles.reviewName, { color: colors.foreground }]}>{review.customerName ?? "Customer"}</Text>
+          <View style={{ flexDirection: "row", gap: 2, marginTop: 2 }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Ionicons key={i} name={i < review.rating ? "star" : "star-outline"} size={11} color="#F59E0B" />
+            ))}
+          </View>
+        </View>
+        <Text style={[styles.reviewDate, { color: colors.mutedForeground }]}>
+          {new Date(review.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+        </Text>
+      </View>
+      {review.comment ? (
+        <Text style={[styles.reviewComment, { color: colors.mutedForeground }]}>{review.comment}</Text>
+      ) : null}
+      {review.sellerReply ? (
+        <View style={[styles.replyBox, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+          <Ionicons name="storefront-outline" size={12} color={colors.mutedForeground} />
+          <Text style={[styles.replyText, { color: colors.mutedForeground }]}>{review.sellerReply}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export default function StoreScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { tabBarHeight } = useScreenLayout();
-  const [tab, setTab] = useState<"products" | "about">("products");
+  const [tab, setTab] = useState<"products" | "about" | "reviews">("products");
 
   const { data: storeData, isLoading: storeLoading } = useQuery<StoreData>({
     queryKey: ["store-by-id", id],
@@ -136,14 +245,25 @@ export default function StoreScreen() {
   const { data: productsData } = useQuery<{ data: Product[] }>({
     queryKey: ["store-products", storeData?.sellerId],
     queryFn: async () => {
-      const res = await fetch(`${getBaseUrl()}/products?sellerId=${storeData!.sellerId}&limit=40`);
+      const res = await fetch(`${getBaseUrl()}/products?sellerId=${storeData!.sellerId}&limit=100`);
       if (!res.ok) throw new Error("Failed to load products");
       return res.json();
     },
     enabled: !!storeData?.sellerId,
   });
 
+  const { data: reviewsData } = useQuery<{ reviews: StoreReview[] }>({
+    queryKey: ["store-reviews-id", storeData?.storeSlug],
+    queryFn: async () => {
+      const res = await fetch(`${getBaseUrl()}/sellers/store/${storeData!.storeSlug}/reviews`);
+      if (!res.ok) return { reviews: [] };
+      return res.json();
+    },
+    enabled: !!storeData?.storeSlug && tab === "reviews",
+  });
+
   const products = productsData?.data ?? [];
+  const reviews: StoreReview[] = reviewsData?.reviews ?? [];
 
   if (storeLoading) {
     return (
@@ -167,9 +287,9 @@ export default function StoreScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Back button */}
-      <View style={[styles.backRow, { paddingTop: insets.top + 8, backgroundColor: colors.background }]}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
+      <View style={[styles.backRow, { paddingTop: insets.top + 8, backgroundColor: "transparent" }]}>
+        <Pressable style={[styles.backBtn, { backgroundColor: "rgba(0,0,0,0.25)" }]} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={22} color="#fff" />
         </Pressable>
       </View>
 
@@ -179,21 +299,24 @@ export default function StoreScreen() {
           {storeData.storeBanner ? (
             <Image source={{ uri: storeData.storeBanner }} style={styles.banner} resizeMode="cover" />
           ) : (
-            <View style={[styles.banner, { backgroundColor: colors.primary + "22" }]} />
+            <View style={[styles.banner, { backgroundColor: colors.primary + "33" }]} />
           )}
         </View>
 
         {/* Store header */}
         <View style={[styles.headerCard, { backgroundColor: colors.background }]}>
-          {/* Logo */}
-          <View style={[styles.logoWrapper, { backgroundColor: colors.primary + "18", borderColor: colors.background }]}>
-            {storeData.storeLogo ? (
-              <Image source={{ uri: storeData.storeLogo }} style={styles.logo} resizeMode="cover" />
-            ) : (
-              <Text style={[styles.logoInitial, { color: colors.primary }]}>
-                {storeData.storeName.charAt(0).toUpperCase()}
-              </Text>
-            )}
+          {/* Logo + actions row */}
+          <View style={styles.logoActionsRow}>
+            <View style={[styles.logoWrapper, { backgroundColor: colors.primary + "18", borderColor: colors.background }]}>
+              {storeData.storeLogo ? (
+                <Image source={{ uri: storeData.storeLogo }} style={styles.logo} resizeMode="cover" />
+              ) : (
+                <Text style={[styles.logoInitial, { color: colors.primary }]}>
+                  {storeData.storeName.charAt(0).toUpperCase()}
+                </Text>
+              )}
+            </View>
+            <FollowButton sellerId={storeData.sellerId} colors={colors} />
           </View>
 
           {/* Name + badge */}
@@ -202,6 +325,23 @@ export default function StoreScreen() {
             {level !== "none" && <VerificationBadge level={level} />}
           </View>
           <Text style={[styles.sellerName, { color: colors.mutedForeground }]}>{storeData.sellerName}</Text>
+
+          {/* Rating */}
+          {storeData.avgRating != null && storeData.reviewCount > 0 && (
+            <View style={styles.ratingRow}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Ionicons
+                  key={i}
+                  name={i < Math.round(storeData.avgRating!) ? "star" : "star-outline"}
+                  size={13}
+                  color="#F59E0B"
+                />
+              ))}
+              <Text style={[styles.ratingText, { color: colors.mutedForeground }]}>
+                {storeData.avgRating.toFixed(1)} ({storeData.reviewCount})
+              </Text>
+            </View>
+          )}
 
           {/* Trust score bar */}
           {trustScore != null && (
@@ -228,14 +368,16 @@ export default function StoreScreen() {
 
         {/* Tabs */}
         <View style={[styles.tabs, { borderBottomColor: colors.border }]}>
-          {(["products", "about"] as const).map((tabKey) => (
+          {(["products", "reviews", "about"] as const).map((tabKey) => (
             <Pressable
               key={tabKey}
               style={[styles.tabBtn, tab === tabKey && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
               onPress={() => setTab(tabKey)}
             >
               <Text style={[styles.tabLabel, { color: tab === tabKey ? colors.primary : colors.mutedForeground }]}>
-                {tabKey === "products" ? t("store.tab_products", "Products") : t("store.tab_about", "About")}
+                {tabKey === "products" ? t("store.tab_products", "Products")
+                  : tabKey === "reviews" ? t("store.tab_reviews", "Reviews")
+                  : t("store.tab_about", "About")}
               </Text>
             </Pressable>
           ))}
@@ -259,6 +401,21 @@ export default function StoreScreen() {
                   colors={colors}
                   onPress={() => router.push(`/product/${product.id}` as any)}
                 />
+              ))}
+            </View>
+          )
+        ) : tab === "reviews" ? (
+          reviews.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="star-outline" size={40} color={colors.mutedForeground} />
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                {t("store.no_reviews", "No reviews yet")}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.reviewsList}>
+              {reviews.map((review) => (
+                <ReviewCard key={review.id} review={review} colors={colors} />
               ))}
             </View>
           )
@@ -293,40 +450,53 @@ const styles = StyleSheet.create({
   container:       { flex: 1 },
   loading:         { flex: 1, alignItems: "center", justifyContent: "center" },
   backRow:         { position: "absolute", top: 0, start: 0, end: 0, zIndex: 10, paddingHorizontal: 16, paddingBottom: 8 },
-  backBtn:         { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.12)" },
-  bannerWrapper:   { height: 140, overflow: "hidden" },
-  banner:          { width: "100%", height: 140 },
-  headerCard:      { paddingHorizontal: 16, paddingBottom: 16, marginTop: -20, borderRadius: 20 },
-  logoWrapper:     { width: 72, height: 72, borderRadius: 20, borderWidth: 3, alignItems: "center", justifyContent: "center", marginBottom: 12, overflow: "hidden" },
+  backBtn:         { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  bannerWrapper:   { height: 160, overflow: "hidden" },
+  banner:          { width: "100%", height: 160 },
+  headerCard:      { paddingHorizontal: 16, paddingBottom: 16, marginTop: -24, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  logoActionsRow:  { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 12 },
+  logoWrapper:     { width: 72, height: 72, borderRadius: 20, borderWidth: 3, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   logo:            { width: "100%", height: "100%" },
-  logoInitial:     { fontSize: 28, fontWeight: "900" },
+  logoInitial:     { fontSize: 28, fontWeight: "900" as const },
+  followBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  followBtnText:   { fontSize: 13, fontWeight: "700" as const },
   nameRow:         { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  storeName:       { fontSize: 20, fontWeight: "900" },
+  storeName:       { fontSize: 20, fontWeight: "900" as const },
   sellerName:      { fontSize: 13, marginTop: 2 },
+  ratingRow:       { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 6 },
+  ratingText:      { fontSize: 12, marginStart: 4 },
   badge:           { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  badgeText:       { fontSize: 11, fontWeight: "700" },
+  badgeText:       { fontSize: 11, fontWeight: "700" as const },
   trustSection:    { marginTop: 12 },
-  trustLabel:      { fontSize: 11, fontWeight: "600", marginBottom: 4 },
+  trustLabel:      { fontSize: 11, fontWeight: "600" as const, marginBottom: 4 },
   trustBarContainer: { flexDirection: "row", alignItems: "center", gap: 8 },
   trustBarTrack:   { flex: 1, height: 6, backgroundColor: "#E5E7EB", borderRadius: 3, overflow: "hidden" },
   trustBarFill:    { height: "100%", borderRadius: 3 },
-  trustBarLabel:   { fontSize: 11, fontWeight: "700", color: "#6B7280", width: 36, textAlign: "right" },
+  trustBarLabel:   { fontSize: 11, fontWeight: "700" as const, color: "#6B7280", width: 36, textAlign: "right" },
   statsRow:        { flexDirection: "row", justifyContent: "space-around", paddingTop: 16, marginTop: 16, borderTopWidth: 1 },
   statItem:        { alignItems: "center" },
-  statValue:       { fontSize: 18, fontWeight: "900" },
+  statValue:       { fontSize: 18, fontWeight: "900" as const },
   statLabel:       { fontSize: 11, marginTop: 2 },
   tabs:            { flexDirection: "row", borderBottomWidth: 1, marginHorizontal: 16, marginTop: 8 },
   tabBtn:          { flex: 1, paddingVertical: 12, alignItems: "center" },
-  tabLabel:        { fontSize: 14, fontWeight: "700" },
+  tabLabel:        { fontSize: 13, fontWeight: "700" as const },
   productsGrid:    { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 8, paddingTop: 8, gap: 0 },
   productCard:     { width: "50%", padding: 6 },
   productImageWrapper: { height: 140, borderRadius: 12, alignItems: "center", justifyContent: "center", overflow: "hidden", marginBottom: 8 },
   productImage:    { width: "100%", height: "100%" },
   discountBadge:   { position: "absolute", top: 6, end: 6, backgroundColor: "#EF4444", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  discountText:    { color: "#fff", fontSize: 10, fontWeight: "700" },
+  discountText:    { color: "#fff", fontSize: 10, fontWeight: "700" as const },
   productInfo:     { paddingHorizontal: 2 },
-  productName:     { fontSize: 12, fontWeight: "600", marginBottom: 4, lineHeight: 16 },
-  productPrice:    { fontSize: 14, fontWeight: "900" },
+  productName:     { fontSize: 12, fontWeight: "600" as const, marginBottom: 4, lineHeight: 16 },
+  productPrice:    { fontSize: 14, fontWeight: "900" as const },
   emptyState:      { alignItems: "center", paddingVertical: 60, gap: 12 },
   emptyText:       { fontSize: 14 },
   aboutSection:    { padding: 16 },
@@ -334,5 +504,16 @@ const styles = StyleSheet.create({
   aboutInfo:       { borderRadius: 16, borderWidth: 1, overflow: "hidden" },
   aboutRow:        { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
   aboutRowLabel:   { fontSize: 13 },
-  aboutRowValue:   { fontSize: 13, fontWeight: "700" },
+  aboutRowValue:   { fontSize: 13, fontWeight: "700" as const },
+  reviewsList:     { padding: 16, gap: 12 },
+  reviewCard:      { borderRadius: 14, borderWidth: 1, padding: 14, gap: 8 },
+  reviewTop:       { flexDirection: "row", alignItems: "center", gap: 10 },
+  reviewAvatar:    { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  reviewAvatarText: { fontSize: 15, fontWeight: "800" as const },
+  reviewMeta:      { flex: 1 },
+  reviewName:      { fontSize: 13, fontWeight: "600" as const },
+  reviewDate:      { fontSize: 11 },
+  reviewComment:   { fontSize: 13, lineHeight: 18 },
+  replyBox:        { flexDirection: "row", alignItems: "flex-start", gap: 6, padding: 10, borderRadius: 10, borderWidth: 1, marginTop: 4 },
+  replyText:       { fontSize: 12, lineHeight: 16, flex: 1 },
 });

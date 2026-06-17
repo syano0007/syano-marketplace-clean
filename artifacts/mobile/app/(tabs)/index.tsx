@@ -93,6 +93,7 @@ function HomepageHeader({
   mobileSuggestions, setMobileSuggestions,
   categories, activeCategory, setActiveCategory,
   bestSellers, newArrivals, isLoadingBestSellers, isLoadingNewArrivals,
+  trending, isLoadingTrending,
 }: any) {
   return (
     <View style={{ backgroundColor: colors.background }}>
@@ -226,6 +227,35 @@ function HomepageHeader({
         </View>
       )}
 
+      {/* ── Trending Now ── */}
+      {(isLoadingTrending || (trending && trending.length > 0)) && (
+        <View style={heroStyles.container}>
+          <View style={heroStyles.sectionRow}>
+            <Text style={[heroStyles.sectionLabel, { color: colors.mutedForeground }]}>{t("home.trending", "📈 Trending Now")}</Text>
+          </View>
+          {isLoadingTrending ? (
+            <View style={heroStyles.loading}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : (
+            <FlatList
+              data={trending ?? []}
+              keyExtractor={(item: any) => String(item.id)}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={heroStyles.list}
+              renderItem={({ item }: { item: any }) => (
+                <MiniProductCard
+                  product={item}
+                  colors={colors}
+                  onPress={() => router.push(`/product/${item.id}` as any)}
+                />
+              )}
+            />
+          )}
+        </View>
+      )}
+
       {/* ── All Products heading ── */}
       <View style={[heroStyles.allProductsHeader, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
         <Text style={[heroStyles.allTitle, { color: colors.foreground }]}>{t("home.all_products", "All Products")}</Text>
@@ -298,6 +328,12 @@ function CustomerShop() {
     { sortBy: "newest", limit: 8 } as any,
     { query: { enabled: !isShopMode } as any }
   );
+
+  const { data: trendingRaw, isLoading: isLoadingTrending } = useListProducts(
+    { sortBy: "highest_rated", limit: 8 } as any,
+    { query: { enabled: !isShopMode } as any }
+  );
+  const trending = (trendingRaw as any)?.data ?? trendingRaw ?? [];
 
   const {
     data: products = [],
@@ -475,6 +511,8 @@ function CustomerShop() {
       newArrivals={newArrivals}
       isLoadingBestSellers={isLoadingBestSellers}
       isLoadingNewArrivals={isLoadingNewArrivals}
+      trending={trending}
+      isLoadingTrending={isLoadingTrending}
     />
   );
 

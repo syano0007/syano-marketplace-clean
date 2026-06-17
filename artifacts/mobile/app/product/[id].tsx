@@ -26,6 +26,7 @@ import {
   getStorePreviewQueryKey,
   useStartConversation,
 } from "@workspace/api-client-react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useWishlist } from "@/contexts/WishlistContext";
@@ -121,6 +122,34 @@ export default function ProductDetailScreen() {
     [relatedProducts, id]
   );
 
+  const specsFromDescription = useMemo(() => {
+    if (!product?.description) return [];
+    const specs: Array<{ key: string; value: string }> = [];
+    for (const line of product.description.split(/\r?\n/)) {
+      const colonIdx = line.indexOf(":");
+      if (colonIdx > 0 && colonIdx < line.length - 1) {
+        const key = line.slice(0, colonIdx).trim();
+        const val = line.slice(colonIdx + 1).trim();
+        if (key.length >= 2 && key.length <= 30 && val.length >= 1 && val.length <= 120) {
+          specs.push({ key, value: val });
+        }
+      }
+    }
+    return specs;
+  }, [product?.description]);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    const STORAGE_KEY = "syano_recently_viewed";
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((raw) => {
+        const ids: number[] = raw ? (JSON.parse(raw) as number[]) : [];
+        const next = [product.id, ...ids.filter((i) => i !== product.id)].slice(0, 10);
+        void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      })
+      .catch(() => {});
+  }, [product?.id]);
+
   // Build image gallery (main image + variant images)
   const galleryImages = useMemo(() => {
     const imgs: string[] = [];
@@ -204,6 +233,8 @@ export default function ProductDetailScreen() {
     ? (!resolvedVariant || (resolvedVariant as any).stock === 0 || !(resolvedVariant as any).active)
     : (product?.stock ?? 0) === 0;
 
+  const isLowStock = !isOutOfStock && effectiveStock > 0 && effectiveStock <= 5;
+
   const hasDiscount = effectiveCompareAt != null && effectiveCompareAt > effectivePrice;
 
   function handleSelectOption(groupId: number, optionId: number) {
@@ -251,6 +282,25 @@ export default function ProductDetailScreen() {
         onError: () => {
           setMessagingPending(false);
           router.push("/(tabs)/messages");
+        },
+      }
+    );
+  }
+
+  function handleBuyNow() {
+    if (!product || needsVariantSelection || isOutOfStock) return;
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    addToCart.mutate(
+      {
+        data: {
+          productId: product.id,
+          quantity,
+          ...(resolvedVariant ? { variantId: (resolvedVariant as any).id } : {}),
+        } as any,
+      },
+      {
+        onSuccess: () => {
+          router.push("/(tabs)/cart" as any);
         },
       }
     );
@@ -521,10 +571,40 @@ export default function ProductDetailScreen() {
               <Text style={[styles.outOfStockText, { color: "#EF4444" }]}>{t("product.out_of_stock")}</Text>
             </View>
           )}
+          {/* Low stock warning */}
+          {isLowStock && (
+            <View style={[styles.outOfStockBanner, { backgroundColor: "#FEF3C7" }]}>
+              <Ionicons name="alert-circle-outline" size={16} color="#D97706" />
+              <Text style={[styles.outOfStockText, { color: "#D97706" }]}>
+                {t("product.low_stock", { count: String(effectiveStock) })}
+              </Text>
+            </View>
+          )}
 
           {/* Description */}
           <Text style={[styles.descriptionLabel, { color: colors.foreground }]}>{t("product.about")}</Text>
           <Text style={[styles.description, { color: colors.mutedForeground }]}>{product.description}</Text>
+
+          {/* Specs table */}
+          {specsFromDescription.length >= 2 && (
+            <View style={styles.specsSection}>
+              <Text style={[styles.descriptionLabel, { color: colors.foreground }]}>{t("product.specs")}</Text>
+              <View style={[styles.specsTable, { borderColor: colors.border }]}>
+                {specsFromDescription.map((spec, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.specRow,
+                      { borderBottomColor: colors.border, borderBottomWidth: i < specsFromDescription.length - 1 ? 1 : 0 },
+                    ]}
+                  >
+                    <Text style={[styles.specKey, { color: colors.mutedForeground }]}>{spec.key}</Text>
+                    <Text style={[styles.specValue, { color: colors.foreground }]}>{spec.value}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* ── Seller Card ────────────────────────────────────── */}
           <View style={[styles.sellerCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -582,7 +662,7 @@ export default function ProductDetailScreen() {
                   onPress={() => router.push(`/store/${storePreview!.storeSlug}` as any)}
                 >
                   <Ionicons name="storefront-outline" size={16} color={colors.primary} />
-                  <Text style={[styles.storeBtnText, { color: colors.primary }]}>View Store</Text>
+                  <Text style={[styles.storeBtnText, { color: colors.primary }]}>{t("product.view_store")}</Text>
                 </Pressable>
               )}
             </View>
@@ -664,7 +744,7 @@ export default function ProductDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Footer: Add to Cart */}
+      {/* Footer: Add to Cart + Buy Now */}
       {showFooter && (
         <View
           onLayout={handleFooterLayout}
@@ -700,6 +780,16 @@ export default function ProductDetailScreen() {
                 </Text>
               </>
             )}
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.buyNowBtn,
+              { borderColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+            ]}
+            onPress={handleBuyNow}
+            disabled={addToCart.isPending}
+          >
+            <Text style={[styles.buyNowText, { color: colors.primary }]}>{t("product.buy_now")}</Text>
           </Pressable>
         </View>
       )}
@@ -848,7 +938,14 @@ const styles = StyleSheet.create({
   qtyBtn: { width: 36, height: 36, borderRadius: 8, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   qtyText: { fontSize: 17, fontWeight: "700" as const, minWidth: 24, textAlign: "center" },
   addToCartBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 50, borderRadius: 14 },
-  addToCartText: { fontSize: 15, fontWeight: "700" as const },
+  addToCartText: { fontSize: 14, fontWeight: "700" as const },
+  buyNowBtn: { alignItems: "center", justifyContent: "center", paddingHorizontal: 14, height: 50, borderRadius: 14, borderWidth: 1.5 },
+  buyNowText: { fontSize: 13, fontWeight: "700" as const },
+  specsSection: { marginTop: 8, gap: 8 },
+  specsTable: { borderRadius: 12, borderWidth: 1, overflow: "hidden" },
+  specRow: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 10 },
+  specKey: { fontSize: 13, flex: 1 },
+  specValue: { fontSize: 13, fontWeight: "600" as const, flex: 1, textAlign: "right" },
   selectNudgeFooter: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 50, borderRadius: 14, paddingHorizontal: 16 },
   selectNudgeFooterText: { fontSize: 14, fontWeight: "600" as const },
 });

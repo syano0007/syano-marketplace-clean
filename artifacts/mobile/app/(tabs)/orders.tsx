@@ -6,6 +6,7 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -18,12 +19,13 @@ import { useColors } from "@/hooks/useColors";
 import { useScreenLayout } from "@/hooks/useScreenLayout";
 import { t } from "../../src/i18n";
 
-const ORDER_STATUSES = [
+type FilterGroup = "all" | "active" | "delivered" | "cancelled";
+
+const ACTIVE_STATUSES = new Set([
   "pending", "confirmed", "processing", "preparing",
-  "ready_for_pickup", "courier_assigned", "picked_up", "out_for_delivery",
-  "shipped", "delivered", "cancelled", "delivery_failed", "returned", "refunded",
-] as const;
-type OrderStatus = typeof ORDER_STATUSES[number];
+  "ready_for_pickup", "courier_assigned", "picked_up", "out_for_delivery", "shipped",
+]);
+const CANCELLED_STATUSES = new Set(["cancelled", "delivery_failed", "returned", "refunded"]);
 
 // Seller-facing advance transitions (not used in customer tab, kept for seller view)
 const STATUS_NEXT: Record<string, string | null> = {
@@ -53,15 +55,26 @@ const STATUS_COLOR: Record<string, string> = {
   refunded:         "#8B5CF6",
 };
 
+const FILTER_TABS: Array<{ key: FilterGroup; labelKey: string }> = [
+  { key: "all",       labelKey: "orders.tab_all" },
+  { key: "active",    labelKey: "orders.tab_active" },
+  { key: "delivered", labelKey: "orders.tab_delivered" },
+  { key: "cancelled", labelKey: "orders.tab_cancelled" },
+];
+
 export default function OrdersScreen() {
   const { isSeller } = useAuth();
   const colors = useColors();
   const { topPad, tabBarHeight } = useScreenLayout();
-  const [filter, setFilter] = useState<OrderStatus | "all">("all");
+  const [filter, setFilter] = useState<FilterGroup>("all");
   const { data: orders = [], isLoading, refetch, isRefetching } = useListOrders();
   const updateStatus = useUpdateOrderStatus();
 
-  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  const filtered =
+    filter === "all"       ? orders :
+    filter === "active"    ? orders.filter((o) => ACTIVE_STATUSES.has(o.status)) :
+    filter === "delivered" ? orders.filter((o) => o.status === "delivered") :
+    orders.filter((o) => CANCELLED_STATUSES.has(o.status));
 
   const handleAdvanceStatus = useCallback((order: Order) => {
     const next = STATUS_NEXT[order.status];
@@ -87,7 +100,7 @@ export default function OrdersScreen() {
           >
             <Ionicons name="arrow-forward-circle-outline" size={16} color="#fff" />
             <Text style={styles.advanceBtnText}>
-              Mark as {STATUS_NEXT[item.status]}
+              {t("orders.mark_as", { status: STATUS_NEXT[item.status] ?? "" })}
             </Text>
           </Pressable>
         )}
@@ -107,7 +120,7 @@ export default function OrdersScreen() {
             disabled={updateStatus.isPending}
           >
             <Text style={[styles.cancelText, { color: colors.destructive }]}>
-              Cancel Order
+              {t("orders.cancel_order")}
             </Text>
           </Pressable>
         )}
@@ -128,45 +141,29 @@ export default function OrdersScreen() {
           { paddingTop: topPad + 8, borderBottomColor: colors.border },
         ]}
       >
-        <Text style={[styles.title, { color: colors.foreground }]}>Orders</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>{t("orders.title")}</Text>
       </View>
 
       <View style={[styles.filterRow]}>
-        <FlatList
-          data={["all", ...ORDER_STATUSES] as const}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item}
-          contentContainerStyle={styles.filterScroll}
-          decelerationRate="fast"
-          renderItem={({ item }) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+          {FILTER_TABS.map(({ key, labelKey }) => (
             <Pressable
+              key={key}
               style={({ pressed }) => [
                 styles.filterChip,
                 {
-                  backgroundColor:
-                    filter === item ? colors.primary : colors.secondary,
+                  backgroundColor: filter === key ? colors.primary : colors.secondary,
                   opacity: pressed ? 0.8 : 1,
                 },
               ]}
-              onPress={() => setFilter(item as OrderStatus | "all")}
+              onPress={() => setFilter(key)}
             >
-              <Text
-                style={[
-                  styles.filterText,
-                  {
-                    color:
-                      filter === item
-                        ? colors.primaryForeground
-                        : colors.foreground,
-                  },
-                ]}
-              >
-                {item.charAt(0).toUpperCase() + item.slice(1)}
+              <Text style={[styles.filterText, { color: filter === key ? colors.primaryForeground : colors.foreground }]}>
+                {t(labelKey as any, key.charAt(0).toUpperCase() + key.slice(1))}
               </Text>
             </Pressable>
-          )}
-        />
+          ))}
+        </ScrollView>
       </View>
 
       {isLoading ? (
