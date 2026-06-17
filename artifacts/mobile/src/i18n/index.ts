@@ -145,6 +145,9 @@ const en = {
     courier_phone: "Courier Phone",
     delivery_zone: "Delivery Zone",
     delivery_fee: "Delivery fee",
+    order_summary: "Order Summary",
+    qty: "Qty",
+    history: "Order History",
   },
   messages: {
     type_message: "Type a message…",
@@ -337,6 +340,7 @@ const en = {
     unfollow: "Unfollow",
     followers: "Followers",
     products: "Products",
+    products_count: "products",
     completion: "Completion",
     tab_products: "Products",
     tab_about: "About",
@@ -353,6 +357,11 @@ const en = {
     communication: "Communication",
     shipping: "Shipping",
     professionalism: "Professionalism",
+  },
+  store_directory: {
+    title: "Stores",
+    search_placeholder: "Search stores...",
+    no_stores: "No stores found",
   },
   notifications: {
     title: "Notifications",
@@ -494,6 +503,7 @@ const en = {
     error_delete: "Failed to delete product",
     fulfill: "Mark Ready",
     mark_delivered: "Mark Delivered",
+    mark_ready_error: "Could not update order status",
     order_detail: "Order Detail",
     update_status: "Update Status",
     revenue_chart: "Revenue (7 days)",
@@ -743,6 +753,9 @@ const ar: DeepLeaf<typeof en> = {
     courier_phone: "هاتف المندوب",
     delivery_zone: "منطقة التوصيل",
     delivery_fee: "رسوم التوصيل",
+    order_summary: "ملخص الطلب",
+    qty: "الكمية",
+    history: "سجل الطلب",
   },
   messages: {
     type_message: "اكتب رسالة…",
@@ -951,6 +964,12 @@ const ar: DeepLeaf<typeof en> = {
     communication: "التواصل",
     shipping: "الشحن",
     professionalism: "الاحترافية",
+    products_count: "منتجات",
+  },
+  store_directory: {
+    title: "المتاجر",
+    search_placeholder: "ابحث عن متاجر...",
+    no_stores: "لا توجد متاجر",
   },
   notifications: {
     title: "الإشعارات",
@@ -1092,6 +1111,7 @@ const ar: DeepLeaf<typeof en> = {
     error_delete: "فشل حذف المنتج",
     fulfill: "تحديد كجاهز",
     mark_delivered: "تحديد كمُسلَّم",
+    mark_ready_error: "تعذّر تحديث حالة الطلب",
     order_detail: "تفاصيل الطلب",
     update_status: "تحديث الحالة",
     revenue_chart: "الإيرادات (7 أيام)",

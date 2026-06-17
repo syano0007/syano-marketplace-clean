@@ -44,7 +44,7 @@ export default function SellerProductsScreen() {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      const r = await fetch(`${getBaseUrl()}/sellers/products`, {
+      const r = await fetch(`${getBaseUrl()}/api/sellers/products`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (r.ok) {
@@ -68,7 +68,7 @@ export default function SellerProductsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const r = await fetch(`${getBaseUrl()}/sellers/products/${id}`, {
+              const r = await fetch(`${getBaseUrl()}/api/sellers/products/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
               });

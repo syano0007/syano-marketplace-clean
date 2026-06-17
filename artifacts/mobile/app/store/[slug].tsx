@@ -227,7 +227,7 @@ export default function StoreScreen() {
   const { data: storeData, isLoading: storeLoading } = useQuery<StoreData>({
     queryKey: ["store-by-slug", slug],
     queryFn: async () => {
-      const res = await fetch(`${getBaseUrl()}/sellers/store/${slug}`);
+      const res = await fetch(`${getBaseUrl()}/api/sellers/store/${slug}`);
       if (!res.ok) throw new Error("Store not found");
       return res.json();
     },
@@ -237,7 +237,7 @@ export default function StoreScreen() {
   const { data: productsData } = useQuery<{ data: StoreProduct[] } | StoreProduct[]>({
     queryKey: ["store-products", storeData?.sellerId],
     queryFn: async () => {
-      const res = await fetch(`${getBaseUrl()}/products?sellerId=${storeData!.sellerId}&limit=100`);
+      const res = await fetch(`${getBaseUrl()}/api/products?sellerId=${storeData!.sellerId}&limit=100`);
       if (!res.ok) throw new Error("Failed to load products");
       return res.json();
     },
@@ -247,7 +247,7 @@ export default function StoreScreen() {
   const { data: reviewsData } = useQuery<{ reviews: StoreReview[] }>({
     queryKey: ["store-reviews-slug", slug],
     queryFn: async () => {
-      const res = await fetch(`${getBaseUrl()}/sellers/store/${slug}/reviews`);
+      const res = await fetch(`${getBaseUrl()}/api/sellers/store/${slug}/reviews`);
       if (!res.ok) return { reviews: [] };
       return res.json();
     },

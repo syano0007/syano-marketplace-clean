@@ -72,7 +72,7 @@ export default function CourierMissionsScreen() {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const r = await fetch(`${getBaseUrl()}/couriers/assignments`, {
+      const r = await fetch(`${getBaseUrl()}/api/couriers/assignments`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (r.ok) setAssignments((await r.json()) as Assignment[]);
@@ -88,7 +88,7 @@ export default function CourierMissionsScreen() {
     try {
       const endpoint = action === "pickup" ? "pickup" :
                        action === "deliver" ? "deliver" : "fail-delivery";
-      const r = await fetch(`${getBaseUrl()}/couriers/assignments/${assignmentId}/${endpoint}`, {
+      const r = await fetch(`${getBaseUrl()}/api/couriers/assignments/${assignmentId}/${endpoint}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: extra ? JSON.stringify(extra) : undefined,
@@ -109,7 +109,7 @@ export default function CourierMissionsScreen() {
     setActionLoading(failModal);
     setFailModal(null);
     try {
-      const r = await fetch(`${getBaseUrl()}/couriers/assignments/${failModal}/fail-delivery`, {
+      const r = await fetch(`${getBaseUrl()}/api/couriers/assignments/${failModal}/fail-delivery`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ reason: failReason.trim() }),

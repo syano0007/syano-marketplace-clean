@@ -138,6 +138,7 @@ export default function ProfileScreen() {
         {isCustomer && (
           <MenuItem icon="cart-outline" label={t("profile.menu_cart")} onPress={() => router.push("/(tabs)/cart")} colors={colors} />
         )}
+        <MenuItem icon="storefront-outline" label={t("store_directory.title") || "Stores"} onPress={() => router.push("/stores" as never)} colors={colors} />
         <MenuItem icon="chatbubbles-outline" label={t("profile.menu_messages")} onPress={() => router.push("/(tabs)/messages")} colors={colors} />
         <MenuItem icon="notifications-outline" label={t("notifications.title")} onPress={() => router.push("/(tabs)/notifications")} colors={colors} />
         <MenuItem icon="settings-outline" label={t("settings_screen.title")} onPress={() => router.push("/settings")} colors={colors} />

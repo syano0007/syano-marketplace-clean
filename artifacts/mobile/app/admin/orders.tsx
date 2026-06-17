@@ -55,7 +55,7 @@ export default function AdminOrdersScreen() {
     if (isRefresh) setRefreshing(true);
     try {
       const status = activeTab !== "all" && activeTab !== "active" ? `?status=${activeTab}` : "";
-      const r = await fetch(`${getBaseUrl()}/admin/orders${status}&limit=50`, {
+      const r = await fetch(`${getBaseUrl()}/api/admin/orders${status}&limit=50`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (r.ok) {

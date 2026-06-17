@@ -64,7 +64,7 @@ export default function SellerOrdersScreen() {
 
   const handleMarkReady = async (orderId: number) => {
     try {
-      await fetch(`${getBaseUrl()}/orders/${orderId}/status`, {
+      await fetch(`${getBaseUrl()}/api/orders/${orderId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: "ready_for_pickup" }),
@@ -117,7 +117,7 @@ export default function SellerOrdersScreen() {
           renderItem={({ item }: { item: Order }) => (
             <Pressable
               style={({ pressed }) => [styles.orderCard, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.9 : 1 }]}
-              onPress={() => router.push(`/order/${item.id}` as never)}
+              onPress={() => router.push(`/seller/orders/${item.id}` as never)}
             >
               <View style={styles.orderTop}>
                 <Text style={[styles.orderId, { color: colors.foreground }]}>#{item.id}</Text>

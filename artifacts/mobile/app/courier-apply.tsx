@@ -40,7 +40,7 @@ export default function CourierApplyScreen() {
   useEffect(() => {
     if (isCourier) { router.replace("/courier/dashboard"); return; }
     if (!isAuthenticated) { setChecking(false); return; }
-    fetch(`${getBaseUrl()}/couriers/profile`, {
+    fetch(`${getBaseUrl()}/api/couriers/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => { if (r.ok) router.replace("/courier-application-status"); })
@@ -54,7 +54,7 @@ export default function CourierApplyScreen() {
     }
     setSubmitting(true);
     try {
-      const res = await fetch(`${getBaseUrl()}/couriers/apply`, {
+      const res = await fetch(`${getBaseUrl()}/api/couriers/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ phone: phone.trim(), vehicleType, district: district.trim() || null }),

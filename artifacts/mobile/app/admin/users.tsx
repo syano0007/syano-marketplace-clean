@@ -47,7 +47,7 @@ export default function AdminUsersScreen() {
     if (isRefresh) setRefreshing(true);
     try {
       const q = search.trim() ? `?search=${encodeURIComponent(search.trim())}` : "";
-      const r = await fetch(`${getBaseUrl()}/admin/users${q}`, {
+      const r = await fetch(`${getBaseUrl()}/api/admin/users${q}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (r.ok) {
@@ -76,7 +76,7 @@ export default function AdminUsersScreen() {
           onPress: async () => {
             setActionLoading(user.id);
             try {
-              await fetch(`${getBaseUrl()}/admin/users/${user.id}/${action}`, {
+              await fetch(`${getBaseUrl()}/api/admin/users/${user.id}/${action}`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` },
               });

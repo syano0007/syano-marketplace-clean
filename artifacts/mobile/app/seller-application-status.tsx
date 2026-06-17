@@ -28,7 +28,7 @@ export default function SellerApplicationStatusScreen() {
 
   useEffect(() => {
     if (!isAuthenticated) { setLoading(false); return; }
-    fetch(`${getBaseUrl()}/sellers/application`, {
+    fetch(`${getBaseUrl()}/api/sellers/application`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (r) => {

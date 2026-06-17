@@ -47,7 +47,7 @@ export default function EditProductScreen() {
 
   useEffect(() => {
     if (!id) return;
-    fetch(`${getBaseUrl()}/products/${id}`)
+    fetch(`${getBaseUrl()}/api/products/${id}`)
       .then(async (r) => {
         if (r.ok) {
           const p = await r.json() as {
@@ -82,7 +82,7 @@ export default function EditProductScreen() {
       };
       if (imageUrl.trim()) body.imageUrls = [imageUrl.trim()];
 
-      const r = await fetch(`${getBaseUrl()}/sellers/products/${id}`, {
+      const r = await fetch(`${getBaseUrl()}/api/sellers/products/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),

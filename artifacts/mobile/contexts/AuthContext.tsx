@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import type { AuthResponse, User } from "@workspace/api-client-react";
+import { getBaseUrl } from "@workspace/api-client-react";
 
 interface AuthContextType {
   user: User | null;
@@ -67,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedToken = await AsyncStorage.getItem("token");
     if (!storedToken) return;
     try {
-      const res = await fetch(`/api/auth/me`, {
+      const res = await fetch(`${getBaseUrl()}/api/auth/me`, {
         headers: { Authorization: `Bearer ${storedToken}` },
       });
       if (res.ok) {

@@ -34,7 +34,7 @@ export default function CourierApplicationStatusScreen() {
   useEffect(() => {
     if (isCourier) { router.replace("/courier/dashboard"); return; }
     if (!isAuthenticated) { setLoading(false); return; }
-    fetch(`${getBaseUrl()}/couriers/profile`, {
+    fetch(`${getBaseUrl()}/api/couriers/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (r) => {

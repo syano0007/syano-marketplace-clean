@@ -73,7 +73,7 @@ export default function RegisterScreen() {
       if (isEmail) body.email = trimmedId;
       else body.phone = trimmedId;
 
-      const res = await fetch(`${getBaseUrl()}/auth/register`, {
+      const res = await fetch(`${getBaseUrl()}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

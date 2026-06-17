@@ -80,7 +80,7 @@ export default function SellerApplyScreen() {
 
   useEffect(() => {
     if (!isAuthenticated) { setChecking(false); return; }
-    fetch(`${getBaseUrl()}/sellers/application`, {
+    fetch(`${getBaseUrl()}/api/sellers/application`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => {
@@ -115,7 +115,7 @@ export default function SellerApplyScreen() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${getBaseUrl()}/sellers/apply`, {
+      const res = await fetch(`${getBaseUrl()}/api/sellers/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({

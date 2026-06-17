@@ -56,7 +56,7 @@ export default function AdminSellersScreen() {
     if (isRefresh) setRefreshing(true);
     try {
       const q = activeTab !== "all" ? `?status=${activeTab}` : "";
-      const r = await fetch(`${getBaseUrl()}/admin/seller-applications${q}`, {
+      const r = await fetch(`${getBaseUrl()}/api/admin/seller-applications${q}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (r.ok) {
@@ -81,7 +81,7 @@ export default function AdminSellersScreen() {
           onPress: async () => {
             setActionLoading(app.id);
             try {
-              const r = await fetch(`${getBaseUrl()}/admin/seller-applications/${app.id}`, {
+              const r = await fetch(`${getBaseUrl()}/api/admin/seller-applications/${app.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ status: action === "approve" ? "approved" : "rejected" }),

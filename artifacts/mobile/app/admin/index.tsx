@@ -79,8 +79,8 @@ export default function AdminDashboardScreen() {
   const load = useCallback(async () => {
     try {
       const [statsRes, ordersRes] = await Promise.all([
-        fetch(`${getBaseUrl()}/admin/stats`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${getBaseUrl()}/admin/orders?limit=5`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${getBaseUrl()}/api/admin/stats`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${getBaseUrl()}/api/admin/orders?limit=5`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       if (statsRes.ok) setStats((await statsRes.json()) as AdminStats);
       if (ordersRes.ok) {

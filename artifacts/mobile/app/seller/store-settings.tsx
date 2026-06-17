@@ -70,7 +70,7 @@ export default function StoreSettingsScreen() {
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch(`${getBaseUrl()}/sellers/store-settings`, {
+      const r = await fetch(`${getBaseUrl()}/api/sellers/store-settings`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (r.ok) {
@@ -92,7 +92,7 @@ export default function StoreSettingsScreen() {
     if (!storeName.trim()) { Alert.alert(t("seller_dash.store_name")); return; }
     setSaving(true);
     try {
-      const r = await fetch(`${getBaseUrl()}/sellers/store-settings`, {
+      const r = await fetch(`${getBaseUrl()}/api/sellers/store-settings`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({

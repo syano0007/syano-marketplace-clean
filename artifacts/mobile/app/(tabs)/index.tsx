@@ -36,7 +36,7 @@ interface CategorySuggestion { slug: string; labelEn: string; labelAr: string }
 interface MobileSuggestions { suggestions: SuggestionItem[]; categories: CategorySuggestion[] }
 
 function recordMobileSearchClick(searchLogId: number): void {
-  fetch(`${getBaseUrl()}/search/click`, {
+  fetch(`${getBaseUrl()}/api/search/click`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ searchLogId }),
@@ -298,7 +298,7 @@ function CustomerShop() {
     }
     suggestTimeout.current = setTimeout(async () => {
       try {
-        const res = await fetch(`${getBaseUrl()}/search/suggestions?q=${encodeURIComponent(debouncedSearch)}`);
+        const res = await fetch(`${getBaseUrl()}/api/search/suggestions?q=${encodeURIComponent(debouncedSearch)}`);
         if (!res.ok) return;
         const data = await res.json() as { suggestions?: SuggestionItem[]; categories?: CategorySuggestion[]; searchLogId?: number | null };
         setMobileSuggestions({ suggestions: data.suggestions ?? [], categories: data.categories ?? [] });
@@ -311,7 +311,7 @@ function CustomerShop() {
   useEffect(() => {
     if (debouncedSearch.length < 2) { setRelatedSearches([]); return; }
     let cancelled = false;
-    fetch(`${getBaseUrl()}/search/related?q=${encodeURIComponent(debouncedSearch)}&limit=5`)
+    fetch(`${getBaseUrl()}/api/search/related?q=${encodeURIComponent(debouncedSearch)}&limit=5`)
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (!cancelled && d?.related) setRelatedSearches(d.related); })
       .catch(() => {});

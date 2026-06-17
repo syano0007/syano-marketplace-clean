@@ -149,7 +149,7 @@ export default function WishlistScreen() {
     if (ids.length === 0) { setProducts([]); return; }
     setLoading(true);
     if (isAuthenticated) {
-      fetch(`${getBaseUrl()}/wishlist`, { headers: authHeaders(), credentials: "include" })
+      fetch(`${getBaseUrl()}/api/wishlist`, { headers: authHeaders(), credentials: "include" })
         .then((r) => (r.ok ? r.json() : []))
         .then((data: WishlistProduct[]) => setProducts(Array.isArray(data) ? data : []))
         .catch(() => setProducts([]))
@@ -157,7 +157,7 @@ export default function WishlistScreen() {
     } else {
       Promise.all(
         ids.map((id) =>
-          fetch(`${getBaseUrl()}/products/${id}`)
+          fetch(`${getBaseUrl()}/api/products/${id}`)
             .then((r) => (r.ok ? r.json() : null))
             .catch(() => null)
         )

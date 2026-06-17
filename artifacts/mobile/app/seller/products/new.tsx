@@ -88,7 +88,7 @@ export default function NewProductScreen() {
       };
       if (imageUrl.trim()) body.imageUrls = [imageUrl.trim()];
 
-      const r = await fetch(`${getBaseUrl()}/sellers/products`, {
+      const r = await fetch(`${getBaseUrl()}/api/sellers/products`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),

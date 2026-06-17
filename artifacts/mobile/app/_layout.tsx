@@ -74,6 +74,9 @@ function RootLayoutNav() {
       <Stack.Screen name="admin/users" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="admin/orders" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="admin/sellers" options={{ animation: "slide_from_right" }} />
+      {/* Parity Close — Seller Order Detail + Stores Directory */}
+      <Stack.Screen name="seller/orders/[id]" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="stores/index" options={{ animation: "slide_from_right" }} />
     </Stack>
   );
 }

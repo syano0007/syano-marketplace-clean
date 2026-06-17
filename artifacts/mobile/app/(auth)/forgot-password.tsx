@@ -14,13 +14,12 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getBaseUrl } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { t } from "../../src/i18n";
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? "";
-
 async function apiPost(path: string, body: object) {
-  const res = await fetch(`${API_BASE}/api${path}`, {
+  const res = await fetch(`${getBaseUrl()}/api${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

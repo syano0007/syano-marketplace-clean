@@ -40,7 +40,7 @@ export default function CourierHistoryScreen() {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const r = await fetch(`${getBaseUrl()}/couriers/history`, {
+      const r = await fetch(`${getBaseUrl()}/api/couriers/history`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (r.ok) setHistory((await r.json()) as DeliveryRecord[]);

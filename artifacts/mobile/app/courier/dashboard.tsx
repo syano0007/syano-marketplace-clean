@@ -79,8 +79,8 @@ export default function CourierDashboardScreen() {
     if (!isRefresh) setLoading(true);
     try {
       const [profileRes, offersRes] = await Promise.all([
-        fetch(`${getBaseUrl()}/couriers/profile`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${getBaseUrl()}/couriers/offers`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${getBaseUrl()}/api/couriers/profile`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${getBaseUrl()}/api/couriers/offers`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       if (profileRes.ok) setStats((await profileRes.json()) as CourierStats);
       if (offersRes.ok) setOffers((await offersRes.json()) as MissionOffer[]);
@@ -95,7 +95,7 @@ export default function CourierDashboardScreen() {
     const newStatus = stats.status === "ONLINE" ? "OFFLINE" : "ONLINE";
     setToggling(true);
     try {
-      const r = await fetch(`${getBaseUrl()}/couriers/status`, {
+      const r = await fetch(`${getBaseUrl()}/api/couriers/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: newStatus }),
@@ -108,7 +108,7 @@ export default function CourierDashboardScreen() {
   const handleAcceptOffer = async (offer: MissionOffer) => {
     setAccepting(offer.id);
     try {
-      const r = await fetch(`${getBaseUrl()}/couriers/offers/${offer.id}/accept`, {
+      const r = await fetch(`${getBaseUrl()}/api/couriers/offers/${offer.id}/accept`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -127,7 +127,7 @@ export default function CourierDashboardScreen() {
 
   const handleRejectOffer = async (offerId: number) => {
     try {
-      await fetch(`${getBaseUrl()}/couriers/offers/${offerId}/reject`, {
+      await fetch(`${getBaseUrl()}/api/couriers/offers/${offerId}/reject`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });

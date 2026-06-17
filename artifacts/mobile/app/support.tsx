@@ -49,7 +49,7 @@ export default function SupportScreen() {
   const loadTickets = async () => {
     if (!isAuthenticated) { setLoading(false); return; }
     try {
-      const r = await fetch(`${getBaseUrl()}/support/tickets`, {
+      const r = await fetch(`${getBaseUrl()}/api/support/tickets`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (r.ok) {
@@ -86,7 +86,7 @@ export default function SupportScreen() {
     setSending(true);
 
     try {
-      const r = await fetch(`${getBaseUrl()}/support/message`, {
+      const r = await fetch(`${getBaseUrl()}/api/support/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ message: text, ticketId: activeTicket?.id ?? null }),
