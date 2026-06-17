@@ -77,6 +77,21 @@ function RootLayoutNav() {
       {/* Parity Close — Seller Order Detail + Stores Directory */}
       <Stack.Screen name="seller/orders/[id]" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="stores/index" options={{ animation: "slide_from_right" }} />
+      {/* Parity Finalization — New screens */}
+      <Stack.Screen name="verify" options={{ animation: "fade" }} />
+      <Stack.Screen name="categories" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="customer-dashboard" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="about" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="contact" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="help" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="privacy-policy" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="terms" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="returns" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="cookies" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="admin/courier-applications" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="admin/verification" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="admin/support" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="seller/trust" options={{ animation: "slide_from_right" }} />
     </Stack>
   );
 }

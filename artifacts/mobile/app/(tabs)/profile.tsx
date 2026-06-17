@@ -136,8 +136,12 @@ export default function ProfileScreen() {
       <View style={styles.menuSection}>
         <MenuItem icon="receipt-outline" label={t("profile.menu_orders")} onPress={() => router.push("/(tabs)/orders")} colors={colors} />
         {isCustomer && (
+          <MenuItem icon="grid-outline" label={t("customer_dashboard.title")} onPress={() => router.push("/customer-dashboard" as never)} colors={colors} />
+        )}
+        {isCustomer && (
           <MenuItem icon="cart-outline" label={t("profile.menu_cart")} onPress={() => router.push("/(tabs)/cart")} colors={colors} />
         )}
+        <MenuItem icon="layers-outline" label={t("categories.title")} onPress={() => router.push("/categories" as never)} colors={colors} />
         <MenuItem icon="storefront-outline" label={t("store_directory.title") || "Stores"} onPress={() => router.push("/stores" as never)} colors={colors} />
         <MenuItem icon="chatbubbles-outline" label={t("profile.menu_messages")} onPress={() => router.push("/(tabs)/messages")} colors={colors} />
         <MenuItem icon="notifications-outline" label={t("notifications.title")} onPress={() => router.push("/(tabs)/notifications")} colors={colors} />
@@ -155,6 +159,7 @@ export default function ProfileScreen() {
             <MenuItem icon="bar-chart-outline" label={t("seller_dash.analytics")} onPress={() => router.push("/seller/analytics")} colors={colors} />
             <MenuItem icon="star-outline" label={t("seller_dash.reviews")} onPress={() => router.push("/seller/reviews")} colors={colors} />
             <MenuItem icon="storefront-outline" label={t("seller_dash.store_settings")} onPress={() => router.push("/seller/store-settings")} colors={colors} />
+            <MenuItem icon="shield-checkmark-outline" label={t("seller_trust.title")} onPress={() => router.push("/seller/trust" as never)} colors={colors} />
           </View>
         </>
       )}
@@ -191,9 +196,24 @@ export default function ProfileScreen() {
             <MenuItem icon="people-outline" label={t("admin_dash.users")} onPress={() => router.push("/admin/users")} colors={colors} />
             <MenuItem icon="receipt-outline" label={t("admin_dash.orders")} onPress={() => router.push("/admin/orders")} colors={colors} />
             <MenuItem icon="storefront-outline" label={t("admin_dash.sellers")} onPress={() => router.push("/admin/sellers")} colors={colors} />
+            <MenuItem icon="car-outline" label={t("courier_applications.page_title")} onPress={() => router.push("/admin/courier-applications" as never)} colors={colors} />
+            <MenuItem icon="shield-outline" label={t("seller_verification.page_title")} onPress={() => router.push("/admin/verification" as never)} colors={colors} />
+            <MenuItem icon="ticket-outline" label={t("admin_support.page_title")} onPress={() => router.push("/admin/support" as never)} colors={colors} />
           </View>
         </>
       )}
+
+      {/* ── About & Legal ─────────────────────────────────── */}
+      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>About</Text>
+      <View style={styles.menuSection}>
+        <MenuItem icon="information-circle-outline" label={t("about.badge")} onPress={() => router.push("/about" as never)} colors={colors} />
+        <MenuItem icon="mail-outline" label={t("contact.hero_title")} onPress={() => router.push("/contact" as never)} colors={colors} />
+        <MenuItem icon="help-circle-outline" label={t("help.title")} onPress={() => router.push("/help" as never)} colors={colors} />
+        <MenuItem icon="document-text-outline" label={t("privacy.title")} onPress={() => router.push("/privacy-policy" as never)} colors={colors} />
+        <MenuItem icon="document-outline" label={t("terms.title")} onPress={() => router.push("/terms" as never)} colors={colors} />
+        <MenuItem icon="refresh-outline" label={t("returns.title")} onPress={() => router.push("/returns" as never)} colors={colors} />
+        <MenuItem icon="pie-chart-outline" label={t("cookies.title")} onPress={() => router.push("/cookies" as never)} colors={colors} />
+      </View>
 
       {/* ── Sign out ──────────────────────────────────────── */}
       <Pressable

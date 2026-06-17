@@ -45,6 +45,24 @@ Phase M6: Mobile Admin Systems — COMPLETE ✅ (June 17, 2026)
   - admin/sellers.tsx (seller applications: approve/reject workflow)
   - profile.tsx: all role menus (seller/courier/admin/customer) wired to new screens
 Mobile Parity: 33% → ~85% (all role systems complete; remaining: search, checkout refinements, deep links)
+Phase Mx: Mobile Parity Finalization — COMPLETE ✅ (June 17, 2026)
+  - 14 new screens: verify, categories, customer-dashboard, about, contact, help, privacy-policy, terms, returns, cookies, admin/courier-applications, admin/verification, admin/support, seller/trust
+  - verify.tsx: redirect to home (verification disabled — matches web)
+  - categories.tsx: full grid page with /search/filter-options API
+  - customer-dashboard.tsx: stats (totalOrders, totalSpent, pending, delivered) + recent orders list
+  - about.tsx: hero, stats (500+ sellers, 10K+ products), 5 value cards
+  - contact.tsx: 3 contact channels + bilingual contact form with validation
+  - help.tsx: FAQ center — 5 categories, 5 Q&As each, client-side search + collapsible items
+  - admin/courier-applications.tsx: 4-tab (pending/approved/rejected/suspended) approve/reject/suspend
+  - admin/verification.tsx: seller trust tier management (basic/verified/business) with search + filter
+  - admin/support.tsx: support ticket list with status tabs + resolve/close actions
+  - seller/trust.tsx: trust score breakdown with per-component score bars
+  - privacy-policy.tsx / terms.tsx / returns.tsx / cookies.tsx: bilingual content (EN+AR), no i18n bloat
+  - _layout.tsx: 14 new Stack.Screen registrations
+  - i18n: 14 new namespaces (customer_dashboard, categories, verify, about, contact, help, privacy, terms, returns, cookies, courier_applications, seller_verification, admin_support, seller_trust) — EN + AR parity
+  - profile.tsx: customer-dashboard, categories, seller/trust, admin/courier-applications, admin/verification, admin/support, + About/Legal section (about, contact, help, privacy, terms, returns, cookies)
+  - TypeScript: 0 errors | Expo: bundled cleanly
+Mobile Parity: ~85% → ~95% (all major screens implemented)
 
 ---
 
