@@ -83,58 +83,142 @@ function SectionHeader({ label, onSeeAll, seeAllLabel, colors }: SectionHeaderPr
   );
 }
 
+// ─── Rich Section Header (eyebrow + h2 + see-all, matches web pattern) ───────
+interface RichSectionHeaderProps {
+  eyebrow: string;
+  title: string;
+  onSeeAll?: () => void;
+  seeAllLabel?: string;
+  colors: ReturnType<typeof useColors>;
+}
+function RichSectionHeader({ eyebrow, title, onSeeAll, seeAllLabel, colors }: RichSectionHeaderProps) {
+  return (
+    <View style={richHeaderStyles.container}>
+      <Text style={[richHeaderStyles.eyebrow, { color: colors.primary }]}>{eyebrow}</Text>
+      <View style={richHeaderStyles.titleRow}>
+        <Text style={[richHeaderStyles.title, { color: colors.foreground }]} numberOfLines={1}>{title}</Text>
+        {onSeeAll && (
+          <Pressable onPress={onSeeAll}>
+            <Text style={[richHeaderStyles.seeAll, { color: colors.primary }]}>
+              {seeAllLabel ?? t("home.categories_see_all")} →
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+}
+
 // ─── Hero Banner Section ─────────────────────────────────────────────────────
+const HERO_IMAGES = [
+  "https://images.pexels.com/photos/1649771/pexels-photo-1649771.jpeg?auto=compress&cs=tinysrgb&w=900&h=600&fit=crop",
+  "https://images.pexels.com/photos/1926769/pexels-photo-1926769.jpeg?auto=compress&cs=tinysrgb&w=900&h=600&fit=crop",
+  "https://images.pexels.com/photos/3059609/pexels-photo-3059609.jpeg?auto=compress&cs=tinysrgb&w=900&h=600&fit=crop",
+  "https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=900&h=600&fit=crop",
+  "https://images.pexels.com/photos/1407305/pexels-photo-1407305.jpeg?auto=compress&cs=tinysrgb&w=900&h=600&fit=crop",
+];
+
 function HeroBannerSection({ colors }: { colors: ReturnType<typeof useColors> }) {
   const locale = getLocale();
   const isAr = locale === "ar";
+  const [slideIdx, setSlideIdx] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setSlideIdx((i) => (i + 1) % HERO_IMAGES.length), 5000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
-    <View style={[heroStyles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[heroStyles.container, { borderColor: colors.border }]}>
+      {/* Background image carousel */}
+      <Image source={{ uri: HERO_IMAGES[slideIdx] }} style={heroStyles.bgImage} resizeMode="cover" />
+      {/* Dark overlay so text stays readable */}
+      <View style={heroStyles.darkOverlay} />
+      {/* Subtle emerald glow blobs */}
       <View style={heroStyles.glowOverlay} pointerEvents="none">
         <View style={heroStyles.glow1} />
         <View style={heroStyles.glow2} />
       </View>
+
+      {/* Discount badge — top left, mirrors web */}
+      <View style={[heroStyles.discountBadge, { backgroundColor: colors.primary }]}>
+        <Text style={heroStyles.discountBadgeText}>{isAr ? "خصم لغاية 50%" : "Up to 50% Off"}</Text>
+      </View>
+
       <View style={heroStyles.content}>
-        <View style={[heroStyles.badge, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "35" }]}>
+        {/* SYANO brand badge */}
+        <View style={[heroStyles.badge, { backgroundColor: "rgba(255,255,255,0.12)", borderColor: "rgba(255,255,255,0.25)" }]}>
           <View style={[heroStyles.dot, { backgroundColor: colors.primary }]} />
-          <Text style={[heroStyles.badgeText, { color: colors.primary }]}>SYANO</Text>
+          <Text style={[heroStyles.badgeText, { color: "#fff" }]}>SYANO</Text>
         </View>
-        <Text style={[heroStyles.tagline, { color: colors.foreground, textAlign: isAr ? "right" : "left" }]}>
+
+        {/* Tagline — matches web gradient headline style */}
+        <Text style={[heroStyles.tagline, { color: "#fff", textAlign: isAr ? "right" : "left" }]}>
           {t("home.hero_tagline")}
         </Text>
-        <Text style={[heroStyles.subtitle, { color: colors.mutedForeground, textAlign: isAr ? "right" : "left" }]}>
+        <Text style={[heroStyles.subtitle, { color: "rgba(255,255,255,0.8)", textAlign: isAr ? "right" : "left" }]}>
           {t("home.hero_subtitle")}
         </Text>
-        <View style={[heroStyles.statsRow, { borderTopColor: colors.border }]}>
-          <HeroStat value={t("home.stats_sellers")} colors={colors} />
-          <View style={[heroStyles.statDivider, { backgroundColor: colors.border }]} />
-          <HeroStat value={t("home.stats_products")} colors={colors} />
-          <View style={[heroStyles.statDivider, { backgroundColor: colors.border }]} />
-          <HeroStat value={t("home.stats_customers")} colors={colors} />
+
+        {/* CTA Buttons — matches web "Shop Now" + "Explore Stores" */}
+        <View style={[heroStyles.ctaRow, { flexDirection: isAr ? "row-reverse" : "row" }]}>
+          <Pressable
+            style={({ pressed }) => [heroStyles.ctaPrimary, { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 }]}
+            onPress={() => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+          >
+            <Text style={heroStyles.ctaPrimaryText}>{t("home.shop_now")}</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [heroStyles.ctaSecondary, { borderColor: "rgba(255,255,255,0.35)", opacity: pressed ? 0.75 : 1 }]}
+            onPress={() => router.push("/store-directory" as any)}
+          >
+            <Text style={heroStyles.ctaSecondaryText}>{t("home.explore_stores")}</Text>
+          </Pressable>
+        </View>
+
+        {/* Stats row — value + label, matches web 3-stat pattern */}
+        <View style={[heroStyles.statsRow, { borderTopColor: "rgba(255,255,255,0.18)" }]}>
+          <HeroStat value={t("home.stats_sellers")} label={t("home.hero_stat_stores")} colors={colors} />
+          <View style={[heroStyles.statDivider, { backgroundColor: "rgba(255,255,255,0.2)" }]} />
+          <HeroStat value={t("home.stats_products")} label={t("home.hero_stat_products")} colors={colors} />
+          <View style={[heroStyles.statDivider, { backgroundColor: "rgba(255,255,255,0.2)" }]} />
+          <HeroStat value={t("home.stats_customers")} label={t("home.hero_stat_customers")} colors={colors} />
+        </View>
+
+        {/* Carousel progress dots */}
+        <View style={heroStyles.dotsRow}>
+          {HERO_IMAGES.map((_, i) => (
+            <Pressable
+              key={i}
+              onPress={() => setSlideIdx(i)}
+              style={[heroStyles.slideDot, { width: i === slideIdx ? 20 : 6, backgroundColor: i === slideIdx ? colors.primary : "rgba(255,255,255,0.4)" }]}
+            />
+          ))}
         </View>
       </View>
     </View>
   );
 }
 
-function HeroStat({ value, colors }: { value: string; colors: ReturnType<typeof useColors> }) {
+function HeroStat({ value, label, colors }: { value: string; label?: string; colors: ReturnType<typeof useColors> }) {
   return (
     <View style={heroStyles.statItem}>
       <Text style={[heroStyles.statValue, { color: colors.primary }]}>{value}</Text>
+      {label ? <Text style={heroStyles.statLabel}>{label}</Text> : null}
     </View>
   );
 }
 
 // ─── Category Grid Section ───────────────────────────────────────────────────
 const CATEGORY_DEFS = [
-  { nameEn: "Electronics",          nameAr: "الإلكترونيات",    img: "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=300&fit=crop&auto=format&q=80", color: "#3b82f6", slug: "Electronics" },
-  { nameEn: "Fashion",              nameAr: "الأزياء",          img: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=300&fit=crop&auto=format&q=80", color: "#ec4899", slug: "Fashion" },
-  { nameEn: "Beauty",               nameAr: "التجميل",          img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=300&fit=crop&auto=format&q=80", color: "#f59e0b", slug: "Beauty & Personal Care" },
-  { nameEn: "Home & Kitchen",       nameAr: "المنزل والمطبخ",  img: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop&auto=format&q=80", color: "#8b5cf6", slug: "Home & Kitchen" },
-  { nameEn: "Sports",               nameAr: "الرياضة",          img: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400&h=300&fit=crop&auto=format&q=80", color: "#10b981", slug: "Sports & Fitness" },
-  { nameEn: "Accessories",          nameAr: "الإكسسوارات",     img: "https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=400&h=300&fit=crop&auto=format&q=80", color: "#f97316", slug: "Accessories" },
-  { nameEn: "Phones",               nameAr: "الهواتف",          img: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop&auto=format&q=80", color: "#06b6d4", slug: "Electronics" },
-  { nameEn: "Computers",            nameAr: "الحواسيب",         img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=300&fit=crop&auto=format&q=80", color: "#a855f7", slug: "Electronics" },
+  { nameEn: "Electronics",          nameAr: "الإلكترونيات",    img: "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=300&fit=crop&auto=format&q=80", color: "#3b82f6", slug: "Electronics",          countKey: "home.categories_count_electronics" as const },
+  { nameEn: "Fashion",              nameAr: "الأزياء",          img: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=300&fit=crop&auto=format&q=80", color: "#ec4899", slug: "Fashion",               countKey: "home.categories_count_fashion"      as const },
+  { nameEn: "Beauty",               nameAr: "التجميل",          img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=300&fit=crop&auto=format&q=80", color: "#f59e0b", slug: "Beauty & Personal Care", countKey: "home.categories_count_beauty"       as const },
+  { nameEn: "Home & Kitchen",       nameAr: "المنزل والمطبخ",  img: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop&auto=format&q=80", color: "#8b5cf6", slug: "Home & Kitchen",         countKey: "home.categories_count_home"         as const },
+  { nameEn: "Sports",               nameAr: "الرياضة",          img: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400&h=300&fit=crop&auto=format&q=80", color: "#10b981", slug: "Sports & Fitness",       countKey: "home.categories_count_sports"       as const },
+  { nameEn: "Accessories",          nameAr: "الإكسسوارات",     img: "https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=400&h=300&fit=crop&auto=format&q=80", color: "#f97316", slug: "Accessories",            countKey: "home.categories_count_accessories"  as const },
+  { nameEn: "Phones",               nameAr: "الهواتف",          img: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop&auto=format&q=80", color: "#06b6d4", slug: "Electronics",          countKey: "home.categories_count_phones"       as const },
+  { nameEn: "Computers",            nameAr: "الحواسيب",         img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=300&fit=crop&auto=format&q=80", color: "#a855f7", slug: "Electronics",          countKey: "home.categories_count_computers"    as const },
 ];
 
 interface CategoryGridProps {
@@ -148,8 +232,9 @@ function CategoryGridSection({ colors, onSelectCategory }: CategoryGridProps) {
 
   return (
     <View style={[catGridStyles.container, { backgroundColor: colors.background }]}>
-      <SectionHeader
-        label={t("home.popular_categories")}
+      <RichSectionHeader
+        eyebrow={t("home.categories_eyebrow")}
+        title={t("home.categories_title")}
         onSeeAll={() => router.push("/categories")}
         seeAllLabel={t("home.categories_see_all")}
         colors={colors}
@@ -167,6 +252,9 @@ function CategoryGridSection({ colors, onSelectCategory }: CategoryGridProps) {
             <View style={catGridStyles.textWrap}>
               <Text style={catGridStyles.catName} numberOfLines={1}>
                 {isAr ? cat.nameAr : cat.nameEn}
+              </Text>
+              <Text style={catGridStyles.catCount} numberOfLines={1}>
+                {t(cat.countKey)}
               </Text>
             </View>
           </Pressable>
@@ -274,8 +362,9 @@ function FeaturedDealsSection({ products, colors, onAddToCart }: FeaturedDealsSe
   return (
     <View style={[dealStyles.section, { backgroundColor: colors.background }]}>
       <View style={dealStyles.header}>
-        <SectionHeader
-          label={t("home.featured_deals")}
+        <RichSectionHeader
+          eyebrow={t("home.deals_eyebrow")}
+          title={t("home.deals_title")}
           onSeeAll={() => router.push("/(tabs)/index" as any)}
           seeAllLabel={t("home.deals_see_all")}
           colors={colors}
@@ -298,9 +387,9 @@ function FeaturedDealsSection({ products, colors, onAddToCart }: FeaturedDealsSe
 
 // ─── Featured Stores Section ──────────────────────────────────────────────────
 const STATIC_STORES = [
-  { id: 1, name: "تك ستور سوريا", nameEn: "Tech Store Syria", categoryAr: "إلكترونيات", categoryEn: "Electronics", rating: 4.9, reviews: 1840, productCount: 3240, coverImg: "https://images.unsplash.com/photo-1684395882817-030e24c0322a?w=600&h=200&fit=crop&auto=format&q=80", logoColor: "#3b82f6", logoInitial: "ت", verified: true },
-  { id: 2, name: "دار الأناقة", nameEn: "Elegance House",     categoryAr: "أزياء",       categoryEn: "Fashion",     rating: 4.8, reviews: 2210, productCount: 1890, coverImg: "https://images.unsplash.com/photo-1768745294179-693a07a3f054?w=600&h=200&fit=crop&auto=format&q=80", logoColor: "#ec4899", logoInitial: "د", verified: true },
-  { id: 3, name: "بيت الديكور",   nameEn: "Décor Home",        categoryAr: "ديكور منزلي", categoryEn: "Home Decor",  rating: 4.7, reviews: 956,  productCount: 2140, coverImg: "https://images.unsplash.com/photo-1724582586529-62622e50c0b3?w=600&h=200&fit=crop&auto=format&q=80", logoColor: "#8b5cf6", logoInitial: "ب", verified: true },
+  { id: 1, name: "تك ستور سوريا", nameEn: "Tech Store Syria", taglineAr: "أحدث الإلكترونيات والأجهزة الذكية", taglineEn: "Latest electronics & smart devices", categoryAr: "إلكترونيات", categoryEn: "Electronics", rating: 4.9, reviews: 1840, productCount: 3240, coverImg: "https://images.unsplash.com/photo-1684395882817-030e24c0322a?w=600&h=200&fit=crop&auto=format&q=80", logoColor: "#3b82f6", logoInitial: "ت", verified: true },
+  { id: 2, name: "دار الأناقة", nameEn: "Elegance House",     taglineAr: "أزياء فاخرة وموضة معاصرة للجميع",  taglineEn: "Luxury fashion & contemporary style", categoryAr: "أزياء",       categoryEn: "Fashion",     rating: 4.8, reviews: 2210, productCount: 1890, coverImg: "https://images.unsplash.com/photo-1768745294179-693a07a3f054?w=600&h=200&fit=crop&auto=format&q=80", logoColor: "#ec4899", logoInitial: "د", verified: true },
+  { id: 3, name: "بيت الديكور",   nameEn: "Décor Home",        taglineAr: "أثاث عصري وإكسسوارات منزلية راقية", taglineEn: "Modern furniture & premium home décor", categoryAr: "ديكور منزلي", categoryEn: "Home Decor",  rating: 4.7, reviews: 956,  productCount: 2140, coverImg: "https://images.unsplash.com/photo-1724582586529-62622e50c0b3?w=600&h=200&fit=crop&auto=format&q=80", logoColor: "#8b5cf6", logoInitial: "ب", verified: true },
 ];
 
 function FeaturedStoresSection({ colors }: { colors: ReturnType<typeof useColors> }) {
@@ -309,8 +398,9 @@ function FeaturedStoresSection({ colors }: { colors: ReturnType<typeof useColors
 
   return (
     <View style={[storeStyles.section, { backgroundColor: colors.background }]}>
-      <SectionHeader
-        label={t("home.trusted_stores")}
+      <RichSectionHeader
+        eyebrow={t("home.stores_eyebrow")}
+        title={t("home.stores_title")}
         onSeeAll={() => router.push("/store-directory" as any)}
         seeAllLabel={t("home.stores_see_all")}
         colors={colors}
@@ -351,8 +441,9 @@ function FeaturedStoresSection({ colors }: { colors: ReturnType<typeof useColors
               <Text style={[storeStyles.storeName, { color: colors.foreground }]} numberOfLines={1}>
                 {isAr ? store.name : store.nameEn}
               </Text>
-              <Text style={[storeStyles.storeCategory, { color: colors.mutedForeground }]} numberOfLines={1}>
-                {isAr ? store.categoryAr : store.categoryEn}
+              {/* Tagline — matches web store card description */}
+              <Text style={[storeStyles.storeTagline, { color: colors.mutedForeground }]} numberOfLines={2}>
+                {isAr ? store.taglineAr : store.taglineEn}
               </Text>
               <View style={[storeStyles.divider, { borderTopColor: colors.border }]} />
               <View style={storeStyles.statsRow}>
@@ -607,8 +698,9 @@ function HomepageHeader({
 
       {/* ── Hot Deals / Best Sellers carousel ── */}
       <View style={heroStyles2.container}>
-        <SectionHeader
-          label={t("home.hot_deals")}
+        <RichSectionHeader
+          eyebrow={t("home.hot_deals_eyebrow")}
+          title={t("home.hot_deals_title")}
           onSeeAll={() => setActiveCategory(null)}
           seeAllLabel={t("home.categories_see_all")}
           colors={colors}
@@ -637,8 +729,9 @@ function HomepageHeader({
 
       {/* ── New Arrivals ── */}
       <View style={heroStyles2.container}>
-        <SectionHeader
-          label={t("home.new_arrivals")}
+        <RichSectionHeader
+          eyebrow={t("home.arrivals_eyebrow")}
+          title={t("home.arrivals_title")}
           onSeeAll={() => setActiveCategory(null)}
           seeAllLabel={t("home.categories_see_all")}
           colors={colors}
@@ -658,8 +751,9 @@ function HomepageHeader({
 
       {/* ── Trending Now ── */}
       <View style={heroStyles2.container}>
-        <SectionHeader
-          label={t("home.trending")}
+        <RichSectionHeader
+          eyebrow={t("home.trending_eyebrow")}
+          title={t("home.trending_title")}
           onSeeAll={() => setActiveCategory(null)}
           seeAllLabel={t("home.categories_see_all")}
           colors={colors}
@@ -1191,20 +1285,32 @@ const headerStyles = StyleSheet.create({
 });
 
 const heroStyles = StyleSheet.create({
-  container: { borderRadius: 16, borderWidth: 1, overflow: "hidden", position: "relative" },
+  container: { borderRadius: 16, borderWidth: 1, overflow: "hidden", position: "relative", minHeight: 220 },
+  bgImage: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" } as any,
+  darkOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.58)" },
   glowOverlay: { position: "absolute", inset: 0 } as any,
-  glow1: { position: "absolute", top: -30, left: "25%", width: 200, height: 120, borderRadius: 100, backgroundColor: "#10b98108" },
-  glow2: { position: "absolute", bottom: -20, right: "20%", width: 150, height: 80, borderRadius: 75, backgroundColor: "#10b98106" },
+  glow1: { position: "absolute", top: -30, left: "25%", width: 200, height: 120, borderRadius: 100, backgroundColor: "#10b98110" },
+  glow2: { position: "absolute", bottom: -20, right: "20%", width: 150, height: 80, borderRadius: 75, backgroundColor: "#10b9810a" },
+  discountBadge: { position: "absolute", top: 14, left: 14, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, zIndex: 10 },
+  discountBadgeText: { color: "#000", fontSize: 11, fontWeight: "800" as const },
   content: { padding: 20, gap: 8 },
   badge: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, marginBottom: 4 },
   dot: { width: 6, height: 6, borderRadius: 3 },
   badgeText: { fontSize: 11, fontWeight: "700" as const, letterSpacing: 1 },
-  tagline: { fontSize: 22, fontWeight: "800" as const, letterSpacing: -0.5, lineHeight: 28 },
-  subtitle: { fontSize: 13, fontWeight: "400" as const, lineHeight: 18, opacity: 0.8 },
+  tagline: { fontSize: 24, fontWeight: "800" as const, letterSpacing: -0.5, lineHeight: 30 },
+  subtitle: { fontSize: 13, fontWeight: "400" as const, lineHeight: 18 },
+  ctaRow: { flexDirection: "row", gap: 10, marginTop: 14, flexWrap: "wrap" },
+  ctaPrimary: { paddingHorizontal: 20, paddingVertical: 11, borderRadius: 50, alignItems: "center", justifyContent: "center" },
+  ctaPrimaryText: { color: "#000", fontSize: 14, fontWeight: "700" as const },
+  ctaSecondary: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 50, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  ctaSecondaryText: { color: "#fff", fontSize: 13, fontWeight: "500" as const },
   statsRow: { flexDirection: "row", alignItems: "center", paddingTop: 14, marginTop: 6, borderTopWidth: StyleSheet.hairlineWidth },
-  statItem: { flex: 1, alignItems: "center" },
-  statValue: { fontSize: 13, fontWeight: "700" as const },
-  statDivider: { width: 1, height: 24 },
+  statItem: { flex: 1, alignItems: "center", gap: 2 },
+  statValue: { fontSize: 14, fontWeight: "800" as const },
+  statLabel: { fontSize: 10, fontWeight: "400" as const, color: "rgba(255,255,255,0.7)", textAlign: "center" as const },
+  statDivider: { width: 1, height: 28 },
+  dotsRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 12 },
+  slideDot: { height: 4, borderRadius: 2 },
 });
 
 const heroStyles2 = StyleSheet.create({
@@ -1224,6 +1330,7 @@ const catGridStyles = StyleSheet.create({
   colorBar: { position: "absolute", bottom: 0, left: 0, right: 0, height: 2 },
   textWrap: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 10 },
   catName: { color: "#fff", fontSize: 13, fontWeight: "700" as const },
+  catCount: { color: "rgba(255,255,255,0.72)", fontSize: 11, fontWeight: "400" as const, marginTop: 2 },
 });
 
 const dealStyles = StyleSheet.create({
@@ -1252,7 +1359,7 @@ const dealStyles = StyleSheet.create({
 const storeStyles = StyleSheet.create({
   section: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 4 },
   list: { gap: 10, paddingBottom: 6, paddingRight: 4 },
-  card: { width: 210, borderRadius: 14, borderWidth: 1, overflow: "hidden" },
+  card: { width: 220, borderRadius: 14, borderWidth: 1, overflow: "hidden" },
   coverWrap: { height: 90, position: "relative" },
   cover: { width: "100%", height: "100%" },
   coverOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.35)" },
@@ -1268,6 +1375,7 @@ const storeStyles = StyleSheet.create({
   reviewCount: { fontSize: 11 },
   storeName: { fontSize: 14, fontWeight: "800" as const },
   storeCategory: { fontSize: 12 },
+  storeTagline: { fontSize: 11, lineHeight: 15, marginTop: 2, marginBottom: 2 },
   divider: { borderTopWidth: StyleSheet.hairlineWidth, marginVertical: 6 },
   statsRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   statsText: { fontSize: 11 },
@@ -1332,6 +1440,14 @@ const statStyles = StyleSheet.create({
   iconWrap: { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   value: { fontSize: 22, fontWeight: "700" as const, marginTop: 4 },
   label: { fontSize: 12 },
+});
+
+const richHeaderStyles = StyleSheet.create({
+  container: { marginBottom: 14 },
+  eyebrow: { fontSize: 11, fontWeight: "700" as const, letterSpacing: 1.2, textTransform: "uppercase" as const, marginBottom: 4 },
+  titleRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
+  title: { fontSize: 22, fontWeight: "800" as const, letterSpacing: -0.5, flex: 1 },
+  seeAll: { fontSize: 13, fontWeight: "600" as const },
 });
 
 const dashStyles = StyleSheet.create({
