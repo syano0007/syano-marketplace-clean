@@ -40,14 +40,14 @@ export const OrderCard = React.memo(function OrderCard({ order, children }: Orde
         </View>
         <View style={[styles.statusBadge, { backgroundColor: `${statusColor}22` }]}>
           <Text style={[styles.statusText, { color: statusColor }]}>
-            {t(`orders.status_${order.status}`) || order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+            {t(`orders.status_${order.status}` as never) || order.status.charAt(0).toUpperCase() + order.status.slice(1)}
           </Text>
         </View>
       </View>
 
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-      {order.items.map((item) => (
+      {order.items.map((item: any) => (
         <View key={item.productId} style={styles.itemRow}>
           <Text
             style={[styles.itemName, { color: colors.foreground }]}

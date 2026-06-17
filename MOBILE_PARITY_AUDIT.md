@@ -1,4 +1,4 @@
-# SYANO — Mobile Parity Audit (Phase M1)
+# SYANO — Mobile Parity Audit (Phase M2/M4/M5/M6)
 Last audited: June 17, 2026
 
 ---
@@ -12,7 +12,7 @@ Last audited: June 17, 2026
 | 3 | `/register` | Registration form | Public | ✅ YES — `(auth)/register` |
 | 4 | `/verify` | Email/phone OTP verification | Public | ❌ NO |
 | 5 | `/forgot-password` | Password reset via OTP | Public | ✅ YES — `(auth)/forgot-password` |
-| 6 | `/account-suspended` | Suspended account notice | Public | ❌ NO |
+| 6 | `/account-suspended` | Suspended account notice | Public | ✅ YES — `account-suspended` — suspension gate, sign-out + contact CTA |
 | 7 | `/shop` | Full search/shop page with NLP, filters, semantic search | Public | PARTIAL — basic search + sort chips in Home tab; no full NLP banner, no advanced filter panel |
 | 8 | `/search` | Alias for `/shop` | Public | PARTIAL |
 | 9 | `/products` | Alias for `/shop` | Public | PARTIAL |
@@ -25,38 +25,38 @@ Last audited: June 17, 2026
 | 16 | `/customer/dashboard` | Customer stats, recent activity | Customer | ❌ NO |
 | 17 | `/wishlist` | Saved products list | Customer | ✅ YES — `(tabs)/wishlist` — full list, remove, add-to-cart, empty state |
 | 18 | `/messages` | Messaging inbox — conversations, typing, read receipts, attachments | Customer | ✅ YES — `(tabs)/messages` — full V2 parity |
-| 19 | `/support` | AI Support chat + ticket tracking | Customer | ❌ NO |
+| 19 | `/support` | AI Support chat + ticket tracking | Customer | ✅ YES — `support` — AI chat, message history, intent detection, escalation |
 | 20 | `/store/:slug` | Store page — products, reviews, follow, trust badge | Public | ✅ COMPLETE — `store/[slug]` ✅, follow/unfollow button ✅, trust badge ✅ |
 | 21 | `/stores` | Stores directory / listing | Public | ❌ NO |
-| 22 | `/seller/apply` | Seller application form | Customer | ❌ NO |
-| 23 | `/seller/application-status` | Seller application status tracker | Customer | ❌ NO |
-| 24 | `/seller/dashboard` | Seller dashboard — stats, orders, revenue | Seller | PARTIAL — stats only in Home tab index via `useGetSellerDashboard`; no navigation to seller pages |
-| 25 | `/seller/products` | Seller product list | Seller | ❌ NO |
-| 26 | `/seller/products/new` | Create new product | Seller | ❌ NO |
-| 27 | `/seller/products/:id/edit` | Edit product — details, variants, images | Seller | ❌ NO |
-| 28 | `/seller/orders` | Seller order management | Seller | ❌ NO |
-| 29 | `/seller/orders/:id` | Seller order detail — status update, fulfillment | Seller | ❌ NO |
-| 30 | `/seller/inventory` | Inventory tracking | Seller | ❌ NO |
-| 31 | `/seller/messages` | Seller messaging inbox | Seller | ❌ NO (uses shared messages tab, but seller-specific view missing) |
-| 32 | `/seller/analytics` | Sales analytics charts | Seller | ❌ NO |
-| 33 | `/seller/reviews` | Review management with reply | Seller | ❌ NO |
-| 34 | `/seller/store-settings` | Store profile, SEO, social, policies | Seller | ❌ NO |
+| 22 | `/seller/apply` | Seller application form | Customer | ✅ YES — `seller-apply` — store name, description, city, categories |
+| 23 | `/seller/application-status` | Seller application status tracker | Customer | ✅ YES — `seller-application-status` — live polling, status card, approved CTA |
+| 24 | `/seller/dashboard` | Seller dashboard — stats, orders, revenue | Seller | ✅ YES — profile.tsx seller menu + `seller/analytics` stats |
+| 25 | `/seller/products` | Seller product list | Seller | ✅ YES — `seller/products` — list, delete, low-stock indicator |
+| 26 | `/seller/products/new` | Create new product | Seller | ✅ YES — `seller/products/new` — form with category chips |
+| 27 | `/seller/products/:id/edit` | Edit product — details, variants, images | Seller | ✅ YES — `seller/products/[id]/edit` — pre-filled form |
+| 28 | `/seller/orders` | Seller order management | Seller | ✅ YES — `seller/orders` — tabbed filter, mark-ready action |
+| 29 | `/seller/orders/:id` | Seller order detail — status update, fulfillment | Seller | PARTIAL — no dedicated order detail page yet |
+| 30 | `/seller/inventory` | Inventory tracking | Seller | ❌ NO — covered by stock field in product edit |
+| 31 | `/seller/messages` | Seller messaging inbox | Seller | ✅ YES — shared `(tabs)/messages` tab works for all roles |
+| 32 | `/seller/analytics` | Sales analytics charts | Seller | ✅ YES — `seller/analytics` — revenue/orders/products stats + 7-day bar chart |
+| 33 | `/seller/reviews` | Review management with reply | Seller | ✅ YES — `seller/reviews` — summary, rating bars, reply modal |
+| 34 | `/seller/store-settings` | Store profile, SEO, social, policies | Seller | ✅ YES — `seller/store-settings` — name/desc/logo/banner/city/website |
 | 35 | `/seller/trust` | Trust score breakdown | Seller | ❌ NO |
 | 36 | `/seller/how-to-sell` | Seller onboarding guide | Public | ❌ NO |
 | 37 | `/seller/terms` | Seller terms of service | Public | ❌ NO |
 | 38 | `/seller/center` | Seller resource center | Public | ❌ NO |
 | 39 | `/seller/commission` | Commission structure page | Public | ❌ NO |
 | 40 | `/seller/faq` | Seller FAQ | Public | ❌ NO |
-| 41 | `/courier/apply` | Courier application form | Customer | ❌ NO |
-| 42 | `/courier/application-status` | Courier application status | Customer | ❌ NO |
-| 43 | `/courier/dashboard` | Courier ops — availability, missions, earnings | Courier | ❌ NO |
-| 44 | `/admin` | Admin dashboard — KPIs, stats | Admin | ❌ NO |
-| 45 | `/admin/users` | User management | Admin | ❌ NO |
+| 41 | `/courier/apply` | Courier application form | Customer | ✅ YES — `courier-apply` — vehicle, zones, phone, license |
+| 42 | `/courier/application-status` | Courier application status | Customer | ✅ YES — `courier-application-status` — status card + approved CTA to dashboard |
+| 43 | `/courier/dashboard` | Courier ops — availability, missions, earnings | Courier | ✅ YES — `courier/dashboard` ✅ + `courier/missions` ✅ + `courier/history` ✅ |
+| 44 | `/admin` | Admin dashboard — KPIs, stats | Admin | ✅ YES — `admin/index` — stats, quick-nav, pending badge, recent orders |
+| 45 | `/admin/users` | User management | Admin | ✅ YES — `admin/users` — search, suspend/activate, role badges |
 | 46 | `/admin/products` | Product moderation | Admin | ❌ NO |
-| 47 | `/admin/orders` | All orders management | Admin | ❌ NO |
+| 47 | `/admin/orders` | All orders management | Admin | ✅ YES — `admin/orders` — horizontal status tabs, order list |
 | 48 | `/admin/logs` | Audit log viewer | Admin | ❌ NO |
 | 49 | `/admin/settings` | Platform settings | Admin | ❌ NO |
-| 50 | `/admin/sellers` | Seller management | Admin | ❌ NO |
+| 50 | `/admin/sellers` | Seller management | Admin | ✅ YES — `admin/sellers` — approve/reject applications |
 | 51 | `/admin/analytics` | Platform analytics | Admin | ❌ NO |
 | 52 | `/admin/search-analytics` | Search query analytics | Admin | ❌ NO |
 | 53 | `/admin/courier-applications` | Courier application list | Admin | ❌ NO |

@@ -118,7 +118,7 @@ export default function ProductDetailScreen() {
   );
 
   const filteredRelated = useMemo(
-    () => (relatedProducts ?? []).filter((p) => p.id !== Number(id)).slice(0, 5),
+    () => (relatedProducts ?? []).filter((p: any) => p.id !== Number(id)).slice(0, 5),
     [relatedProducts, id]
   );
 
@@ -360,7 +360,7 @@ export default function ProductDetailScreen() {
     null;
 
   const avgRating = reviews?.length
-    ? reviews.reduce((s, r: any) => s + (r.rating ?? 0), 0) / reviews.length
+    ? reviews.reduce((s: number, r: any) => s + (r.rating ?? 0), 0) / reviews.length
     : null;
 
   return (

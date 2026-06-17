@@ -43,23 +43,37 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen
         name="product/[id]"
-        options={{
-          presentation: "modal",
-          animation: "slide_from_bottom",
-        }}
+        options={{ presentation: "modal", animation: "slide_from_bottom" }}
       />
-      <Stack.Screen
-        name="checkout"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="order-success"
-        options={{ animation: "fade", gestureEnabled: false }}
-      />
-      <Stack.Screen
-        name="order/[id]"
-        options={{ animation: "slide_from_right" }}
-      />
+      <Stack.Screen name="checkout" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="order-success" options={{ animation: "fade", gestureEnabled: false }} />
+      <Stack.Screen name="order/[id]" options={{ animation: "slide_from_right" }} />
+      {/* Phase M2 */}
+      <Stack.Screen name="settings" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="account-suspended" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="seller-apply" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="seller-application-status" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="courier-apply" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="courier-application-status" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="support" options={{ animation: "slide_from_right" }} />
+      {/* Phase M4 — Seller */}
+      <Stack.Screen name="seller/products" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="seller/products/new" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="seller/products/[id]/edit" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="seller/orders" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="seller/orders/[id]" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="seller/analytics" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="seller/reviews" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="seller/store-settings" options={{ animation: "slide_from_right" }} />
+      {/* Phase M5 — Courier */}
+      <Stack.Screen name="courier/dashboard" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="courier/missions" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="courier/history" options={{ animation: "slide_from_right" }} />
+      {/* Phase M6 — Admin */}
+      <Stack.Screen name="admin/index" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="admin/users" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="admin/orders" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="admin/sellers" options={{ animation: "slide_from_right" }} />
     </Stack>
   );
 }

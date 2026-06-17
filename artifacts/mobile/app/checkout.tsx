@@ -47,7 +47,7 @@ export default function CheckoutScreen() {
   const notesRef = useRef<TextInput>(null);
 
   const locale = getLocale();
-  const selectedZone = zones.find((z) => z.id === selectedZoneId) ?? null;
+  const selectedZone = zones.find((z: any) => z.id === selectedZoneId) ?? null;
   const zoneName = selectedZone
     ? (locale === "ar" ? selectedZone.nameAr : selectedZone.nameEn)
     : null;
@@ -84,7 +84,7 @@ export default function CheckoutScreen() {
         },
       },
       {
-        onSuccess: async (order) => {
+        onSuccess: async (order: any) => {
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           router.replace({
             pathname: "/order-success",
@@ -298,7 +298,7 @@ export default function CheckoutScreen() {
 
             {/* Items */}
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              {cart.items.map((item) => (
+              {cart.items.map((item: any) => (
                 <View key={item.productId} style={styles.itemRow}>
                   <Text style={[styles.itemName, { color: colors.foreground }]} numberOfLines={1}>
                     {item.product.name}

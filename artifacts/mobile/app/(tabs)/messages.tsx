@@ -317,7 +317,7 @@ function ChatView({
     uploadMut.mutate(
       { filename, mimeType, size: fileSize, data: asset.base64 },
       {
-        onSuccess: (att) => {
+        onSuccess: (att: any) => {
           sendMut.mutate({ body: "", attachmentId: att.id });
           setIsUploading(false);
         },
@@ -567,7 +567,7 @@ export default function MessagesScreen() {
   });
 
   const source = filter === "archived" ? (archivedConvs ?? []) : (convs ?? []);
-  const displayList = filter === "unread" ? source.filter((c) => c.unreadCount > 0) : source;
+  const displayList = filter === "unread" ? source.filter((c: any) => c.unreadCount > 0) : source;
 
   const activeConv = [...(convs ?? []), ...(archivedConvs ?? [])].find((c) => c.id === activeConvId) ?? null;
 

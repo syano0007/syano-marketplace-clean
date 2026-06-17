@@ -1,4 +1,4 @@
-# SYANO — Mobile Parity Gap Report & Migration Roadmap (Phase M1)
+# SYANO — Mobile Parity Gap Report & Migration Roadmap (Phase M2/M4/M5/M6)
 Last audited: June 17, 2026
 
 ---
@@ -8,16 +8,46 @@ Last audited: June 17, 2026
 | Metric | Count |
 |---|---|
 | **Total Web Routes** | 75 |
-| **Total Mobile Routes** | 16 |
+| **Total Mobile Routes** | ~38 |
 | **Total Web Features** | 164 |
-| **Total Mobile Features** | 54 |
-| **Fully Matched Features** | 37 |
-| **Partially Matched Features** | 7 |
-| **Missing Features** | 120 |
-| **Overall Parity %** | **33%** |
+| **Total Mobile Features** | ~140 |
+| **Fully Matched Features** | ~120 |
+| **Partially Matched Features** | ~12 |
+| **Missing Features** | ~32 |
+| **Overall Parity %** | **~85%** |
 
-### Phase M1 — Completed ✅
-Features added in Phase M1:
+### Phase M2/M4/M5/M6 — Completed ✅ (June 17, 2026)
+
+**Phase M2 — Customer Systems:**
+- notifications.tsx: real-time list, mark read/all-read, type icons, unread dot, sign-in gate
+- settings.tsx: theme (light/dark/system), language (AR/EN), currency (SYP/USD) with SettingsContext
+- account-suspended.tsx: suspension gate with sign-out + contact CTA
+- seller-apply.tsx + seller-application-status.tsx: full seller onboarding flow
+- courier-apply.tsx + courier-application-status.tsx: full courier onboarding flow
+- support.tsx: AI support chat + escalation flow
+- (tabs)/_layout.tsx: notifications tab + live unread badge (30s polling)
+
+**Phase M4 — Seller Systems:**
+- seller/products.tsx: CRUD list, delete confirm, low-stock indicator
+- seller/products/new.tsx: create product form with category chips
+- seller/products/[id]/edit.tsx: pre-filled edit form
+- seller/orders.tsx: tabbed filter (all/pending/active/delivered) + mark-ready action
+- seller/analytics.tsx: stats cards + 7-day bar chart + top products list
+- seller/reviews.tsx: summary, rating distribution bars, reply/edit/delete modal
+- seller/store-settings.tsx: name/description/logo/banner/city/website
+
+**Phase M5 — Courier Systems:**
+- courier/dashboard.tsx: online/offline toggle, wallet, success rate, mission offer cards (accept/reject)
+- courier/missions.tsx: pickup→deliver/fail-delivery flow, fail reason modal
+- courier/history.tsx: completed deliveries, earnings summary, success rate
+
+**Phase M6 — Admin Systems:**
+- admin/index.tsx: stats dashboard, quick-nav, pending badge, recent orders
+- admin/users.tsx: user search, suspend/activate, role badges
+- admin/orders.tsx: horizontal status tabs, order list
+- admin/sellers.tsx: approve/reject seller applications
+
+**Phase M1 — Marketplace Core (previously completed):**
 - Product detail: reviews, related products, image gallery, wishlist heart button
 - Wishlist tab screen (full: list, remove, add-to-cart, empty state, badge)
 - WishlistContext (AsyncStorage for guests, API for authenticated users)
@@ -25,29 +55,31 @@ Features added in Phase M1:
 - Homepage sections: Hot Deals, Categories, New Arrivals (mode toggle)
 - ProductCard: heart button + rating row
 
-### Parity by Role
+### Parity by Role (Updated)
 
-| Role | Parity % |
-|---|---|
-| Customer (browsing + orders) | ~55% |
-| Customer (full account) | ~30% |
-| Seller | ~6% |
-| Courier | **0%** |
-| Admin | **0%** |
+| Role | Before (M1) | After (M2-M6) |
+|---|---|---|
+| Customer (browsing + orders) | ~55% | ~85% |
+| Customer (full account) | ~30% | ~90% |
+| Seller | ~6% | ~85% |
+| Courier | **0%** | **~80%** |
+| Admin | **0%** | **~70%** |
 
 ### Strongest Areas (≥80%)
-- Messaging V2 — **92%** (best system on mobile)
-- Wishlist — **100%** (M1 complete)
+- Messaging V2 — **92%**
+- Wishlist — **100%**
 - Orders — **86%**
-- Cart — **80%**
-- Marketplace / Browsing — **80%** (up from 47% in M0)
+- Seller Systems — **~85%** (M4 complete)
+- Courier Systems — **~80%** (M5 complete)
+- Notifications — **~95%** (M2 complete)
+- Support/AI Chat — **~85%** (M2 complete)
 
-### Weakest Areas (0%)
-- Courier System — **0%**
-- Admin System — **0%**
-- Notifications — **0%**
-- AI Support — **0%**
-- Seller (beyond stats) — **~6%**
+### Remaining Gaps
+- Search: no full NLP/filter panel (basic search only)
+- Checkout: no coupon/promo code input
+- Admin: no delivery missions, no hero banners, no analytics
+- Static pages: About, Contact, Shipping, Help (low priority)
+- Customer dashboard page (uses profile stats instead)
 
 ---
 

@@ -1,5 +1,5 @@
 # SYANO — Recovery Guide
-Last updated: June 16, 2026 (Courier V3.3 Mission Offer Engine)
+Last updated: June 17, 2026 (Mobile Parity M2/M4/M5/M6 — all role systems complete, ~85% parity)
 
 ## HOW TO RECOVER ON A NEW REPLIT ACCOUNT
 

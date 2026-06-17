@@ -37,6 +37,36 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 
 ---
 
+## Phase M2 — Mobile Customer Systems — COMPLETE ✅
+- notifications.tsx (list, mark-read, mark-all-read, type icons, badge) ✅
+- settings.tsx (theme/language/currency, SettingsContext sync)          ✅
+- account-suspended.tsx (gate screen)                                   ✅
+- seller-apply.tsx + seller-application-status.tsx                      ✅
+- courier-apply.tsx + courier-application-status.tsx                    ✅
+- support.tsx (AI chat + escalation)                                    ✅
+- (tabs)/_layout.tsx: notifications tab + unread badge                  ✅
+- i18n: 10 new namespaces EN+AR (notifications, settings_screen, seller_apply, seller_status, courier_apply, courier_status, support, seller_dash, courier_dash, admin_dash) ✅
+
+## Phase M4 — Mobile Seller Systems — COMPLETE ✅
+- seller/products.tsx (CRUD list, delete confirm, low-stock warning)    ✅
+- seller/products/new.tsx (create form, category chips)                 ✅
+- seller/products/[id]/edit.tsx (pre-filled edit form)                  ✅
+- seller/orders.tsx (tabbed filter, mark-ready action)                  ✅
+- seller/analytics.tsx (stats cards, bar chart, top products)           ✅
+- seller/reviews.tsx (summary, rating bars, reply modal)                ✅
+- seller/store-settings.tsx (name/desc/logo/banner/city/website)        ✅
+
+## Phase M5 — Mobile Courier Systems — COMPLETE ✅
+- courier/dashboard.tsx (online toggle, wallet, offers accept/reject)   ✅
+- courier/missions.tsx (pickup/deliver/fail-delivery, fail reason modal) ✅
+- courier/history.tsx (delivery history, earnings summary)              ✅
+
+## Phase M6 — Mobile Admin Systems — COMPLETE ✅
+- admin/index.tsx (stats, quick-nav, pending badge, recent orders)      ✅
+- admin/users.tsx (search, suspend/activate, role badges)               ✅
+- admin/orders.tsx (horizontal status tabs, order list)                 ✅
+- admin/sellers.tsx (approve/reject applications)                       ✅
+
 ## Phase M1 — Mobile Parity (Marketplace Core) — COMPLETE ✅
 - WishlistContext (AsyncStorage + API, guest + auth)                  ✅
 - Wishlist tab screen (list, remove, add-to-cart, empty state, badge) ✅

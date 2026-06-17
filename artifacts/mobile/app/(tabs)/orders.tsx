@@ -72,9 +72,9 @@ export default function OrdersScreen() {
 
   const filtered =
     filter === "all"       ? orders :
-    filter === "active"    ? orders.filter((o) => ACTIVE_STATUSES.has(o.status)) :
-    filter === "delivered" ? orders.filter((o) => o.status === "delivered") :
-    orders.filter((o) => CANCELLED_STATUSES.has(o.status));
+    filter === "active"    ? orders.filter((o: any) => ACTIVE_STATUSES.has(o.status)) :
+    filter === "delivered" ? orders.filter((o: any) => o.status === "delivered") :
+    orders.filter((o: any) => CANCELLED_STATUSES.has(o.status));
 
   const handleAdvanceStatus = useCallback((order: Order) => {
     const next = STATUS_NEXT[order.status];

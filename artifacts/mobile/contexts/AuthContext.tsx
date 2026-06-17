@@ -14,9 +14,12 @@ interface AuthContextType {
   token: string | null;
   login: (authResponse: AuthResponse) => Promise<void>;
   logout: () => Promise<void>;
+  refreshAuth: () => Promise<void>;
   isAuthenticated: boolean;
   isSeller: boolean;
   isCustomer: boolean;
+  isCourier: boolean;
+  isAdmin: boolean;
   isReady: boolean;
 }
 
@@ -60,18 +63,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.multiRemove(["token", "user"]);
   }, []);
 
+  const refreshAuth = useCallback(async () => {
+    const storedToken = await AsyncStorage.getItem("token");
+    if (!storedToken) return;
+    try {
+      const res = await fetch(`/api/auth/me`, {
+        headers: { Authorization: `Bearer ${storedToken}` },
+      });
+      if (res.ok) {
+        const data = (await res.json()) as User;
+        setUser(data);
+        await AsyncStorage.setItem("user", JSON.stringify(data));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const contextValue = useMemo(
     () => ({
       user,
       token,
       login,
       logout,
+      refreshAuth,
       isAuthenticated: !!token,
       isSeller: user?.role === "seller",
       isCustomer: user?.role === "customer",
+      isCourier: user?.role === "courier",
+      isAdmin: user?.role === "admin",
       isReady,
     }),
-    [user, token, login, logout, isReady]
+    [user, token, login, logout, refreshAuth, isReady]
   );
 
   return (

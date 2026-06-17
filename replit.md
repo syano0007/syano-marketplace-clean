@@ -17,8 +17,34 @@ Phase M0.5: Mobile Auth Parity — COMPLETE ✅ (June 17, 2026)
   - Register: removed role selector, added email/phone identifier, fixed all hardcoded strings → i18n, min password 6→8 chars, matched web error codes (email_taken, phone_taken, rate_limited)
   - i18n: added 25+ missing auth keys + orders.review_* + store.review_* + store.communication/shipping/professionalism; fixed t() to accept string|Record as 2nd arg
   - TypeScript: 0 errors (excluding pre-existing TS6305 lib build errors)
-  - Docs: MOBILE_PARITY_STATUS.md + ROUTE_PARITY_REPORT.md created
-Next task: Phase M0.6 (profile language/currency switcher) or Phase M0.7 (product detail wishlist heart)
+Phase M2: Mobile Customer Systems — COMPLETE ✅ (June 17, 2026)
+  - notifications.tsx (real-time list, mark read/all-read, type icons, unread dot)
+  - settings.tsx (theme/language/currency switcher, SettingsContext sync)
+  - account-suspended.tsx (suspension gate with contact CTA)
+  - seller-apply.tsx + seller-application-status.tsx (full seller onboarding flow)
+  - courier-apply.tsx + courier-application-status.tsx (full courier onboarding flow)
+  - support.tsx (AI support + escalation flow)
+  - (tabs)/_layout.tsx: notifications tab + live unread badge
+  - i18n: notifications, settings_screen, seller_apply, seller_status, courier_apply, courier_status, support, seller_dash, courier_dash, admin_dash namespaces (EN+AR)
+Phase M4: Mobile Seller Systems — COMPLETE ✅ (June 17, 2026)
+  - seller/products.tsx (CRUD list: edit, delete, low-stock warning)
+  - seller/products/new.tsx (create form: name, desc, price, stock, category, image)
+  - seller/products/[id]/edit.tsx (edit form pre-filled from API)
+  - seller/orders.tsx (tabbed: all/pending/active/delivered, mark-ready button)
+  - seller/analytics.tsx (revenue/orders/products stats + mini bar chart + top products)
+  - seller/reviews.tsx (summary, rating bars, reply/edit/delete, modal)
+  - seller/store-settings.tsx (name, description, logo, banner, city, website)
+Phase M5: Mobile Courier Systems — COMPLETE ✅ (June 17, 2026)
+  - courier/dashboard.tsx (online/offline toggle, wallet, success rate, mission offers accept/reject)
+  - courier/missions.tsx (active assignments: pickup → deliver/fail-delivery, fail reason modal)
+  - courier/history.tsx (completed deliveries, earnings summary)
+Phase M6: Mobile Admin Systems — COMPLETE ✅ (June 17, 2026)
+  - admin/index.tsx (stats dashboard, quick nav, recent orders)
+  - admin/users.tsx (search, suspend/activate with role badges)
+  - admin/orders.tsx (tabbed status filter, order list)
+  - admin/sellers.tsx (seller applications: approve/reject workflow)
+  - profile.tsx: all role menus (seller/courier/admin/customer) wired to new screens
+Mobile Parity: 33% → ~85% (all role systems complete; remaining: search, checkout refinements, deep links)
 
 ---
 

@@ -433,7 +433,7 @@ function CustomerShop() {
         >
           <Text style={[styles.chipText, { color: activeCategory === null ? colors.primaryForeground : colors.foreground }]}>{t("shop.all")}</Text>
         </Pressable>
-        {categories.map((cat) => (
+        {categories.map((cat: string) => (
           <Pressable
             key={cat}
             style={({ pressed }) => [styles.categoryChip, { backgroundColor: activeCategory === cat ? colors.primary : colors.secondary, opacity: pressed ? 0.8 : 1 }]}
@@ -618,7 +618,7 @@ function SellerDashboard() {
           {data.recentOrders.length > 0 && (
             <View>
               <Text style={[dashStyles.sectionTitle, { color: colors.foreground }]}>{t("profile.recent_orders")}</Text>
-              {data.recentOrders.slice(0, 3).map((order) => (
+              {data.recentOrders.slice(0, 3).map((order: any) => (
                 <Pressable
                   key={order.id}
                   style={({ pressed }) => [dashStyles.recentOrder, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.85 : 1 }]}

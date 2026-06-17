@@ -6,7 +6,58 @@ Last updated: June 17, 2026
 - Type: Multi-vendor marketplace
 - Domain: syanomarket.online
 - GitHub: https://github.com/syano0007/syano07007
-- Status: Pre-launch — Phase M1 COMPLETE ✅
+- Status: Pre-launch — Mobile Parity Phases M2/M4/M5/M6 COMPLETE ✅ (~85% parity)
+
+## Phase M2/M4/M5/M6 — Mobile Full Role Parity — COMPLETE ✅
+Date: June 17, 2026
+
+### New Screens (Phase M2 — Customer Systems)
+- `artifacts/mobile/app/(tabs)/notifications.tsx` — notification list, mark read/all-read, type icons, unread dot, sign-in gate
+- `artifacts/mobile/app/settings.tsx` — theme (light/dark/system), language (AR/EN), currency (SYP/USD) with SettingsContext sync
+- `artifacts/mobile/app/account-suspended.tsx` — suspension gate with sign-out + contact CTA
+- `artifacts/mobile/app/seller-apply.tsx` — seller application form (store name, description, city, categories, docs)
+- `artifacts/mobile/app/seller-application-status.tsx` — live polling status card (pending/under_review/approved/rejected)
+- `artifacts/mobile/app/courier-apply.tsx` — courier application form (vehicle, zones, phone, license)
+- `artifacts/mobile/app/courier-application-status.tsx` — courier application status with approved CTA to dashboard
+- `artifacts/mobile/app/support.tsx` — AI support chat with message history, intent detection, escalation
+
+### New Screens (Phase M4 — Seller Systems)
+- `artifacts/mobile/app/seller/products.tsx` — product list with delete/edit, low-stock indicator
+- `artifacts/mobile/app/seller/products/new.tsx` — create product form (category chips, image URL)
+- `artifacts/mobile/app/seller/products/[id]/edit.tsx` — edit product form (pre-filled from API)
+- `artifacts/mobile/app/seller/orders.tsx` — seller orders with tab filter + mark-ready button
+- `artifacts/mobile/app/seller/analytics.tsx` — revenue/orders/products stats + 7-day bar chart + top products
+- `artifacts/mobile/app/seller/reviews.tsx` — review list, rating bars, reply/edit/delete, modal
+- `artifacts/mobile/app/seller/store-settings.tsx` — store name, description, logo, banner, city, website
+
+### New Screens (Phase M5 — Courier Systems)
+- `artifacts/mobile/app/courier/dashboard.tsx` — online/offline toggle, wallet balance, success rate, mission offer cards (accept/reject)
+- `artifacts/mobile/app/courier/missions.tsx` — active assignments with address timeline, pickup→deliver/fail actions, fail reason modal
+- `artifacts/mobile/app/courier/history.tsx` — completed deliveries, earnings summary row, success rate
+
+### New Screens (Phase M6 — Admin Systems)
+- `artifacts/mobile/app/admin/index.tsx` — admin stats dashboard, quick-nav menu, pending application badge, recent orders
+- `artifacts/mobile/app/admin/users.tsx` — user list with search, suspend/activate, role badges
+- `artifacts/mobile/app/admin/orders.tsx` — order list with horizontal status tabs
+- `artifacts/mobile/app/admin/sellers.tsx` — seller applications with approve/reject, horizontal status tabs
+
+### Modified Files
+- `artifacts/mobile/app/(tabs)/_layout.tsx` — notifications tab + live unread badge (30s polling)
+- `artifacts/mobile/app/(tabs)/profile.tsx` — all role menus wired (seller/courier/admin/customer + opportunities)
+- `artifacts/mobile/app/_layout.tsx` — all new routes registered (M2/M4/M5/M6)
+- `artifacts/mobile/src/i18n/index.ts` — notifications, settings_screen, seller_apply, seller_status, courier_apply, courier_status, support, seller_dash, courier_dash, admin_dash (EN+AR)
+
+### Parity Delta
+- Overall: 33% → ~85%
+- Customer: notifications ✅, settings ✅, seller apply ✅, courier apply ✅, support ✅
+- Seller: products CRUD ✅, orders ✅, analytics ✅, reviews ✅, store settings ✅
+- Courier: dashboard ✅, missions ✅, history ✅
+- Admin: dashboard ✅, users ✅, orders ✅, sellers ✅
+
+### TypeScript Status
+All hook imports verified against generated client. `useGetSellerReviews`/`usePatchSellerReviewReply` fixed with `sellerId = user.id`. All screens use direct fetch for endpoints not in generated client.
+
+---
 
 ## Phase M1 — Mobile Parity: Marketplace Core — COMPLETE ✅
 Date: June 17, 2026

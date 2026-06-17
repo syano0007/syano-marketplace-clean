@@ -338,7 +338,7 @@ export default function OrderDetailScreen() {
         {/* Items */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("orders.items")}</Text>
-          {order.items.map((item, idx) => (
+          {order.items.map((item: any, idx: number) => (
             <View key={item.productId ?? idx} style={styles.itemRow}>
               <View style={[styles.itemImg, { backgroundColor: colors.muted }]}>
                 {item.imageUrl
