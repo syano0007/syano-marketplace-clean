@@ -74,9 +74,9 @@ function RootLayoutNav() {
       <Stack.Screen name="admin/users" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="admin/orders" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="admin/sellers" options={{ animation: "slide_from_right" }} />
-      {/* Parity Close — Seller Order Detail + Stores Directory */}
-      <Stack.Screen name="seller/orders/[id]" options={{ animation: "slide_from_right" }} />
+      {/* Stores + Store detail */}
       <Stack.Screen name="stores/index" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="store/[slug]" options={{ animation: "slide_from_right" }} />
       {/* Parity Finalization — New screens */}
       <Stack.Screen name="verify" options={{ animation: "fade" }} />
       <Stack.Screen name="categories" options={{ animation: "slide_from_right" }} />
@@ -114,8 +114,8 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary>
-        <SettingsProvider>
+      <SettingsProvider>
+        <ErrorBoundary>
           <QueryClientProvider client={queryClient}>
             <GestureHandlerRootView style={{ flex: 1 }}>
               <KeyboardProvider>
@@ -127,8 +127,8 @@ export default function RootLayout() {
               </KeyboardProvider>
             </GestureHandlerRootView>
           </QueryClientProvider>
-        </SettingsProvider>
-      </ErrorBoundary>
+        </ErrorBoundary>
+      </SettingsProvider>
     </SafeAreaProvider>
   );
 }
