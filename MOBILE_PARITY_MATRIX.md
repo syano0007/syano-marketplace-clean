@@ -1,4 +1,4 @@
-# SYANO — Mobile Parity Matrix (Phase M0)
+# SYANO — Mobile Parity Matrix (Phase M1)
 Last audited: June 17, 2026
 
 ## Summary Matrix
@@ -6,21 +6,21 @@ Last audited: June 17, 2026
 | System | Total Web Features | Mobile Implemented | Parity % |
 |---|---|---|---|
 | **Authentication** | 5 | 3 | **60%** |
-| **Marketplace / Browsing** | 15 | 7 | **47%** |
+| **Marketplace / Browsing** | 15 | 12 | **80%** |
 | **Search & Discovery V2** | 17 | 8 | **47%** |
 | **Cart** | 5 | 4 | **80%** |
 | **Checkout** | 6 | 4 | **67%** |
 | **Orders** | 7 | 6 | **86%** |
 | **Messaging V2** | 12 | 11 | **92%** |
 | **Notifications** | 5 | 0 | **0%** |
-| **Wishlist** | 3 | 0 | **0%** |
+| **Wishlist** | 3 | 3 | **100%** |
 | **AI Support** | 6 | 0 | **0%** |
 | **Customer Profile / Account** | 8 | 2 | **25%** |
 | **Seller Systems** | 16 | 1 | **6%** |
 | **Courier Systems** | 8 | 0 | **0%** |
 | **Admin Systems** | 16 | 0 | **0%** |
 | **Static / Info Pages** | 15 | 0 | **0%** |
-| **TOTAL** | **164** | **46** | **28%** |
+| **TOTAL** | **164** | **54** | **33%** |
 
 ---
 
@@ -50,6 +50,16 @@ Last audited: June 17, 2026
 | Product variants selection | `/products/:id` | `product/[id]` |
 | Product add to cart | `/products/:id` | `product/[id]` |
 | Product message seller | `/products/:id` | `product/[id]` |
+| Product reviews display | `/products/:id` | `product/[id]` |
+| Product related products | `/products/:id` | `product/[id]` |
+| Product image gallery (swipeable) | `/products/:id` | `product/[id]` |
+| Product wishlist heart button | `/products/:id` | `product/[id]` |
+| Wishlist list view | `/wishlist` | `(tabs)/wishlist` |
+| Wishlist remove item | `/wishlist` | `(tabs)/wishlist` |
+| Wishlist add-to-cart shortcut | `/wishlist` | `(tabs)/wishlist` |
+| Store follow / unfollow | `/store/:slug` | `store/[slug]` |
+| Homepage — Hot Deals (best sellers) | `/` | `(tabs)/index` |
+| Homepage — New Arrivals | `/` | `(tabs)/index` |
 | Search suggestions | `/shop` | `(tabs)/index` |
 | Search click tracking (CTR) | `/shop` | `(tabs)/index` |
 | Profile — following stores list | `/customer/dashboard` | `(tabs)/profile` |

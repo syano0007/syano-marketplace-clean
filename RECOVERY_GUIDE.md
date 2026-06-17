@@ -55,6 +55,15 @@ Read CURRENT_STATE.md in full to know exactly where development stopped.
     Then restart the Embedding Service workflow
     Then run: cd artifacts/api-server && npm run embed:generate
 
+## MOBILE PARITY STATUS (Phase M1 — June 17, 2026)
+- WishlistContext: `artifacts/mobile/contexts/WishlistContext.tsx`
+- Wishlist tab: `artifacts/mobile/app/(tabs)/wishlist.tsx`
+- ProductCard hearts + ratings: `artifacts/mobile/components/ProductCard.tsx`
+- Product gallery/reviews/related: `artifacts/mobile/app/product/[id].tsx`
+- Store follow/unfollow: `artifacts/mobile/app/store/[slug].tsx` — uses `followStatus.following` (NOT isFollowing)
+- Homepage sections: `artifacts/mobile/app/(tabs)/index.tsx` — shop mode toggle + HomepageHeader
+- i18n keys: wishlist.*, home.*, store.*, cart.add_to_cart, nav.wishlist (EN+AR in `artifacts/mobile/src/i18n/index.ts`)
+
 ## ARCHITECTURE RULES — NEVER VIOLATE
 - No `any` TypeScript type — 0 errors mandatory
 - No dropping or altering existing DB columns — additive migrations only

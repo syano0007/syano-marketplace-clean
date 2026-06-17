@@ -17,8 +17,8 @@ import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { WishlistProvider } from "@/contexts/WishlistContext";
 
-// Configure API base URL for Expo (outside web proxy)
 setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
 
 SplashScreen.preventAutoHideAsync();
@@ -32,7 +32,6 @@ const queryClient = new QueryClient({
 function RootLayoutNav() {
   const { token } = useAuth();
 
-  // Wire auth token getter into the API client
   useEffect(() => {
     setAuthTokenGetter(() => token);
   }, [token]);
@@ -89,7 +88,9 @@ export default function RootLayout() {
             <GestureHandlerRootView style={{ flex: 1 }}>
               <KeyboardProvider>
                 <AuthProvider>
-                  <RootLayoutNav />
+                  <WishlistProvider>
+                    <RootLayoutNav />
+                  </WishlistProvider>
                 </AuthProvider>
               </KeyboardProvider>
             </GestureHandlerRootView>

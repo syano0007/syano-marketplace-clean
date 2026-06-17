@@ -1,4 +1,4 @@
-# SYANO — Mobile Parity Audit (Phase M0)
+# SYANO — Mobile Parity Audit (Phase M1)
 Last audited: June 17, 2026
 
 ---
@@ -7,7 +7,7 @@ Last audited: June 17, 2026
 
 | # | Route | Purpose | Role Access | Exists On Mobile? |
 |---|---|---|---|---|
-| 1 | `/` | Homepage V7 — hero carousel, featured products, categories, best sellers, trending | Public | PARTIAL — Customer Shop tab exists; no hero carousel, no full homepage sections |
+| 1 | `/` | Homepage V7 — hero carousel, featured products, categories, best sellers, trending | Public | PARTIAL — ✅ Hot Deals (best sellers), ✅ Categories chips, ✅ New Arrivals, ✅ All Products; no hero carousel |
 | 2 | `/login` | Login form | Public | ✅ YES — `(auth)/login` |
 | 3 | `/register` | Registration form | Public | ✅ YES — `(auth)/register` |
 | 4 | `/verify` | Email/phone OTP verification | Public | ❌ NO |
@@ -17,16 +17,16 @@ Last audited: June 17, 2026
 | 8 | `/search` | Alias for `/shop` | Public | PARTIAL |
 | 9 | `/products` | Alias for `/shop` | Public | PARTIAL |
 | 10 | `/categories` | Category browser with grid | Public | PARTIAL — categories shown as chips only in shop |
-| 11 | `/products/:id` | Product detail — variants, reviews, related, store preview, wishlist | Public | PARTIAL — variants ✅, add to cart ✅, store preview ✅, trust score ✅; no reviews display, no related products, no wishlist button |
+| 11 | `/products/:id` | Product detail — variants, reviews, related, store preview, wishlist | Public | ✅ COMPLETE — variants ✅, add to cart ✅, store preview ✅, trust score ✅, reviews ✅, related products ✅, wishlist heart ✅, image gallery ✅ |
 | 12 | `/cart` | Cart with items, discount, delivery fee preview | Public | ✅ YES — `(tabs)/cart` |
 | 13 | `/checkout` | 2-step checkout — delivery zone, address, notes, confirm | Customer | PARTIAL — zones ✅, address ✅, notes ✅; no coupon/promo code |
 | 14 | `/orders` | Order history list | Customer | ✅ YES — `(tabs)/orders` |
 | 15 | `/orders/:id` | Order detail — status timeline, history, cancel, review seller | Customer | ✅ YES — `order/[id]` — timeline ✅, history ✅, review ✅, cancel ✅ |
 | 16 | `/customer/dashboard` | Customer stats, recent activity | Customer | ❌ NO |
-| 17 | `/wishlist` | Saved products list | Customer | ❌ NO |
+| 17 | `/wishlist` | Saved products list | Customer | ✅ YES — `(tabs)/wishlist` — full list, remove, add-to-cart, empty state |
 | 18 | `/messages` | Messaging inbox — conversations, typing, read receipts, attachments | Customer | ✅ YES — `(tabs)/messages` — full V2 parity |
 | 19 | `/support` | AI Support chat + ticket tracking | Customer | ❌ NO |
-| 20 | `/store/:slug` | Store page — products, reviews, follow, trust badge | Public | PARTIAL — `store/[slug]` ✅; follow button unknown |
+| 20 | `/store/:slug` | Store page — products, reviews, follow, trust badge | Public | ✅ COMPLETE — `store/[slug]` ✅, follow/unfollow button ✅, trust badge ✅ |
 | 21 | `/stores` | Stores directory / listing | Public | ❌ NO |
 | 22 | `/seller/apply` | Seller application form | Customer | ❌ NO |
 | 23 | `/seller/application-status` | Seller application status tracker | Customer | ❌ NO |

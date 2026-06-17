@@ -37,6 +37,24 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 
 ---
 
+## Phase M1 — Mobile Parity (Marketplace Core) — COMPLETE ✅
+- WishlistContext (AsyncStorage + API, guest + auth)                  ✅
+- Wishlist tab screen (list, remove, add-to-cart, empty state, badge) ✅
+- WishlistProvider in _layout.tsx                                      ✅
+- Wishlist tab + badge in (tabs)/_layout.tsx                           ✅
+- ProductCard: heart button + rating row                               ✅
+- Product detail: image gallery (swipeable)                            ✅
+- Product detail: reviews section                                      ✅
+- Product detail: related products row                                 ✅
+- Product detail: wishlist heart button                                ✅
+- Store page: FollowButton (follow/unfollow)                           ✅
+- Homepage: Hot Deals, Categories, New Arrivals, shop mode toggle      ✅
+- i18n: wishlist.*, home.*, store.*, cart.add_to_cart, product.reviews/related, nav.wishlist (EN + AR) ✅
+- TypeScript: 0 errors                                                 ✅
+- Parity: 28% → 33% overall; Wishlist 0% → 100%; Marketplace 47% → 80%
+
+---
+
 ## Overall Completion: ~97%
 
 | Layer | Status | Notes |
@@ -48,7 +66,7 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 | Delivery system | ✅ 100% | 40 Aleppo zones, courier ops, assignment flow |
 | Messaging V2 | ✅ 100% | 19 API endpoints, 58/58 tests, web+mobile+lib complete |
 | Notifications | ✅ 100% | SSE real-time, polling fallback, in-app toasts, web push (VAPID), bilingual |
-| Wishlist | ✅ 100% | Web + heart button in ProductCard; mobile not implemented |
+| Wishlist | ✅ 100% | Web + heart button in ProductCard; mobile fully implemented (M1) |
 | Guest cart | ✅ 100% | All entry points wired (ProductCard + ProductDetail + Navbar) |
 | Homepage V7 | ✅ 100% | 8 HomeSections, hero carousel, real data, dark glassmorphism navbar |
 | Navbar Polish V1 | ✅ 100% | Light mode contrast, icon unification, active state fix, badge fix, settings dropdown |

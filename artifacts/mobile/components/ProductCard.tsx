@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React from "react";
 import {
@@ -10,6 +11,7 @@ import {
 } from "react-native";
 import type { Product } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
+import { useWishlist } from "@/contexts/WishlistContext";
 
 interface ProductCardProps {
   product: Product;
@@ -19,9 +21,16 @@ interface ProductCardProps {
 
 export const ProductCard = React.memo(function ProductCard({ product, onAddToCart, onCardPress }: ProductCardProps) {
   const colors = useColors();
+  const { isInWishlist, toggle, isToggling } = useWishlist();
 
-  const hasDiscount =
-    product.discountPercent != null && product.discountPercent > 0;
+  const hasDiscount = product.discountPercent != null && product.discountPercent > 0;
+  const wishlisted = isInWishlist(product.id);
+  const toggling = isToggling(product.id);
+
+  function handleWishlist() {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void toggle(product.id);
+  }
 
   return (
     <Pressable
@@ -47,10 +56,8 @@ export const ProductCard = React.memo(function ProductCard({ product, onAddToCar
           <Ionicons name="cube-outline" size={40} color={colors.mutedForeground} />
         )}
         {hasDiscount && (
-          <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.badgeText, { color: colors.primaryForeground }]}>
-              -{product.discountPercent}%
-            </Text>
+          <View style={[styles.badge, { backgroundColor: "#EF4444" }]}>
+            <Text style={styles.badgeText}>-{product.discountPercent}%</Text>
           </View>
         )}
         {product.stock === 0 && (
@@ -58,6 +65,18 @@ export const ProductCard = React.memo(function ProductCard({ product, onAddToCar
             <Text style={styles.outOfStockText}>Out of stock</Text>
           </View>
         )}
+        <Pressable
+          style={[styles.heartBtn, { backgroundColor: colors.background + "EE" }]}
+          onPress={handleWishlist}
+          disabled={toggling}
+          hitSlop={6}
+        >
+          <Ionicons
+            name={wishlisted ? "heart" : "heart-outline"}
+            size={16}
+            color={wishlisted ? "#EF4444" : colors.mutedForeground}
+          />
+        </Pressable>
       </View>
 
       <View style={styles.info}>
@@ -83,6 +102,14 @@ export const ProductCard = React.memo(function ProductCard({ product, onAddToCar
             </Text>
           )}
         </View>
+        {(product as any).averageRating != null && (product as any).reviewCount > 0 && (
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={11} color="#F59E0B" />
+            <Text style={[styles.ratingText, { color: colors.mutedForeground }]}>
+              {(product as any).averageRating?.toFixed(1)} ({(product as any).reviewCount})
+            </Text>
+          </View>
+        )}
         {onAddToCart && product.stock > 0 && (
           <Pressable
             testID="add-to-cart-btn"
@@ -168,6 +195,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700" as const,
   },
+  heartBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 1,
+  },
+  ratingText: { fontSize: 11 },
   originalPrice: {
     fontSize: 12,
     textDecorationLine: "line-through",

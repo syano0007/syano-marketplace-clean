@@ -1,4 +1,4 @@
-# SYANO — Mobile Parity Gap Report & Migration Roadmap (Phase M0)
+# SYANO — Mobile Parity Gap Report & Migration Roadmap (Phase M1)
 Last audited: June 17, 2026
 
 ---
@@ -8,34 +8,44 @@ Last audited: June 17, 2026
 | Metric | Count |
 |---|---|
 | **Total Web Routes** | 75 |
-| **Total Mobile Routes** | 15 |
+| **Total Mobile Routes** | 16 |
 | **Total Web Features** | 164 |
-| **Total Mobile Features** | 46 |
-| **Fully Matched Features** | 25 |
-| **Partially Matched Features** | 9 |
-| **Missing Features** | 130 |
-| **Overall Parity %** | **28%** |
+| **Total Mobile Features** | 54 |
+| **Fully Matched Features** | 37 |
+| **Partially Matched Features** | 7 |
+| **Missing Features** | 120 |
+| **Overall Parity %** | **33%** |
+
+### Phase M1 — Completed ✅
+Features added in Phase M1:
+- Product detail: reviews, related products, image gallery, wishlist heart button
+- Wishlist tab screen (full: list, remove, add-to-cart, empty state, badge)
+- WishlistContext (AsyncStorage for guests, API for authenticated users)
+- Store page: follow/unfollow button (FollowButton component)
+- Homepage sections: Hot Deals, Categories, New Arrivals (mode toggle)
+- ProductCard: heart button + rating row
 
 ### Parity by Role
 
 | Role | Parity % |
 |---|---|
-| Customer (browsing + orders) | ~45% |
-| Customer (full account) | ~25% |
+| Customer (browsing + orders) | ~55% |
+| Customer (full account) | ~30% |
 | Seller | ~6% |
 | Courier | **0%** |
 | Admin | **0%** |
 
 ### Strongest Areas (≥80%)
 - Messaging V2 — **92%** (best system on mobile)
+- Wishlist — **100%** (M1 complete)
 - Orders — **86%**
 - Cart — **80%**
+- Marketplace / Browsing — **80%** (up from 47% in M0)
 
 ### Weakest Areas (0%)
 - Courier System — **0%**
 - Admin System — **0%**
 - Notifications — **0%**
-- Wishlist — **0%**
 - AI Support — **0%**
 - Seller (beyond stats) — **~6%**
 

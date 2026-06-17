@@ -8,10 +8,11 @@ import React from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useWishlist } from "@/contexts/WishlistContext";
 import { t } from "../../src/i18n";
 
 function NativeTabLayout() {
-  const { isSeller } = useAuth();
+  const { isSeller, isCustomer } = useAuth();
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
@@ -27,6 +28,12 @@ function NativeTabLayout() {
         <NativeTabs.Trigger name="cart">
           <Icon sf={{ default: "cart", selected: "cart.fill" }} />
           <Label>{t("nav.cart")}</Label>
+        </NativeTabs.Trigger>
+      )}
+      {isCustomer && (
+        <NativeTabs.Trigger name="wishlist">
+          <Icon sf={{ default: "heart", selected: "heart.fill" }} />
+          <Label>{t("nav.wishlist")}</Label>
         </NativeTabs.Trigger>
       )}
       <NativeTabs.Trigger name="orders">
@@ -47,7 +54,8 @@ function NativeTabLayout() {
 
 function ClassicTabLayout() {
   const colors = useColors();
-  const { isSeller } = useAuth();
+  const { isSeller, isCustomer } = useAuth();
+  const { count: wishlistCount } = useWishlist();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
@@ -114,6 +122,20 @@ function ClassicTabLayout() {
               <SymbolView name="cart.fill" tintColor={color} size={24} />
             ) : (
               <Ionicons name="cart-outline" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="wishlist"
+        options={{
+          title: t("nav.wishlist"),
+          tabBarButton: !isCustomer ? () => null : undefined,
+          tabBarBadge: wishlistCount > 0 ? wishlistCount : undefined,
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="heart.fill" tintColor={color} size={24} />
+            ) : (
+              <Ionicons name="heart-outline" size={22} color={color} />
             ),
         }}
       />

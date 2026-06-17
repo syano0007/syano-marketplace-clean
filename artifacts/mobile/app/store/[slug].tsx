@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   Pressable,
   ScrollView,
@@ -13,10 +13,17 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
+import {
+  useGetFollowStatus,
+  useFollowStore,
+  useUnfollowStore,
+  getFollowStatusQueryKey,
+  getBaseUrl,
+} from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { useScreenLayout } from "@/hooks/useScreenLayout";
+import { useAuth } from "@/contexts/AuthContext";
 import { t } from "../../src/i18n";
-import { getBaseUrl } from "@workspace/api-client-react";
 
 interface StoreData {
   sellerId: number;
@@ -40,7 +47,7 @@ interface StoreData {
   reviewCount: number;
 }
 
-interface Product {
+interface StoreProduct {
   id: number;
   name: string;
   nameAr?: string;
@@ -53,16 +60,13 @@ interface Product {
 
 function VerificationBadge({ level }: { level: string }) {
   if (!level || level === "none") return null;
-
   const configs = {
     basic:    { label: t("trust.level_basic"),    bg: "#EFF6FF", text: "#2563EB", icon: "shield-outline" as const },
     verified: { label: t("trust.level_verified"),  bg: "#ECFDF5", text: "#059669", icon: "shield-checkmark-outline" as const },
     business: { label: t("trust.level_business"),  bg: "#F5F3FF", text: "#7C3AED", icon: "ribbon-outline" as const },
   };
-
   const cfg = configs[level as keyof typeof configs];
   if (!cfg) return null;
-
   return (
     <View style={[styles.badge, { backgroundColor: cfg.bg }]}>
       <Ionicons name={cfg.icon} size={11} color={cfg.text} />
@@ -77,23 +81,21 @@ function TrustBar({ score }: { score: number }) {
     score >= 50 ? "#3B82F6" :
     score >= 25 ? "#F59E0B" :
     "#9CA3AF";
-
   return (
     <View style={styles.trustBarContainer}>
       <View style={styles.trustBarTrack}>
-        <View style={[styles.trustBarFill, { width: `${score}%`, backgroundColor: band }]} />
+        <View style={[styles.trustBarFill, { width: `${score}%` as any, backgroundColor: band }]} />
       </View>
       <Text style={styles.trustBarLabel}>{score}/100</Text>
     </View>
   );
 }
 
-function ProductCard({ product, colors, onPress }: { product: Product; colors: any; onPress: () => void }) {
+function StoreProductCard({ product, colors, onPress }: { product: StoreProduct; colors: any; onPress: () => void }) {
   const imageUri = product.imageUrls?.[0] ?? product.imageUrl ?? null;
   const discount = product.compareAtPrice && product.compareAtPrice > product.price
     ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
     : null;
-
   return (
     <Pressable style={[styles.productCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={onPress}>
       <View style={[styles.productImageWrapper, { backgroundColor: colors.muted }]}>
@@ -116,6 +118,62 @@ function ProductCard({ product, colors, onPress }: { product: Product; colors: a
   );
 }
 
+function FollowButton({ sellerId, colors }: { sellerId: number; colors: any }) {
+  const { isAuthenticated, isCustomer } = useAuth();
+  const { data: followStatus, isLoading: statusLoading } = useGetFollowStatus(sellerId, {
+    query: {
+      enabled: isAuthenticated && isCustomer && sellerId > 0,
+      queryKey: getFollowStatusQueryKey(sellerId),
+    },
+  });
+  const followMutation = useFollowStore();
+  const unfollowMutation = useUnfollowStore();
+
+  const isFollowing = followStatus?.following ?? false;
+  const isPending = followMutation.isPending || unfollowMutation.isPending || statusLoading;
+
+  if (!isAuthenticated || !isCustomer || sellerId <= 0) return null;
+
+  function handlePress() {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (isFollowing) {
+      unfollowMutation.mutate(sellerId);
+    } else {
+      followMutation.mutate(sellerId);
+    }
+  }
+
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.followBtn,
+        {
+          backgroundColor: isFollowing ? colors.muted : colors.primary,
+          borderColor: isFollowing ? colors.border : colors.primary,
+          opacity: pressed ? 0.8 : 1,
+        },
+      ]}
+      onPress={handlePress}
+      disabled={isPending}
+    >
+      {isPending ? (
+        <ActivityIndicator size="small" color={isFollowing ? colors.foreground : "#fff"} />
+      ) : (
+        <>
+          <Ionicons
+            name={isFollowing ? "person-remove-outline" : "person-add-outline"}
+            size={15}
+            color={isFollowing ? colors.foreground : "#fff"}
+          />
+          <Text style={[styles.followBtnText, { color: isFollowing ? colors.foreground : "#fff" }]}>
+            {isFollowing ? t("store.unfollow", "Unfollow") : t("store.follow", "Follow")}
+          </Text>
+        </>
+      )}
+    </Pressable>
+  );
+}
+
 export default function StoreScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const colors = useColors();
@@ -133,7 +191,7 @@ export default function StoreScreen() {
     enabled: !!slug,
   });
 
-  const { data: productsData } = useQuery<{ data: Product[] }>({
+  const { data: productsData } = useQuery<{ data: StoreProduct[] } | StoreProduct[]>({
     queryKey: ["store-products", storeData?.sellerId],
     queryFn: async () => {
       const res = await fetch(`${getBaseUrl()}/products?sellerId=${storeData!.sellerId}&limit=40`);
@@ -143,7 +201,9 @@ export default function StoreScreen() {
     enabled: !!storeData?.sellerId,
   });
 
-  const products = productsData?.data ?? [];
+  const products: StoreProduct[] = Array.isArray(productsData)
+    ? productsData
+    : (productsData as any)?.data ?? [];
 
   if (storeLoading) {
     return (
@@ -167,9 +227,9 @@ export default function StoreScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Back button */}
-      <View style={[styles.backRow, { paddingTop: insets.top + 8, backgroundColor: colors.background }]}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={22} color={colors.foreground} />
+      <View style={[styles.backRow, { paddingTop: insets.top + 8, backgroundColor: "transparent" }]}>
+        <Pressable style={[styles.backBtn, { backgroundColor: "rgba(0,0,0,0.25)" }]} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={22} color="#fff" />
         </Pressable>
       </View>
 
@@ -179,21 +239,24 @@ export default function StoreScreen() {
           {storeData.storeBanner ? (
             <Image source={{ uri: storeData.storeBanner }} style={styles.banner} resizeMode="cover" />
           ) : (
-            <View style={[styles.banner, { backgroundColor: colors.primary + "22" }]} />
+            <View style={[styles.banner, { backgroundColor: colors.primary + "33" }]} />
           )}
         </View>
 
         {/* Store header */}
         <View style={[styles.headerCard, { backgroundColor: colors.background }]}>
-          {/* Logo */}
-          <View style={[styles.logoWrapper, { backgroundColor: colors.primary + "18", borderColor: colors.background }]}>
-            {storeData.storeLogo ? (
-              <Image source={{ uri: storeData.storeLogo }} style={styles.logo} resizeMode="cover" />
-            ) : (
-              <Text style={[styles.logoInitial, { color: colors.primary }]}>
-                {storeData.storeName.charAt(0).toUpperCase()}
-              </Text>
-            )}
+          {/* Logo + actions row */}
+          <View style={styles.logoActionsRow}>
+            <View style={[styles.logoWrapper, { backgroundColor: colors.primary + "18", borderColor: colors.background }]}>
+              {storeData.storeLogo ? (
+                <Image source={{ uri: storeData.storeLogo }} style={styles.logo} resizeMode="cover" />
+              ) : (
+                <Text style={[styles.logoInitial, { color: colors.primary }]}>
+                  {storeData.storeName.charAt(0).toUpperCase()}
+                </Text>
+              )}
+            </View>
+            <FollowButton sellerId={storeData.sellerId} colors={colors} />
           </View>
 
           {/* Name + badge */}
@@ -202,6 +265,23 @@ export default function StoreScreen() {
             {level !== "none" && <VerificationBadge level={level} />}
           </View>
           <Text style={[styles.sellerName, { color: colors.mutedForeground }]}>{storeData.sellerName}</Text>
+
+          {/* Rating */}
+          {storeData.avgRating != null && storeData.reviewCount > 0 && (
+            <View style={styles.ratingRow}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Ionicons
+                  key={i}
+                  name={i < Math.round(storeData.avgRating!) ? "star" : "star-outline"}
+                  size={13}
+                  color="#F59E0B"
+                />
+              ))}
+              <Text style={[styles.ratingText, { color: colors.mutedForeground }]}>
+                {storeData.avgRating.toFixed(1)} ({storeData.reviewCount})
+              </Text>
+            </View>
+          )}
 
           {/* Trust score bar */}
           {trustScore != null && (
@@ -241,7 +321,6 @@ export default function StoreScreen() {
           ))}
         </View>
 
-        {/* Content */}
         {tab === "products" ? (
           products.length === 0 ? (
             <View style={styles.emptyState}>
@@ -253,7 +332,7 @@ export default function StoreScreen() {
           ) : (
             <View style={styles.productsGrid}>
               {products.map((product) => (
-                <ProductCard
+                <StoreProductCard
                   key={product.id}
                   product={product}
                   colors={colors}
@@ -293,40 +372,53 @@ const styles = StyleSheet.create({
   container:       { flex: 1 },
   loading:         { flex: 1, alignItems: "center", justifyContent: "center" },
   backRow:         { position: "absolute", top: 0, start: 0, end: 0, zIndex: 10, paddingHorizontal: 16, paddingBottom: 8 },
-  backBtn:         { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.12)" },
-  bannerWrapper:   { height: 140, overflow: "hidden" },
-  banner:          { width: "100%", height: 140 },
-  headerCard:      { paddingHorizontal: 16, paddingBottom: 16, marginTop: -20, borderRadius: 20 },
-  logoWrapper:     { width: 72, height: 72, borderRadius: 20, borderWidth: 3, alignItems: "center", justifyContent: "center", marginBottom: 12, overflow: "hidden" },
+  backBtn:         { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  bannerWrapper:   { height: 160, overflow: "hidden" },
+  banner:          { width: "100%", height: 160 },
+  headerCard:      { paddingHorizontal: 16, paddingBottom: 16, marginTop: -24, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  logoActionsRow:  { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 12 },
+  logoWrapper:     { width: 72, height: 72, borderRadius: 20, borderWidth: 3, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   logo:            { width: "100%", height: "100%" },
-  logoInitial:     { fontSize: 28, fontWeight: "900" },
+  logoInitial:     { fontSize: 28, fontWeight: "900" as const },
+  followBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  followBtnText:   { fontSize: 13, fontWeight: "700" as const },
   nameRow:         { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  storeName:       { fontSize: 20, fontWeight: "900" },
+  storeName:       { fontSize: 20, fontWeight: "900" as const },
   sellerName:      { fontSize: 13, marginTop: 2 },
+  ratingRow:       { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 6 },
+  ratingText:      { fontSize: 12, marginStart: 4 },
   badge:           { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  badgeText:       { fontSize: 11, fontWeight: "700" },
+  badgeText:       { fontSize: 11, fontWeight: "700" as const },
   trustSection:    { marginTop: 12 },
-  trustLabel:      { fontSize: 11, fontWeight: "600", marginBottom: 4 },
+  trustLabel:      { fontSize: 11, fontWeight: "600" as const, marginBottom: 4 },
   trustBarContainer: { flexDirection: "row", alignItems: "center", gap: 8 },
   trustBarTrack:   { flex: 1, height: 6, backgroundColor: "#E5E7EB", borderRadius: 3, overflow: "hidden" },
   trustBarFill:    { height: "100%", borderRadius: 3 },
-  trustBarLabel:   { fontSize: 11, fontWeight: "700", color: "#6B7280", width: 36, textAlign: "right" },
+  trustBarLabel:   { fontSize: 11, fontWeight: "700" as const, color: "#6B7280", width: 36, textAlign: "right" },
   statsRow:        { flexDirection: "row", justifyContent: "space-around", paddingTop: 16, marginTop: 16, borderTopWidth: 1 },
   statItem:        { alignItems: "center" },
-  statValue:       { fontSize: 18, fontWeight: "900" },
+  statValue:       { fontSize: 18, fontWeight: "900" as const },
   statLabel:       { fontSize: 11, marginTop: 2 },
   tabs:            { flexDirection: "row", borderBottomWidth: 1, marginHorizontal: 16, marginTop: 8 },
   tabBtn:          { flex: 1, paddingVertical: 12, alignItems: "center" },
-  tabLabel:        { fontSize: 14, fontWeight: "700" },
+  tabLabel:        { fontSize: 14, fontWeight: "700" as const },
   productsGrid:    { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 8, paddingTop: 8, gap: 0 },
   productCard:     { width: "50%", padding: 6 },
   productImageWrapper: { height: 140, borderRadius: 12, alignItems: "center", justifyContent: "center", overflow: "hidden", marginBottom: 8 },
   productImage:    { width: "100%", height: "100%" },
   discountBadge:   { position: "absolute", top: 6, end: 6, backgroundColor: "#EF4444", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  discountText:    { color: "#fff", fontSize: 10, fontWeight: "700" },
+  discountText:    { color: "#fff", fontSize: 10, fontWeight: "700" as const },
   productInfo:     { paddingHorizontal: 2 },
-  productName:     { fontSize: 12, fontWeight: "600", marginBottom: 4, lineHeight: 16 },
-  productPrice:    { fontSize: 14, fontWeight: "900" },
+  productName:     { fontSize: 12, fontWeight: "600" as const, marginBottom: 4, lineHeight: 16 },
+  productPrice:    { fontSize: 14, fontWeight: "900" as const },
   emptyState:      { alignItems: "center", paddingVertical: 60, gap: 12 },
   emptyText:       { fontSize: 14 },
   aboutSection:    { padding: 16 },
@@ -334,5 +426,5 @@ const styles = StyleSheet.create({
   aboutInfo:       { borderRadius: 16, borderWidth: 1, overflow: "hidden" },
   aboutRow:        { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
   aboutRowLabel:   { fontSize: 13 },
-  aboutRowValue:   { fontSize: 13, fontWeight: "700" },
+  aboutRowValue:   { fontSize: 13, fontWeight: "700" as const },
 });

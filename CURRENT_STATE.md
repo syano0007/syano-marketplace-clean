@@ -1,12 +1,38 @@
 # SYANO — Current State
-Last updated: June 16, 2026
+Last updated: June 17, 2026
 
 ## Project Identity
 - Name: SYANO — سوق سوريا
 - Type: Multi-vendor marketplace
 - Domain: syanomarket.online
 - GitHub: https://github.com/syano0007/syano07007
-- Status: Pre-launch — Phase 12 COMPLETE ✅
+- Status: Pre-launch — Phase M1 COMPLETE ✅
+
+## Phase M1 — Mobile Parity: Marketplace Core — COMPLETE ✅
+Date: June 17, 2026
+
+### New Files
+- `artifacts/mobile/contexts/WishlistContext.tsx` — AsyncStorage (guest) + API (auth) wishlist state
+- `artifacts/mobile/app/(tabs)/wishlist.tsx` — Wishlist tab: list, remove, add-to-cart, empty state
+
+### Modified Files
+- `artifacts/mobile/app/_layout.tsx` — WishlistProvider added
+- `artifacts/mobile/app/(tabs)/_layout.tsx` — wishlist tab + live badge count
+- `artifacts/mobile/components/ProductCard.tsx` — heart button, rating row, heartBtn/ratingRow/ratingText styles
+- `artifacts/mobile/app/product/[id].tsx` — swipeable image gallery, reviews, related products, wishlist heart
+- `artifacts/mobile/app/store/[slug].tsx` — FollowButton component (follow/unfollow, followStatus.following)
+- `artifacts/mobile/app/(tabs)/index.tsx` — HomepageHeader: Hot Deals, Categories, New Arrivals, shop mode toggle
+- `artifacts/mobile/src/i18n/index.ts` — EN+AR: wishlist.*, home.*, store.*, cart.add_to_cart, product.reviews/related, nav.wishlist
+
+### Parity Delta
+- Overall: 28% → 33% (46 → 54 features implemented)
+- Wishlist: 0% → 100% ✅
+- Marketplace/Browsing: 47% → 80% ✅
+
+### TypeScript Status
+0 errors (`npx tsc --noEmit --skipLibCheck` — clean pass)
+
+---
 
 ## Phase 12 — Performance & Scalability — COMPLETE ✅
 

@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -17,6 +18,7 @@ import {
 import {
   useAddToCart,
   useGetSellerDashboard,
+  useGetBestSellers,
   useListCategories,
   useListProducts,
   getBaseUrl,
@@ -55,6 +57,183 @@ const MOBILE_SORT_LABELS: Record<MobileSortOption, { en: string; ar: string }> =
   highest_rated: { en: "Top Rated", ar: "الأعلى تقييماً" },
 };
 
+// ── Mini horizontal product card for homepage sections ───────────────────────
+function MiniProductCard({ product, colors, onPress }: { product: any; colors: any; onPress: () => void }) {
+  const hasDiscount = product.discountPercent != null && product.discountPercent > 0;
+  const imageUri = product.imageUrls?.[0] ?? product.imageUrl ?? null;
+  return (
+    <Pressable
+      style={({ pressed }) => [miniStyles.card, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.9 : 1 }]}
+      onPress={onPress}
+    >
+      <View style={[miniStyles.imgWrap, { backgroundColor: colors.muted }]}>
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} style={miniStyles.img} resizeMode="cover" />
+        ) : (
+          <Ionicons name="cube-outline" size={28} color={colors.mutedForeground} />
+        )}
+        {hasDiscount && (
+          <View style={miniStyles.badge}>
+            <Text style={miniStyles.badgeText}>-{product.discountPercent}%</Text>
+          </View>
+        )}
+      </View>
+      <View style={miniStyles.info}>
+        <Text style={[miniStyles.name, { color: colors.foreground }]} numberOfLines={2}>{product.name}</Text>
+        <Text style={[miniStyles.price, { color: colors.primary }]}>${(product.finalPrice ?? product.price ?? 0).toFixed(2)}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+// ── Homepage header (shown when no search/filter active) ──────────────────────
+function HomepageHeader({
+  topPad, colors, search, setSearch, setDebouncedSearch,
+  searchFocused, setSearchFocused, handleSearchChange,
+  mobileSuggestions, setMobileSuggestions,
+  categories, activeCategory, setActiveCategory,
+  bestSellers, newArrivals, isLoadingBestSellers, isLoadingNewArrivals,
+}: any) {
+  return (
+    <View style={{ backgroundColor: colors.background }}>
+      {/* ── Top bar ── */}
+      <View style={[styles.shopHeader, { paddingTop: topPad + 8, backgroundColor: colors.background, borderBottomColor: "transparent" }]}>
+        <View style={styles.homeTopRow}>
+          <View>
+            <Text style={[styles.greeting, { color: colors.mutedForeground }]}>{t("home.discover", "Discover")}</Text>
+            <Text style={[styles.shopTitle, { color: colors.foreground }]}>SYANO</Text>
+          </View>
+          <Pressable
+            style={[styles.searchIconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => {}}
+          >
+            <Ionicons name="notifications-outline" size={20} color={colors.foreground} />
+          </Pressable>
+        </View>
+        {/* Search bar */}
+        <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Ionicons name="search-outline" size={16} color={colors.mutedForeground} />
+          <TextInput
+            testID="search-input"
+            style={[styles.searchInput, { color: colors.foreground }]}
+            placeholder={t("common.search_placeholder")}
+            placeholderTextColor={colors.mutedForeground}
+            value={search}
+            onChangeText={handleSearchChange}
+            returnKeyType="search"
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+          />
+          {!!search && (
+            <Pressable onPress={() => { setSearch(""); setDebouncedSearch(""); }}>
+              <Ionicons name="close-circle" size={16} color={colors.mutedForeground} />
+            </Pressable>
+          )}
+        </View>
+        {/* Suggestion overlay */}
+        {searchFocused && search.length >= 2 && (mobileSuggestions.suggestions.length > 0 || mobileSuggestions.categories.length > 0) && (
+          <View style={[suggStyles.overlay, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {mobileSuggestions.suggestions.slice(0, 5).map((s: any, i: number) => (
+              <TouchableOpacity
+                key={i}
+                style={[suggStyles.row, { borderBottomColor: colors.border }]}
+                onPress={() => { setSearch(s.text); setDebouncedSearch(s.text); setSearchFocused(false); setMobileSuggestions({ suggestions: [], categories: [] }); }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="search-outline" size={14} color={colors.mutedForeground} />
+                <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>{s.text}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* ── Hero carousel (best sellers as featured products) ── */}
+      {(isLoadingBestSellers || (bestSellers && bestSellers.length > 0)) && (
+        <View style={heroStyles.container}>
+          <Text style={[heroStyles.sectionLabel, { color: colors.mutedForeground }]}>{t("home.hot_deals", "🔥 Hot Deals")}</Text>
+          {isLoadingBestSellers ? (
+            <View style={heroStyles.loading}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : (
+            <FlatList
+              data={bestSellers ?? []}
+              keyExtractor={(item: any) => String(item.id)}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={heroStyles.list}
+              renderItem={({ item }: { item: any }) => (
+                <MiniProductCard
+                  product={item}
+                  colors={colors}
+                  onPress={() => router.push(`/product/${item.id}` as any)}
+                />
+              )}
+            />
+          )}
+        </View>
+      )}
+
+      {/* ── Categories grid ── */}
+      <View style={heroStyles.container}>
+        <Text style={[heroStyles.sectionLabel, { color: colors.mutedForeground }]}>{t("home.categories", "🗂 Browse Categories")}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
+          <Pressable
+            style={({ pressed }) => [styles.categoryChip, { backgroundColor: activeCategory === null ? colors.primary : colors.secondary, opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => setActiveCategory(null)}
+          >
+            <Text style={[styles.chipText, { color: activeCategory === null ? colors.primaryForeground : colors.foreground }]}>{t("shop.all")}</Text>
+          </Pressable>
+          {categories.map((cat: string) => (
+            <Pressable
+              key={cat}
+              style={({ pressed }) => [styles.categoryChip, { backgroundColor: activeCategory === cat ? colors.primary : colors.secondary, opacity: pressed ? 0.8 : 1 }]}
+              onPress={() => setActiveCategory(cat === activeCategory ? null : cat)}
+            >
+              <Text style={[styles.chipText, { color: activeCategory === cat ? colors.primaryForeground : colors.foreground }]}>{cat}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* ── New Arrivals ── */}
+      {(isLoadingNewArrivals || (newArrivals && newArrivals.length > 0)) && (
+        <View style={heroStyles.container}>
+          <View style={heroStyles.sectionRow}>
+            <Text style={[heroStyles.sectionLabel, { color: colors.mutedForeground }]}>{t("home.new_arrivals", "✨ New Arrivals")}</Text>
+          </View>
+          {isLoadingNewArrivals ? (
+            <View style={heroStyles.loading}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : (
+            <FlatList
+              data={newArrivals ?? []}
+              keyExtractor={(item: any) => String(item.id)}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={heroStyles.list}
+              renderItem={({ item }: { item: any }) => (
+                <MiniProductCard
+                  product={item}
+                  colors={colors}
+                  onPress={() => router.push(`/product/${item.id}` as any)}
+                />
+              )}
+            />
+          )}
+        </View>
+      )}
+
+      {/* ── All Products heading ── */}
+      <View style={[heroStyles.allProductsHeader, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
+        <Text style={[heroStyles.allTitle, { color: colors.foreground }]}>{t("home.all_products", "All Products")}</Text>
+      </View>
+    </View>
+  );
+}
+
 function CustomerShop() {
   const colors = useColors();
   const { topPad, tabBarHeight } = useScreenLayout();
@@ -72,13 +251,14 @@ function CustomerShop() {
   const suggestTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const isShopMode = debouncedSearch.length > 0 || activeCategory !== null || minRating > 0 || inStock || sortBy !== "newest";
+
   function handleSearchChange(text: string) {
     setSearch(text);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => setDebouncedSearch(text), 400);
   }
 
-  // Fetch suggestions when typing ≥ 2 chars; also captures searchLogId for CTR
   useEffect(() => {
     if (suggestTimeout.current) clearTimeout(suggestTimeout.current);
     if (debouncedSearch.length < 2) {
@@ -91,17 +271,13 @@ function CustomerShop() {
         const res = await fetch(`${getBaseUrl()}/search/suggestions?q=${encodeURIComponent(debouncedSearch)}`);
         if (!res.ok) return;
         const data = await res.json() as { suggestions?: SuggestionItem[]; categories?: CategorySuggestion[]; searchLogId?: number | null };
-        setMobileSuggestions({
-          suggestions: data.suggestions ?? [],
-          categories: data.categories ?? [],
-        });
+        setMobileSuggestions({ suggestions: data.suggestions ?? [], categories: data.categories ?? [] });
         setSearchLogId(typeof data.searchLogId === "number" ? data.searchLogId : null);
-      } catch { /* network error — stay silent */ }
+      } catch { /* silent */ }
     }, 100);
     return () => { if (suggestTimeout.current) clearTimeout(suggestTimeout.current); };
   }, [debouncedSearch]);
 
-  // Fetch related searches when search query is active
   useEffect(() => {
     if (debouncedSearch.length < 2) { setRelatedSearches([]); return; }
     let cancelled = false;
@@ -113,6 +289,16 @@ function CustomerShop() {
   }, [debouncedSearch]);
 
   const { data: categories = [] } = useListCategories();
+
+  const { data: bestSellers, isLoading: isLoadingBestSellers } = useGetBestSellers(8, {
+    query: { enabled: !isShopMode } as any,
+  });
+
+  const { data: newArrivals, isLoading: isLoadingNewArrivals } = useListProducts(
+    { sortBy: "newest", limit: 8 } as any,
+    { query: { enabled: !isShopMode } as any }
+  );
+
   const {
     data: products = [],
     isLoading,
@@ -136,31 +322,27 @@ function CustomerShop() {
       <ProductCard
         product={item}
         onAddToCart={handleAddToCart}
-        onCardPress={debouncedSearch.length >= 2 && searchLogId != null ? () => recordMobileSearchClick(searchLogId) : undefined}
+        onCardPress={debouncedSearch.length >= 2 && searchLogId != null ? () => recordMobileSearchClick(searchLogId!) : undefined}
       />
     </View>
   ), [handleAddToCart, debouncedSearch, searchLogId]);
 
-  // Shop header lives inside the FlatList as ListHeaderComponent so it
-  // scrolls naturally with the product list instead of being pinned above it.
+  // Shop header (shown in shop mode / search mode)
   const shopHeader = (
-    <View
-      style={[
-        styles.shopHeader,
-        {
-          paddingTop: topPad + 8,
-          backgroundColor: colors.background,
-          borderBottomColor: colors.border,
-        },
-      ]}
-    >
-      <Text style={[styles.shopTitle, { color: colors.foreground }]}>{t("shop.title")}</Text>
-      <View
-        style={[
-          styles.searchWrap,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
-      >
+    <View style={[styles.shopHeader, { paddingTop: topPad + 8, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+      <View style={styles.shopTitleRow}>
+        <Text style={[styles.shopTitle, { color: colors.foreground }]}>{t("shop.title")}</Text>
+        {isShopMode && (
+          <Pressable
+            style={[styles.clearAllBtn, { borderColor: colors.border }]}
+            onPress={() => { setSearch(""); setDebouncedSearch(""); setActiveCategory(null); setMinRating(0); setInStock(false); setSortBy("newest"); }}
+          >
+            <Ionicons name="home-outline" size={14} color={colors.mutedForeground} />
+            <Text style={[styles.clearAllText, { color: colors.mutedForeground }]}>{t("home.home", "Home")}</Text>
+          </Pressable>
+        )}
+      </View>
+      <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Ionicons name="search-outline" size={16} color={colors.mutedForeground} />
         <TextInput
           testID="search-input"
@@ -174,135 +356,65 @@ function CustomerShop() {
           onBlur={() => setSearchFocused(false)}
         />
         {!!search && (
-          <Pressable
-            onPress={() => {
-              setSearch("");
-              setDebouncedSearch("");
-            }}
-          >
+          <Pressable onPress={() => { setSearch(""); setDebouncedSearch(""); }}>
             <Ionicons name="close-circle" size={16} color={colors.mutedForeground} />
           </Pressable>
         )}
       </View>
 
-      {/* ── Search suggestion overlay ── */}
       {searchFocused && search.length >= 2 && (mobileSuggestions.suggestions.length > 0 || mobileSuggestions.categories.length > 0) && (
         <View style={[suggStyles.overlay, { backgroundColor: colors.card, borderColor: colors.border }]}>
           {mobileSuggestions.suggestions.slice(0, 5).map((s, i) => (
             <TouchableOpacity
               key={i}
               style={[suggStyles.row, { borderBottomColor: colors.border }]}
-              onPress={() => {
-                const text = s.text;
-                setSearch(text);
-                setDebouncedSearch(text);
-                setSearchFocused(false);
-                setMobileSuggestions({ suggestions: [], categories: [] });
-              }}
+              onPress={() => { setSearch(s.text); setDebouncedSearch(s.text); setSearchFocused(false); setMobileSuggestions({ suggestions: [], categories: [] }); }}
               activeOpacity={0.7}
             >
               <Ionicons name="search-outline" size={14} color={colors.mutedForeground} />
-              <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>
-                {s.text}
-              </Text>
+              <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>{s.text}</Text>
             </TouchableOpacity>
           ))}
           {mobileSuggestions.categories.slice(0, 2).map((cat) => (
             <TouchableOpacity
               key={cat.slug}
               style={[suggStyles.row, { borderBottomColor: colors.border }]}
-              onPress={() => {
-                setSearchFocused(false);
-                setSearch("");
-                setDebouncedSearch("");
-                setMobileSuggestions({ suggestions: [], categories: [] });
-                router.push(`/(tabs)/shop?category=${encodeURIComponent(cat.slug)}` as any);
-              }}
+              onPress={() => { setSearchFocused(false); setSearch(""); setDebouncedSearch(""); setMobileSuggestions({ suggestions: [], categories: [] }); setActiveCategory(cat.slug); }}
               activeOpacity={0.7}
             >
               <Ionicons name="layers-outline" size={14} color="#60a5fa" />
-              <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>
-                {cat.labelEn}
-              </Text>
-              <Text style={[suggStyles.catBadge, { color: colors.mutedForeground, borderColor: colors.border }]}>
-                category
-              </Text>
+              <Text style={[suggStyles.rowText, { color: colors.foreground }]} numberOfLines={1}>{cat.labelEn}</Text>
+              <Text style={[suggStyles.catBadge, { color: colors.mutedForeground, borderColor: colors.border }]}>category</Text>
             </TouchableOpacity>
           ))}
         </View>
       )}
 
-      {/* ── Category chips ── */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryScroll}
-        decelerationRate="fast"
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll} decelerationRate="fast">
         <Pressable
-          style={({ pressed }) => [
-            styles.categoryChip,
-            {
-              backgroundColor:
-                activeCategory === null ? colors.primary : colors.secondary,
-              opacity: pressed ? 0.8 : 1,
-            },
-          ]}
+          style={({ pressed }) => [styles.categoryChip, { backgroundColor: activeCategory === null ? colors.primary : colors.secondary, opacity: pressed ? 0.8 : 1 }]}
           onPress={() => setActiveCategory(null)}
         >
-          <Text
-            style={[
-              styles.chipText,
-              { color: activeCategory === null ? colors.primaryForeground : colors.foreground },
-            ]}
-          >
-            {t("shop.all")}
-          </Text>
+          <Text style={[styles.chipText, { color: activeCategory === null ? colors.primaryForeground : colors.foreground }]}>{t("shop.all")}</Text>
         </Pressable>
         {categories.map((cat) => (
           <Pressable
             key={cat}
-            style={({ pressed }) => [
-              styles.categoryChip,
-              {
-                backgroundColor: activeCategory === cat ? colors.primary : colors.secondary,
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
+            style={({ pressed }) => [styles.categoryChip, { backgroundColor: activeCategory === cat ? colors.primary : colors.secondary, opacity: pressed ? 0.8 : 1 }]}
             onPress={() => setActiveCategory(cat === activeCategory ? null : cat)}
           >
-            <Text
-              style={[
-                styles.chipText,
-                { color: activeCategory === cat ? colors.primaryForeground : colors.foreground },
-              ]}
-            >
-              {cat}
-            </Text>
+            <Text style={[styles.chipText, { color: activeCategory === cat ? colors.primaryForeground : colors.foreground }]}>{cat}</Text>
           </Pressable>
         ))}
       </ScrollView>
 
-      {/* ── Sort chips ── */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={[styles.categoryScroll, { paddingTop: 0 }]}
-        decelerationRate="fast"
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.categoryScroll, { paddingTop: 0 }]} decelerationRate="fast">
         {(Object.keys(MOBILE_SORT_LABELS) as MobileSortOption[]).map((opt) => {
           const active = sortBy === opt;
           return (
             <Pressable
               key={opt}
-              style={({ pressed }) => [
-                styles.sortChip,
-                {
-                  backgroundColor: active ? "#10B98122" : colors.secondary,
-                  borderColor: active ? "#10B981" : colors.border,
-                  opacity: pressed ? 0.75 : 1,
-                },
-              ]}
+              style={({ pressed }) => [styles.sortChip, { backgroundColor: active ? "#10B98122" : colors.secondary, borderColor: active ? "#10B981" : colors.border, opacity: pressed ? 0.75 : 1 }]}
               onPress={() => setSortBy(opt)}
             >
               <Text style={[styles.sortChipText, { color: active ? "#10B981" : colors.mutedForeground }]}>
@@ -313,58 +425,28 @@ function CustomerShop() {
         })}
       </ScrollView>
 
-      {/* ── Filter chips row (rating + inStock) ── */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={[styles.categoryScroll, { paddingTop: 0 }]}
-        decelerationRate="fast"
-      >
-        {/* inStock toggle */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.categoryScroll, { paddingTop: 0 }]} decelerationRate="fast">
         <Pressable
-          style={({ pressed }) => [
-            styles.sortChip,
-            {
-              backgroundColor: inStock ? "#10B98122" : colors.secondary,
-              borderColor: inStock ? "#10B981" : colors.border,
-              opacity: pressed ? 0.75 : 1,
-            },
-          ]}
+          style={({ pressed }) => [styles.sortChip, { backgroundColor: inStock ? "#10B98122" : colors.secondary, borderColor: inStock ? "#10B981" : colors.border, opacity: pressed ? 0.75 : 1 }]}
           onPress={() => setInStock((v) => !v)}
         >
-          <Text style={[styles.sortChipText, { color: inStock ? "#10B981" : colors.mutedForeground }]}>
-            ✓ {t("shop.in_stock")}
-          </Text>
+          <Text style={[styles.sortChipText, { color: inStock ? "#10B981" : colors.mutedForeground }]}>✓ {t("shop.in_stock")}</Text>
         </Pressable>
-        {/* Rating chips */}
         {[4, 3].map((star) => {
           const active = minRating === star;
           return (
             <Pressable
               key={star}
-              style={({ pressed }) => [
-                styles.sortChip,
-                {
-                  backgroundColor: active ? "#F59E0B22" : colors.secondary,
-                  borderColor: active ? "#F59E0B" : colors.border,
-                  opacity: pressed ? 0.75 : 1,
-                },
-              ]}
+              style={({ pressed }) => [styles.sortChip, { backgroundColor: active ? "#F59E0B22" : colors.secondary, borderColor: active ? "#F59E0B" : colors.border, opacity: pressed ? 0.75 : 1 }]}
               onPress={() => setMinRating(active ? 0 : star)}
             >
-              <Text style={[styles.sortChipText, { color: active ? "#F59E0B" : colors.mutedForeground }]}>
-                ★ {star}+
-              </Text>
+              <Text style={[styles.sortChipText, { color: active ? "#F59E0B" : colors.mutedForeground }]}>★ {star}+</Text>
             </Pressable>
           );
         })}
-        {/* Clear all filters */}
         {(minRating > 0 || inStock || sortBy !== "newest") && (
           <Pressable
-            style={({ pressed }) => [
-              styles.sortChip,
-              { backgroundColor: colors.secondary, borderColor: colors.border, opacity: pressed ? 0.75 : 1 },
-            ]}
+            style={({ pressed }) => [styles.sortChip, { backgroundColor: colors.secondary, borderColor: colors.border, opacity: pressed ? 0.75 : 1 }]}
             onPress={() => { setMinRating(0); setInStock(false); setSortBy("newest"); }}
           >
             <Text style={[styles.sortChipText, { color: colors.mutedForeground }]}>✕ {t("shop.clear_filters")}</Text>
@@ -372,6 +454,28 @@ function CustomerShop() {
         )}
       </ScrollView>
     </View>
+  );
+
+  const homepageHeader = (
+    <HomepageHeader
+      topPad={topPad}
+      colors={colors}
+      search={search}
+      setSearch={setSearch}
+      setDebouncedSearch={setDebouncedSearch}
+      searchFocused={searchFocused}
+      setSearchFocused={setSearchFocused}
+      handleSearchChange={handleSearchChange}
+      mobileSuggestions={mobileSuggestions}
+      setMobileSuggestions={setMobileSuggestions}
+      categories={categories}
+      activeCategory={activeCategory}
+      setActiveCategory={setActiveCategory}
+      bestSellers={bestSellers}
+      newArrivals={newArrivals}
+      isLoadingBestSellers={isLoadingBestSellers}
+      isLoadingNewArrivals={isLoadingNewArrivals}
+    />
   );
 
   const relatedSearchesFooter = debouncedSearch.length >= 2 && relatedSearches.length > 0 ? (
@@ -382,11 +486,7 @@ function CustomerShop() {
           <Pressable
             key={r.query}
             style={({ pressed }) => [relStyles.chip, { backgroundColor: colors.secondary, borderColor: colors.border, opacity: pressed ? 0.75 : 1 }]}
-            onPress={() => {
-              setSearch(r.query);
-              setDebouncedSearch(r.query);
-              setSearchFocused(false);
-            }}
+            onPress={() => { setSearch(r.query); setDebouncedSearch(r.query); setSearchFocused(false); }}
           >
             <Ionicons name="search-outline" size={11} color={colors.mutedForeground} style={{ marginRight: 4 }} />
             <Text style={[relStyles.chipText, { color: colors.foreground }]} numberOfLines={1}>{r.query}</Text>
@@ -404,7 +504,7 @@ function CustomerShop() {
         numColumns={2}
         columnWrapperStyle={styles.row}
         contentContainerStyle={[styles.grid, { paddingBottom: tabBarHeight }]}
-        ListHeaderComponent={shopHeader}
+        ListHeaderComponent={isShopMode ? shopHeader : homepageHeader}
         ListFooterComponent={relatedSearchesFooter}
         removeClippedSubviews={true}
         initialNumToRender={8}
@@ -419,18 +519,12 @@ function CustomerShop() {
           ) : (
             <View style={styles.emptyContainer}>
               <Ionicons name="search-outline" size={48} color={colors.mutedForeground} />
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                {t("shop.no_products")}
-              </Text>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t("shop.no_products")}</Text>
             </View>
           )
         }
         refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => refetch()}
-            tintColor={colors.primary}
-          />
+          <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} tintColor={colors.primary} />
         }
         renderItem={renderProductItem}
       />
@@ -438,25 +532,10 @@ function CustomerShop() {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  icon,
-  accent,
-}: {
-  label: string;
-  value: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  accent: string;
-}) {
+function StatCard({ label, value, icon, accent }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap; accent: string }) {
   const colors = useColors();
   return (
-    <View
-      style={[
-        statStyles.card,
-        { backgroundColor: colors.card, borderColor: colors.border },
-      ]}
-    >
+    <View style={[statStyles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={[statStyles.iconWrap, { backgroundColor: `${accent}22` }]}>
         <Ionicons name={icon} size={22} color={accent} />
       </View>
@@ -474,22 +553,10 @@ function SellerDashboard() {
   return (
     <ScrollView
       style={[styles.shopContainer, { backgroundColor: colors.background }]}
-      contentContainerStyle={{
-        paddingTop: topPad + 16,
-        paddingBottom: tabBarHeight,
-        paddingHorizontal: 16,
-        gap: 16,
-      }}
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefetching}
-          onRefresh={() => refetch()}
-          tintColor={colors.primary}
-        />
-      }
+      contentContainerStyle={{ paddingTop: topPad + 16, paddingBottom: tabBarHeight, paddingHorizontal: 16, gap: 16 }}
+      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} tintColor={colors.primary} />}
     >
       <Text style={[styles.shopTitle, { color: colors.foreground }]}>{t("profile.dashboard_title")}</Text>
-
       {isLoading ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
       ) : data ? (
@@ -500,7 +567,6 @@ function SellerDashboard() {
             <StatCard label={t("profile.stat_products")} value={String(data.totalProducts)} icon="cube-outline" accent="#8B5CF6" />
             <StatCard label={t("profile.stat_pending")} value={String(data.pendingOrders)} icon="hourglass-outline" accent="#F59E0B" />
           </View>
-
           {data.lowStockProducts > 0 && (
             <View style={[dashStyles.alert, { backgroundColor: colors.card, borderColor: "#F59E0B" }]}>
               <Ionicons name="warning-outline" size={18} color="#F59E0B" />
@@ -511,40 +577,24 @@ function SellerDashboard() {
               </Text>
             </View>
           )}
-
           {data.recentOrders.length > 0 && (
             <View>
-              <Text style={[dashStyles.sectionTitle, { color: colors.foreground }]}>
-                {t("profile.recent_orders")}
-              </Text>
+              <Text style={[dashStyles.sectionTitle, { color: colors.foreground }]}>{t("profile.recent_orders")}</Text>
               {data.recentOrders.slice(0, 3).map((order) => (
                 <Pressable
                   key={order.id}
-                  style={({ pressed }) => [
-                    dashStyles.recentOrder,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                      opacity: pressed ? 0.85 : 1,
-                    },
-                  ]}
+                  style={({ pressed }) => [dashStyles.recentOrder, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.85 : 1 }]}
                   onPress={() => router.push("/(tabs)/orders")}
                 >
                   <View>
-                    <Text style={[dashStyles.orderId, { color: colors.foreground }]}>
-                      {t("profile.order_id", { id: String(order.id) })}
-                    </Text>
+                    <Text style={[dashStyles.orderId, { color: colors.foreground }]}>{t("profile.order_id", { id: String(order.id) })}</Text>
                     <Text style={[dashStyles.orderMeta, { color: colors.mutedForeground }]}>
                       {order.customerName} · {new Date(order.createdAt).toLocaleDateString()}
                     </Text>
                   </View>
                   <View>
-                    <Text style={[dashStyles.orderTotal, { color: colors.foreground }]}>
-                      ${order.total.toFixed(2)}
-                    </Text>
-                    <Text style={{ color: "#F59E0B", fontSize: 12, textAlign: "right" }}>
-                      {order.status}
-                    </Text>
+                    <Text style={[dashStyles.orderTotal, { color: colors.foreground }]}>${order.total.toFixed(2)}</Text>
+                    <Text style={{ color: "#F59E0B", fontSize: 12, textAlign: "right" }}>{order.status}</Text>
                   </View>
                 </Pressable>
               ))}
@@ -558,75 +608,54 @@ function SellerDashboard() {
 
 const styles = StyleSheet.create({
   shopContainer: { flex: 1 },
-  shopHeader: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    gap: 10,
-  },
+  shopHeader: { paddingHorizontal: 16, paddingBottom: 8, borderBottomWidth: 1, gap: 10 },
+  homeTopRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
+  shopTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  greeting: { fontSize: 12, fontWeight: "600" as const, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
   shopTitle: { fontSize: 26, fontWeight: "700" as const },
-  searchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    height: 42,
-  },
+  searchIconBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  clearAllBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, borderWidth: 1 },
+  clearAllText: { fontSize: 12, fontWeight: "500" as const },
+  searchWrap: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, height: 42 },
   searchInput: { flex: 1, fontSize: 14 },
   categoryScroll: { gap: 8, paddingVertical: 2 },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
+  categoryChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
   chipText: { fontSize: 13, fontWeight: "500" as const },
   grid: { gap: 10 },
   row: { gap: 10, paddingHorizontal: 12 },
   cardWrapper: { flex: 1 },
-  emptyContainer: {
-    alignItems: "center",
-    gap: 8,
-    paddingTop: 60,
-    paddingBottom: 40,
-  },
+  emptyContainer: { alignItems: "center", gap: 8, paddingTop: 60, paddingBottom: 40 },
   emptyText: { fontSize: 15 },
-  sortChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
+  sortChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
   sortChipText: { fontSize: 12, fontWeight: "500" as const },
 });
 
+const heroStyles = StyleSheet.create({
+  container: { paddingHorizontal: 16, paddingTop: 16, gap: 10 },
+  sectionLabel: { fontSize: 13, fontWeight: "700" as const, textTransform: "uppercase", letterSpacing: 0.5 },
+  sectionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  loading: { height: 140, alignItems: "center", justifyContent: "center" },
+  list: { gap: 10, paddingBottom: 4 },
+  allProductsHeader: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, marginTop: 8 },
+  allTitle: { fontSize: 18, fontWeight: "700" as const },
+});
+
+const miniStyles = StyleSheet.create({
+  card: { width: 130, borderRadius: 12, borderWidth: 1, overflow: "hidden" },
+  imgWrap: { width: "100%", aspectRatio: 1, alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" },
+  img: { width: "100%", height: "100%" },
+  badge: { position: "absolute", top: 5, start: 5, backgroundColor: "#EF4444", borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 },
+  badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" as const },
+  info: { padding: 8, gap: 3 },
+  name: { fontSize: 12, fontWeight: "500" as const, lineHeight: 15 },
+  price: { fontSize: 13, fontWeight: "800" as const },
+});
+
 const suggStyles = StyleSheet.create({
-  overlay: {
-    borderWidth: 1,
-    borderRadius: 10,
-    overflow: "hidden",
-    marginTop: -4,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
+  overlay: { borderWidth: 1, borderRadius: 10, overflow: "hidden", marginTop: -4 },
+  row: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth },
   rowText: { flex: 1, fontSize: 13.5 },
-  catBadge: {
-    fontSize: 10,
-    fontWeight: "600" as const,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
+  catBadge: { fontSize: 10, fontWeight: "600" as const, textTransform: "uppercase", letterSpacing: 0.4, borderWidth: 1, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 },
 });
 
 const relStyles = StyleSheet.create({
@@ -638,46 +667,18 @@ const relStyles = StyleSheet.create({
 });
 
 const statStyles = StyleSheet.create({
-  card: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 14,
-    gap: 6,
-    minHeight: 100,
-  },
-  iconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  card: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 14, gap: 6, minHeight: 100 },
+  iconWrap: { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   value: { fontSize: 22, fontWeight: "700" as const, marginTop: 4 },
   label: { fontSize: 12 },
 });
 
 const dashStyles = StyleSheet.create({
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  alert: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
+  alert: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
   alertText: { fontSize: 13, flex: 1 },
   sectionTitle: { fontSize: 17, fontWeight: "700" as const, marginBottom: 10 },
-  recentOrder: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
+  recentOrder: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 12, borderRadius: 10, borderWidth: 1, marginBottom: 8 },
   orderId: { fontSize: 14, fontWeight: "600" as const },
   orderMeta: { fontSize: 12, marginTop: 2 },
   orderTotal: { fontSize: 15, fontWeight: "700" as const, textAlign: "right" },
