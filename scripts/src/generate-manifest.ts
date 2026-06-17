@@ -3,7 +3,7 @@
  *
  * Usage: pnpm manifest:generate
  *
- * Refreshes project.manifest.json with live database counts.
+ * Refreshes project.manifest.json with live database counts including enum values.
  * The static fields (versions, roadmap, stack) are preserved from the existing manifest.
  */
 
@@ -28,6 +28,19 @@ const tableCount = parseInt(tableRes.rows[0]?.count ?? "0", 10);
 const productRes = await client.query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM products`);
 const productCount = parseInt(productRes.rows[0]?.count ?? "0", 10);
 
+const enumRes = await client.query<{ enumname: string; count: string }>(`
+  SELECT t.typname AS enumname, COUNT(e.enumlabel)::text AS count
+  FROM pg_type t
+  JOIN pg_enum e ON t.oid = e.enumtypid
+  WHERE t.typname IN ('notification_type', 'order_status', 'delivery_mission_status')
+  GROUP BY t.typname
+`);
+
+const enumCounts: Record<string, number> = {};
+for (const row of enumRes.rows) {
+  enumCounts[row.enumname] = parseInt(row.count, 10);
+}
+
 client.release();
 await pool.end();
 
@@ -43,8 +56,14 @@ const updated = {
     ...existing.database,
     tables:   tableCount,
     products: productCount,
+    enums: {
+      notification_type:       enumCounts["notification_type"]       ?? existing.database.enums.notification_type,
+      order_status:            enumCounts["order_status"]            ?? existing.database.enums.order_status,
+      delivery_mission_status: enumCounts["delivery_mission_status"] ?? existing.database.enums.delivery_mission_status,
+    },
   },
 };
 
 fs.writeFileSync(manifestPath, JSON.stringify(updated, null, 2) + "\n", "utf-8");
-console.log(`✓ project.manifest.json updated: ${tableCount} tables, ${productCount} products`);
+console.log(`\u2713 project.manifest.json updated: ${tableCount} tables, ${productCount} products`);
+console.log(`  enums: notification_type=${updated.database.enums.notification_type} order_status=${updated.database.enums.order_status} delivery_mission_status=${updated.database.enums.delivery_mission_status}`);

@@ -16,9 +16,9 @@
     "tables": 37,
     "products": 42,
     "enums": {
-      "notification_type": 32,
+      "notification_type": 33,
       "order_status": 15,
-      "delivery_mission_status": 9
+      "delivery_mission_status": 10
     }
   },
   "services": [

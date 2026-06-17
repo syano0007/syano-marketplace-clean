@@ -6,6 +6,29 @@
 
 ---
 
+## ⚠️ EXTRA SYSTEM WORKFLOWS — READ BEFORE TOUCHING ANYTHING
+
+Replit auto-generates extra "artifact workflows" for every `artifacts/` subdirectory. These are **NOT official services** and you must **NOT restart or recreate them**.
+
+| Workflow Name | Status | Why it exists | What to do |
+|---|---|---|---|
+| `artifacts/api-server: API Server` | FAILING ❌ | Replit auto-generated; runs without `PORT=8080` | **IGNORE** — the official `API Server` workflow handles port 8080 |
+| `artifacts/marketplace: web` | Running (port 20787) | Replit auto-generated artifact view | **IGNORE** — the official `Marketplace` workflow handles port 5000 |
+| `artifacts/mockup-sandbox: Component Preview Server` | FAILING ❌ | Replit auto-generated; conflicts with Mobile on port 8081 | **IGNORE** — not one of the 4 official services |
+
+**The 4 OFFICIAL workflows are only:**
+
+| # | Workflow Name | Port | Command |
+|---|---|---|---|
+| 1 | `API Server` | 8080 | `cd artifacts/api-server && PORT=8080 pnpm run dev` |
+| 2 | `Marketplace` | 5000 | `cd artifacts/marketplace && PORT=5000 BASE_PATH=/ API_PORT=8080 pnpm run dev` |
+| 3 | `Embedding Service` | 8000 | `cd artifacts/embedding-service && EMBEDDING_PORT=8000 python3 main.py` |
+| 4 | `artifacts/mobile: expo` | 8081 | Managed by Replit artifact system — do not edit |
+
+**Never create new workflows.** There must always be exactly these 4.
+
+---
+
 ## QUICK START — IS THE SYSTEM HEALTHY?
 
 ```bash
