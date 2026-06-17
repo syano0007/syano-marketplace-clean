@@ -45,6 +45,15 @@ Phase M6: Mobile Admin Systems — COMPLETE ✅ (June 17, 2026)
   - admin/sellers.tsx (seller applications: approve/reject workflow)
   - profile.tsx: all role menus (seller/courier/admin/customer) wired to new screens
 Mobile Parity: 33% → ~85% (all role systems complete; remaining: search, checkout refinements, deep links)
+Phase Mx+1: Mobile Parity Gap Closure — COMPLETE ✅ (June 17, 2026)
+  - admin/delivery-missions.tsx: stats bar, tabbed status filter, mission cards, trigger-assignment button
+  - admin/hero-banners.tsx: banner list, create/edit modal form (POST/PATCH/DELETE), active toggle, CTR display
+  - _layout.tsx: registered admin/delivery-missions + admin/hero-banners
+  - admin/index.tsx: 8-item menu (users, orders, sellers, couriers, delivery_missions, hero_banners, verification, support)
+  - index.tsx (shop tab): onSale chip, price range filter panel (minPrice/maxPrice passed to API), NLP intent banner, "Browse Stores" + "Categories" quick-action row on homepage
+  - i18n: 40+ new keys added to both EN + AR (shop.on_sale, shop.price_range, shop.intent_*, admin_dash.delivery_missions, admin_dash.hero_banners, etc.)
+  - TypeScript: 0 errors
+Mobile Parity: ~95% → ~98% (remaining: checkout coupon code UI — no API exists yet)
 Phase Mx: Mobile Parity Finalization — COMPLETE ✅ (June 17, 2026)
   - 14 new screens: verify, categories, customer-dashboard, about, contact, help, privacy-policy, terms, returns, cookies, admin/courier-applications, admin/verification, admin/support, seller/trust
   - verify.tsx: redirect to home (verification disabled — matches web)

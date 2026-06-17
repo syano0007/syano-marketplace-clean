@@ -36,9 +36,14 @@ interface RecentOrder {
 }
 
 const MENU_ITEMS = [
-  { key: "users",   icon: "people-outline"     as const, label: "admin_dash.users",   route: "/admin/users"   },
-  { key: "orders",  icon: "receipt-outline"    as const, label: "admin_dash.orders",  route: "/admin/orders"  },
-  { key: "sellers", icon: "storefront-outline" as const, label: "admin_dash.sellers", route: "/admin/sellers" },
+  { key: "users",             icon: "people-outline"       as const, label: "admin_dash.users",             route: "/admin/users"             },
+  { key: "orders",            icon: "receipt-outline"      as const, label: "admin_dash.orders",            route: "/admin/orders"            },
+  { key: "sellers",           icon: "storefront-outline"   as const, label: "admin_dash.sellers",           route: "/admin/sellers"           },
+  { key: "couriers",          icon: "bicycle-outline"      as const, label: "admin_dash.couriers",          route: "/admin/courier-applications" },
+  { key: "delivery_missions", icon: "navigate-outline"     as const, label: "admin_dash.delivery_missions", route: "/admin/delivery-missions" },
+  { key: "hero_banners",      icon: "images-outline"       as const, label: "admin_dash.hero_banners",      route: "/admin/hero-banners"      },
+  { key: "verification",      icon: "shield-checkmark-outline" as const, label: "admin_dash.verification", route: "/admin/verification"      },
+  { key: "support",           icon: "chatbubbles-outline"  as const, label: "admin_dash.support",          route: "/admin/support"           },
 ];
 
 function StatCard({ icon, label, value, color, colors }: {

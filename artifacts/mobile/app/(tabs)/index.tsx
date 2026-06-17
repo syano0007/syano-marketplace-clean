@@ -1,11 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -147,6 +150,25 @@ function HomepageHeader({
             ))}
           </View>
         )}
+        {/* ── Quick Actions Row ── */}
+        <View style={quickStyles.row}>
+          <Pressable
+            style={({ pressed }) => [quickStyles.btn, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => router.push("/stores/index" as any)}
+          >
+            <Ionicons name="storefront-outline" size={14} color={colors.primary} />
+            <Text style={[quickStyles.btnText, { color: colors.foreground }]}>{t("home.browse_stores")}</Text>
+            <Ionicons name="chevron-forward" size={12} color={colors.mutedForeground} />
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [quickStyles.btn, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.8 : 1 }]}
+            onPress={() => router.push("/categories" as any)}
+          >
+            <Ionicons name="grid-outline" size={14} color={colors.primary} />
+            <Text style={[quickStyles.btnText, { color: colors.foreground }]}>{t("home.categories", "Categories")}</Text>
+            <Ionicons name="chevron-forward" size={12} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
       </View>
 
       {/* ── Hero carousel (best sellers as featured products) ── */}
@@ -277,11 +299,18 @@ function CustomerShop() {
   const [minRating, setMinRating] = useState(0);
   const [inStock, setInStock] = useState(false);
   const [relatedSearches, setRelatedSearches] = useState<Array<{ query: string; count: number }>>([]);
+  const [onSale, setOnSale] = useState(false);
+  const [priceMin, setPriceMin] = useState<number | null>(null);
+  const [priceMax, setPriceMax] = useState<number | null>(null);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [searchIntent, setSearchIntent] = useState<string | null>(null);
+  const [tempMin, setTempMin] = useState("");
+  const [tempMax, setTempMax] = useState("");
   const addToCart = useAddToCart();
   const suggestTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isShopMode = debouncedSearch.length > 0 || activeCategory !== null || minRating > 0 || inStock || sortBy !== "newest";
+  const isShopMode = debouncedSearch.length > 0 || activeCategory !== null || minRating > 0 || inStock || sortBy !== "newest" || onSale || priceMin != null || priceMax != null;
 
   function handleSearchChange(text: string) {
     setSearch(text);
@@ -318,6 +347,18 @@ function CustomerShop() {
     return () => { cancelled = true; };
   }, [debouncedSearch]);
 
+  useEffect(() => {
+    if (debouncedSearch.length < 2) { setSearchIntent(null); return; }
+    let cancelled = false;
+    fetch(`${getBaseUrl()}/api/search?q=${encodeURIComponent(debouncedSearch)}&limit=1`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d: any) => {
+        if (!cancelled) setSearchIntent(d?.detectedIntent ?? null);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [debouncedSearch]);
+
   const { data: categories = [] } = useListCategories();
 
   const { data: bestSellers, isLoading: isLoadingBestSellers } = useGetBestSellers(8, {
@@ -336,7 +377,7 @@ function CustomerShop() {
   const trending = (trendingRaw as any)?.data ?? trendingRaw ?? [];
 
   const {
-    data: products = [],
+    data: rawProducts = [],
     isLoading,
     refetch,
     isRefetching,
@@ -346,7 +387,17 @@ function CustomerShop() {
     sortBy,
     minRating: minRating > 0 ? minRating : undefined,
     inStock: inStock || undefined,
+    minPrice: priceMin != null ? priceMin : undefined,
+    maxPrice: priceMax != null ? priceMax : undefined,
   } as any);
+
+  const products = useMemo(() => {
+    const list: Product[] = Array.isArray(rawProducts)
+      ? rawProducts
+      : ((rawProducts as any)?.data ?? []);
+    if (onSale) return list.filter((p) => (p as any).discountPercent != null && (p as any).discountPercent > 0);
+    return list;
+  }, [rawProducts, onSale]);
 
   const handleAddToCart = useCallback((product: Product) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -371,7 +422,7 @@ function CustomerShop() {
         {isShopMode && (
           <Pressable
             style={[styles.clearAllBtn, { borderColor: colors.border }]}
-            onPress={() => { setSearch(""); setDebouncedSearch(""); setActiveCategory(null); setMinRating(0); setInStock(false); setSortBy("newest"); }}
+            onPress={() => { setSearch(""); setDebouncedSearch(""); setActiveCategory(null); setMinRating(0); setInStock(false); setSortBy("newest"); setOnSale(false); setPriceMin(null); setPriceMax(null); }}
           >
             <Ionicons name="home-outline" size={14} color={colors.mutedForeground} />
             <Text style={[styles.clearAllText, { color: colors.mutedForeground }]}>{t("home.home", "Home")}</Text>
@@ -461,12 +512,53 @@ function CustomerShop() {
         })}
       </ScrollView>
 
+      {/* ── Intent banner ── */}
+      {searchIntent && debouncedSearch.length >= 2 && (
+        <View style={[intentStyles.banner, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "40" }]}>
+          <Ionicons name="sparkles-outline" size={13} color={colors.primary} />
+          <Text style={[intentStyles.bannerText, { color: colors.primary }]}>
+            {searchIntent === "on_sale"  ? t("shop.intent_on_sale")  :
+             searchIntent === "cheap"   ? t("shop.intent_cheap")    :
+             searchIntent === "premium" ? t("shop.intent_premium")  :
+             searchIntent === "rating"  ? t("shop.intent_rating")   :
+             searchIntent === "newest"  ? t("shop.intent_newest")   :
+             searchIntent === "gift"    ? t("shop.intent_gift")     : null}
+          </Text>
+        </View>
+      )}
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.categoryScroll, { paddingTop: 0 }]} decelerationRate="fast">
+        {/* On Sale chip */}
+        <Pressable
+          style={({ pressed }) => [styles.sortChip, { backgroundColor: onSale ? "#EF444422" : colors.secondary, borderColor: onSale ? "#EF4444" : colors.border, opacity: pressed ? 0.75 : 1 }]}
+          onPress={() => { setOnSale((v) => !v); void Haptics.selectionAsync(); }}
+        >
+          <Text style={[styles.sortChipText, { color: onSale ? "#EF4444" : colors.mutedForeground }]}>🏷 {t("shop.on_sale")}</Text>
+        </Pressable>
         <Pressable
           style={({ pressed }) => [styles.sortChip, { backgroundColor: inStock ? "#10B98122" : colors.secondary, borderColor: inStock ? "#10B981" : colors.border, opacity: pressed ? 0.75 : 1 }]}
           onPress={() => setInStock((v) => !v)}
         >
           <Text style={[styles.sortChipText, { color: inStock ? "#10B981" : colors.mutedForeground }]}>✓ {t("shop.in_stock")}</Text>
+        </Pressable>
+        {/* Price range chip */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.sortChip,
+            {
+              backgroundColor: (priceMin != null || priceMax != null) ? colors.primary + "22" : colors.secondary,
+              borderColor: (priceMin != null || priceMax != null) ? colors.primary : colors.border,
+              opacity: pressed ? 0.75 : 1,
+            },
+          ]}
+          onPress={() => { setTempMin(priceMin != null ? String(priceMin) : ""); setTempMax(priceMax != null ? String(priceMax) : ""); setShowFilterPanel(true); }}
+        >
+          <Ionicons name="options-outline" size={12} color={(priceMin != null || priceMax != null) ? colors.primary : colors.mutedForeground} />
+          <Text style={[styles.sortChipText, { color: (priceMin != null || priceMax != null) ? colors.primary : colors.mutedForeground }]}>
+            {(priceMin != null || priceMax != null)
+              ? `$${priceMin ?? 0}–${priceMax != null ? "$" + priceMax : "∞"}`
+              : t("shop.price_range")}
+          </Text>
         </Pressable>
         {[4, 3].map((star) => {
           const active = minRating === star;
@@ -480,10 +572,10 @@ function CustomerShop() {
             </Pressable>
           );
         })}
-        {(minRating > 0 || inStock || sortBy !== "newest") && (
+        {(minRating > 0 || inStock || sortBy !== "newest" || onSale || priceMin != null || priceMax != null) && (
           <Pressable
             style={({ pressed }) => [styles.sortChip, { backgroundColor: colors.secondary, borderColor: colors.border, opacity: pressed ? 0.75 : 1 }]}
-            onPress={() => { setMinRating(0); setInStock(false); setSortBy("newest"); }}
+            onPress={() => { setMinRating(0); setInStock(false); setSortBy("newest"); setOnSale(false); setPriceMin(null); setPriceMax(null); }}
           >
             <Text style={[styles.sortChipText, { color: colors.mutedForeground }]}>✕ {t("shop.clear_filters")}</Text>
           </Pressable>
@@ -566,6 +658,82 @@ function CustomerShop() {
         }
         renderItem={renderProductItem}
       />
+
+      {/* ── Price Filter Panel Modal ── */}
+      <Modal
+        visible={showFilterPanel}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowFilterPanel(false)}
+      >
+        <KeyboardAvoidingView
+          style={[styles.shopContainer, { backgroundColor: colors.background }]}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <View style={[styles.shopHeader, { paddingTop: 20, borderBottomColor: colors.border, borderBottomWidth: 1, paddingBottom: 16 }]}>
+            <Text style={[styles.shopTitle, { color: colors.foreground, fontSize: 18 }]}>{t("shop.price_range")}</Text>
+            <Pressable onPress={() => setShowFilterPanel(false)} style={[styles.searchIconBtn, { backgroundColor: colors.muted }]}>
+              <Ionicons name="close" size={18} color={colors.foreground} />
+            </Pressable>
+          </View>
+          <View style={{ padding: 20, gap: 16 }}>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.clearAllText, { color: colors.mutedForeground, marginBottom: 6 }]}>{t("shop.price_min_placeholder")}</Text>
+                <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={{ color: colors.mutedForeground }}>$</Text>
+                  <TextInput
+                    style={[styles.searchInput, { color: colors.foreground }]}
+                    value={tempMin}
+                    onChangeText={setTempMin}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor={colors.mutedForeground}
+                  />
+                </View>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.clearAllText, { color: colors.mutedForeground, marginBottom: 6 }]}>{t("shop.price_max_placeholder")}</Text>
+                <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={{ color: colors.mutedForeground }}>$</Text>
+                  <TextInput
+                    style={[styles.searchInput, { color: colors.foreground }]}
+                    value={tempMax}
+                    onChangeText={setTempMax}
+                    keyboardType="numeric"
+                    placeholder="∞"
+                    placeholderTextColor={colors.mutedForeground}
+                  />
+                </View>
+              </View>
+            </View>
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+              <Pressable
+                style={({ pressed }) => [styles.clearAllBtn, { flex: 1, justifyContent: "center", borderColor: colors.border, opacity: pressed ? 0.75 : 1 }]}
+                onPress={() => { setTempMin(""); setTempMax(""); setPriceMin(null); setPriceMax(null); setShowFilterPanel(false); }}
+              >
+                <Text style={[styles.clearAllText, { color: colors.mutedForeground }]}>{t("shop.reset_filters")}</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.clearAllBtn,
+                  { flex: 2, justifyContent: "center", backgroundColor: colors.primary, borderColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+                ]}
+                onPress={() => {
+                  const mn = parseFloat(tempMin);
+                  const mx = parseFloat(tempMax);
+                  setPriceMin(!isNaN(mn) && mn > 0 ? mn : null);
+                  setPriceMax(!isNaN(mx) && mx > 0 ? mx : null);
+                  setShowFilterPanel(false);
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+              >
+                <Text style={[styles.clearAllText, { color: colors.primaryForeground, fontWeight: "700" as const }]}>{t("shop.apply_filters")}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -694,6 +862,35 @@ const suggStyles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth },
   rowText: { flex: 1, fontSize: 13.5 },
   catBadge: { fontSize: 10, fontWeight: "600" as const, textTransform: "uppercase", letterSpacing: 0.4, borderWidth: 1, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 },
+});
+
+const intentStyles = StyleSheet.create({
+  banner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  bannerText: { fontSize: 12, fontWeight: "600" as const, flex: 1 },
+});
+
+const quickStyles = StyleSheet.create({
+  row: { flexDirection: "row", gap: 8, marginTop: 8 },
+  btn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  btnText: { flex: 1, fontSize: 12, fontWeight: "500" as const },
 });
 
 const relStyles = StyleSheet.create({

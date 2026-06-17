@@ -91,6 +91,8 @@ function RootLayoutNav() {
       <Stack.Screen name="admin/courier-applications" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="admin/verification" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="admin/support" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="admin/delivery-missions" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="admin/hero-banners" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="seller/trust" options={{ animation: "slide_from_right" }} />
     </Stack>
   );
