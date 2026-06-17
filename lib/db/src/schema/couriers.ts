@@ -19,12 +19,16 @@ export const couriersTable = pgTable("couriers", {
   availabilityStatus: text("availability_status").default("OFFLINE"),
   isAcceptingDeliveries: boolean("is_accepting_deliveries").notNull().default(false),
   lastAvailabilityChangeAt: timestamp("last_availability_change_at"),
+  // V3.3 — Location (current GPS position for nearest-courier sorting)
+  currentLat: numeric("current_lat", { precision: 10, scale: 7 }),
+  currentLng: numeric("current_lng", { precision: 10, scale: 7 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => [
   index("idx_couriers_user_id").on(t.userId),
   index("idx_couriers_status").on(t.status),
   index("idx_couriers_availability").on(t.availabilityStatus),
+  index("idx_couriers_location").on(t.currentLat, t.currentLng),
 ]);
 
 export type Courier = typeof couriersTable.$inferSelect;

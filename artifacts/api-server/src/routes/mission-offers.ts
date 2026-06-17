@@ -12,10 +12,11 @@
  */
 
 import { Router, type IRouter } from "express";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull, sql } from "drizzle-orm";
 import {
   db, pool,
   couriersTable, missionOffersTable, deliveryMissionsTable, usersTable,
+  dispatchAlertsTable,
 } from "@workspace/db";
 import { requireAuth, requireActiveAccount } from "../middlewares/auth";
 import {
@@ -251,6 +252,48 @@ router.post("/admin/delivery-missions/:missionId/trigger-assignment", requireAut
   triggerAssignmentEngine(missionId);
 
   res.json({ message: "Assignment engine triggered", missionId });
+});
+
+// ─── GET /admin/dispatch-alerts ──────────────────────────────────────────────
+// Returns unresolved dispatch alerts, newest first.
+
+router.get("/admin/dispatch-alerts", requireAuth, async (req, res): Promise<void> => {
+  if (req.user?.role !== "admin") { res.status(403).json({ error: "Access denied" }); return; }
+
+  const alerts = await db
+    .select({
+      id:            dispatchAlertsTable.id,
+      missionId:     dispatchAlertsTable.missionId,
+      type:          dispatchAlertsTable.type,
+      message:       dispatchAlertsTable.message,
+      resolvedAt:    dispatchAlertsTable.resolvedAt,
+      resolvedById:  dispatchAlertsTable.resolvedById,
+      createdAt:     dispatchAlertsTable.createdAt,
+    })
+    .from(dispatchAlertsTable)
+    .where(isNull(dispatchAlertsTable.resolvedAt))
+    .orderBy(desc(dispatchAlertsTable.createdAt));
+
+  res.json(alerts);
+});
+
+// ─── PATCH /admin/dispatch-alerts/:id/resolve ────────────────────────────────
+// Admin resolves (dismisses) a dispatch alert.
+
+router.patch("/admin/dispatch-alerts/:id/resolve", requireAuth, async (req, res): Promise<void> => {
+  if (req.user?.role !== "admin") { res.status(403).json({ error: "Access denied" }); return; }
+  const alertId = parseInt(String(req.params.id), 10);
+  if (!alertId) { res.status(400).json({ error: "Invalid alert ID" }); return; }
+
+  const [updated] = await db
+    .update(dispatchAlertsTable)
+    .set({ resolvedAt: new Date(), resolvedById: req.user!.userId, updatedAt: new Date() })
+    .where(eq(dispatchAlertsTable.id, alertId))
+    .returning();
+
+  if (!updated) { res.status(404).json({ error: "Alert not found" }); return; }
+
+  res.json({ message: "Alert resolved", alert: updated });
 });
 
 export default router;

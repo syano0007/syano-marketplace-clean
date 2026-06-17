@@ -16,6 +16,7 @@ import { requireAuth, requireActiveAccount } from "../middlewares/auth";
 import { buildVariantData } from "./variants";
 import { createDeliveryMission } from "../services/deliveryMissionService";
 import { triggerAssignmentEngine } from "../services/missionAssignmentEngine";
+import { setCourierOnlineAfterMission } from "../services/courierAvailabilityService";
 
 const router: IRouter = Router();
 
@@ -742,6 +743,21 @@ router.patch("/orders/:id/status", requireAuth, requireActiveAccount, async (req
 
   // ── Mandatory status history insert ────────────────────────────────────────
   await insertStatusHistory(order.id, currentStatus, newStatus, userId, role);
+
+  // ── V3.3: Restore courier to ONLINE when order is cancelled from a courier-active status ──
+  if (newStatus === "cancelled") {
+    const COURIER_ACTIVE_STATUSES = ["courier_assigned", "picked_up", "out_for_delivery", "in_transit"];
+    if (COURIER_ACTIVE_STATUSES.includes(currentStatus)) {
+      db.select({ courierId: courierAssignmentsTable.courierId })
+        .from(courierAssignmentsTable)
+        .where(eq(courierAssignmentsTable.orderId, order.id))
+        .limit(1)
+        .then(([assignment]) => {
+          if (assignment) setCourierOnlineAfterMission(assignment.courierId).catch(() => {});
+        })
+        .catch(() => {});
+    }
+  }
 
   // ── B1: Auto-create delivery mission + trigger assignment engine ─────────────
   if (newStatus === "ready_for_pickup" && role === "seller") {

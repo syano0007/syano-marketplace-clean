@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, and, count } from "drizzle-orm";
+import { eq, desc, and, count, isNull, sql } from "drizzle-orm";
 import {
   db, deliveryMissionsTable, usersTable, ordersTable, couriersTable,
-  sellerApplicationsTable,
+  sellerApplicationsTable, dispatchAlertsTable,
 } from "@workspace/db";
 import { requireAuth, requireRole } from "../middlewares/auth";
 import { getMission } from "../services/deliveryMissionService";
@@ -96,17 +96,22 @@ router.get("/seller/delivery-missions", requireAuth, requireRole("seller"), asyn
 });
 
 // ─── GET /admin/delivery-missions/stats ───────────────────────────────────────
-// Returns mission counts grouped by status for the admin dashboard counter cards.
+// Returns mission counts grouped by status + unresolved dispatch alert count.
 router.get("/admin/delivery-missions/stats", requireAuth, requireRole("admin"), async (req, res): Promise<void> => {
-  const rows = await db
-    .select({ status: deliveryMissionsTable.status, cnt: count() })
-    .from(deliveryMissionsTable)
-    .groupBy(deliveryMissionsTable.status);
+  const [rows, [alertRow]] = await Promise.all([
+    db.select({ status: deliveryMissionsTable.status, cnt: count() })
+      .from(deliveryMissionsTable)
+      .groupBy(deliveryMissionsTable.status),
+    db.select({ unresolved: count() })
+      .from(dispatchAlertsTable)
+      .where(isNull(dispatchAlertsTable.resolvedAt)),
+  ]);
 
   const result: Record<string, number> = {};
   for (const row of rows) {
     result[row.status] = Number(row.cnt);
   }
+  result.dispatchAlerts = Number(alertRow?.unresolved ?? 0);
   res.json(result);
 });
 

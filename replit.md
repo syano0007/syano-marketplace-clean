@@ -1,5 +1,5 @@
 # SYANO — syanomarket.online
-Last verified working: June 16, 2026
+Last verified working: June 17, 2026
 Workflows: API Server ✅ | Marketplace ✅ | Embedding Service ⚠️ (TF-IDF mode — needs numpy in fresh env)
 Secrets: All 12 loaded ✅
 SEO Layer: react-helmet-async ✅ | sitemap.xml ✅ | robots.txt ✅ | JSON-LD ✅
@@ -8,7 +8,7 @@ Phase 11: ALL 10 PROMPTS COMPLETE ✅
 Phase 12: Performance & Scalability — COMPLETE ✅
 Phase 13: AI Customer Service Agent V1 — COMPLETE ✅
 Courier V3.2 — Availability + Operations V2 — COMPLETE ✅
-Courier V3.3 — Mission Offer & Assignment Engine — COMPLETE ✅
+Courier V3.3 — Mission Offer & Assignment Engine — COMPLETE ✅ (V3.3 Finalization verified June 17, 2026)
 Next task: Phase 14 (TBD)
 
 ---
@@ -21,7 +21,7 @@ Next task: Phase 14 (TBD)
 
 **This project has been fully set up and verified on a new Replit account (June 16, 2026). DO NOT recreate workflows, reinstall packages, or run schema commands unless you have confirmed the environment is broken.**
 
-**Last verified:** June 16, 2026 — all 10 env vars loaded, all 3 workflows running, 33 DB tables, 42/42 embeddings, test email delivered via Resend.
+**Last verified:** June 17, 2026 — all env vars loaded, all 3 workflows running, 37 DB tables, 42/42 embeddings, test email delivered via Resend.
 
 ### Before touching anything, run this check:
 ```bash
@@ -45,13 +45,13 @@ curl -s http://localhost:8080/api/healthz && echo "API OK"
 - ❌ Creating a new "API Server" workflow → port 8080 conflict, both die
 - ❌ Creating a new "Start application" on port 5000 → duplicate conflict
 - ❌ Running `pnpm dev` at workspace root → wrong, use workflow restart
-- ❌ Running `psql -f schema.sql` if DB already has 33 tables → will fail/corrupt
+- ❌ Running `psql -f schema.sql` if DB already has 37 tables → will fail/corrupt
 - ❌ Installing `sentence-transformers` or `torch` via Replit package manager (uv) → fails on Linux; use `pip install --no-cache-dir` directly instead
 - ❌ Running `tsc --noEmit` on marketplace/api-server without building libs first → spurious TS6305 errors
 
 ### If the environment is fresh (empty DB / packages missing):
 Read `RECOVERY_GUIDE.md` — it has the exact commands in the exact order.
-**Expected final state:** 33 tables, 42 products, 42/42 embeddings, `GET /api/healthz → {"status":"ok"}`, recovery check 95/100.
+**Expected final state:** 37 tables, 42 products, 42/42 embeddings, `GET /api/healthz → {"status":"ok"}`, recovery check 95/100.
 
 ---
 
@@ -59,7 +59,7 @@ Read `RECOVERY_GUIDE.md` — it has the exact commands in the exact order.
 
 Full-stack Syrian marketplace platform with role-based auth (Seller / Customer / Courier / Admin), cart/order/inventory/discount system, hybrid NLP Arabic/English search, semantic embeddings, real-time messaging, courier delivery system, and a premium emerald green AMOLED dark design.
 
-**Recovery-Verified:** June 16, 2026 — full restore in Replit environment, 0 TypeScript errors (V3.3 files), all services running.
+**Recovery-Verified:** June 17, 2026 — full V3.3 finalization verified; 0 TypeScript errors; all services running; 37 DB tables; Haversine distance sort + dispatch_alerts table + courier ONLINE restore all confirmed.
 
 ---
 
@@ -113,7 +113,7 @@ pnpm --filter @workspace/api-server embed:generate
 
 ```
 lib/
-  db/src/schema/          → Drizzle ORM schema (33 tables)
+  db/src/schema/          → Drizzle ORM schema (37 tables)
   api-spec/openapi.yaml   → Source-of-truth OpenAPI contract
   api-zod/src/index.ts    → Generated Zod schemas (DO NOT EDIT)
   api-client-react/src/   → Generated React Query hooks (DO NOT EDIT)
@@ -161,7 +161,7 @@ artifacts/
 
 ## Database (Verified June 15, 2026)
 
-- **33 tables total** (21 base in schema.sql + 12 added by run-migrations.ts on first API start)
+- **37 tables total** (21 base in schema.sql + 16 added by run-migrations.ts on first API start)
 - `notification_type` enum: **32 values**
 - `order_status` enum: **15 values**
 - FTS: `fts_vector` + `products_fts_gin` GIN index — **42/42 products**

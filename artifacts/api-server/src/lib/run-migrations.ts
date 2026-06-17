@@ -642,7 +642,30 @@ export async function runMigrations(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_mission_offers_expires_at  ON mission_offers(expires_at);
     `);
 
-    logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns, AI support tickets, V3.3 mission assignment engine ready (mission_offers table)");
+    // ── V3.3: courier lat/lng columns (for Haversine nearest-courier sorting) ──
+    await client.query(`
+      ALTER TABLE couriers ADD COLUMN IF NOT EXISTS current_lat NUMERIC(10,7);
+      ALTER TABLE couriers ADD COLUMN IF NOT EXISTS current_lng NUMERIC(10,7);
+      CREATE INDEX IF NOT EXISTS idx_couriers_location ON couriers(current_lat, current_lng);
+    `);
+
+    // ── V3.3: dispatch_alerts table ───────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS dispatch_alerts (
+        id             SERIAL PRIMARY KEY,
+        mission_id     INTEGER      NOT NULL REFERENCES delivery_missions(id) ON DELETE CASCADE,
+        type           TEXT         NOT NULL DEFAULT 'NO_COURIER_FOUND',
+        message        TEXT         NOT NULL,
+        resolved_at    TIMESTAMPTZ,
+        resolved_by_id INTEGER      REFERENCES users(id),
+        created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+        updated_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_dispatch_alerts_mission_id   ON dispatch_alerts(mission_id);
+      CREATE INDEX IF NOT EXISTS idx_dispatch_alerts_resolved_at  ON dispatch_alerts(resolved_at);
+    `);
+
+    logger.info("Migrations complete: delivery system, courier enums, order delivery, user settings, messaging-v2 columns, AI support tickets, V3.3 mission assignment engine (mission_offers + dispatch_alerts + courier lat/lng) ready");
   } catch (err) {
     logger.error({ err }, "Migration error — server cannot start safely");
     throw err;

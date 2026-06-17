@@ -30,8 +30,8 @@ Last updated: June 16, 2026
 
 ---
 
-**Last Updated:** June 16, 2026 (Phase 12 — Performance & Scalability)
-**Recovery-Verified:** June 16, 2026 — all secrets loaded; API + Marketplace workflows running; 33 tables; 42 products; all endpoints COLD <50ms, WARM <10ms; 0 TS errors
+**Last Updated:** June 17, 2026 (V3.3 Finalization — Haversine + dispatch_alerts + courier ONLINE restore)
+**Recovery-Verified:** June 17, 2026 — all services running; 37 tables; 42 products; 0 TS errors; V3.3 all gaps closed
 
 SYANO is a production-scale Syrian marketplace platform built with React + Vite (web), Expo (mobile), Express + Drizzle (API), PostgreSQL (DB). Full Arabic/English bilingual, RTL support, dark/light theme.
 
@@ -78,7 +78,7 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 
 ### Replit Account Migration
 1. Fresh `pnpm install` (~1,134 packages)
-2. `npx drizzle-kit push` — initialized schema on fresh DB (33 tables)
+2. `npx drizzle-kit push` — initialized schema on fresh DB (37 tables)
 3. All 10 environment variables confirmed loaded in Replit Secrets
 4. All 3 workflows running: API Server (8080), Start application (5000), Embedding Service (8001)
 5. Test email delivered via Resend (id: 20e67c28-0ce9-4b3d-b3ec-72becfe32ff9)
@@ -183,7 +183,7 @@ Key features: conversation CRUD, soft-delete tombstones, read receipts (✓/✓�
 | `artifacts/api-server/src/scripts/generateEmbeddings.ts` | Semantic embedding backfill (195 lines) |
 | `artifacts/embedding-service/main.py` | FastAPI TF-IDF/LSA embedding service (342 lines) |
 | `artifacts/api-server/src/routes/` | All API routes (25+ route files) |
-| `lib/db/src/schema/` | Drizzle schema (all 33 tables) |
+| `lib/db/src/schema/` | Drizzle schema (all 37 tables) |
 | `lib/api-client-react/src/` | Typed TanStack Query hooks for all endpoints |
 | `artifacts/marketplace/src/App.tsx` | React router, all lazy-loaded pages |
 | `artifacts/marketplace/src/pages/search/index.tsx` | Shop/search page (1,229 lines) |
@@ -194,7 +194,9 @@ Key features: conversation CRUD, soft-delete tombstones, read receipts (✓/✓�
 | `artifacts/marketplace/vite.config.ts` | Vite config — includes `/api` proxy to port 8080 |
 
 ### Database
-- **33 tables** (21 base schema + 12 via run-migrations.ts)
+- **37 tables** (21 base schema + 16 via run-migrations.ts)
+  - Includes `dispatch_alerts` table (V3.3 finalization, June 17, 2026)
+  - `couriers` table has `current_lat`/`current_lng` columns for Haversine distance sorting
 - `notification_type` enum: 32 values
 - `order_status` enum: 15 values
 - FTS: `fts_vector` column + `products_fts_gin` GIN index (42/42 products populated)
@@ -240,6 +242,6 @@ npx tsc --build lib/db lib/api-zod lib/api-client-react
 # Marketplace (Start application) + Mobile workflows
 ```
 
-Expected after recovery: **33 tables**, notification_type=32 enum values, order_status=15, 42 products, 42/42 embeddings, 95/100 recovery check.
+Expected after recovery: **37 tables**, notification_type=32 enum values, order_status=15, 42 products, 42/42 embeddings, 95/100 recovery check.
 
 See `RECOVERY_GUIDE.md` for full step-by-step instructions.

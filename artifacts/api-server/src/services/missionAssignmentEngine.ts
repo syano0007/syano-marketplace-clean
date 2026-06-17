@@ -2,59 +2,89 @@
  * SYANO — Mission Assignment Engine (V3.3)
  *
  * Strategy: up to 3 rounds × 3 couriers per round × 60-second offer window.
- * No GPS — "nearest" proxy = available couriers ordered by completedDeliveries DESC
- * (fair load distribution until GPS is added in a later phase).
- *
- * Future GPS will replace findNearestCouriers() without touching the rest of the engine.
+ * Nearest courier = sorted by Haversine distance from pickup_lat/pickup_lng.
+ * Falls back to completedDeliveries DESC when location data is unavailable.
  */
 
 import { eq, and, notInArray, desc } from "drizzle-orm";
 import {
   pool, db,
   couriersTable, deliveryMissionsTable, missionOffersTable, usersTable,
+  dispatchAlertsTable,
 } from "@workspace/db";
 import { createNotification, bi } from "../lib/notif";
 import { logger } from "../lib/logger";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const OFFER_SECONDS    = 60;
-const MAX_ROUNDS       = 3;
+const OFFER_SECONDS      = 60;
+const MAX_ROUNDS         = 3;
 const COURIERS_PER_ROUND = 3;
 
 // ─── findNearestCouriers ──────────────────────────────────────────────────────
-// Returns up to `limit` available couriers, excluding already-contacted ones.
-// Sorted by completedDeliveries DESC (proximity proxy until GPS phase).
+// Returns up to `limit` available couriers ordered by geographical distance
+// from the mission pickup location (Haversine formula).
+// Falls back to completedDeliveries DESC when lat/lng is unavailable.
 
 export async function findNearestCouriers(
-  _missionId: number,
+  missionId: number,
   excludeCourierIds: number[] = [],
   limit = COURIERS_PER_ROUND,
 ): Promise<Array<{ id: number; userId: number; completedDeliveries: number }>> {
-  const conditions: ReturnType<typeof eq>[] = [
-    eq(couriersTable.status, "approved"),
-    eq(couriersTable.availabilityStatus as any, "ONLINE"),
-    eq(couriersTable.isAcceptingDeliveries, true),
-  ];
+  // Fetch mission pickup coordinates
+  const [mission] = await db
+    .select({ pickupLat: deliveryMissionsTable.pickupLat, pickupLng: deliveryMissionsTable.pickupLng })
+    .from(deliveryMissionsTable)
+    .where(eq(deliveryMissionsTable.id, missionId));
 
-  if (excludeCourierIds.length > 0) {
-    conditions.push(notInArray(couriersTable.id, excludeCourierIds) as any);
-  }
+  const pickupLat = mission?.pickupLat ? parseFloat(String(mission.pickupLat)) : null;
+  const pickupLng = mission?.pickupLng ? parseFloat(String(mission.pickupLng)) : null;
 
-  return db
-    .select({
-      id:                   couriersTable.id,
-      userId:               couriersTable.userId,
-      completedDeliveries:  couriersTable.completedDeliveries,
-    })
-    .from(couriersTable)
-    .where(and(...conditions))
-    .orderBy(desc(couriersTable.completedDeliveries))
-    .limit(limit);
+  const excludeClause = excludeCourierIds.length > 0
+    ? `AND c.id NOT IN (${excludeCourierIds.map((_, i) => `$${i + 3}`).join(", ")})`
+    : "";
+
+  // If pickup location is available, sort by Haversine distance from pickup.
+  // Otherwise sort by completedDeliveries DESC (fair distribution fallback).
+  const distanceExpr = (pickupLat !== null && pickupLng !== null)
+    ? `
+      CASE
+        WHEN c.current_lat IS NOT NULL
+        THEN 6371 * 2 * ASIN(SQRT(
+          POWER(SIN(RADIANS((c.current_lat::float - $1::float) / 2)), 2) +
+          COS(RADIANS($1::float)) * COS(RADIANS(c.current_lat::float)) *
+          POWER(SIN(RADIANS((c.current_lng::float - $2::float) / 2)), 2)
+        ))
+        ELSE NULL
+      END AS distance_km
+    `
+    : `NULL::float AS distance_km`;
+
+  const params: unknown[] = pickupLat !== null ? [pickupLat, pickupLng, ...excludeCourierIds] : [null, null, ...excludeCourierIds];
+
+  const sql = `
+    SELECT c.id, c.user_id, c.completed_deliveries, ${distanceExpr}
+    FROM couriers c
+    WHERE c.status = 'approved'
+      AND c.availability_status = 'ONLINE'
+      AND c.is_accepting_deliveries = true
+      ${excludeClause}
+    ORDER BY
+      CASE WHEN c.current_lat IS NULL OR $1 IS NULL THEN 1 ELSE 0 END ASC,
+      distance_km ASC NULLS LAST,
+      c.completed_deliveries DESC
+    LIMIT ${limit}
+  `;
+
+  const result = await pool.query<{ id: number; user_id: number; completed_deliveries: number }>(sql, params);
+  return result.rows.map((r) => ({
+    id:                  r.id,
+    userId:              r.user_id,
+    completedDeliveries: r.completed_deliveries,
+  }));
 }
 
 // ─── createMissionOffers ──────────────────────────────────────────────────────
-// Inserts OFFERED rows for all given couriers with a shared 60-second expiry.
 
 export async function createMissionOffers(
   missionId: number,
@@ -77,7 +107,6 @@ export async function createMissionOffers(
 }
 
 // ─── expireStaleMissionOffers ─────────────────────────────────────────────────
-// Marks all OFFERED offers for a mission as EXPIRED (called after round timeout).
 
 export async function expireStaleMissionOffers(missionId: number): Promise<void> {
   await db
@@ -139,11 +168,13 @@ export async function assignMissionToCourier(
       `UPDATE delivery_missions SET status='ASSIGNED', courier_id=$1, updated_at=$2 WHERE id=$3`,
       [courierId, now, missionId],
     );
+    // Section 5: Auto BUSY — courier becomes BUSY + stops accepting new deliveries
     await client.query(
       `UPDATE couriers SET availability_status='BUSY', is_accepting_deliveries=false,
          last_availability_change_at=$1, updated_at=$1 WHERE id=$2`,
       [now, courierId],
     );
+    // Section 8: Offer cleanup — cancel all remaining OFFERED offers for this mission
     await client.query(
       `UPDATE mission_offers SET status='CANCELLED', responded_at=$1
          WHERE mission_id=$2 AND id != $3 AND status='OFFERED'`,
@@ -164,7 +195,6 @@ export async function assignMissionToCourier(
 }
 
 // ─── startAssignmentRound ─────────────────────────────────────────────────────
-// Sets mission to SEARCHING, picks up to 3 couriers, creates offers, notifies them.
 
 export async function startAssignmentRound(
   missionId: number,
@@ -183,9 +213,8 @@ export async function startAssignmentRound(
   const courierIds = couriers.map((c) => c.id);
   await createMissionOffers(missionId, courierIds, round);
 
-  logger.info({ missionId, round, courierIds }, "[AssignmentEngine] Offers sent");
+  logger.info({ missionId, round, courierIds }, "[AssignmentEngine] Round started — offers sent");
 
-  // Notify each courier (fire-and-forget)
   for (const c of couriers) {
     createNotification({
       userId:   c.userId,
@@ -205,7 +234,7 @@ export async function startAssignmentRound(
 
 // ─── runAssignmentEngine ──────────────────────────────────────────────────────
 // Orchestrates up to MAX_ROUNDS rounds with OFFER_SECONDS wait between each.
-// After all rounds fail → mission = NO_COURIER_FOUND + admin dispatch alert.
+// After all rounds fail → mission = NO_COURIER_FOUND + dispatch alert.
 
 export async function runAssignmentEngine(missionId: number): Promise<void> {
   const excludedCourierIds: number[] = [];
@@ -222,12 +251,12 @@ export async function runAssignmentEngine(missionId: number): Promise<void> {
       return;
     }
 
-    logger.info({ missionId, round }, "[AssignmentEngine] Starting round");
+    logger.info({ missionId, round, maxRounds: MAX_ROUNDS }, `[AssignmentEngine] Starting round ${round}/${MAX_ROUNDS}`);
 
     const { courierIds } = await startAssignmentRound(missionId, round, excludedCourierIds);
     excludedCourierIds.push(...courierIds);
 
-    // Wait for offers to expire
+    // Wait for offers to expire (60 seconds)
     await new Promise<void>((resolve) => setTimeout(resolve, OFFER_SECONDS * 1000));
 
     // Check if accepted during wait
@@ -237,22 +266,35 @@ export async function runAssignmentEngine(missionId: number): Promise<void> {
       .where(eq(deliveryMissionsTable.id, missionId));
 
     if (!missionPost || missionPost.status === "ASSIGNED") {
-      logger.info({ missionId, round }, "[AssignmentEngine] Accepted — engine done");
+      logger.info({ missionId, round }, "[AssignmentEngine] Accepted during round — engine done");
       return;
     }
 
     // Expire stale offers before next round
     await expireStaleMissionOffers(missionId);
+
+    logger.info({ missionId, round }, `[AssignmentEngine] Round ${round} exhausted — no acceptance`);
   }
 
   // All rounds exhausted — no courier found
+  logger.warn({ missionId }, "[AssignmentEngine] ALL ROUNDS EXHAUSTED — NO_COURIER_FOUND");
+
   await db
     .update(deliveryMissionsTable)
     .set({ status: "NO_COURIER_FOUND" as any, updatedAt: new Date() })
     .where(eq(deliveryMissionsTable.id, missionId));
 
-  logger.warn({ missionId }, "[AssignmentEngine] NO_COURIER_FOUND — dispatch alert sent");
+  // Section 4: Insert dispatch alert record
+  const alertMessage = `Mission #${missionId} failed after ${MAX_ROUNDS} rounds (${MAX_ROUNDS * COURIERS_PER_ROUND} couriers tried). Manual assignment required.`;
+  await db.insert(dispatchAlertsTable).values({
+    missionId,
+    type:    "NO_COURIER_FOUND",
+    message: alertMessage,
+  }).catch((err) => {
+    logger.error({ err, missionId }, "[AssignmentEngine] Failed to insert dispatch alert");
+  });
 
+  // Also notify admins via notification system
   const admins = await db
     .select({ id: usersTable.id })
     .from(usersTable)
@@ -276,7 +318,6 @@ export async function runAssignmentEngine(missionId: number): Promise<void> {
 }
 
 // ─── triggerAssignmentEngine ──────────────────────────────────────────────────
-// Fire-and-forget wrapper — safe to call without awaiting.
 
 export function triggerAssignmentEngine(missionId: number): void {
   runAssignmentEngine(missionId).catch((err) => {

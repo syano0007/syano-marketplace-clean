@@ -156,7 +156,9 @@ Phase 13 — AI Agent (Customer Service)
 - Full model installed only once before final production launch
 
 ## Database State
-- 33 tables, fully migrated
+- 37 tables, fully migrated (21 base schema + 16 via run-migrations.ts)
+  - Includes: dispatch_alerts (V3.3 finalization), delivery_missions, delivery_zones, mission_offers, courier_assignments, courier_wallet_transactions, and all prior migration tables
+  - couriers table now has current_lat/current_lng columns (Haversine distance sorting)
 - 42 products with vector embeddings
 - pgvector enabled — vector(384) on products table
 

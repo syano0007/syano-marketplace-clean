@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import {
   ClipboardList, Search, Package, User, Store, Truck,
   Clock, CheckCircle2, AlertCircle, XCircle, ChevronDown, ChevronUp,
-  RefreshCw, Loader2, Users, Ban, RadioTower, Play,
+  RefreshCw, Loader2, Users, Ban, RadioTower, Play, Bell, CheckCheck,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -50,6 +50,15 @@ interface MissionOffer {
   respondedAt: string | null;
   courierName: string | null;
   courierPhone: string | null;
+}
+
+interface DispatchAlert {
+  id: number;
+  missionId: number;
+  type: string;
+  message: string;
+  createdAt: string;
+  resolvedAt: string | null;
 }
 
 interface OffersResponse {
@@ -98,6 +107,80 @@ const COUNTER_STATUSES = [
   "PICKED_UP", "IN_TRANSIT", "DELIVERED", "FAILED",
   "CANCELLED", "NO_COURIER_FOUND",
 ] as const;
+
+// ─── Dispatch Alerts Panel ───────────────────────────────────────────────────
+
+function DispatchAlertsPanel({ token, isRtl }: { token: string; isRtl: boolean }) {
+  const queryClient = useQueryClient();
+  const [resolving, setResolving] = useState<number | null>(null);
+
+  const { data: alerts = [], refetch } = useQuery<DispatchAlert[]>({
+    queryKey: ["admin", "dispatch-alerts"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/dispatch-alerts", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    refetchInterval: 30_000,
+  });
+
+  const resolve = async (id: number) => {
+    setResolving(id);
+    try {
+      await fetch(`/api/admin/dispatch-alerts/${id}/resolve`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["admin", "delivery-missions", "stats"] });
+    } finally {
+      setResolving(null);
+    }
+  };
+
+  if (alerts.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-rose-500/30 bg-rose-900/10 overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-rose-500/20">
+        <Bell className="w-4 h-4 text-rose-400 shrink-0" />
+        <span className="text-sm font-semibold text-rose-300">
+          {isRtl
+            ? `تنبيهات الإرسال (${alerts.length} غير محلولة)`
+            : `Dispatch Alerts (${alerts.length} unresolved)`}
+        </span>
+      </div>
+      <div className="divide-y divide-rose-500/10">
+        {alerts.map((a) => (
+          <div key={a.id} className="flex items-start gap-3 px-4 py-3">
+            <AlertCircle className="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-rose-200">
+                {isRtl ? `مهمة #${a.missionId}` : `Mission #${a.missionId}`}
+              </p>
+              <p className="text-xs text-gray-400 leading-snug mt-0.5">{a.message}</p>
+              <p className="text-[10px] text-gray-600 mt-1">
+                {new Date(a.createdAt).toLocaleString(isRtl ? "ar-SY" : "en-US")}
+              </p>
+            </div>
+            <button
+              onClick={() => resolve(a.id)}
+              disabled={resolving === a.id}
+              className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            >
+              {resolving === a.id
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <CheckCheck className="w-3 h-3" />}
+              {isRtl ? "حلّ" : "Resolve"}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ─── Mission Offers Panel ─────────────────────────────────────────────────────
 
@@ -361,6 +444,9 @@ export default function AdminDeliveryMissions() {
             );
           })}
         </div>
+
+        {/* Dispatch Alerts — shown when NO_COURIER_FOUND alerts exist */}
+        <DispatchAlertsPanel token={token!} isRtl={isRtl} />
 
         {/* Stats summary */}
         <div className="text-sm text-gray-400">
