@@ -86,6 +86,14 @@ const en = {
   orders: {
     title: "Orders",
     empty: "No orders yet",
+    review_leave: "Leave a Review",
+    review_leave_desc: "How was your experience with this seller?",
+    review_success_title: "Review Submitted",
+    review_success_desc: "Thank you for your review!",
+    review_error: "Failed to submit review. Please try again.",
+    review_rate_all: "Please rate all categories before submitting.",
+    review_submit_btn: "Submit Review",
+    already_reviewed: "You've already reviewed this seller.",
     empty_filter: "No {{status}} orders",
     mark_as: "Mark as {{status}}",
     cancel_order: "Cancel Order",
@@ -227,18 +235,51 @@ const en = {
   },
   auth: {
     welcome_back: "Welcome back",
-    sign_in_subtitle: "Sign in to your account",
-    email_placeholder: "Email",
-    password_placeholder: "Password",
+    login_subtitle: "Log in to your account",
+    sign_in_subtitle: "Log in to your account",
+    identifier_label: "Email or Phone Number",
+    identifier_placeholder: "you@example.com or +963 900 000 000",
+    identifier_required: "Enter your email or phone number",
+    email_placeholder: "you@example.com",
+    phone_invalid: "Enter a valid phone number (at least 5 digits)",
+    email_invalid: "Please enter a valid email address",
+    password: "Password",
+    password_placeholder: "••••••••",
+    password_min: "Password must be at least 8 characters",
+    remember_me: "Remember me",
     sign_in: "Sign In",
+    login_btn: "Log in",
+    logging_in: "Logging in…",
     no_account: "Don't have an account?",
     sign_up: "Sign up",
+    signup_link: "Sign up",
+    forgot_password: "Forgot password?",
+    create_account: "Create an account",
+    register_subtitle: "Join our marketplace today",
+    full_name: "Full Name",
+    name_placeholder: "Your full name",
+    name_min: "Name must be at least 2 characters",
+    create_btn: "Create account",
+    creating: "Creating account…",
+    have_account: "Already have an account?",
+    login_link: "Log in",
     fill_all_fields: "Please fill in all fields",
     invalid_credentials: "Invalid credentials",
-    invalid_login: "Invalid email, password or role",
-    forgot_password: "Forgot password?",
-    forgot_password_title: "Reset Password",
-    forgot_password_subtitle: "Enter your email to receive a reset code",
+    invalid_login: "Invalid email or password. Please try again.",
+    no_account_found: "No account found. Please sign up first.",
+    incorrect_password: "Incorrect password. Please try again.",
+    email_taken: "An account with this email already exists.",
+    phone_taken: "An account with this phone number already exists.",
+    rate_limited: "Too many attempts. Please wait {{seconds}} seconds.",
+    suspended_title: "Account Suspended",
+    suspended_desc: "Your account has been suspended. Please contact support.",
+    login_success: "Welcome back!",
+    login_failed: "Login failed",
+    account_created: "Account created successfully!",
+    reg_failed: "Registration failed",
+    try_again: "Please try again",
+    forgot_password_title: "Reset Your Password",
+    forgot_password_subtitle: "Enter your email and we'll send you a 6-digit reset code",
     send_reset_code: "Send Reset Code",
     sending: "Sending...",
     check_email: "Check Your Email",
@@ -247,7 +288,7 @@ const en = {
     verify_code: "Verify Code",
     verifying: "Verifying...",
     resend_code: "Resend code",
-    create_new_password: "New Password",
+    create_new_password: "Create New Password",
     new_password: "New Password",
     confirm_password: "Confirm Password",
     reset_password_btn: "Reset Password",
@@ -257,7 +298,6 @@ const en = {
     password_min_8: "Password must be at least 8 characters",
     back_to_login: "Back to login",
     code_6_digits: "Please enter the 6-digit code",
-    try_again: "Please try again",
   },
   nav: {
     shop: "Shop",
@@ -295,6 +335,13 @@ const en = {
     no_description: "No description provided.",
     member_since: "Member since",
     verified_since: "Verified since",
+    review_title: "Rate This Seller",
+    review_comment_label: "Comment (optional)",
+    review_comment_ph: "Share your experience…",
+    review_submit: "Submit",
+    communication: "Communication",
+    shipping: "Shipping",
+    professionalism: "Professionalism",
   },
 } as const;
 
@@ -390,6 +437,14 @@ const ar: DeepLeaf<typeof en> = {
   orders: {
     title: "الطلبات",
     empty: "لا توجد طلبات بعد",
+    review_leave: "اترك تقييماً",
+    review_leave_desc: "كيف كانت تجربتك مع هذا البائع؟",
+    review_success_title: "تم إرسال التقييم",
+    review_success_desc: "شكراً على تقييمك!",
+    review_error: "فشل إرسال التقييم. حاول مرة أخرى.",
+    review_rate_all: "يرجى تقييم جميع الفئات قبل الإرسال.",
+    review_submit_btn: "إرسال التقييم",
+    already_reviewed: "لقد قيّمت هذا البائع مسبقاً.",
     empty_filter: "لا توجد طلبات {{status}}",
     mark_as: "تحديث إلى {{status}}",
     cancel_order: "إلغاء الطلب",
@@ -531,16 +586,49 @@ const ar: DeepLeaf<typeof en> = {
   },
   auth: {
     welcome_back: "مرحباً بعودتك",
+    login_subtitle: "سجّل الدخول إلى حسابك",
     sign_in_subtitle: "سجّل الدخول إلى حسابك",
-    email_placeholder: "البريد الإلكتروني",
-    password_placeholder: "كلمة المرور",
+    identifier_label: "البريد الإلكتروني أو الهاتف",
+    identifier_placeholder: "you@example.com أو +963 900 000 000",
+    identifier_required: "أدخل بريدك الإلكتروني أو رقم هاتفك",
+    email_placeholder: "you@example.com",
+    phone_invalid: "أدخل رقم هاتف صحيح (5 أرقام على الأقل)",
+    email_invalid: "أدخل عنوان بريد إلكتروني صحيح",
+    password: "كلمة المرور",
+    password_placeholder: "••••••••",
+    password_min: "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
+    remember_me: "تذكرني",
     sign_in: "تسجيل الدخول",
+    login_btn: "تسجيل الدخول",
+    logging_in: "جارٍ تسجيل الدخول…",
     no_account: "ليس لديك حساب؟",
     sign_up: "إنشاء حساب",
+    signup_link: "إنشاء حساب",
+    forgot_password: "نسيت كلمة المرور؟",
+    create_account: "إنشاء حساب",
+    register_subtitle: "انضم إلى سوق سيانو اليوم",
+    full_name: "الاسم الكامل",
+    name_placeholder: "اسمك الكامل",
+    name_min: "يجب أن يكون الاسم حرفين على الأقل",
+    create_btn: "إنشاء حساب",
+    creating: "جارٍ إنشاء الحساب…",
+    have_account: "لديك حساب بالفعل؟",
+    login_link: "تسجيل الدخول",
     fill_all_fields: "يرجى ملء جميع الحقول",
     invalid_credentials: "بيانات الدخول غير صحيحة",
-    invalid_login: "البريد الإلكتروني أو كلمة المرور أو الدور غير صحيح",
-    forgot_password: "نسيت كلمة المرور؟",
+    invalid_login: "البريد الإلكتروني أو كلمة المرور غير صحيحة. حاول مرة أخرى.",
+    no_account_found: "لم يتم العثور على حساب. يرجى التسجيل أولاً.",
+    incorrect_password: "كلمة المرور غير صحيحة. حاول مرة أخرى.",
+    email_taken: "يوجد حساب مرتبط بهذا البريد الإلكتروني بالفعل.",
+    phone_taken: "يوجد حساب مرتبط بهذا الرقم بالفعل.",
+    rate_limited: "محاولات كثيرة. انتظر {{seconds}} ثانية.",
+    suspended_title: "الحساب موقوف",
+    suspended_desc: "تم إيقاف حسابك. يرجى التواصل مع الدعم.",
+    login_success: "مرحباً بعودتك!",
+    login_failed: "فشل تسجيل الدخول",
+    account_created: "تم إنشاء الحساب بنجاح!",
+    reg_failed: "فشل التسجيل",
+    try_again: "يرجى المحاولة مرة أخرى",
     forgot_password_title: "إعادة تعيين كلمة المرور",
     forgot_password_subtitle: "أدخل بريدك الإلكتروني لاستلام رمز إعادة التعيين",
     send_reset_code: "إرسال رمز إعادة التعيين",
@@ -561,7 +649,6 @@ const ar: DeepLeaf<typeof en> = {
     password_min_8: "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
     back_to_login: "العودة لتسجيل الدخول",
     code_6_digits: "يرجى إدخال الرمز المكون من 6 أرقام",
-    try_again: "يرجى المحاولة مرة أخرى",
   },
   nav: {
     shop: "المتجر",
@@ -599,6 +686,13 @@ const ar: DeepLeaf<typeof en> = {
     no_description: "لا يوجد وصف.",
     member_since: "عضو منذ",
     verified_since: "موثق منذ",
+    review_title: "تقييم البائع",
+    review_comment_label: "تعليق (اختياري)",
+    review_comment_ph: "شارك تجربتك…",
+    review_submit: "إرسال",
+    communication: "التواصل",
+    shipping: "الشحن",
+    professionalism: "الاحترافية",
   },
 };
 
@@ -613,28 +707,46 @@ export function getLocale(): Locale {
   return currentLocale;
 }
 
-const TRANSLATIONS: Record<Locale, DeepLeaf<typeof en>> = { en, ar };
+type PathsToStringProps<T> = T extends string
+  ? []
+  : { [K in keyof T]: [K, ...PathsToStringProps<T[K]>] }[keyof T];
 
-export function t(key: string, paramsOrFallback?: Record<string, string | number> | string): string {
-  const params = typeof paramsOrFallback === "object" ? paramsOrFallback : undefined;
-  const parts = key.split(".");
-  let value: unknown = TRANSLATIONS[currentLocale] ?? en;
+type Join<T extends string[], D extends string> = T extends []
+  ? never
+  : T extends [infer F]
+  ? F
+  : T extends [infer F, ...infer R]
+  ? F extends string
+    ? R extends string[]
+      ? `${F}${D}${Join<R, D>}`
+      : never
+    : never
+  : string;
+
+type DotPaths = Join<PathsToStringProps<typeof en>, ".">;
+
+function getNestedValue(obj: Record<string, unknown>, path: string): string {
+  const parts = path.split(".");
+  let current: unknown = obj;
   for (const part of parts) {
-    value = (value as Record<string, unknown>)?.[part];
-    if (value === undefined) {
-      value = TRANSLATIONS["en"];
-      for (const p of parts) {
-        value = (value as Record<string, unknown>)?.[p];
-        if (value === undefined) {
-          return typeof paramsOrFallback === "string" ? paramsOrFallback : key;
-        }
-      }
-      break;
-    }
+    if (current === null || typeof current !== "object") return path;
+    current = (current as Record<string, unknown>)[part];
   }
-  if (typeof value !== "string") return typeof paramsOrFallback === "string" ? paramsOrFallback : key;
-  if (params) {
-    return value.replace(/\{\{(\w+)\}\}/g, (_, k) => String(params[k] ?? ""));
+  return typeof current === "string" ? current : path;
+}
+
+export function t(
+  key: DotPaths,
+  params?: Record<string, string | number> | string
+): string {
+  const translations = currentLocale === "ar" ? ar : en;
+  let value = getNestedValue(translations as unknown as Record<string, unknown>, key);
+  if (params && typeof params === "object") {
+    value = value.replace(/\{\{(\w+)\}\}/g, (_, k) =>
+      (params as Record<string, string | number>)[k] !== undefined
+        ? String((params as Record<string, string | number>)[k])
+        : `{{${k}}}`
+    );
   }
   return value;
 }

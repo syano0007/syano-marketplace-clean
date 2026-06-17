@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,48 +15,103 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLogin } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { t } from "../../src/i18n";
+import { getBaseUrl } from "@workspace/api-client-react";
 
 export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { login } = useAuth();
-  const { mutate: doLogin, isPending } = useLogin();
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"customer" | "seller">("customer");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleLogin() {
+  async function handleLogin() {
     setError("");
-    if (!email.trim() || !password.trim()) {
+    const trimmed = identifier.trim();
+    const pass = password.trim();
+
+    if (!trimmed || !pass) {
       setError(t("auth.fill_all_fields"));
       return;
     }
-    doLogin(
-      { data: { email: email.trim(), password, role } },
-      {
-        onSuccess: async (data) => {
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          await login(data);
-          router.replace("/(tabs)");
-        },
-        onError: (err: unknown) => {
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          const message =
-            err instanceof Error ? err.message : t("auth.invalid_credentials");
-          setError(message.includes("401") ? t("auth.invalid_login") : message);
-        },
+
+    const isEmail = trimmed.includes("@");
+    if (isEmail) {
+      if (!trimmed.includes(".") || trimmed.indexOf("@") === 0) {
+        setError(t("auth.email_invalid"));
+        return;
       }
-    );
+    } else {
+      if (trimmed.replace(/\D/g, "").length < 5) {
+        setError(t("auth.phone_invalid"));
+        return;
+      }
+    }
+
+    setIsLoading(true);
+    try {
+      const body: Record<string, string> = { password: pass };
+      if (isEmail) body.email = trimmed;
+      else body.phone = trimmed;
+
+      const res = await fetch(`${getBaseUrl()}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (res.status === 429) {
+        const data = await res.json().catch(() => ({}));
+        const seconds: number = (data as { retryAfter?: number }).retryAfter ?? 60;
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setError(t("auth.rate_limited", { seconds }));
+        return;
+      }
+
+      if (res.status === 403) {
+        const data = await res.json().catch(() => ({})) as { error?: string; verified?: boolean };
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        if (data.error === "ACCOUNT_SUSPENDED") {
+          Alert.alert(t("auth.suspended_title"), t("auth.suspended_desc"));
+          return;
+        }
+        setError(t("auth.invalid_credentials"));
+        return;
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string; message?: string };
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        const code = err.error ?? "";
+        const msg =
+          code === "USER_NOT_FOUND"
+            ? t("auth.no_account_found")
+            : code === "INVALID_PASSWORD"
+            ? t("auth.incorrect_password")
+            : err.message ?? t("auth.invalid_credentials");
+        setError(msg);
+        return;
+      }
+
+      const data = await res.json();
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await login(data);
+      router.replace("/(tabs)");
+    } catch {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setError(t("auth.try_again"));
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  const topInset = Platform.OS === "web" ? 67 : insets.top;
+  const topInset = Platform.OS === "web" ? 0 : insets.top;
 
   return (
     <KeyboardAvoidingView
@@ -65,138 +121,139 @@ export default function LoginScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: topInset + 24, paddingBottom: insets.bottom + 32 },
+          { paddingTop: topInset + 48, paddingBottom: insets.bottom + 40 },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.formSection}>
+          {/* ── Header ── */}
           <View style={styles.header}>
-            <View style={[styles.logoCircle, { backgroundColor: colors.primary }]}>
-              <Ionicons name="bag" size={32} color={colors.primaryForeground} />
+            <View style={[styles.logoBox, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.logoText, { color: colors.primaryForeground }]}>S</Text>
             </View>
-            <Text style={[styles.title, { color: colors.foreground }]}>{t("auth.welcome_back")}</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>
+              {t("auth.welcome_back")}
+            </Text>
             <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-              {t("auth.sign_in_subtitle")}
+              {t("auth.login_subtitle")}
             </Text>
           </View>
 
-          <View style={styles.roleRow}>
-            {(["customer", "seller"] as const).map((r) => (
-              <Pressable
-                key={r}
-                testID={`role-${r}`}
-                style={({ pressed }) => [
-                  styles.roleBtn,
-                  {
-                    backgroundColor:
-                      role === r ? colors.primary : colors.secondary,
-                    borderColor: role === r ? colors.primary : colors.border,
-                    opacity: pressed ? 0.85 : 1,
-                  },
-                ]}
-                onPress={() => setRole(r)}
-              >
-                <Ionicons
-                  name={r === "customer" ? "person-outline" : "storefront-outline"}
-                  size={16}
-                  color={role === r ? colors.primaryForeground : colors.mutedForeground}
-                />
-                <Text
-                  style={[
-                    styles.roleBtnText,
-                    {
-                      color:
-                        role === r ? colors.primaryForeground : colors.foreground,
-                    },
-                  ]}
-                >
-                  {r.charAt(0).toUpperCase() + r.slice(1)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
+          {/* ── Form ── */}
           <View style={styles.form}>
-            <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
-              <Ionicons name="mail-outline" size={18} color={colors.mutedForeground} />
-              <TextInput
-                testID="email-input"
-                style={[styles.input, { color: colors.foreground }]}
-                placeholder={t("auth.email_placeholder")}
-                placeholderTextColor={colors.mutedForeground}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-            </View>
-
-            <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
-              <Ionicons name="lock-closed-outline" size={18} color={colors.mutedForeground} />
-              <TextInput
-                testID="password-input"
-                style={[styles.input, { color: colors.foreground }]}
-                placeholder={t("auth.password_placeholder")}
-                placeholderTextColor={colors.mutedForeground}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoComplete="password"
-              />
-              <Pressable onPress={() => setShowPassword((p) => !p)}>
-                <Ionicons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
-                  size={18}
-                  color={colors.mutedForeground}
+            {/* Identifier field */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, { color: colors.foreground }]}>
+                {t("auth.identifier_label")}
+              </Text>
+              <View
+                style={[
+                  styles.inputWrap,
+                  { borderColor: error && !identifier ? colors.destructive : colors.border, backgroundColor: colors.card },
+                ]}
+              >
+                <Ionicons name="person-outline" size={18} color={colors.mutedForeground} />
+                <TextInput
+                  testID="identifier-input"
+                  style={[styles.input, { color: colors.foreground }]}
+                  placeholder={t("auth.identifier_placeholder")}
+                  placeholderTextColor={colors.mutedForeground}
+                  value={identifier}
+                  onChangeText={(v) => { setIdentifier(v); setError(""); }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="username"
+                  autoCorrect={false}
+                  returnKeyType="next"
                 />
-              </Pressable>
+              </View>
             </View>
 
+            {/* Password field */}
+            <View style={styles.fieldGroup}>
+              <View style={styles.passwordLabelRow}>
+                <Text style={[styles.label, { color: colors.foreground }]}>
+                  {t("auth.password")}
+                </Text>
+                <Pressable onPress={() => router.push("/(auth)/forgot-password")}>
+                  <Text style={[styles.forgotLink, { color: colors.mutedForeground }]}>
+                    {t("auth.forgot_password")}
+                  </Text>
+                </Pressable>
+              </View>
+              <View
+                style={[
+                  styles.inputWrap,
+                  { borderColor: colors.border, backgroundColor: colors.card },
+                ]}
+              >
+                <Ionicons name="lock-closed-outline" size={18} color={colors.mutedForeground} />
+                <TextInput
+                  testID="password-input"
+                  style={[styles.input, { color: colors.foreground }]}
+                  placeholder={t("auth.password_placeholder")}
+                  placeholderTextColor={colors.mutedForeground}
+                  value={password}
+                  onChangeText={(v) => { setPassword(v); setError(""); }}
+                  secureTextEntry={!showPassword}
+                  autoComplete="current-password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                />
+                <Pressable
+                  onPress={() => setShowPassword((p) => !p)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={18}
+                    color={colors.mutedForeground}
+                  />
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Error */}
             {!!error && (
-              <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text>
+              <View style={[styles.errorBox, { backgroundColor: colors.destructive + "18", borderColor: colors.destructive + "40" }]}>
+                <Ionicons name="alert-circle-outline" size={14} color={colors.destructive} />
+                <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text>
+              </View>
             )}
 
+            {/* Submit */}
             <Pressable
               testID="login-btn"
               style={({ pressed }) => [
                 styles.submitBtn,
-                { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+                { backgroundColor: colors.primary, opacity: pressed || isLoading ? 0.85 : 1 },
               ]}
               onPress={handleLogin}
-              disabled={isPending}
+              disabled={isLoading}
             >
-              {isPending ? (
+              {isLoading ? (
                 <ActivityIndicator color={colors.primaryForeground} />
               ) : (
                 <Text style={[styles.submitText, { color: colors.primaryForeground }]}>
-                  {t("auth.sign_in")}
+                  {t("auth.login_btn")}
                 </Text>
               )}
             </Pressable>
           </View>
         </View>
 
+        {/* ── Footer ── */}
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
             {t("auth.no_account")}{" "}
           </Text>
           <Pressable onPress={() => router.push("/(auth)/register")}>
             <Text style={[styles.footerLink, { color: colors.primary }]}>
-              {t("auth.sign_up")}
+              {t("auth.signup_link")}
             </Text>
           </Pressable>
         </View>
-
-        <Pressable
-          style={styles.forgotBtn}
-          onPress={() => router.push("/(auth)/forgot-password")}
-        >
-          <Text style={[styles.forgotText, { color: colors.mutedForeground }]}>
-            {t("auth.forgot_password")}
-          </Text>
-        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -209,31 +266,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     justifyContent: "space-between",
   },
-  formSection: { gap: 20 },
-  header: { alignItems: "center", gap: 8 },
-  logoCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  formSection: { gap: 24 },
+  header: { alignItems: "center", gap: 10 },
+  logoBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  title: { fontSize: 26, fontWeight: "700" as const, textAlign: "center" },
-  subtitle: { fontSize: 15, textAlign: "center" },
-  roleRow: { flexDirection: "row", gap: 10 },
-  roleBtn: {
-    flex: 1,
+  logoText: {
+    fontSize: 22,
+    fontWeight: "800" as const,
+    letterSpacing: -0.5,
+  },
+  title: { fontSize: 26, fontWeight: "700" as const, textAlign: "center", letterSpacing: -0.5 },
+  subtitle: { fontSize: 15, textAlign: "center", lineHeight: 21 },
+  form: { gap: 14 },
+  fieldGroup: { gap: 6 },
+  label: { fontSize: 14, fontWeight: "500" as const },
+  passwordLabelRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
+    justifyContent: "space-between",
   },
-  roleBtnText: { fontSize: 14, fontWeight: "600" as const },
-  form: { gap: 12 },
+  forgotLink: { fontSize: 12 },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -244,18 +302,24 @@ const styles = StyleSheet.create({
     height: 50,
   },
   input: { flex: 1, fontSize: 15 },
-  error: { fontSize: 13 },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  error: { flex: 1, fontSize: 13, lineHeight: 18 },
   submitBtn: {
     height: 50,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
+    marginTop: 2,
   },
   submitText: { fontSize: 16, fontWeight: "700" as const },
-  footer: { flexDirection: "row", justifyContent: "center", paddingTop: 24 },
+  footer: { flexDirection: "row", justifyContent: "center", paddingTop: 28 },
   footerText: { fontSize: 14 },
   footerLink: { fontSize: 14, fontWeight: "600" as const },
-  forgotBtn: { alignItems: "center", paddingTop: 12, paddingBottom: 4 },
-  forgotText: { fontSize: 13 },
 });

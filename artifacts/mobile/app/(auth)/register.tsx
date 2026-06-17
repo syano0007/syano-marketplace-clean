@@ -14,51 +14,110 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRegister } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { t } from "../../src/i18n";
+import { getBaseUrl } from "@workspace/api-client-react";
 
 export default function RegisterScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { login } = useAuth();
-  const { mutate: doRegister, isPending } = useRegister();
 
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"customer" | "seller">("customer");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleRegister() {
+  async function handleRegister() {
     setError("");
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      setError("Please fill in all fields");
+
+    const trimmedName = name.trim();
+    const trimmedId = identifier.trim();
+
+    if (!trimmedName || !trimmedId || !password) {
+      setError(t("auth.fill_all_fields"));
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (trimmedName.length < 2) {
+      setError(t("auth.name_min"));
       return;
     }
-    doRegister(
-      { data: { name: name.trim(), email: email.trim(), password, role } },
-      {
-        onSuccess: async (data) => {
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          await login(data);
-          router.replace("/(tabs)");
-        },
-        onError: (err: unknown) => {
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          const message = err instanceof Error ? err.message : "Registration failed";
-          setError(message.includes("400") ? "Email already registered" : message);
-        },
+
+    const isEmail = trimmedId.includes("@");
+    if (isEmail) {
+      if (!trimmedId.includes(".") || trimmedId.indexOf("@") === 0) {
+        setError(t("auth.email_invalid"));
+        return;
       }
-    );
+    } else {
+      if (trimmedId.replace(/\D/g, "").length < 5) {
+        setError(t("auth.phone_invalid"));
+        return;
+      }
+    }
+
+    if (password.length < 8) {
+      setError(t("auth.password_min"));
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const body: Record<string, string> = {
+        name: trimmedName,
+        password,
+      };
+      if (isEmail) body.email = trimmedId;
+      else body.phone = trimmedId;
+
+      const res = await fetch(`${getBaseUrl()}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (res.status === 429) {
+        const data = await res.json().catch(() => ({})) as { retryAfter?: number };
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setError(t("auth.rate_limited", { seconds: data.retryAfter ?? 60 }));
+        return;
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string; message?: string };
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        const code = err.error ?? err.message ?? "";
+        const msg =
+          code === "Email already registered" || code === "email_taken"
+            ? t("auth.email_taken")
+            : code === "Phone number already registered" || code === "phone_taken"
+            ? t("auth.phone_taken")
+            : err.message ?? t("auth.try_again");
+        setError(msg);
+        return;
+      }
+
+      const data = await res.json();
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      if (data.token) {
+        await login(data);
+        router.replace("/(tabs)");
+      } else {
+        router.replace("/(auth)/login");
+      }
+    } catch {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setError(t("auth.try_again"));
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  const topInset = Platform.OS === "web" ? 67 : insets.top;
+  const topInset = Platform.OS === "web" ? 0 : insets.top;
 
   return (
     <KeyboardAvoidingView
@@ -68,136 +127,143 @@ export default function RegisterScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: topInset + 24, paddingBottom: insets.bottom + 32 },
+          { paddingTop: topInset + 48, paddingBottom: insets.bottom + 40 },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.formSection}>
+          {/* ── Header ── */}
           <View style={styles.header}>
-            <View style={[styles.logoCircle, { backgroundColor: colors.primary }]}>
-              <Ionicons name="bag" size={32} color={colors.primaryForeground} />
+            <View style={[styles.logoBox, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.logoText, { color: colors.primaryForeground }]}>S</Text>
             </View>
-            <Text style={[styles.title, { color: colors.foreground }]}>Create account</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>
+              {t("auth.create_account")}
+            </Text>
             <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-              Join the marketplace today
+              {t("auth.register_subtitle")}
             </Text>
           </View>
 
-          <View style={styles.roleRow}>
-            {(["customer", "seller"] as const).map((r) => (
-              <Pressable
-                key={r}
-                testID={`role-${r}`}
-                style={({ pressed }) => [
-                  styles.roleBtn,
-                  {
-                    backgroundColor:
-                      role === r ? colors.primary : colors.secondary,
-                    borderColor: role === r ? colors.primary : colors.border,
-                    opacity: pressed ? 0.85 : 1,
-                  },
-                ]}
-                onPress={() => setRole(r)}
-              >
-                <Ionicons
-                  name={r === "customer" ? "person-outline" : "storefront-outline"}
-                  size={16}
-                  color={role === r ? colors.primaryForeground : colors.mutedForeground}
-                />
-                <Text
-                  style={[
-                    styles.roleBtnText,
-                    {
-                      color:
-                        role === r ? colors.primaryForeground : colors.foreground,
-                    },
-                  ]}
-                >
-                  {r.charAt(0).toUpperCase() + r.slice(1)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
+          {/* ── Form ── */}
           <View style={styles.form}>
-            <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
-              <Ionicons name="person-outline" size={18} color={colors.mutedForeground} />
-              <TextInput
-                style={[styles.input, { color: colors.foreground }]}
-                placeholder="Full name"
-                placeholderTextColor={colors.mutedForeground}
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-                autoComplete="name"
-              />
-            </View>
-
-            <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
-              <Ionicons name="mail-outline" size={18} color={colors.mutedForeground} />
-              <TextInput
-                style={[styles.input, { color: colors.foreground }]}
-                placeholder="Email"
-                placeholderTextColor={colors.mutedForeground}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-            </View>
-
-            <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
-              <Ionicons name="lock-closed-outline" size={18} color={colors.mutedForeground} />
-              <TextInput
-                style={[styles.input, { color: colors.foreground }]}
-                placeholder="Password (min. 6 chars)"
-                placeholderTextColor={colors.mutedForeground}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoComplete="new-password"
-              />
-              <Pressable onPress={() => setShowPassword((p) => !p)}>
-                <Ionicons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
-                  size={18}
-                  color={colors.mutedForeground}
+            {/* Full Name */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, { color: colors.foreground }]}>
+                {t("auth.full_name")}
+              </Text>
+              <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                <Ionicons name="person-outline" size={18} color={colors.mutedForeground} />
+                <TextInput
+                  style={[styles.input, { color: colors.foreground }]}
+                  placeholder={t("auth.name_placeholder")}
+                  placeholderTextColor={colors.mutedForeground}
+                  value={name}
+                  onChangeText={(v) => { setName(v); setError(""); }}
+                  autoCapitalize="words"
+                  autoComplete="name"
+                  returnKeyType="next"
                 />
-              </Pressable>
+              </View>
             </View>
 
+            {/* Email or Phone */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, { color: colors.foreground }]}>
+                {t("auth.identifier_label")}
+              </Text>
+              <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                <Ionicons name="mail-outline" size={18} color={colors.mutedForeground} />
+                <TextInput
+                  testID="identifier-input"
+                  style={[styles.input, { color: colors.foreground }]}
+                  placeholder={t("auth.identifier_placeholder")}
+                  placeholderTextColor={colors.mutedForeground}
+                  value={identifier}
+                  onChangeText={(v) => { setIdentifier(v); setError(""); }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="username"
+                  autoCorrect={false}
+                  returnKeyType="next"
+                />
+              </View>
+            </View>
+
+            {/* Password */}
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, { color: colors.foreground }]}>
+                {t("auth.password")}
+              </Text>
+              <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                <Ionicons name="lock-closed-outline" size={18} color={colors.mutedForeground} />
+                <TextInput
+                  testID="password-input"
+                  style={[styles.input, { color: colors.foreground }]}
+                  placeholder={t("auth.password_placeholder")}
+                  placeholderTextColor={colors.mutedForeground}
+                  value={password}
+                  onChangeText={(v) => { setPassword(v); setError(""); }}
+                  secureTextEntry={!showPassword}
+                  autoComplete="new-password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleRegister}
+                />
+                <Pressable
+                  onPress={() => setShowPassword((p) => !p)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={18}
+                    color={colors.mutedForeground}
+                  />
+                </Pressable>
+              </View>
+              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                {t("auth.password_min")}
+              </Text>
+            </View>
+
+            {/* Error */}
             {!!error && (
-              <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text>
+              <View style={[styles.errorBox, { backgroundColor: colors.destructive + "18", borderColor: colors.destructive + "40" }]}>
+                <Ionicons name="alert-circle-outline" size={14} color={colors.destructive} />
+                <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text>
+              </View>
             )}
 
+            {/* Submit */}
             <Pressable
               testID="register-btn"
               style={({ pressed }) => [
                 styles.submitBtn,
-                { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+                { backgroundColor: colors.primary, opacity: pressed || isLoading ? 0.85 : 1 },
               ]}
               onPress={handleRegister}
-              disabled={isPending}
+              disabled={isLoading}
             >
-              {isPending ? (
+              {isLoading ? (
                 <ActivityIndicator color={colors.primaryForeground} />
               ) : (
                 <Text style={[styles.submitText, { color: colors.primaryForeground }]}>
-                  Create Account
+                  {t("auth.create_btn")}
                 </Text>
               )}
             </Pressable>
           </View>
         </View>
 
+        {/* ── Footer ── */}
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
-            Already have an account?{" "}
+            {t("auth.have_account")}{" "}
           </Text>
           <Pressable onPress={() => router.back()}>
-            <Text style={[styles.footerLink, { color: colors.primary }]}>Sign in</Text>
+            <Text style={[styles.footerLink, { color: colors.primary }]}>
+              {t("auth.login_link")}
+            </Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -212,31 +278,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     justifyContent: "space-between",
   },
-  formSection: { gap: 20 },
-  header: { alignItems: "center", gap: 8 },
-  logoCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  formSection: { gap: 24 },
+  header: { alignItems: "center", gap: 10 },
+  logoBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  title: { fontSize: 26, fontWeight: "700" as const, textAlign: "center" },
-  subtitle: { fontSize: 15, textAlign: "center" },
-  roleRow: { flexDirection: "row", gap: 10 },
-  roleBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
+  logoText: {
+    fontSize: 22,
+    fontWeight: "800" as const,
+    letterSpacing: -0.5,
   },
-  roleBtnText: { fontSize: 14, fontWeight: "600" as const },
-  form: { gap: 12 },
+  title: { fontSize: 26, fontWeight: "700" as const, textAlign: "center", letterSpacing: -0.5 },
+  subtitle: { fontSize: 15, textAlign: "center", lineHeight: 21 },
+  form: { gap: 14 },
+  fieldGroup: { gap: 6 },
+  label: { fontSize: 14, fontWeight: "500" as const },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -247,16 +308,25 @@ const styles = StyleSheet.create({
     height: 50,
   },
   input: { flex: 1, fontSize: 15 },
-  error: { fontSize: 13 },
+  hint: { fontSize: 12, marginTop: 2 },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  error: { flex: 1, fontSize: 13, lineHeight: 18 },
   submitBtn: {
     height: 50,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
+    marginTop: 2,
   },
   submitText: { fontSize: 16, fontWeight: "700" as const },
-  footer: { flexDirection: "row", justifyContent: "center", paddingTop: 24 },
+  footer: { flexDirection: "row", justifyContent: "center", paddingTop: 28 },
   footerText: { fontSize: 14 },
   footerLink: { fontSize: 14, fontWeight: "600" as const },
 });

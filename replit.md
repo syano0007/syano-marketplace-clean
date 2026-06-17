@@ -12,7 +12,13 @@ Courier V3.3 — Mission Offer & Assignment Engine — COMPLETE ✅ (V3.3 Finali
 Phase M1: Mobile Parity — Marketplace Core — COMPLETE ✅ (June 17, 2026)
   - Wishlist tab, WishlistContext, ProductCard hearts, product gallery/reviews/related, store follow, homepage sections
   - Parity: 28% → 33%; Wishlist 0% → 100%; Marketplace 47% → 80%; TypeScript 0 errors
-Next task: Phase M2 (seller mobile dashboard) or Phase 14 (TBD)
+Phase M0.5: Mobile Auth Parity — COMPLETE ✅ (June 17, 2026)
+  - Login: removed role selector, added email/phone identifier field, matched web error codes (USER_NOT_FOUND, INVALID_PASSWORD, ACCOUNT_SUSPENDED, 429 rate-limit), SYANO "S" logo
+  - Register: removed role selector, added email/phone identifier, fixed all hardcoded strings → i18n, min password 6→8 chars, matched web error codes (email_taken, phone_taken, rate_limited)
+  - i18n: added 25+ missing auth keys + orders.review_* + store.review_* + store.communication/shipping/professionalism; fixed t() to accept string|Record as 2nd arg
+  - TypeScript: 0 errors (excluding pre-existing TS6305 lib build errors)
+  - Docs: MOBILE_PARITY_STATUS.md + ROUTE_PARITY_REPORT.md created
+Next task: Phase M0.6 (profile language/currency switcher) or Phase M0.7 (product detail wishlist heart)
 
 ---
 
