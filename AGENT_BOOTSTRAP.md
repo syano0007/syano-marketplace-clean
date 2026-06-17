@@ -9,11 +9,34 @@
 ## QUICK START — IS THE SYSTEM HEALTHY?
 
 ```bash
-curl -s http://localhost:8080/api/healthz
+curl -s http://localhost:8080/api/healthz | python3 -m json.tool
 ```
 
-- `{"status":"ok"}` → **System is healthy. DO NOTHING. Read CURRENT_STATE.md and continue from there.**
-- Any error → Follow the RECOVERY PROCEDURE section at the bottom of this file.
+The enriched health response tells you everything:
+```json
+{
+  "status": "ok",
+  "project": "SYANO",
+  "version": "2026.06",
+  "database": { "connected": true, "tables": 37, "products": 42, "embeddings": 42, "courierTablesOk": true },
+  "services": { "api": true, "embedding": true, "embeddingBackend": "tfidf-lsa" },
+  "versions": { "courier": "3.3", "search": "2.0", "messaging": "2.0" },
+  "mobileParity": 95,
+  "activeRoadmap": "...",
+  "nextRoadmap": "..."
+}
+```
+
+- `"status":"ok"` + `"tables":37` + `"courierTablesOk":true` → **System is fully healthy. DO NOTHING. Read CURRENT_STATE.md.**
+- `"tables"` < 37 → Run migrations (see RECOVERY PROCEDURE)
+- `"courierTablesOk":false` → Courier V3.3 tables missing — restart API (run-migrations.ts fixes it)
+- Any error / 503 → Follow the RECOVERY PROCEDURE section at the bottom of this file.
+
+### One-command certification check (after fresh import):
+```bash
+pnpm import:check    # Full 10-section PASS/FAIL certification
+pnpm recovery:report # Generates RECOVERY_REPORT.md from live state
+```
 
 ---
 
@@ -360,9 +383,11 @@ Restart API Server workflow — in-memory rate limiter clears on restart.
 
 ### Step 6 — Verify
 ```bash
-curl -s http://localhost:8080/api/healthz          # → {"status":"ok"}
+curl -s http://localhost:8080/api/healthz          # → {"status":"ok","database":{"tables":37,...}}
 curl -s http://localhost:8000/health               # → {"status":"ok","backend":"tfidf-lsa"}
 psql "$DATABASE_URL" -t -c "SELECT COUNT(*) FROM products;"  # → 42
+pnpm import:check                                  # → PASS WITH WARNINGS (1 optional env var)
+pnpm recovery:report                               # → generates RECOVERY_REPORT.md
 ```
 
 ### Full recovery: See `RECOVERY_GUIDE.md`
@@ -380,12 +405,32 @@ psql "$DATABASE_URL" -t -c "SELECT COUNT(*) FROM products;"  # → 42
 
 ---
 
+## IMPORT HARDENING TOOLS (Added June 17, 2026)
+
+These tools make the project self-certifying after a fresh GitHub import:
+
+| Command | Purpose |
+|---|---|
+| `pnpm import:check` | 10-section PASS/FAIL certification (DB, enums, columns, drift, seed, services, files) |
+| `pnpm recovery:report` | Generates `RECOVERY_REPORT.md` from live DB state |
+| `pnpm manifest:generate` | Refreshes `project.manifest.json` with live DB counts |
+
+**`project.manifest.json`** — machine-readable project state at workspace root. An agent can read this one file to understand the full project state without reading markdown documentation.
+
+**`GET /api/healthz`** — returns full live state (tables, products, embeddings, service status, versions, roadmap phase). One HTTP call = complete project snapshot.
+
+**`artifacts/api-server/src/lib/startup-validation.ts`** — runs on every API boot (after migrations). Validates all 15 critical tables, courier V3.3 tables, enums, and migration columns. Logs exact diagnostics. Never crashes the server.
+
+---
+
 ## FUTURE AGENT FIRST ACTIONS
 
 1. Read this file ✅
-2. `curl -s http://localhost:8080/api/healthz` — if `{"status":"ok"}`, system is healthy
-3. Read `CURRENT_STATE.md` to know exactly where development stopped
-4. Read `MOBILE_CERTIFICATION_REPORT.md` for full mobile parity audit
+2. `curl -s http://localhost:8080/api/healthz` — enriched response tells you tables, products, courier status, versions
+3. If starting fresh: `pnpm import:check` — 10-section certification with exact failures
+4. Read `CURRENT_STATE.md` to know exactly where development stopped
 5. Only then proceed with the assigned task
 
 **Never re-read all docs from scratch if healthz returns OK. Start from CURRENT_STATE.md.**
+
+**After fresh GitHub import:** `pnpm install` → start workflows → `pnpm import:check` → should show PASS.

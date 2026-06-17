@@ -7,6 +7,9 @@
     "hello": "tsx ./src/hello.ts",
     "seed:admin": "tsx ./src/seed-admin.ts",
     "sitemap:generate": "tsx ./src/generate-sitemap.ts",
+    "manifest:generate": "tsx ./src/generate-manifest.ts",
+    "import:check": "tsx ./src/import-check.ts",
+    "recovery:report": "tsx ./src/recovery-report.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

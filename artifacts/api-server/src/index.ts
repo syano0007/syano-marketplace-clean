@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { runSearchStartup } from "./lib/search-startup";
 import { runMigrations } from "./lib/run-migrations";
+import { runStartupValidation } from "./lib/startup-validation";
 import { bootstrapRootAdmin } from "./lib/bootstrap-admin";
 import { bootstrapTestAccounts, bootstrapAISupportAgent } from "./lib/bootstrap-test-accounts";
 import { bootstrapDemoMarketplaceData } from "./lib/bootstrap-demo-data";
@@ -24,6 +25,7 @@ if (Number.isNaN(port) || port <= 0) {
 
 (async () => {
   await runMigrations();
+  await runStartupValidation();
   await runSearchStartup();
   await bootstrapRootAdmin();
   await bootstrapTestAccounts();

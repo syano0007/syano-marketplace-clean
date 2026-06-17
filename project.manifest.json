@@ -1,0 +1,133 @@
+{
+  "_note": "Auto-maintained by scripts/src/generate-manifest.ts — run `pnpm manifest:generate` to refresh from live DB",
+  "project": "SYANO",
+  "description": "Syrian Digital Marketplace — multi-role (Seller/Customer/Courier/Admin) e-commerce platform",
+  "version": "2026.06",
+  "lastVerified": "2026-06-17",
+  "stack": {
+    "runtime": "Node.js 20 + Python 3.11",
+    "frontend": "React 19 + Vite 7 + Tailwind CSS v4 + shadcn/ui",
+    "backend": "Express 5 + Drizzle ORM + PostgreSQL 16",
+    "mobile": "Expo 54 (React Native) + expo-router",
+    "embedding": "FastAPI + sentence-transformers (TF-IDF fallback)",
+    "monorepo": "pnpm workspaces"
+  },
+  "database": {
+    "tables": 37,
+    "products": 42,
+    "enums": {
+      "notification_type": 32,
+      "order_status": 15,
+      "delivery_mission_status": 9
+    }
+  },
+  "services": [
+    {
+      "name": "API Server",
+      "port": 8080,
+      "workflow": "API Server",
+      "required": true
+    },
+    {
+      "name": "Marketplace",
+      "port": 5000,
+      "workflow": "Marketplace",
+      "required": true
+    },
+    {
+      "name": "Embedding Service",
+      "port": 8000,
+      "workflow": "Embedding Service",
+      "required": false,
+      "fallback": "TF-IDF+LSA"
+    },
+    {
+      "name": "Mobile (Expo)",
+      "port": 8081,
+      "workflow": "artifacts/mobile: expo",
+      "required": false
+    }
+  ],
+  "versions": {
+    "courier": "3.3",
+    "search": "2.0",
+    "messaging": "2.0",
+    "hero": "4.0",
+    "homepage": "7.0",
+    "trust": "1.0",
+    "aiSupport": "1.0"
+  },
+  "mobileParity": 95,
+  "roadmap": {
+    "active": "Import & Recovery Hardening",
+    "completed": [
+      "Phase 1-11: Core Platform",
+      "Phase 12: Performance & Scalability",
+      "Phase 13: AI Customer Service V1",
+      "Courier V3.2: Availability + Operations V2",
+      "Courier V3.3: Mission Offer & Assignment Engine",
+      "Phase M0.5: Mobile Auth Parity",
+      "Phase M1: Mobile Marketplace Core",
+      "Phase M2: Mobile Customer Systems",
+      "Phase M4: Mobile Seller Systems",
+      "Phase M5: Mobile Courier Systems",
+      "Phase M6: Mobile Admin Systems",
+      "Phase Mx: Mobile Parity Finalization",
+      "Phase Mx+1: Mobile Parity Gap Closure"
+    ],
+    "next": "Courier System Continuation"
+  },
+  "completedSystems": [
+    "Auth (JWT + role-based)",
+    "Product Catalog (42 products, variants)",
+    "Cart & Checkout",
+    "Order Lifecycle (15 statuses)",
+    "Seller Dashboard (analytics, inventory, reviews)",
+    "Courier System V3.3 (mission offers, dispatch alerts, availability)",
+    "Delivery Zones (40 Aleppo zones)",
+    "NLP Search V2 (Arabic+English, 13-step pipeline, synonyms, intent)",
+    "Semantic Embeddings (sentence-transformers / TF-IDF fallback)",
+    "Hero Banners V4",
+    "Wishlist System",
+    "Store Pages V2 (follow, reviews, contact, policies)",
+    "Trust & Verification System",
+    "Messaging V2 (SSE, attachments, admin inbox)",
+    "Push Notifications (VAPID)",
+    "AI Support Agent V1 (FAQ, escalation)",
+    "Homepage V7 (8 sections)",
+    "Mobile Parity ~95% (55 screens)"
+  ],
+  "testAccounts": {
+    "admin": {
+      "email": "delewatiamer7@gmail.com",
+      "password": "00Amer00"
+    },
+    "seller": {
+      "email": "delewatiamer8@gmail.com",
+      "password": "00Amer00"
+    },
+    "courier": {
+      "email": "delewatiamer9@gmail.com",
+      "password": "00Amer00"
+    },
+    "sellerDev": {
+      "email": "seller@syano.test",
+      "password": "Seller@2026"
+    },
+    "customerDev": {
+      "email": "customer@syano.test",
+      "password": "Customer@2026"
+    },
+    "courierDev": {
+      "email": "courier@syano.test",
+      "password": "Courier@2026"
+    }
+  },
+  "agentInstructions": {
+    "onFreshImport": "Run `pnpm install` then `pnpm import:check` to verify environment",
+    "healthCheck": "GET /api/healthz returns full project state",
+    "dbPush": "pnpm --filter @workspace/db run push",
+    "migrations": "Run automatically on API startup (run-migrations.ts)",
+    "recovery": "pnpm recovery:report generates RECOVERY_REPORT.md from live state"
+  }
+}
