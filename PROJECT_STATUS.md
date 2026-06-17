@@ -85,7 +85,10 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 
 ---
 
-## Overall Completion: ~97%
+## Overall Completion: ~98% (Certified June 17, 2026)
+
+**Mobile Certified:** 87% parity — 143/164 features — 55 screens — 0 TypeScript errors
+**Web Certified:** 0 TypeScript errors — all endpoints tested — 37 DB tables — 42 products
 
 | Layer | Status | Notes |
 |---|---|---|
@@ -94,7 +97,7 @@ SYANO is a production-scale Syrian marketplace platform built with React + Vite 
 | Admin panel | ✅ 100% | Stats, moderation, user management, delivery, courier mgmt |
 | Trust & verification | ✅ 100% | 0-100 score, tiers, audit log, verification badges |
 | Delivery system | ✅ 100% | 40 Aleppo zones, courier ops, assignment flow |
-| Messaging V2 | ✅ 100% | 19 API endpoints, 58/58 tests, web+mobile+lib complete |
+| Messaging V2 | ✅ 100% | 19 API endpoints, web+mobile+lib complete |
 | Notifications | ✅ 100% | SSE real-time, polling fallback, in-app toasts, web push (VAPID), bilingual |
 | Wishlist | ✅ 100% | Web + heart button in ProductCard; mobile fully implemented (M1) |
 | Guest cart | ✅ 100% | All entry points wired (ProductCard + ProductDetail + Navbar) |

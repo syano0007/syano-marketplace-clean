@@ -1,5 +1,8 @@
-# SYANO — Mobile Parity Audit (Phase M2/M4/M5/M6)
-Last audited: June 17, 2026
+# SYANO — Mobile Parity Audit
+**Last certified:** June 17, 2026 (Post all phases: M0.5/M1/M2/M4/M5/M6/Mx/Mx+1)
+**Overall Parity: 87% — 143/164 web features — 55 mobile screens — 0 TypeScript errors**
+
+> Complete certification data in `MOBILE_CERTIFICATION_REPORT.md`. This file documents the full per-route web→mobile mapping.
 
 ---
 
@@ -22,12 +25,12 @@ Last audited: June 17, 2026
 | 13 | `/checkout` | 2-step checkout — delivery zone, address, notes, confirm | Customer | PARTIAL — zones ✅, address ✅, notes ✅; no coupon/promo code |
 | 14 | `/orders` | Order history list | Customer | ✅ YES — `(tabs)/orders` |
 | 15 | `/orders/:id` | Order detail — status timeline, history, cancel, review seller | Customer | ✅ YES — `order/[id]` — timeline ✅, history ✅, review ✅, cancel ✅ |
-| 16 | `/customer/dashboard` | Customer stats, recent activity | Customer | ❌ NO |
+| 16 | `/customer/dashboard` | Customer stats, recent activity | Customer | ✅ YES — `customer-dashboard` (Mx) — stats + recent orders |
 | 17 | `/wishlist` | Saved products list | Customer | ✅ YES — `(tabs)/wishlist` — full list, remove, add-to-cart, empty state |
 | 18 | `/messages` | Messaging inbox — conversations, typing, read receipts, attachments | Customer | ✅ YES — `(tabs)/messages` — full V2 parity |
 | 19 | `/support` | AI Support chat + ticket tracking | Customer | ✅ YES — `support` — AI chat, message history, intent detection, escalation |
 | 20 | `/store/:slug` | Store page — products, reviews, follow, trust badge | Public | ✅ COMPLETE — `store/[slug]` ✅, follow/unfollow button ✅, trust badge ✅ |
-| 21 | `/stores` | Stores directory / listing | Public | ❌ NO |
+| 21 | `/stores` | Stores directory / listing | Public | ✅ YES — `stores/index` (Mx) |
 | 22 | `/seller/apply` | Seller application form | Customer | ✅ YES — `seller-apply` — store name, description, city, categories |
 | 23 | `/seller/application-status` | Seller application status tracker | Customer | ✅ YES — `seller-application-status` — live polling, status card, approved CTA |
 | 24 | `/seller/dashboard` | Seller dashboard — stats, orders, revenue | Seller | ✅ YES — profile.tsx seller menu + `seller/analytics` stats |
@@ -41,7 +44,7 @@ Last audited: June 17, 2026
 | 32 | `/seller/analytics` | Sales analytics charts | Seller | ✅ YES — `seller/analytics` — revenue/orders/products stats + 7-day bar chart |
 | 33 | `/seller/reviews` | Review management with reply | Seller | ✅ YES — `seller/reviews` — summary, rating bars, reply modal |
 | 34 | `/seller/store-settings` | Store profile, SEO, social, policies | Seller | ✅ YES — `seller/store-settings` — name/desc/logo/banner/city/website |
-| 35 | `/seller/trust` | Trust score breakdown | Seller | ❌ NO |
+| 35 | `/seller/trust` | Trust score breakdown | Seller | ✅ YES — `seller/trust` (Mx) — score breakdown, per-component bars |
 | 36 | `/seller/how-to-sell` | Seller onboarding guide | Public | ❌ NO |
 | 37 | `/seller/terms` | Seller terms of service | Public | ❌ NO |
 | 38 | `/seller/center` | Seller resource center | Public | ❌ NO |
@@ -59,29 +62,29 @@ Last audited: June 17, 2026
 | 50 | `/admin/sellers` | Seller management | Admin | ✅ YES — `admin/sellers` — approve/reject applications |
 | 51 | `/admin/analytics` | Platform analytics | Admin | ❌ NO |
 | 52 | `/admin/search-analytics` | Search query analytics | Admin | ❌ NO |
-| 53 | `/admin/courier-applications` | Courier application list | Admin | ❌ NO |
-| 54 | `/admin/courier-applications/:id` | Courier application review | Admin | ❌ NO |
+| 53 | `/admin/courier-applications` | Courier application list | Admin | ✅ YES — `admin/courier-applications` (Mx) — 4-tab approve/reject/suspend |
+| 54 | `/admin/courier-applications/:id` | Courier application review | Admin | PARTIAL — handled within courier-applications.tsx |
 | 55 | `/admin/delivery` | Delivery zones management | Admin | ❌ NO |
-| 56 | `/admin/delivery-missions` | Delivery mission monitoring | Admin | ❌ NO |
+| 56 | `/admin/delivery-missions` | Delivery mission monitoring | Admin | ✅ YES — `admin/delivery-missions` (Mx+1) — stats bar, trigger-assignment |
 | 57 | `/admin/courier-availability` | Live courier availability map | Admin | ❌ NO |
-| 58 | `/admin/verification` | Seller verification panel | Admin | ❌ NO |
-| 59 | `/admin/messages` | Admin inbox view | Admin | ❌ NO |
-| 60 | `/admin/hero-banners` | Hero banner CMS | Admin | ❌ NO |
-| 61 | `/admin/support` | Support ticket management | Admin | ❌ NO |
-| 62 | `/about` | About page | Public | ❌ NO |
+| 58 | `/admin/verification` | Seller verification panel | Admin | ✅ YES — `admin/verification` (Mx) — trust tier management |
+| 59 | `/admin/messages` | Admin inbox view | Admin | ✅ YES — `admin/support` handles admin comms |
+| 60 | `/admin/hero-banners` | Hero banner CMS | Admin | ✅ YES — `admin/hero-banners` (Mx+1) — CRUD + active toggle |
+| 61 | `/admin/support` | Support ticket management | Admin | ✅ YES — `admin/support` (Mx) — ticket list, resolve/close |
+| 62 | `/about` | About page | Public | ✅ YES — `about` (Mx) — hero, stats, value cards |
 | 63 | `/about/story` | Company story | Public | ❌ NO |
 | 64 | `/about/team` | Team page | Public | ❌ NO |
-| 65 | `/contact` | Contact page | Public | ❌ NO |
+| 65 | `/contact` | Contact page | Public | ✅ YES — `contact` (Mx) — 3 channels + bilingual form |
 | 66 | `/shipping` | Shipping information | Public | ❌ NO |
 | 67 | `/shipping/nationwide` | Nationwide shipping info | Public | ❌ NO |
 | 68 | `/payment-methods` | Accepted payment methods | Public | ❌ NO |
 | 69 | `/syano-guarantee` | Buyer protection guarantee | Public | ❌ NO |
 | 70 | `/loyalty` | Loyalty program page | Public | ❌ NO |
-| 71 | `/help` | Help center | Public | ❌ NO |
-| 72 | `/privacy-policy` | Privacy policy | Public | ❌ NO |
-| 73 | `/terms-of-use` | Terms of use | Public | ❌ NO |
-| 74 | `/returns-policy` | Returns policy | Public | ❌ NO |
-| 75 | `/cookies` | Cookie policy | Public | ❌ NO |
+| 71 | `/help` | Help center | Public | ✅ YES — `help` (Mx) — 5 categories, FAQ search, collapsible |
+| 72 | `/privacy-policy` | Privacy policy | Public | ✅ YES — `privacy-policy` (Mx) — bilingual EN+AR |
+| 73 | `/terms-of-use` | Terms of use | Public | ✅ YES — `terms` (Mx) — bilingual EN+AR |
+| 74 | `/returns-policy` | Returns policy | Public | ✅ YES — `returns` (Mx) — bilingual EN+AR |
+| 75 | `/cookies` | Cookie policy | Public | ✅ YES — `cookies` (Mx) — bilingual EN+AR |
 
 **Total web routes: 75**
 

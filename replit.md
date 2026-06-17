@@ -1,5 +1,5 @@
 # SYANO — syanomarket.online
-Last verified working: June 17, 2026 (Full Recovery + Boot Repair)
+Last verified working: June 17, 2026 (Full Recovery + Boot Repair + Mobile Certification)
 Workflows: API Server ✅ | Marketplace ✅ | Embedding Service ✅ (port 8000, TF-IDF mode) | Mobile Expo ✅
 Secrets: All 12 loaded ✅
 SEO Layer: react-helmet-async ✅ | sitemap.xml ✅ | robots.txt ✅ | JSON-LD ✅
@@ -54,6 +54,7 @@ Phase Mx+1: Mobile Parity Gap Closure — COMPLETE ✅ (June 17, 2026)
   - i18n: 40+ new keys added to both EN + AR (shop.on_sale, shop.price_range, shop.intent_*, admin_dash.delivery_missions, admin_dash.hero_banners, etc.)
   - TypeScript: 0 errors
 Mobile Parity: ~95% → ~98% (remaining: checkout coupon code UI — no API exists yet)
+**CERTIFIED June 17, 2026: 87% parity — 143/164 web features — 55 screens — 0 TS errors — see MOBILE_CERTIFICATION_REPORT.md**
 Phase Mx: Mobile Parity Finalization — COMPLETE ✅ (June 17, 2026)
   - 14 new screens: verify, categories, customer-dashboard, about, contact, help, privacy-policy, terms, returns, cookies, admin/courier-applications, admin/verification, admin/support, seller/trust
   - verify.tsx: redirect to home (verification disabled — matches web)
