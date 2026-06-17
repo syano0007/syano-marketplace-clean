@@ -11,8 +11,8 @@ This file is the authoritative recovery source. Do NOT infer project state from 
 ---
 
 # SYANO — syanomarket.online
-Last verified working: June 17, 2026 (Full Recovery + Boot Repair + Mobile Certification)
-Workflows: API Server ✅ | Marketplace ✅ | Embedding Service ✅ (port 8000, TF-IDF mode) | Mobile Expo ✅
+Last verified working: June 17, 2026 (Import Hardening Final Pass — clean 4-service boot)
+Workflows: artifacts/api-server: API Server ✅ | artifacts/marketplace: web ✅ | Embedding Service ✅ (port 8000, TF-IDF mode) | artifacts/mobile: expo ✅
 Secrets: All 12 loaded ✅
 SEO Layer: react-helmet-async ✅ | sitemap.xml ✅ | robots.txt ✅ | JSON-LD ✅
 Performance: vendor-charts ✅ | vendor-radix ✅ | LazyImage ✅ | web-vitals ✅ | cache headers ✅
@@ -96,7 +96,7 @@ Mobile Parity: ~85% → ~95% (all major screens implemented)
 
 **This project has been fully set up and verified on a new Replit account (June 16, 2026). DO NOT recreate workflows, reinstall packages, or run schema commands unless you have confirmed the environment is broken.**
 
-**Last verified:** June 17, 2026 — all env vars loaded, all 3 workflows running, 37 DB tables, 42/42 embeddings, test email delivered via Resend.
+**Last verified:** June 17, 2026 — 4 services running, 37 DB tables, 42/42 embeddings, 0 duplicate workflows.
 
 ### Before touching anything, run this check:
 ```bash
@@ -106,21 +106,21 @@ curl -s http://localhost:8080/api/healthz && echo "API OK"
 - If you get `{"status":"ok"}` → **everything is running, do not touch anything**
 - If the API is down → follow `RECOVERY_GUIDE.md` step by step
 
-### The workflows that MUST exist (do not create new ones, do not rename):
+### The 4 workflows that MUST exist (do not create new ones, do not rename):
 | Workflow Name | Port | Purpose |
 |---|---|---|
 | `artifacts/api-server: API Server` | 8080 | Express API + auto-migrations + demo data |
 | `Embedding Service` | 8000 | TF-IDF/LSA embedding service (EMBEDDING_PORT=8000 to match EMBEDDING_SERVICE_URL) |
-| `artifacts/marketplace: web` | 20787 | Marketplace artifact view |
+| `artifacts/marketplace: web` | 5000 | React + Vite marketplace (main web app) |
 | `artifacts/mobile: expo` | 18115 | Expo mobile dev server |
-| `artifacts/mockup-sandbox: Component Preview Server` | 8081 | UI component sandbox |
 
-**Embedding Service workflow command:** `cd artifacts/embedding-service && EMBEDDING_PORT=8000 python main.py`
+**Optional (on-demand only, not in auto-run):** `Component Preview Server` | 9000 | `cd tools/mockup-sandbox && PORT=9000 BASE_PATH=/__mockup pnpm run dev`
+
+**Embedding Service workflow command:** `cd artifacts/embedding-service && EMBEDDING_PORT=8000 python3 main.py`
 **EMBEDDING_SERVICE_URL** in .replit is `http://localhost:8000` — service MUST run on port 8000.
 
 ### Things that will BREAK the project if you do them:
-- ❌ Creating a new "API Server" workflow → port 8080 conflict, both die
-- ❌ Creating a new "Start application" on port 5000 → duplicate conflict
+- ❌ Creating new `API Server` or `Marketplace` manual workflows → they're now artifact-managed (auto-detected from `artifacts/` directories)
 - ❌ Running `pnpm dev` at workspace root → wrong, use workflow restart
 - ❌ Running `psql -f schema.sql` if DB already has 37 tables → will fail/corrupt
 - ❌ Installing `sentence-transformers` or `torch` via Replit package manager (uv) → fails on Linux; use `pip install --no-cache-dir` directly instead

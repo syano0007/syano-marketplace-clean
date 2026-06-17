@@ -22,11 +22,7 @@ args = "Embedding Service"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "API Server"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Marketplace"
+args = "Component Preview Server"
 
 [[workflows.workflow]]
 name = "Embedding Service"
@@ -41,28 +37,17 @@ args = "cd artifacts/embedding-service && EMBEDDING_PORT=8000 python3 main.py"
 waitForPort = 8000
 
 [[workflows.workflow]]
-name = "API Server"
+name = "Component Preview Server"
 author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd artifacts/api-server && PORT=8080 pnpm run dev"
-waitForPort = 8080
 
 [workflows.workflow.metadata]
 outputType = "console"
-
-[[workflows.workflow]]
-name = "Marketplace"
-author = "agent"
+isCanvasWorkflow = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd artifacts/marketplace && PORT=5000 BASE_PATH=/ API_PORT=8080 pnpm run dev"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
+args = "cd tools/mockup-sandbox && PORT=9000 BASE_PATH=/__mockup pnpm run dev"
+waitForPort = 9000
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
@@ -111,3 +96,7 @@ externalPort = 3002
 [[ports]]
 localPort = 20787
 externalPort = 3001
+
+[[ports]]
+localPort = 9000
+externalPort = 9000
