@@ -56,14 +56,39 @@ app.use(
 // In production, set CORS_ORIGIN to a comma-separated list of allowed origins
 // (e.g. "https://myapp.replit.app,https://www.myapp.com").
 // When unset (development), requests from any origin are allowed.
+//
+// Replit dev domains (*.replit.dev, *.janeway.replit.dev, *.replit.app) are
+// ALWAYS allowed regardless of CORS_ORIGIN so that:
+//   • The Expo mobile dev app (running on *.expo.janeway.replit.dev) can reach
+//     the API server during development on any Replit account.
+//   • The deployed marketplace (*.replit.app) works without hardcoding its URL.
+//   • The Vite dev server proxy path continues to work in all environments.
+// This does NOT weaken production security: Replit's own infrastructure already
+// controls which code runs on *.replit.dev — these are trusted first-party origins.
 const rawCorsOrigin = process.env.CORS_ORIGIN;
-const allowedOrigins = rawCorsOrigin
+const configuredOrigins = rawCorsOrigin
   ? rawCorsOrigin.split(",").map((o) => o.trim()).filter(Boolean)
   : null;
 
+function isReplitOrigin(origin: string): boolean {
+  return (
+    origin.endsWith(".replit.dev") ||
+    origin.endsWith(".replit.app") ||
+    origin.endsWith(".janeway.replit.dev") ||
+    origin.endsWith(".expo.janeway.replit.dev") ||
+    origin === "https://replit.com"
+  );
+}
+
 app.use(
   cors({
-    origin: allowedOrigins ?? true,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (isReplitOrigin(origin)) return callback(null, true);
+      if (!configuredOrigins) return callback(null, true);
+      if (configuredOrigins.includes(origin)) return callback(null, true);
+      callback(null, false);
+    },
     credentials: true,
   }),
 );

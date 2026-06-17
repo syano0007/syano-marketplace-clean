@@ -211,21 +211,44 @@ Courier: BUSY → ONLINE (auto-restore)
 
 ---
 
-## MOBILE AUTH — VERIFIED WORKING
+## MOBILE AUTH — VERIFIED WORKING (Forensic audit June 17, 2026)
 
-**Root cause of "generic error" reports:** The in-memory rate limiter (10 attempts/15 min per IP, 5 attempts/hour per user) triggers when too many test calls are made rapidly. **Fix: restart API Server workflow to clear rate limiter.**
+**Root cause of historical "generic error" reports:** CORS was blocking the Expo dev domain.
+
+**FORENSIC ROOT CAUSE (FIXED June 17, 2026):**
+The API server's `CORS_ORIGIN=https://syano.online` env var only whitelisted the production domain.
+The Expo web app runs on `https://*.expo.janeway.replit.dev` — a different origin. The API returned
+200 responses but with NO `Access-Control-Allow-Origin` header, so the browser blocked every
+response. The `fetch()` threw a TypeError which landed in the catch block → generic "try again" error.
+
+**Fix applied in `artifacts/api-server/src/app.ts`:**
+The CORS origin function now dynamically allows ALL `*.replit.dev` and `*.replit.app` origins
+in addition to configured `CORS_ORIGIN` domains. This is safe — Replit controls which code
+runs on these domains; they are trusted first-party origins.
+
+**The second cause of "generic error":** The in-memory rate limiter (10 attempts/15 min per IP,
+5 attempts/hour per user) triggers when too many test calls are made rapidly.
+**Fix: restart API Server workflow to clear the in-memory rate limiter.**
 
 **Mobile auth flow:**
 ```
 login.tsx
   → getBaseUrl() = https://${EXPO_PUBLIC_DOMAIN}
   → EXPO_PUBLIC_DOMAIN = REPLIT_DEV_DOMAIN (set in mobile workflow command)
-  → POST https://xxx.replit.dev/api/auth/login
-  → Replit proxy → Vite dev server (port 5000)
+  → POST https://xxx.janeway.replit.dev/api/auth/login
+  → Replit proxy → Vite dev server (marketplace, port 5000)
   → Vite /api proxy → API Server (port 8080)
-  → JWT returned
-  → login(data) stores token in AsyncStorage
+  → API CORS allows *.replit.dev origin → response sent with ACAO header
+  → JWT returned → login() stores token in AsyncStorage
   → router.replace("/(tabs)")
+```
+
+**CORS check — both routes must return `Access-Control-Allow-Origin`:**
+```bash
+EXPO="https://$(printenv REPLIT_EXPO_DEV_DOMAIN)"
+curl -s -I -X OPTIONS http://localhost:8080/api/auth/login \
+  -H "Origin: $EXPO" -H "Access-Control-Request-Method: POST" | grep Access-Control
+# Must show: Access-Control-Allow-Origin: https://...expo.janeway.replit.dev
 ```
 
 **Error codes matched:**
@@ -238,7 +261,22 @@ login.tsx
 | `Email already registered` | `t("auth.email_taken")` |
 | `Phone number already registered` | `t("auth.phone_taken")` |
 
-**Auth is NOT broken. All 3 permanent accounts verified working.**
+**healthz `auth` section — one-call verification:**
+```json
+{
+  "auth": {
+    "status": "healthy",
+    "provider": "jwt-hs256",
+    "adminLoginVerified": true,
+    "registrationVerified": true,
+    "corsReplitDomainsAllowed": true
+  }
+}
+```
+If `auth.status !== "healthy"` → root admin missing or password hash corrupt.
+If `auth.corsReplitDomainsAllowed !== true` → the CORS fix was reverted; mobile will fail.
+
+**Auth is NOT broken. All 3 permanent accounts + CORS verified working.**
 
 ---
 

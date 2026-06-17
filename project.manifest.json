@@ -77,8 +77,18 @@
     ],
     "next": "Courier System Continuation"
   },
+  "auth": {
+    "provider": "jwt-hs256",
+    "storage": "localStorage (web) / AsyncStorage (mobile)",
+    "verification": "disabled (flag: ENABLE_EMAIL_VERIFICATION=false)",
+    "corsForReplit": "*.replit.dev + *.replit.app always allowed (dynamic, not hardcoded)",
+    "corsProduction": "controlled by CORS_ORIGIN env var (default: https://syano.online)",
+    "forensicAuditDate": "2026-06-17",
+    "rootCauseFixed": "CORS blocked Expo dev domain — fixed in app.ts with isReplitOrigin() function",
+    "healthzAuthField": "GET /api/healthz → auth.status = 'healthy' when admin verified"
+  },
   "completedSystems": [
-    "Auth (JWT + role-based)",
+    "Auth (JWT + role-based + CORS forensic fix June 17 2026)",
     "Product Catalog (42 products, variants)",
     "Cart & Checkout",
     "Order Lifecycle (15 statuses)",
