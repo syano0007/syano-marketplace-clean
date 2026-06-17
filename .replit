@@ -24,6 +24,10 @@ args = "Embedding Service"
 task = "workflow.run"
 args = "Component Preview Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
 [[workflows.workflow]]
 name = "Embedding Service"
 author = "agent"
@@ -49,6 +53,18 @@ task = "shell.exec"
 args = "cd tools/mockup-sandbox && PORT=9000 BASE_PATH=/__mockup pnpm run dev"
 waitForPort = 9000
 
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=5000 API_PORT=8080 pnpm --filter @workspace/marketplace run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
@@ -72,14 +88,12 @@ SITE_URL = "https://syano.online"
 VITE_SUPPORT_PHONE = "+963-PLACEHOLDER"
 ROOT_ADMIN_PASSWORD = "00Amer00"
 EMBEDDING_SERVICE_URL = "http://localhost:8000"
+PORT = "5000"
+API_PORT = "8080"
 
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 8000
-externalPort = 8000
 
 [[ports]]
 localPort = 8080
@@ -90,13 +104,13 @@ localPort = 8081
 externalPort = 8081
 
 [[ports]]
+localPort = 9000
+externalPort = 9000
+
+[[ports]]
 localPort = 18115
 externalPort = 3002
 
 [[ports]]
 localPort = 20787
 externalPort = 3001
-
-[[ports]]
-localPort = 9000
-externalPort = 9000
